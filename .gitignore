@@ -16,6 +16,14 @@ build/
 out/
 .next/
 coverage/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Laufzeitdaten: Uploads (Kundendoku!), Chat-Verlauf
+backend/data/
+*.sqlite
+*.sqlite-*
 
 # Logs
 *.log

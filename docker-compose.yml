@@ -1,0 +1,34 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: stromlauf-db
+    environment:
+      POSTGRES_USER: stromlauf
+      POSTGRES_PASSWORD: stromlauf
+      POSTGRES_DB: stromlauf
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stromlauf -d stromlauf"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: visuelles Prototyping von Flows. Start: docker compose --profile langflow up -d
+  langflow:
+    image: langflowai/langflow:latest
+    container_name: stromlauf-langflow
+    profiles: ["langflow"]
+    ports:
+      - "7860:7860"
+    environment:
+      LANGFLOW_DATABASE_URL: sqlite:////app/langflow/langflow.db
+      LANGFLOW_CONFIG_DIR: /app/langflow
+    volumes:
+      - langflow:/app/langflow
+
+volumes:
+  pgdata:
+  langflow:

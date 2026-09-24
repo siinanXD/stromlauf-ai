@@ -1,0 +1,42 @@
+FUNCTION_BLOCK FB 10
+TITLE =Motorsteuerung Pumpe 1
+VERSION : 0.1
+
+VAR_INPUT
+  Start : BOOL ;	//Taster Start
+  Stop : BOOL ;	//Taster Stop (Oeffner)
+END_VAR
+VAR_OUTPUT
+  Motor : BOOL ;
+END_VAR
+BEGIN
+NETWORK
+TITLE =Selbsthaltung Motor
+//Start setzt, Stop oder Motorschutz ruecksetzen
+      U(    ;
+      O     E      0.0;
+      O     A      4.0;
+      )     ;
+      U     E      0.1;
+      U     E      0.2;
+      =     A      4.0;
+NETWORK
+TITLE =Stoermeldung
+      UN    E      0.2;
+      S     M     10.0;
+      L     MW   100;
+      T     DB10.DBW    4;
+END_FUNCTION_BLOCK
+
+ORGANIZATION_BLOCK OB 1
+TITLE = "Main Program Sweep (Cycle)"
+VERSION : 0.1
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;
+END_VAR
+BEGIN
+NETWORK
+TITLE =Aufruf Motorsteuerung
+      CALL FB    10 , DB    10 ;
+END_ORGANIZATION_BLOCK
