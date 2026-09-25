@@ -41,3 +41,6 @@ desktop.ini
 
 # Lokale Testdaten (Festo, Siemens: nicht weiterverteilen)
 testdata/
+
+# Eval-Ergebnisse (lokal, Referenzlauf per git add -f)
+eval/results/
