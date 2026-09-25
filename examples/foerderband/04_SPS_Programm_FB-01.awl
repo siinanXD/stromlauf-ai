@@ -1,0 +1,143 @@
+FUNCTION_BLOCK FB 10
+TITLE =Foerderband FB-01 Steuerung
+//Ansteuerung Foerdermotor -M1 ueber Wendeschuetze -K1 / -K2,
+//Stoerungsauswertung, Stueckzaehlung. Anlage =FB1, Schaltschrank +ST1.
+AUTHOR : Beispiel
+FAMILY : FB01
+NAME : Foerder
+VERSION : 1.0
+
+VAR_INPUT
+  Start : BOOL ;	//Taster -S1 Start (E0.0)
+  Stop : BOOL ;	//Taster -S2 Stop, Oeffner (E0.1)
+  MSS_OK : BOOL ;	//Motorschutz -F2 Hilfskontakt (E0.2)
+  NotHalt_OK : BOOL ;	//Sicherheitsrelais -K3 Freigabe (E0.3)
+  LS_Einlauf : BOOL ;	//Lichtschranke -B1 (E0.4)
+  LS_Auslauf : BOOL ;	//Lichtschranke -B2 (E0.5)
+  Richtung_Rueck : BOOL ;	//1 = Rueckwaertsbetrieb (Wartung)
+END_VAR
+VAR_OUTPUT
+  Vorwaerts : BOOL ;	//Schuetz -K1 (A4.0)
+  Rueckwaerts : BOOL ;	//Schuetz -K2 (A4.1)
+  Betrieb : BOOL ;	//Meldeleuchte -H1 (A4.2)
+  Stoerung : BOOL ;	//Meldeleuchte -H2 (A4.3)
+END_VAR
+VAR
+  Freigabe : BOOL ;	//Selbsthaltung Betrieb
+  Flanke_Start : BOOL ;	//Flankenmerker Start
+  Flanke_Auslauf : BOOL ;	//Flankenmerker Lichtschranke Auslauf
+  Stueckzahl : INT ;	//Teile seit Quittierung
+  Timer_Blockade : S5TIME ;	//Ueberwachung Einlauf -> Auslauf
+END_VAR
+BEGIN
+NETWORK
+TITLE =Selbsthaltung Betrieb
+//Start setzt die Freigabe, Stop (Oeffner), Motorschutz oder Not-Halt setzen zurueck.
+//Wiederanlaufsperre: nach Not-Halt ist ein neuer Start noetig.
+      U(    ;
+      O     #Start;
+      O     #Freigabe;
+      )     ;
+      U     #Stop;
+      U     #MSS_OK;
+      U     #NotHalt_OK;
+      UN    #Stoerung;
+      =     #Freigabe;
+NETWORK
+TITLE =Schuetz vorwaerts -K1
+//Verriegelung gegen -K2: vorwaerts nur, wenn rueckwaerts nicht angesteuert.
+      U     #Freigabe;
+      UN    #Richtung_Rueck;
+      UN    #Rueckwaerts;
+      =     #Vorwaerts;
+NETWORK
+TITLE =Schuetz rueckwaerts -K2
+//Verriegelung gegen -K1.
+      U     #Freigabe;
+      U     #Richtung_Rueck;
+      UN    #Vorwaerts;
+      =     #Rueckwaerts;
+NETWORK
+TITLE =Stoerung Motorschutz
+//Motorschutz -F2 ausgeloest: Sammelstoerung setzen. Quittierung mit Start bei stehendem Band.
+      UN    #MSS_OK;
+      S     #Stoerung;
+      U     #Start;
+      UN    #Freigabe;
+      U     #MSS_OK;
+      R     #Stoerung;
+NETWORK
+TITLE =Stoerung Blockade Band
+//Teil am Einlauf erkannt, aber innerhalb von 20 s nicht am Auslauf: Blockade.
+      U     #LS_Einlauf;
+      U     #Vorwaerts;
+      L     S5T#20S;
+      SE    T     5;
+      U     #LS_Auslauf;
+      R     T     5;
+      U     T     5;
+      S     #Stoerung;
+NETWORK
+TITLE =Meldeleuchte Betrieb -H1
+      U     #Freigabe;
+      =     #Betrieb;
+NETWORK
+TITLE =Stueckzaehlung
+//Steigende Flanke Lichtschranke Auslauf -B2 zaehlt ein Teil.
+      U     #LS_Auslauf;
+      FP    #Flanke_Auslauf;
+      SPBN  ende;
+      L     #Stueckzahl;
+      L     1;
+      +I    ;
+      T     #Stueckzahl;
+      T     MW   100;
+ende: NOP   0;
+END_FUNCTION_BLOCK
+
+DATA_BLOCK DB 10
+TITLE =Instanz Foerderband FB-01
+VERSION : 1.0
+ FB 10
+BEGIN
+END_DATA_BLOCK
+
+ORGANIZATION_BLOCK OB 1
+TITLE = "Main Program Sweep (Cycle)"
+VERSION : 1.0
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;
+  OB1_SCAN_1 : BYTE ;
+  OB1_PRIORITY : BYTE ;
+  OB1_OB_NUMBR : BYTE ;
+  OB1_RESERVED_1 : BYTE ;
+  OB1_RESERVED_2 : BYTE ;
+  OB1_PREV_CYCLE : INT ;
+  OB1_MIN_CYCLE : INT ;
+  OB1_MAX_CYCLE : INT ;
+  OB1_DATE_TIME : DATE_AND_TIME ;
+END_VAR
+BEGIN
+NETWORK
+TITLE =Aufruf Foerderband FB-01
+//Eingaenge -A1.1 (EB0), Ausgaenge -A1.2 (AB4)
+      CALL  FB    10 , DB    10
+       Start                    :=E      0.0
+       Stop                     :=E      0.1
+       MSS_OK                   :=E      0.2
+       NotHalt_OK               :=E      0.3
+       LS_Einlauf               :=E      0.4
+       LS_Auslauf               :=E      0.5
+       Richtung_Rueck           :=M     20.0
+       Vorwaerts                :=A      4.0
+       Rueckwaerts              :=A      4.1
+       Betrieb                  :=A      4.2
+       Stoerung                 :=A      4.3
+      NOP   0;
+NETWORK
+TITLE =Sammelstoerung Merker
+//Stoerung fuer Visualisierung spiegeln
+      U     A      4.3;
+      =     M     10.0;
+END_ORGANIZATION_BLOCK

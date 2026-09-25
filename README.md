@@ -28,6 +28,20 @@ npm run dev                   # http://localhost:3100
 Beim ersten Upload lädt das Backend das Embedding-Modell (`BAAI/bge-m3`, ca. 2 GB) und die
 Docling-Layoutmodelle von Hugging Face.
 
+## In 5 Minuten ausprobieren
+
+Im Ordner [`examples/foerderband/`](examples/foerderband/) liegt eine komplette, frei erfundene
+Anlagendokumentation: Stromlaufplan (7 Blaetter), Stueckliste, Klemmenplan, STEP 7 AWL-Programm,
+Symboltabelle und Betriebsanleitung, alle mit denselben Kennzeichen. Backend laeuft, dann:
+
+```bash
+python scripts/load_example.py       # legt die Quelle an, laedt 6 Dateien, wartet auf die Ingestion
+```
+
+Danach im Frontend fragen, zum Beispiel: *„Was haengt an E0.3 und wo ist das im Plan?“* oder
+*„Warum leuchtet -H2 nach 20 Sekunden?“* Weitere Fragen mit Loesungsweg in
+[`examples/foerderband/README.md`](examples/foerderband/README.md).
+
 ## Architektur
 
 ```

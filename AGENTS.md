@@ -16,7 +16,7 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
 - **Kosten:** Die optionale Vision-Analyse schickt jede Schaltplanseite an Claude
   (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`.
-- Kein Git-Remote. Der Stand existiert nur auf diesem Rechner.
+- Git-Remote `origin` = github.com/siinanXD/stromlauf-ai (privat).
 
 ## Build & Test
 
@@ -34,4 +34,4 @@ Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
 und muss neu erstellt werden.
 
-`TODO:` GitHub-Remote `siinanXD/stromlauf-ai` anlegen?
+GitHub-Remote: `siinanXD/stromlauf-ai` (privat, seit 2026-09-25). Beispielanlage: `examples/foerderband/`, Laden mit `python scripts/load_example.py`.
