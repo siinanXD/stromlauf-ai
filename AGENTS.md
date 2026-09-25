@@ -10,7 +10,9 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript.
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Hallen-Baukasten, `/werk/maschine/[id]`.
+- Werk-Datenmodell (`models.py`): Hall -> Machine (-> KnowledgeSource) -> FaultEntry, CabinetImage -> CabinetHotspot.
+  Tabellen entstehen per `create_all`; Bilder liegen unter `backend/data/images/`.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

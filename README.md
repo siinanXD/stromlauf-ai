@@ -42,16 +42,28 @@ Danach im Frontend fragen, zum Beispiel: *„Was haengt an E0.3 und wo ist das i
 *„Warum leuchtet -H2 nach 20 Sekunden?“* Weitere Fragen mit Loesungsweg in
 [`examples/foerderband/README.md`](examples/foerderband/README.md).
 
+## Werk: Halle, Maschinen, Schaltschrank
+
+Reiter **Werk** im Frontend: Hallen anlegen, Maschinen als Kacheln anordnen (Foerderband,
+Hauptmaschine, Verpackung ...), Materialfluss als Pfeile zeichnen. Jede Maschine hat eine
+Maschinenseite mit Foto, zugeordneter Wissensquelle, Fehlerliste (Code, Symptom, Ursache,
+Behebung, beteiligte BMK) und Schaltschrankbildern. Im Schaltschrankbild werden Bauteile als
+Rechtecke markiert, von Hand oder per **Bauteile erkennen lassen** (Claude Vision schlaegt
+Bauteilart und BMK vor, kostet API-Tokens je Bild). Klick auf ein Bauteil zeigt seine Fundstellen
+in Stromlaufplan, Stueckliste, Klemmenplan und AWL. `scripts/load_example.py` legt dazu eine
+Beispielhalle mit Aufbauplan und 14 fertigen Markierungen an.
+
 ## Architektur
 
 ```
-frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer
+frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
+            Werk (Hallen-Baukasten, Maschinenseite, Schaltschrank-Editor)
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
                    optionale Vision-Analyse der Schaltplanseiten (Claude)
   app/agent/       LangGraph-Agent (Claude) mit Werkzeugen: search_knowledge, find_tag,
                    keyword_search, get_page, view_page, get_plc_block, list_documents
-  app/api/         REST + SSE
+  app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860
