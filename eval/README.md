@@ -22,6 +22,7 @@ Antwort, nicht einen anderen Richter.
 python eval/run_eval.py                        # alle 24 Fragen, ca. 20 min, ein Agentenlauf je Frage
 python eval/run_eval.py --only festo           # nur eine Quelle
 python eval/run_eval.py --baseline eval/results/2026-09-26_10-00-00.json   # Vergleich mit frueherem Lauf
+python eval/run_eval.py --resume eval/results/<lauf>.json                  # abgebrochenen Lauf fortsetzen
 ```
 
 Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf eine Referenzdatei).
@@ -35,6 +36,13 @@ je Lauf aus, so steht neben der Trefferquote auch der Preis:
 ```bash
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 ```
+
+## Langfuse
+
+Sind `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` gesetzt (im Backend und in der Shell des Runners),
+bekommt jede Frage einen Trace mit Tags `eval:<lauf>` und `q:<frage>`, und der Runner haengt die
+drei Bewertungen als Scores an. In Langfuse lassen sich dann Laeufe und Modelle nebeneinander
+vergleichen, inklusive Tokens und Kosten je Frage.
 
 ## Kennzahlen
 

@@ -54,12 +54,15 @@ def cost_usd(usage: dict) -> float:
     return usage.get("input_tokens", 0) / 1e6 * prices[0] + usage.get("output_tokens", 0) / 1e6 * prices[1]
 
 
-def ask(client: httpx.Client, message: str, source_ids: list[str]) -> tuple[str, list[dict], list[str], float, dict]:
+def ask(
+    client: httpx.Client, message: str, source_ids: list[str], tags: list[str] | None = None
+) -> tuple[str, list[dict], list[str], float, dict]:
     """Schickt eine Frage, liest den SSE-Stream, gibt (Antwort, Quellen, Toolaufrufe, Sekunden, Usage) zurueck."""
     answer, sources, tools = [], [], []
     usage = {"input_tokens": 0, "output_tokens": 0, "model": "", "calls": 0}
     started = time.time()
-    with client.stream("POST", "/api/chat", json={"message": message, "source_ids": source_ids}) as response:
+    body = {"message": message, "source_ids": source_ids, "trace_tags": tags or []}
+    with client.stream("POST", "/api/chat", json=body) as response:
         response.raise_for_status()
         event = None
         for line in response.iter_lines():
@@ -125,16 +128,73 @@ def summarize(all_rows: list[dict]) -> dict:
     }
 
 
+def push_scores_to_langfuse(run_id: str, rows: list[dict]) -> None:
+    """Schreibt fakten/quellen/sauber als Scores an die Traces mit Tag eval:<run_id>. Ohne Keys: nichts."""
+    import os
+
+    env_file = HERE.parent / ".env"  # Keys aus der .env des Repos uebernehmen, falls nicht gesetzt
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("LANGFUSE_") and "=" in line:
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip().strip('"'))
+    if not (os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY")):
+        return
+    try:
+        from langfuse import Langfuse
+    except ImportError:
+        print("Langfuse-Paket fehlt (pip install langfuse), Scores nicht uebertragen.")
+        return
+    client = Langfuse()
+    print("Scores nach Langfuse ...", end="", flush=True)
+    written = 0
+    for attempt in range(6):  # Ingestion ist asynchron, kurz warten
+        traces = client.api.trace.list(tags=[f"eval:{run_id}"], limit=100).data
+        by_question = {}
+        for trace in traces:
+            for tag in trace.tags or []:
+                if tag.startswith("q:"):
+                    by_question[tag[2:]] = trace.id
+        if len(by_question) >= len(rows) or attempt == 5:
+            for row in rows:
+                trace_id = by_question.get(row["id"])
+                if not trace_id:
+                    continue
+                score = row["score"]
+                client.create_score(trace_id=trace_id, name="fakten", value=score["fakten"], data_type="NUMERIC")
+                client.create_score(trace_id=trace_id, name="quellen_ok", value=1.0 if score["quellen_ok"] else 0.0)
+                client.create_score(trace_id=trace_id, name="sauber", value=1.0 if score["sauber"] else 0.0)
+                written += 1
+            break
+        time.sleep(5)
+    client.flush()
+    print(f" {written}/{len(rows)} Traces bewertet.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--api", default="http://localhost:8010")
     parser.add_argument("--only", help="Filter auf id oder Quellname, z. B. festo")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
+    parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
     args = parser.parse_args()
 
     questions = load_questions(args.only)
     if not questions:
         sys.exit("Keine Fragen ausgewaehlt.")
+    run_id = f"{datetime.now():%Y-%m-%d_%H-%M-%S}"
+    rows: list[dict] = []
+    if args.resume and args.resume.exists():
+        run_id = args.resume.stem
+        rows = [r for r in json.loads(args.resume.read_text(encoding="utf-8"))["results"] if not r["answer"].startswith("[FEHLER]")]
+        done = {r["id"] for r in rows}
+        questions = [q for q in questions if q["id"] not in done]
+        print(f"Setze {args.resume.name} fort: {len(rows)} fertig, {len(questions)} offen")
+    RESULTS.mkdir(exist_ok=True)
+    out = RESULTS / f"{run_id}.json"
+
+    def save() -> None:
+        out.write_text(json.dumps({"summary": summarize(rows), "results": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     with httpx.Client(base_url=args.api, timeout=600) as client:
         try:
@@ -146,11 +206,12 @@ def main() -> int:
         if missing:
             sys.exit(f"Wissensquellen fehlen im Backend: {missing}. Erst laden (scripts/load_example.py, scripts/load_folder.py).")
 
-        rows = []
         for i, q in enumerate(questions, 1):
             print(f"[{i}/{len(questions)}] {q['id']}: {q['question'][:70]}", flush=True)
             try:
-                answer, cited, tools, seconds, usage = ask(client, q["question"], [by_name[q["source"]]])
+                answer, cited, tools, seconds, usage = ask(
+                    client, q["question"], [by_name[q["source"]]], tags=[f"eval:{run_id}", f"q:{q['id']}"]
+                )
             except Exception as exc:  # Netz, Timeout
                 answer, cited, tools, seconds, usage = f"[FEHLER] {type(exc).__name__}: {exc}", [], [], 0.0, {}
             result = score(q, answer, cited)
@@ -165,11 +226,10 @@ def main() -> int:
                 print(f"         Quelle fehlt: {result['quellen_fehlend']}")
             if result["verboten_gefunden"]:
                 print(f"         verboten: {result['verboten_gefunden']}")
+            save()
 
     summary = summarize(rows)
-    RESULTS.mkdir(exist_ok=True)
-    out = RESULTS / f"{datetime.now():%Y-%m-%d_%H-%M-%S}.json"
-    out.write_text(json.dumps({"summary": summary, "results": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+    save()
 
     print("\nZusammenfassung")
     for key, value in summary.items():
@@ -182,6 +242,7 @@ def main() -> int:
             delta = summary[key] - base.get(key, 0)
             print(f"  {key:16} {base.get(key)} -> {summary[key]}  ({delta:+})")
     print(f"\nErgebnis: {out}")
+    push_scores_to_langfuse(run_id, [r for r in rows if not r["answer"].startswith("[FEHLER]")])
     return 0
 
 
