@@ -76,6 +76,12 @@ Wie Zusammenhänge entstehen:
 
 Gescannte PDFs: `OCR_ENABLED=true` in `.env`.
 
+## Antwortqualitaet messen
+
+`eval/questions.jsonl` enthaelt 24 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu
+zitierende Quellen), darunter drei Fallen ohne Antwort im Material. `python eval/run_eval.py` schickt
+sie an das laufende Backend und bewertet ohne LLM-Richter. Details in [`eval/README.md`](eval/README.md).
+
 ## Tests
 
 ```bash
