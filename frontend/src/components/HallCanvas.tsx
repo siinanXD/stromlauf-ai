@@ -22,6 +22,15 @@ function snap(value: number) {
   return Math.max(0, Math.round(value / GRID) * GRID);
 }
 
+/** Schnittpunkt der Linie Kachelmitte -> Ziel mit dem Kachelrand, damit die Pfeilspitze sichtbar bleibt. */
+function edgePoint(cx: number, cy: number, tx: number, ty: number) {
+  const dx = tx - cx;
+  const dy = ty - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const scale = Math.min((TILE_W / 2 + 6) / Math.abs(dx || 1e-6), (TILE_H / 2 + 6) / Math.abs(dy || 1e-6));
+  return { x: cx + dx * scale, y: cy + dy * scale };
+}
+
 /**
  * Baukasten der Halle: Maschinen als Kacheln, per Maus verschiebbar, Materialfluss als Pfeile.
  * Positionen werden nach dem Loslassen gespeichert; im Fluss-Modus verbindet ein Klick auf zwei
@@ -145,10 +154,10 @@ export function HallCanvas({
             {flows.map((flow) => {
               const a = pos(flow.from_machine_id);
               const b = pos(flow.to_machine_id);
-              const x1 = a.x + TILE_W / 2;
-              const y1 = a.y + TILE_H / 2;
-              const x2 = b.x + TILE_W / 2;
-              const y2 = b.y + TILE_H / 2;
+              const ca = { x: a.x + TILE_W / 2, y: a.y + TILE_H / 2 };
+              const cb = { x: b.x + TILE_W / 2, y: b.y + TILE_H / 2 };
+              const { x: x1, y: y1 } = edgePoint(ca.x, ca.y, cb.x, cb.y);
+              const { x: x2, y: y2 } = edgePoint(cb.x, cb.y, ca.x, ca.y);
               const mx = (x1 + x2) / 2;
               const my = (y1 + y2) / 2;
               return (
