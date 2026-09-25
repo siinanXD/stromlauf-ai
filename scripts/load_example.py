@@ -7,6 +7,7 @@ examples/foerderband/ hoch und wartet, bis jede Ingestion abgeschlossen ist.
 """
 
 import argparse
+import json
 import sys
 import time
 from pathlib import Path
@@ -76,6 +77,67 @@ def wait_for(client: httpx.Client, document_ids: list[str], timeout_s: int = 180
     return not pending
 
 
+HALL_NAME = "Halle 1 (Beispiel)"
+MACHINE_NAME = "Foerderband FB-01"
+FAULTS = [
+    {"code": "E-F2", "symptom": "-H2 leuchtet, Band steht, Start ohne Wirkung", "cause": "Motorschutz -F2 ausgeloest (E0.2 = 0)",
+     "fix": "-F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren.",
+     "doc_ref": "Betriebsanleitung Kap. 6, Stromlaufplan Blatt 3", "tags": ["-F2", "-M1", "-H2"]},
+    {"code": "E-BLOCK", "symptom": "-H2 leuchtet nach ca. 20 s Betrieb", "cause": "Blockade: Teil am Einlauf -B1, aber nicht am Auslauf -B2 (Timer T5)",
+     "fix": "Band auf Verklemmung pruefen, -B2 reinigen und ausrichten (Klemme -X3:6, E0.5).",
+     "doc_ref": "FB10 Netzwerk 5, Betriebsanleitung Kap. 6", "tags": ["-B1", "-B2", "-X3"]},
+    {"code": "E-NH", "symptom": "Start ohne Wirkung, -H1 und -H2 aus", "cause": "Not-Halt nicht entriegelt, -K3 ohne Freigabe (E0.3 = 0)",
+     "fix": "-S3 entriegeln, 24 V an -X3:4 pruefen, beide Kanaele -S3 11/12 und 21/22 pruefen.",
+     "doc_ref": "Stromlaufplan Blatt 4", "tags": ["-S3", "-K3", "-X3"]},
+    {"code": "E-PH", "symptom": "-K1 zieht an, Motor brummt, dreht nicht", "cause": "Phase fehlt am Motorabgang",
+     "fix": "Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und -M1:U1/V1/W1.",
+     "doc_ref": "Stromlaufplan Blatt 3", "tags": ["-X4", "-M1", "-K1"]},
+]
+
+
+def setup_plant(client: httpx.Client, source_id: str) -> None:
+    """Halle, Maschine, Schaltschrank-Aufbauplan mit Hotspots und Fehlerliste anlegen (idempotent)."""
+    halls = client.get("/api/halls").json()
+    hall = next((h for h in halls if h["name"] == HALL_NAME), None)
+    if hall is None:
+        hall = client.post("/api/halls", json={"name": HALL_NAME, "description": "Beispielhalle aus examples/foerderband"}).json()
+        print(f"Halle angelegt: {HALL_NAME}")
+    detail = client.get(f"/api/halls/{hall['id']}").json()
+    machine = next((m for m in detail["machines"] if m["name"] == MACHINE_NAME), None)
+    if machine is None:
+        machine = client.post(
+            f"/api/halls/{hall['id']}/machines",
+            json={"name": MACHINE_NAME, "machine_type": "conveyor", "source_id": source_id, "pos_x": 72, "pos_y": 96,
+                  "description": "Werkstuecktransport Einlauf -> Auslauf, Wendeschuetz -K1/-K2, SPS -A1"},
+        ).json()
+        print(f"Maschine angelegt: {MACHINE_NAME}")
+        # zwei Nachbarn fuer den Materialfluss, ohne Doku
+        before = client.post(f"/api/halls/{hall['id']}/machines", json={"name": "Magazin", "machine_type": "storage", "pos_x": 72, "pos_y": 312}).json()
+        after = client.post(f"/api/halls/{hall['id']}/machines", json={"name": "Verpackung VP-02", "machine_type": "packaging", "pos_x": 504, "pos_y": 96}).json()
+        client.put(f"/api/halls/{hall['id']}/flows", json=[
+            {"from_machine_id": before["id"], "to_machine_id": machine["id"], "label": "Rohteile"},
+            {"from_machine_id": machine["id"], "to_machine_id": after["id"], "label": "Fertigteile"},
+        ])
+    elif machine.get("source_id") != source_id:
+        client.patch(f"/api/machines/{machine['id']}", json={"source_id": source_id})
+
+    full = client.get(f"/api/machines/{machine['id']}").json()
+    if not full["faults"]:
+        for fault in FAULTS:
+            client.post(f"/api/machines/{machine['id']}/faults", json=fault)
+        print(f"Fehlerliste: {len(FAULTS)} Eintraege")
+
+    plan = EXAMPLE_DIR / "07_Schaltschrank_Aufbauplan_FB-01.png"
+    spots = EXAMPLE_DIR / "07_Schaltschrank_Hotspots_FB-01.json"
+    if not full["cabinets"] and plan.exists() and spots.exists():
+        with plan.open("rb") as f:
+            cabinet = client.post(f"/api/machines/{machine['id']}/cabinets", files={"file": (plan.name, f, "image/png")},
+                                  data={"title": "Schaltschrank +ST1 (Aufbauplan)"}).json()
+        for spot in json.loads(spots.read_text(encoding="utf-8")):
+            client.post(f"/api/cabinets/{cabinet['id']}/hotspots", json={**spot, "confirmed": True})
+        print("Schaltschrank-Aufbauplan mit Hotspots angelegt")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--api", default="http://localhost:8010", help="Backend-URL")
@@ -104,12 +166,14 @@ def main() -> int:
             ids.append(doc["id"])
 
         if not ids:
-            print("Nichts zu tun.")
+            print("Alle Dokumente vorhanden.")
+            setup_plant(client, source["id"])
             return 0
         print("Warte auf Ingestion (erster Lauf laedt Modelle, das dauert einige Minuten) ...")
         ok = wait_for(client, ids)
         print("Fertig." if ok else "Zeitueberschreitung, Status im Frontend pruefen.")
-        print(f"Frontend: http://localhost:3100  ->  Quelle \"{SOURCE_NAME}\"")
+        setup_plant(client, source["id"])
+        print(f"Frontend: http://localhost:3100  ->  Quelle \"{SOURCE_NAME}\", Werk -> Halle 1")
         return 0 if ok else 1
 
 

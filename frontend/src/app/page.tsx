@@ -50,6 +50,9 @@ export default function Home() {
         setHealth(result);
         loadSources();
         loadConversations();
+        // Von der Maschinenseite: /?source=<id> waehlt deren Wissensquelle vor
+        const preset = new URLSearchParams(window.location.search).get("source");
+        if (preset) setSelectedSourceIds([preset]);
       })
       .catch(() => setBackendError("Backend nicht erreichbar. Läuft es auf Port 8010?"));
   }, [loadSources, loadConversations]);

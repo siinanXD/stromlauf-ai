@@ -159,3 +159,166 @@ export async function* streamChat(
     }
   }
 }
+
+// --- Werk: Hallen, Maschinen, Fehlerliste, Schaltschrank ---------------------------------
+
+export type MachineType = "conveyor" | "main" | "packaging" | "robot" | "storage" | "other";
+
+export const MACHINE_TYPE_LABELS: Record<MachineType, string> = {
+  conveyor: "Förderband",
+  main: "Hauptmaschine",
+  packaging: "Verpackung",
+  robot: "Roboter",
+  storage: "Lager / Puffer",
+  other: "Sonstiges",
+};
+
+export interface Hall {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  machine_count: number;
+}
+
+export interface Machine {
+  id: string;
+  hall_id: string;
+  name: string;
+  machine_type: MachineType;
+  description: string;
+  source_id: string | null;
+  source_name: string | null;
+  has_image: boolean;
+  pos_x: number;
+  pos_y: number;
+  order_index: number;
+  fault_count: number;
+  cabinet_count: number;
+  document_count: number;
+}
+
+export interface Flow {
+  id?: string;
+  from_machine_id: string;
+  to_machine_id: string;
+  label: string;
+}
+
+export interface HallDetail extends Hall {
+  machines: Machine[];
+  flows: Flow[];
+}
+
+export interface Fault {
+  id: string;
+  machine_id: string;
+  code: string;
+  symptom: string;
+  cause: string;
+  fix: string;
+  doc_ref: string;
+  tags: string[];
+}
+
+export type FaultInput = Omit<Fault, "id" | "machine_id">;
+
+export interface Hotspot {
+  id: string;
+  cabinet_id: string;
+  tag: string;
+  label: string;
+  kind: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  confidence: number | null;
+  origin: "manual" | "vision";
+  confirmed: boolean;
+}
+
+export interface Cabinet {
+  id: string;
+  machine_id: string;
+  title: string;
+  width: number;
+  height: number;
+  created_at: string;
+  hotspots: Hotspot[];
+}
+
+export interface MachineDetail extends Machine {
+  faults: Fault[];
+  cabinets: Cabinet[];
+}
+
+export interface TagHit {
+  document_id: string;
+  filename: string;
+  doc_type: string;
+  page: number | null;
+  section: string;
+  context: string;
+}
+
+export interface TagLookup {
+  tag: string;
+  hits: TagHit[];
+  bom_line: string | null;
+}
+
+const json = (body: unknown, method = "POST"): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export const plant = {
+  listHalls: () => request<Hall[]>("/api/halls"),
+  createHall: (name: string, description = "") => request<Hall>("/api/halls", json({ name, description })),
+  getHall: (id: string) => request<HallDetail>(`/api/halls/${id}`),
+  updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description">>) =>
+    request<Hall>(`/api/halls/${id}`, json(body, "PATCH")),
+  deleteHall: (id: string) => request<void>(`/api/halls/${id}`, { method: "DELETE" }),
+  replaceFlows: (hallId: string, flows: Flow[]) =>
+    request<Flow[]>(`/api/halls/${hallId}/flows`, json(flows.map(({ from_machine_id, to_machine_id, label }) => ({ from_machine_id, to_machine_id, label })), "PUT")),
+
+  createMachine: (hallId: string, body: { name: string; machine_type: MachineType; pos_x?: number; pos_y?: number }) =>
+    request<Machine>(`/api/halls/${hallId}/machines`, json(body)),
+  getMachine: (id: string) => request<MachineDetail>(`/api/machines/${id}`),
+  updateMachine: (
+    id: string,
+    body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "pos_x" | "pos_y" | "order_index">> & { clear_source?: boolean },
+  ) => request<Machine>(`/api/machines/${id}`, json(body, "PATCH")),
+  deleteMachine: (id: string) => request<void>(`/api/machines/${id}`, { method: "DELETE" }),
+  uploadMachineImage: (id: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Machine>(`/api/machines/${id}/image`, { method: "POST", body: form });
+  },
+  machineImageUrl: (id: string, bust = 0) => `${API_URL}/api/machines/${id}/image?v=${bust}`,
+
+  createFault: (machineId: string, body: FaultInput) => request<Fault>(`/api/machines/${machineId}/faults`, json(body)),
+  updateFault: (id: string, body: FaultInput) => request<Fault>(`/api/faults/${id}`, json(body, "PATCH")),
+  deleteFault: (id: string) => request<void>(`/api/faults/${id}`, { method: "DELETE" }),
+
+  uploadCabinet: (machineId: string, file: File, title: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("title", title);
+    return request<Cabinet>(`/api/machines/${machineId}/cabinets`, { method: "POST", body: form });
+  },
+  getCabinet: (id: string) => request<Cabinet>(`/api/cabinets/${id}`),
+  cabinetImageUrl: (id: string) => `${API_URL}/api/cabinets/${id}/image`,
+  deleteCabinet: (id: string) => request<void>(`/api/cabinets/${id}`, { method: "DELETE" }),
+  detectCabinet: (id: string) => request<Cabinet>(`/api/cabinets/${id}/detect`, { method: "POST" }),
+  createHotspot: (cabinetId: string, body: Omit<Hotspot, "id" | "cabinet_id" | "confidence" | "origin">) =>
+    request<Hotspot>(`/api/cabinets/${cabinetId}/hotspots`, json(body)),
+  updateHotspot: (id: string, body: Partial<Omit<Hotspot, "id" | "cabinet_id" | "confidence" | "origin">>) =>
+    request<Hotspot>(`/api/hotspots/${id}`, json(body, "PATCH")),
+  deleteHotspot: (id: string) => request<void>(`/api/hotspots/${id}`, { method: "DELETE" }),
+
+  lookupTag: (machineId: string, tag: string) =>
+    request<TagLookup>(`/api/machines/${machineId}/tags/${encodeURIComponent(tag)}`),
+};

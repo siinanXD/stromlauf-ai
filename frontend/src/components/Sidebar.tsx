@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { api, type Conversation, type KnowledgeSource } from "@/lib/api";
+import { AppNav } from "@/components/AppNav";
 import type { PageTarget } from "@/components/PageViewer";
 import { SourcePanel } from "@/components/SourcePanel";
 
@@ -57,10 +58,7 @@ export function Sidebar({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 px-4 py-4">
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-accent font-bold text-accent-fg">⚡</span>
-        <span className="font-semibold tracking-tight">Stromlauf AI</span>
-      </div>
+      <AppNav />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <section>
