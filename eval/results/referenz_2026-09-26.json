@@ -1,0 +1,2420 @@
+{
+  "summary": {
+    "fragen": 24,
+    "fakten_mittel": 0.792,
+    "quellen_ok": 0.833,
+    "sauber": 1.0,
+    "voll_bestanden": 19,
+    "dauer_mittel_s": 30.0
+  },
+  "results": [
+    {
+      "id": "fb01-e03",
+      "source": "Foerderband FB-01",
+      "question": "Was haengt an E0.3 und wo ist das im Plan?",
+      "answer": "Ich schaue nach E0.3 in allen Dokumenten.\n\n\n\n\n\n# E0.3 – NotHalt_OK (Freigabemeldung Sicherheitsrelais -K3)\n\n## Was hängt dran\n| Punkt | Angabe |\n|---|---|\n| Signalquelle | Sicherheitsrelais **-K3**, Meldekontakt **23/24** [01_Stromlaufplan_FB-01.pdf, S. 4] |\n| Klemme | **-X3:4** (Klemmleiste -X3, Bedienpult/Not-Halt-Kreis) [03_Klemmenplan_FB-01.csv] |\n| SPS-Eingang | Baugruppe **-A1.1** (DI 16 x 24 V DC, EB0), Kanal 4 = **E0.3**, Anschluss -A1.1:4 [01_Stromlaufplan_FB-01.pdf, S. 5 / S. 7] |\n| Symbol | **NotHalt_OK**, BOOL, „Sicherheitsrelais -K3 Freigabe (1 = Not-Halt entriegelt)\" [05_Symboltabelle_FB-01.sdf] |\n\n## Wo im Plan\n- **Blatt /4.4–/4.5**: Not-Halt-Kreis. Not-Halt **-S3** (2 Öffner, Bedienpult +FE1) wirkt zweikanalig auf **-K3** (S11/S12, S21/S22). -K3 hat zwei Freigabepfade: Kontakt **13/14** versorgt über -X2:3a die Schützspulen (→ /6.4), Kontakt **23/24** meldet auf -X3:4 → E0.3 [01_Stromlaufplan_FB-01.pdf, S. 4].\n- **Blatt /5.5**: Darstellung des Eingangskanals an -A1.1 [01_Stromlaufplan_FB-01.pdf, S. 5].\n- **Blatt /7**: Klemmenplan-Auszug -X3:4 | -A1.1:4 (E0.3) | -K3:24 | „Not-Halt Freigabe\" | Querverweis /5.5 [01_Stromlaufplan_FB-01.pdf, S. 7].\n\n## Verwendung im SPS-Programm\n- **OB 1 NW 1**: Übergabe an FB 10 (Instanz DB10) als `NotHalt_OK := E 0.3` [04_SPS_Programm_FB-01.awl, OB 1 NW 1].\n- **FB 10 NW 1 „Selbsthaltung Betrieb\"**: `U(O #Start / O #Freigabe) U #Stop U #MSS_OK U #NotHalt_OK UN #Stoerung = #Freigabe`.\n  Klartext: Start oder bereits laufende Selbsthaltung wird nur gehalten, wenn Stop (Öffner = 1), Motorschutz ok, **NotHalt_OK = 1** und keine Störung ansteht. Fällt E0.3 auf 0, fällt #Freigabe sofort ab → -K1/-K2 (A4.0/A4.1) aus, -H1 (A4.2) aus. Wiederanlauf erst nach Entriegeln von -S3 und erneutem Start -S1 (Wiederanlaufsperre) [04_SPS_Programm_FB-01.awl, FB 10 NW 1; 01_Stromlaufplan_FB-01.pdf, S. 4].\n\n## Einordnung (Schlussfolgerung)\nE0.3 ist **keine Sicherheitsfunktion, sondern nur die Rückmeldung** an die SPS. Die eigentliche Abschaltung erfolgt hardwaremäßig über den Freigabekontakt -K3:13/14 in der Schützspulenversorgung (/6.4) – die Kategorie-3/PL-d-Funktion läuft also nicht über die Standard-SPS [01_Stromlaufplan_FB-01.pdf, S. 4 und S. 6].\n\n**Fehlersuchreihenfolge bei „E0.3 = 0\"**: -S3 entriegelt? → -K3 angezogen (LED)? → Kontakt 23/24 → Leitung Bedienpult/-X3:4 → Klemme/Baugruppen-Kanal -A1.1:4 → L+/M-Versorgung der DI-Baugruppe von -X2:5/-X2:6 (/2.7) [01_Stromlaufplan_FB-01.pdf, S. 5].\n\n⚠️ Messungen im Not-Halt-Kreis nur durch Elektrofachkraft, nach den 5 Sicherheitsregeln. Ein Brücken von -X3:4 bzw. des Kontakts -K3:23/24 zur „Fehlerumgehung\" ist unzulässig – dazu gebe ich keine Anleitung.",
+      "sources": [
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "list_documents",
+        "get_page",
+        "find_tag",
+        "get_plc_block",
+        "get_page"
+      ],
+      "dauer_s": 24.2,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-h2-20s",
+      "source": "Foerderband FB-01",
+      "question": "Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?",
+      "answer": "Ich sehe mir -H2 in allen Dokumenten an.\n\n\n\n## Kurzantwort\n-H2 ist die rote Störmeldeleuchte an **A 4.3**. Das Leuchten nach ca. 20 s ist die **Blockadeüberwachung Band** (Timer **T 5**, FB 10 NW 5): Ein Teil wurde an der Einlauf-Lichtschranke **-B1** erkannt, ist aber innerhalb von 20 s nicht an der Auslauf-Lichtschranke **-B2** angekommen.\n\n## Signalkette\n\n| Stelle | Befund | Quelle |\n|---|---|---|\n| Meldeleuchte | -H2 „Meldeleuchte Störung (rot)\", LED 24 V DC | [02_Stueckliste_FB-01.xlsx] |\n| Ausgang | A 4.3 „H2_Stoerung\" auf -A1.2:4 | [05_Symboltabelle_FB-01.sdf]; [01_Stromlaufplan_FB-01.pdf, S. 6] |\n| Klemme | -X3:12 → -H2:X1; 0 V über -X3:14 → -H2:X2 | [01_Stromlaufplan_FB-01.pdf, S. 7]; [03_Klemmenplan_FB-01.csv] |\n| Sensoren | -B1 → -X3:5 → E 0.4; -B2 → -X3:6 → E 0.5 | [01_Stromlaufplan_FB-01.pdf, S. 7] |\n| Programm | FB 10 wird in OB 1 NW 1 mit DB 10 aufgerufen | [04_SPS_Programm_FB-01.awl, OB 1 NW 1] |\n\n## Die Logik (FB 10 NW 5)\n```\nU  #LS_Einlauf      // -B1 (E0.4) belegt\nU  #Vorwaerts       // -K1 (A4.0) angesteuert, Band läuft\nL  S5T#20S\nSE T 5              // Einschaltverzögerung 20 s\nU  #LS_Auslauf      // -B2 (E0.5) meldet Teil am Auslauf\nR  T 5              // -> Timer zurücksetzen, keine Störung\nU  T 5\nS  #Stoerung        // nach Ablauf: Störung speichernd setzen -> A4.3 = 1\n```\n[04_SPS_Programm_FB-01.awl, FB 10 NW 5]\n\nFachliche Einordnung (allgemeines AWL-Wissen): `SE` ist eine Einschaltverzögerung – T 5 läuft nur, solange -B1 belegt ist **und** Vorwärtsbetrieb ansteht; erreicht das Teil rechtzeitig -B2, wird T 5 gelöscht. Sonst wird `#Stoerung` **speichernd** gesetzt.\n\nFolgewirkung: In NW 1 steht `UN #Stoerung` in der Selbsthaltung – die Freigabe fällt ab, das Band stoppt, -H1 (A 4.2) erlischt [04_SPS_Programm_FB-01.awl, FB 10 NW 1 und NW 6].\n\n## Mögliche Ursachen / Prüfschritte\nLaut Betriebsanleitung Kap. 6 zu genau diesem Symptom („-H2 leuchtet nach ca. 20 s Betrieb\"):\n- Band auf Verklemmung/Stau prüfen\n- Lichtschranke **-B2** auf Verschmutzung und Ausrichtung prüfen (Klemme **-X3:6**, **E 0.5**)\n[06_Betriebsanleitung_FB-01.md]\n\nEigene Ergänzung (Schlussfolgerung, nicht wörtlich dokumentiert):\n- E 0.5 im Status online beobachten, während ein Teil -B2 passiert – schaltet der Eingang nicht, liegt der Fehler in Sensor, Kabel oder Klemme -X3:6, nicht am Band.\n- Auch -B1 (E 0.4) prüfen: Ein dauerhaft belegter/klebender Einlaufsensor startet T 5 ständig neu.\n- Versorgung der Sensoren: +24 V über -X3:7, 0 V über -X3:8 [01_Stromlaufplan_FB-01.pdf, S. 7].\n- Bei zu langsamem Band oder verlängerter Transportstrecke kann die Laufzeit >20 s betragen – dann ist der Wert S5T#20S zu knapp parametriert.\n\n## Abgrenzung\nLeuchtet -H2 dagegen **sofort/dauerhaft und das Band lässt sich nicht starten**, ist es die andere Störquelle: Motorschutz -F2 ausgelöst (E 0.2 = 0), FB 10 NW 4. Quittierung dort mit Start -S1 bei stehendem Band und wieder ok-Motorschutz [04_SPS_Programm_FB-01.awl, FB 10 NW 4]; [01_Stromlaufplan_FB-01.pdf, S. 3].\n\n⚠️ Hinweis: Die Störung ist speichernd gesetzt – ein Rücksetzen ist im Programm **nur** in NW 4 (Start bei stehendem Band, MSS_OK = 1) vorgesehen. Beseitigen Sie erst die Blockade. Arbeiten am Band bzw. Schaltschrank nur durch Elektrofachkraft/unterwiesenes Personal nach den 5 Sicherheitsregeln; zum Freiräumen einer Verklemmung Anlage stillsetzen und gegen Wiedereinschalten sichern. Eine Überbrückung von -B2 oder der Überwachung ist keine zulässige Abhilfe.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 5 Stoerung Blockade Band"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 1 Selbsthaltung Betrieb"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "list_documents",
+        "get_plc_block",
+        "search_knowledge"
+      ],
+      "dauer_s": 31.0,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-motor-brummt",
+      "source": "Foerderband FB-01",
+      "question": "Der Motor brummt, dreht aber nicht. Welche Klemmen muss ich pruefen?",
+      "answer": "Ich schaue mir zuerst an, welche Dokumente und Motoren überhaupt vorhanden sind.\n\nIch sehe mir den Hauptstromkreis (Blatt 3) und die Störungshinweise der Betriebsanleitung an.\n\n\n\n## Befund aus der Dokumentation\n\nDas Symptom ist in der Betriebsanleitung direkt hinterlegt:\n\n| Symptom | Mögliche Ursache | Prüfung laut Doku |\n|---|---|---|\n| „-K1 zieht an, Motor brummt, dreht nicht\" | **Phase fehlt am Motorabgang** | Spannung an **-X4:U/V/W** prüfen, Motorleitung **-W4** und Klemmen **-M1:U1/V1/W1** (Blatt /3.8) |\n\n[06_Betriebsanleitung_FB-01.md, Kap. 6]\n\n## Zu prüfende Klemmen – dem Strompfad folgend\n\nPfad: Netz → -X1 → -Q1 → -F2 → -K1/-K2 → -X4 → -W4 → -M1 [01_Stromlaufplan_FB-01.pdf, S. 3]\n\n| Schritt | Klemmen / Kontakte | Quelle |\n|---|---|---|\n| 1. Motorabgang (Hauptverdächtiger) | **-X4:U, -X4:V, -X4:W** – alle drei Außenleiter gegeneinander prüfen; zusätzlich -X4:PE | [03_Klemmenplan_FB-01.csv] |\n| 2. Motorklemmkasten | **-M1:U1, -M1:V1, -M1:W1** (Schaltung Stern), -M1:PE – Klemmbrücken und Anzugsmoment | [01_Stromlaufplan_FB-01.pdf, S. 3] |\n| 3. Motorleitung | **-W4**, 4G2,5 mm², 7 m, +ST1 → +FE1 – Aderbruch/Quetschstelle | [02_Stueckliste_FB-01.xlsx], [01_Stromlaufplan_FB-01.pdf, S. 7] |\n| 4. Schützkontakte | **-K1: 1/2, 3/4, 5/6** (bzw. -K2 bei Rückwärts) – verschweißter/nicht schließender Hauptkontakt. Zuordnung: -X4:U ← -K1:2 / -K2:6, -X4:V ← -K1:4 / -K2:4, -X4:W ← -K1:6 / -K2:2 | [03_Klemmenplan_FB-01.csv] |\n| 5. Motorschutzschalter | **-F2** (2,5–4 A, Einstellung 3,6 A) – Abgangsklemmen; Hilfskontakt 13/14 → -X3:3 (E0.2) | [01_Stromlaufplan_FB-01.pdf, S. 3], [06_Betriebsanleitung_FB-01.md, Kap. 5] |\n| 6. Einspeisung | **-X1:1 (L1), -X1:2 (L2), -X1:3 (L3)** an -Q1:1/3/5 – Vorsicherung/Phasenausfall im Netz | [03_Klemmenplan_FB-01.csv] |\n\n## Schlussfolgerung / Vorgehensempfehlung (eigene Einschätzung)\n\n- Brummen ohne Drehen ist das klassische Bild eines **Einphasenlaufs**. Grenzen Sie ein: Liegt an **-X4** bereits eine Phase nicht an, sitzt der Fehler schaltschrankseitig (Schritt 4–6). Liegen an -X4 alle drei Spannungen an, liegt der Fehler in **-W4** oder im Motorklemmkasten (Schritt 2–3).\n- Plausibilitätscheck: Bei fehlender Phase steigt der Strom in den verbleibenden Adern stark an – **-F2** löst meist kurz darauf aus, dann leuchtet -H2 (E0.2 = 0) [01_Stromlaufplan_FB-01.pdf, S. 3]. Wenn -F2 bereits gefallen ist, ist das ein Indiz für Phasenausfall oder mechanische Blockade.\n- Mechanik nicht vergessen: Auch ein blockiertes Band/Getriebe lässt den Motor brummen. Die Doku kennt dafür die Blockadeüberwachung über Timer T5 (Meldung nach ca. 20 s) [06_Betriebsanleitung_FB-01.md, Kap. 6] – prüfen Sie, ob sich die Welle von Hand drehen lässt.\n- Die Doku nennt bei Erstinbetriebnahme auch die **Phasenfolge an -X1** [06_Betriebsanleitung_FB-01.md, Kap. 6]; das erklärt aber nur falsche Drehrichtung, nicht Brummen.\n\n## Sicherheit\n\nArbeiten an -X4, -W4 und im Motorklemmkasten sind **im spannungsfreien Zustand** durchzuführen: -Q1 aus, gegen Wiedereinschalten sichern, Spannungsfreiheit feststellen, erden/kurzschließen, benachbarte Teile abdecken (5 Sicherheitsregeln). Klemmen nachziehen und Durchgangsmessung von -X4 nach -M1 sind so gefahrlos möglich. Spannungsmessungen unter Last ausschließlich durch eine Elektrofachkraft mit geeigneter PSA und Messmittel (CAT III/IV). Das Überbrücken von -F2, -K3 oder dem Not-Halt-Kreis zur Fehlersuche ist unzulässig.",
+      "sources": [
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "get_page",
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 33.3,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-verriegelung",
+      "source": "Foerderband FB-01",
+      "question": "Wie ist -K1 gegen -K2 verriegelt?",
+      "answer": "Ich schaue mir -K1 und -K2 in der Dokumentation an.\n\n\n\n\n\n\n\n\n\n# Verriegelung -K1 / -K2 (Wendeschützkombination Fördermotor -M1)\n\nDie Verriegelung ist **zweistufig** ausgeführt: in der SPS-Software **und** zusätzlich hardwareseitig über Hilfskontakte.\n\n## 1. Software-Verriegelung (FB 10, NW 2 und NW 3)\n\n| NW | Ausgang | AWL | Wirkung |\n|---|---|---|---|\n| 2 | #Vorwaerts → A4.0 (-K1) | `U #Freigabe` / `UN #Richtung_Rueck` / `UN #Rueckwaerts` / `= #Vorwaerts` | -K1 nur, wenn Freigabe steht, Rückwärts **nicht** angewählt ist und -K2 **nicht** angesteuert ist |\n| 3 | #Rueckwaerts → A4.1 (-K2) | `U #Freigabe` / `U #Richtung_Rueck` / `UN #Vorwaerts` / `= #Rueckwaerts` | -K2 nur, wenn Freigabe steht, Rückwärts angewählt ist und -K1 **nicht** angesteuert ist |\n\nKommentare im Code: „Verriegelung gegen -K2: vorwaerts nur, wenn rueckwaerts nicht angesteuert\" bzw. „Verriegelung gegen -K1\" [04_SPS_Programm_FB-01.awl, FB 10 NW 2 / NW 3].\n\nZuordnung der Operanden: `K1_Vorwaerts = A 4.0`, `K2_Rueckwaerts = A 4.1` [05_Symboltabelle_FB-01.sdf].\n\nEs wirken also **zwei** Kriterien gleichzeitig:\n- der Richtungswahl-Bit `#Richtung_Rueck` (1 = Rückwärtsbetrieb/Wartung) ist in beiden Netzwerken gegensätzlich abgefragt – schon dadurch schließen sich die Richtungen aus,\n- zusätzlich die gegenseitige Negation des jeweils anderen Ausgangs (`UN #Rueckwaerts` / `UN #Vorwaerts`).\n\n## 2. Hardware-Verriegelung (Schützebene)\n\nAuf Blatt /6 vermerkt: „Verriegelung: -K1 und -K2 duerfen nie gleichzeitig anziehen. Software-Verriegelung in FB10 Netzwerk 2 und 3, **zusaetzlich Hilfskontakt 21/22 des jeweils anderen Schuetzes in Reihe zur Spule** (nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10)\" [01_Stromlaufplan_FB-01.pdf, S. 6].\n\nDer Öffner 21/22 von -K2 liegt also in Reihe zur Spule -K1:A1/A2 und umgekehrt.\n\nSignalweg der Spulenansteuerung:\n\n| Ausgang | Klemme | Ziel | Blatt |\n|---|---|---|---|\n| -A1.2:1 (A4.0) | -X3:9 | -K1:A1 | /6.4 |\n| -A1.2:2 (A4.1) | -X3:10 | -K2:A1 | /6.5 |\n| 0 V beider Spulen (A2) | -X3:13 | — | /6 |\n\n[03_Klemmenplan_FB-01.csv; 01_Stromlaufplan_FB-01.pdf, S. 6 u. 7]\n\nÜbergeordnet liegt die **Spulenversorgung über den Freigabekontakt 13/14 des Sicherheitsrelais -K3** (/4.4) – das ist keine Richtungsverriegelung, sondern die Not-Halt-Abschaltung, die die Schützspulen unabhängig von der SPS trennt [01_Stromlaufplan_FB-01.pdf, S. 6; 06_Betriebsanleitung_FB-01.md, Kap. 3/4].\n\n## 3. Leistungsteil\n\nIm Hauptstromkreis tauscht -K2 die Phasen L1 und L3 (U/W) – bei gleichzeitigem Anziehen beider Schütze entstünde ein zweipoliger Kurzschluss, daher die zwingende Verriegelung [01_Stromlaufplan_FB-01.pdf, S. 3].\n\n---\n\n### Offene Punkte / Einschränkung der Doku\n- Die Hilfskontakte 21/22 sind **im Stromlaufplan nicht gezeichnet** (nur als Textvermerk auf Blatt /6). Eine zeichnerische Kontrolle der tatsächlichen Verdrahtung ist damit nicht möglich – vor Ort prüfen.\n- In der Stückliste sind für -K1/-K2 nur „Leistungsschuetz 4 kW, Spule 24 V DC\" geführt; **ein mechanischer Verriegelungsbausatz und die Hilfskontaktblöcke sind nicht als Position gelistet** [02_Stueckliste_FB-01.xlsx]. Eine rein mechanische Verriegelung ist in der Doku also **nicht** belegt.\n- *Eigene Schlussfolgerung:* Die Software-Verriegelung ist nicht sicherheitsgerichtet (Standard-FB, keine F-Bausteine erkennbar); die Sicherheit gegen Gleichzeitigkeit stützt sich auf die Hilfskontakt-Reihenschaltung. Bei einem Wendeschütz wäre nach allgemeiner Praxis zusätzlich eine mechanische Verriegelung üblich – das sollte an der Anlage verifiziert werden.\n\n⚠️ Prüfungen an der Verriegelung nur durch Elektrofachkraft, spannungsfrei nach den 5 Sicherheitsregeln. Die Verriegelung von -K1/-K2 darf zu Testzwecken **nicht** gebrückt werden (Kurzschlussgefahr L1/L3).",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 2 Schuetz vorwaerts -K1"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "find_tag",
+        "get_plc_block",
+        "get_page",
+        "get_page",
+        "keyword_search",
+        "get_page",
+        "search_knowledge",
+        "view_page"
+      ],
+      "dauer_s": 41.7,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-f2-typ",
+      "source": "Foerderband FB-01",
+      "question": "Welchen Typ hat -F2 und auf welchen Strom ist er eingestellt?",
+      "answer": "I'll look up -F2 across the documentation.\n\n\n\n\n\n## -F2 – Motorschutzschalter Fördermotor\n\n| Merkmal | Angabe | Quelle |\n|---|---|---|\n| Funktion | Motorschutzschalter für Fördermotor -M1, Hauptstromkreis | [01_Stromlaufplan_FB-01.pdf, S. 3] |\n| Typ / Kenndaten | MSS 3P 2,5–4 A + Hilfskontakt 1S1OE (1 Schließer/1 Öffner) | [02_Stueckliste_FB-01.xlsx] |\n| Einstellbereich | 2,5–4 A | [01_Stromlaufplan_FB-01.pdf, S. 3] |\n| **Eingestellter Strom** | **3,6 A** | [01_Stromlaufplan_FB-01.pdf, S. 3], [06_Betriebsanleitung_FB-01.md, Störungstabelle] |\n| Einbauort / Blatt | +ST1, /3.2 | [02_Stueckliste_FB-01.xlsx] |\n| Rückmeldung | Hilfskontakt 13/14 → -X3:3 → -A1.1:3 = E0.2 „MSS_OK\" (1 = ok) | [01_Stromlaufplan_FB-01.pdf, S. 3 u. S. 7], [03_Klemmenplan_FB-01.csv] |\n\nEinordnung: Der Motor -M1 hat 1,5 kW / 400 V mit Nennstrom 3,5 A [01_Stromlaufplan_FB-01.pdf, S. 3]; die Einstellung 3,6 A liegt also knapp über dem Motornennstrom – plausibel und in der Betriebsanleitung als Sollwert für die Störungsprüfung bestätigt [06_Betriebsanleitung_FB-01.md].\n\nAuswirkung im Programm (Befund aus der Doku): Löst -F2 aus, öffnet der Hilfskontakt, E0.2 wird 0, FB 10 NW 4 setzt die Sammelstörung / -H2; Quittierung mit Start -S1 bei stehendem Band [04_SPS_Programm_FB-01.awl, FB 10 NW 4], [06_Betriebsanleitung_FB-01.md].\n\nSicherheitshinweis: Prüfen/Verstellen des Einstellstroms nur durch Elektrofachkraft nach den 5 Sicherheitsregeln; der Wert darf den Motornennstrom nicht unzulässig überschreiten.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "list_documents",
+        "get_page",
+        "keyword_search",
+        "keyword_search"
+      ],
+      "dauer_s": 19.5,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-s3",
+      "source": "Foerderband FB-01",
+      "question": "Was passiert, wenn -S3 gedrueckt wird?",
+      "answer": "Ich schaue mir -S3 in der Dokumentation an.\n\n\n\n\n\n\n\n## Kurzantwort\n-S3 ist der rastende Not-Halt-Pilztaster mit **2 Öffnern**, der **zweikanalig auf das Sicherheitsrelais -K3** wirkt. Beim Drücken fällt -K3 ab und trennt die Schützspulen **hardwareseitig, unabhängig von der SPS** – das Band bleibt stehen. Parallel meldet ein zweiter -K3-Kontakt den Zustand an die SPS (E0.3 = 0), die die Freigabe löscht. Wiederanlauf nur durch Entriegeln von -S3 **und** erneutes Start -S1.\n\n## Wirkkette Schritt für Schritt (Befund aus der Doku)\n\n| Schritt | Vorgang | Beleg |\n|---|---|---|\n| 1 | -S3 (Not-Halt, 2 Öffner, Bedienpult +FE1) öffnet Kanal 11/12 und 21/22; Versorgung kommt von -X2:3 (+24 V) / -X2:4 (0 V) | [01_Stromlaufplan_FB-01.pdf, S. 4]; [03_Klemmenplan_FB-01.csv, -X2:3 → -S3:11, -S3:21] |\n| 2 | Sicherheitsrelais -K3 (2-kanalig, S11/S12/S21/S22, Spule A1/A2 24 V DC) fällt ab | [01_Stromlaufplan_FB-01.pdf, S. 4]; [02_Stueckliste_FB-01.xlsx, -K3 Sicherheitsschaltgerät] |\n| 3 | Freigabekontakt **-K3 13/14** öffnet → +24 V an -X2:3a weg → **Spulenversorgung von -K1/-K2 stromlos** (Hardware-Abschaltung) | [01_Stromlaufplan_FB-01.pdf, S. 4 (/6.4)]; [01_Stromlaufplan_FB-01.pdf, S. 6: „Spulenversorgung über -K3 Freigabe (/4.4)\"] |\n| 4 | Meldekontakt **-K3 23/24** öffnet → -X3:4 → -A1.1:4 → **E0.3 „NotHalt_OK\" = 0** | [01_Stromlaufplan_FB-01.pdf, S. 5 u. S. 7]; [03_Klemmenplan_FB-01.csv, -X3:4] |\n| 5 | -K1 (und -K2) fallen ab → Hauptstrompfad L1/L2/L3 zum Foerdermotor -M1 getrennt, Motor läuft aus | [01_Stromlaufplan_FB-01.pdf, S. 3] |\n\n## Reaktion im SPS-Programm\n- **FB 10 NW 1 (Selbsthaltung Betrieb):** `U(O #Start / O #Freigabe) U #Stop U #MSS_OK U #NotHalt_OK UN #Stoerung = #Freigabe`. Mit `NotHalt_OK = 0` wird **#Freigabe = 0**, die Selbsthaltung fällt ab [04_SPS_Programm_FB-01.awl, FB 10 NW 1].\n- **NW 2 / NW 3:** `#Vorwaerts` (A4.0, -K1) und `#Rueckwaerts` (A4.1, -K2) werden 0 [FB 10 NW 2/3].\n- **NW 6:** `#Betrieb` (A4.2) wird 0 → **Meldeleuchte -H1 grün erlischt** [FB 10 NW 6].\n- **Störmeldung:** Not-Halt setzt **kein** `#Stoerung`-Bit – -H2 (A4.3) bleibt aus (Störbit wird nur bei Motorschutz NW 4 bzw. Blockade NW 5 gesetzt) [FB 10 NW 4/5].\n- **Stückzähler** `#Stueckzahl`/MW 100 bleibt unverändert erhalten [FB 10 NW 7].\n\n## Wiederanlauf\n1. -S3 entriegeln → -K3 zieht an, 13/14 versorgt wieder die Schützspulen, 23/24 setzt E0.3 = 1 [06_Betriebsanleitung_FB-01.md, Kap. 3].\n2. **Start -S1 (E0.0) drücken** – das Band läuft nicht von selbst wieder an; die Wiederanlaufsperre liegt in der Selbsthaltung FB10 NW 1 [01_Stromlaufplan_FB-01.pdf, S. 4: „Rücksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10)\"].\n\n## Einordnung (eigene Schlussfolgerung)\nDie Abschaltung ist zweistufig ausgelegt: Die sicherheitsrelevante Trennung erfolgt über den Kontakt -K3 13/14 in der Spulenversorgung, also **ohne Beteiligung der SPS**; E0.3 dient nur der Information/Verriegelung im Programm. Die Doku gibt die Sicherheitsfunktion mit **Kat. 3 / PL d** an [01_Stromlaufplan_FB-01.pdf, S. 4]. Nach dem Plan wirkt -K3 13/14 auf die gemeinsame Spulenversorgung (-X2:3a), die Ausgänge A4.0/A4.1 können also gesetzt bleiben, ohne dass die Schütze anziehen – bei Fehlersuche daher Ausgangs-LED ≠ Schützstellung beachten.\n\n⚠️ Sicherheitshinweis: Not-Halt-Kreis und Sicherheitsrelais -K3 dürfen nicht gebrückt oder umgangen werden. Prüfungen (halbjährlich: -S3 betätigen, -K3 muss abfallen, -K1/-K2 stromlos [06_Betriebsanleitung_FB-01.md, Kap. 7]) nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "list_documents",
+        "get_page",
+        "find_tag",
+        "get_plc_block",
+        "get_page",
+        "search_knowledge",
+        "get_page"
+      ],
+      "dauer_s": 39.2,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-nicht-vorhanden",
+      "source": "Foerderband FB-01",
+      "question": "Welche Profinet-Diagnoseadresse hat die SPS -A1 im Foerderband FB-01?",
+      "answer": "Ich prüfe die Dokumentation.\n\n\n\n\n\n## Befund: Diese Angabe gibt die Dokumentation nicht her\n\nEine **PROFINET-Diagnoseadresse für -A1 ist in den Unterlagen nicht dokumentiert** – der Begriff „PROFINET\" bzw. „Diagnoseadresse\" kommt in keinem der sechs Dokumente vor (Volltextsuche über Stromlaufplan, Stückliste, Klemmenplan, AWL, Symboltabelle, Betriebsanleitung: kein Treffer).\n\nMehr noch: Die Frage enthält eine falsche Voraussetzung. Laut Stückliste ist -A1 gar keine PROFINET-, sondern eine **PROFIBUS-DP-CPU**:\n\n| BMK | Benennung | Typ | Menge | Einbauort | Blatt |\n|---|---|---|---|---|---|\n| -A1 | SPS CPU, kompakt, **PROFIBUS DP** | SPS-Zentralbaugruppe | 1 | +ST1 | /5.1 |\n\n[02_Stueckliste_FB-01.xlsx]\n\nAuch eine PROFIBUS-Teilnehmeradresse (DP-Adresse) ist nirgends angegeben.\n\n### Was zu -A1 dokumentiert ist\n\n| Punkt | Angabe | Quelle |\n|---|---|---|\n| Baugruppenträger/Aufbau | CPU -A1 mit DI -A1.1 und DO -A1.2, Einbauort +ST1 | [02_Stueckliste_FB-01.xlsx] |\n| Eingänge | -A1.1, 16 x DC 24 V, Adressbereich **EB0** (E0.0–E1.7), belegt E0.0–E0.5 | [01_Stromlaufplan_FB-01.pdf, S. 5] |\n| Ausgänge | -A1.2, 16 x DC 24 V/0,5 A, Adressbereich **AB4** (A4.0–A5.7), belegt A4.0–A4.3 | [01_Stromlaufplan_FB-01.pdf, S. 6] |\n| Versorgung | L+ von -X2:5 an -A1:L+, M von -X2:6 (/2.7) | [03_Klemmenplan_FB-01.csv], [01_Stromlaufplan_FB-01.pdf, S. 5] |\n| Programm | OB1 ruft FB10 „Foerderband\" mit Instanz-DB10 | [04_SPS_Programm_FB-01.awl, OB 1 NW 1] |\n\n### Schlussfolgerung / Empfehlung (eigene Einschätzung)\n\nDie Peripherie ist hier zentral aufgebaut (DI/DO im selben Rack), deshalb existiert in den Plänen nur die Ein-/Ausgangsadressierung, keine Bus- oder Diagnoseadresse. Diagnoseadressen werden allgemein nicht im Stromlaufplan, sondern in der Hardware-Projektierung vergeben – falls benötigt, ist sie in der STEP-7-Hardwarekonfiguration (HW-Konfig, Eigenschaften der Baugruppe) des Projekts auszulesen; diese Projektdatei liegt hier nicht vor.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 10 - Instanz Foerderband FB-01"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "find_tag",
+        "keyword_search",
+        "keyword_search",
+        "keyword_search",
+        "search_knowledge"
+      ],
+      "dauer_s": 20.0,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-syslink-pins",
+      "source": "Festo MPS",
+      "question": "Welche Signale liegen am SysLink-Stecker der Station Trennen und auf welchen Pins?",
+      "answer": "Ich sehe mir die Dokumentation zur Station Trennen an.\n\n\n\n\n\n\n\n\n\n\n\n\n\n## SysLink-Stecker der Station Trennen\n\n**Wo:** Der SysLink ist die 24-polige IEEE-488-/Centronics-Buchse **-G1XG1:X3** auf dem C-Interface der Station [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]. Technische Daten: „Elektrischer Anschluss: 24-polige IEEE-488 Buchse (SysLink)\" [Festo_MPS_Trennen_Handbuch.pdf, S. 11].\n\nDigitale E/A sind darauf aufgeteilt: **Q0–Q3 = Modul Band digital -G2** (Transportband 1), **Q4–Q7 = Modul Band digital -G3** (Transportband 2); analog dito für die Eingänge [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9].\n\n### Pinbelegung X3 (Centronics 24-polig)\n\n| Pin | Funktion | Aderfarbe | Signal im Plan | Bedeutung / Betriebsmittel |\n|---|---|---|---|---|\n| 1 | Q0 | weiß | Q0_G2-Q0 | Band 1 vorwärts (Relais -G2KF1 → Motor -G2MA1) |\n| 2 | Q1 | braun | Q1_G2-Q1 | Band 1 rückwärts (-G2KF1 → -G2MA1) |\n| 3 | Q2 | grün | Q2_G2-Q2 | Weiche/Vereinzeler ausfahren (Magnetventil -G2MB1) |\n| 4 | Q3 | gelb | Q3_G2-Q3 | Stopper aktivieren / einfahren (-G2MB2) |\n| 5 | Q4 | grau | Q4_G3-Q0 | Band 2 vorwärts (-G3KF1 → -G3MA1) |\n| 6 | Q5 | rosa | Q5_G3-Q1 | Band 2 rückwärts (-G3KF1 → -G3MA1) |\n| 7 | Q6 | blau | Q6_G3-Q2 | frei |\n| 8 | Q7 | rot | Q7_G3-Q3 | frei |\n| 9 + 10 | 24 V A | schwarz | 24VA | 24 V Versorgung der Ausgänge |\n| 11 | GND A | braun-rosa | GND A | 0 V Ausgänge |\n| 12 | GND A | lila | GND A | 0 V Ausgänge |\n| 13 | I0 | grau-rosa | I0_G2-I0 | Werkstück am Bandanfang 1 (-G2BG1) |\n| 14 | I1 | rot-blau | I1_G2-I1 | Werkstück in Bandmitte 1 (-G2BG2) |\n| 15 | I2 | weiß-grün | I2_G2-I2 | Kein Werkstück am Bandende 1 (-G2BG3, Öffnerlogik) |\n| 16 | I3 | braun-grün | I3_G2-I3 | Abstandssensor, binärer Schaltausgang (-G2BG4) |\n| 17 | I4 | weiß-grün | I4_G3-I0 | Werkstück am Bandanfang 2 (-G3BG1) |\n| 18 | I5 | braun-gelb | I5_G3-I1 | lt. Handbuch „Werkstück am Bandende 2\" – siehe Hinweis |\n| 19 | I6 | weiß-gelb | I6_G3-I2 | lt. Plan: -G3BG3 „Werkstück nicht bei Bandende 2\" |\n| 20 | I7 | grau-braun | I7_G3-I3 | frei |\n| 21 + 22 | 24 V B | weiß-rosa | 24VB | 24 V Versorgung der Eingänge |\n| 23 + 24 | GND B | weiß-blau | GND B | 0 V Eingänge |\n\nQuellen: Kontaktbelegungstabelle [Festo_MPS_Trennen_Handbuch.pdf, S. 11–12], Klemmen-/Aderzuordnung am C-Interface [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9], Sensor-/Aktorzuordnung der Mini-E/A-Terminals -G2XG1 [S. 6] und -G3XG1 [S. 8].\n\n### Analogsignale – nicht am SysLink\nDer Analogteil liegt **nicht** auf dem Centronics-Stecker, sondern auf **X4 (D-Sub 15)** des C-Interface [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]:\n\n| Pin X4 | Funktion | Farbe | Signal |\n|---|---|---|---|\n| 1 | AOut0 | weiß | UA1_G1-AQ0 |\n| 2 | AOut1 | braun | UA2_G2-AQ0 |\n| 3 | GND A | grün | GND A |\n| 6 | GND B | rosa | GND B |\n| 7 | AIn1 | blau | UE2_G1-AI1 |\n| 8 | AIn0 | rot | UE1_G1-AI0 – Abstandssensor analog (-G2BG4) |\n| 14 | AIn3 | rot-blau | UE4_G2-AI1 |\n| 15 | AIn2 | weiß-grün | UE3_G2-AI0 |\n\n[Festo_MPS_Trennen_Handbuch.pdf, S. 12; Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]\n\n### Hinweise / Widersprüche in der Doku (eigene Schlussfolgerung)\n- **Pin 18 vs. Pin 19:** Das Handbuch listet den Sensor „Werkstück am Bandende 2\" auf **I5 (Pin 18)** und lässt I6 frei [S. 11]. Der Stromlaufplan verdrahtet den Reflexlichttaster **-G3BG3** dagegen auf Bit **2/6** des Terminals -G3XG1, also auf **I6 (Pin 19)**; Bit 1/5 (Pin 18) ist unbelegt [S. 8]. Vor der Inbetriebnahme bzw. Fehlersuche also am Terminal -G3XG1 nachmessen, welcher Eingang tatsächlich kommt.\n- **Begriff Q2:** Handbuch schreibt „Vereinzeler ausfahren\" (Textbaustein aus der Station Verteilen), im Plan heißt das Ventil -G2MB1 „Weiche ausfahren\" [S. 6]. Funktion ist die Weiche.\n- **Pin 19 Aderfarbe:** Handbuch „weiß-gelb\", Plan „wh-gy\" (weiß-grau) – Schreibdifferenz, Funktion unverändert.\n- Die Anzeigen/Taster des Bedienpults liegen auf einem **zweiten** SysLink-Kabel (Buchse B am SPS-Board), nicht auf diesem Stationsstecker [Festo_MPS_Trennen_Handbuch.pdf, S. 20].\n\nArbeiten am Stecker bzw. Messungen nur durch Elektrofachkraft und spannungsfrei bzw. mit geeigneter Messtechnik; die Station wird über die Rack-SPS mit 24 V DC versorgt [Festo_MPS_Trennen_Handbuch.pdf, S. 21].",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 40,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 19,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 20,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 39,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 59,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 60,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "get_page",
+        "view_page",
+        "get_page",
+        "get_page",
+        "search_knowledge",
+        "view_page",
+        "view_page",
+        "view_page",
+        "keyword_search",
+        "keyword_search",
+        "get_page"
+      ],
+      "dauer_s": 92.3,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-i3",
+      "source": "Festo MPS",
+      "question": "Welches Signal liegt auf Eingang I3 der Station Trennen und welche Aderfarbe hat es?",
+      "answer": "Ich schaue in der Dokumentation nach.\n\n\n\n\n\n## Antwort\n\n**Auf Eingang I3 der Station Trennen liegt der binäre Schaltausgang des Abstandssensors -G2BG4 (Bohrlochtiefen-Erkennung). Die Ader im SysLink-Kabel ist braun-grün (bn-gn), SysLink-Pin 16.**\n\n### Signalweg im Detail\n\n| Stufe | Bezeichnung | Beleg |\n|---|---|---|\n| Sensor | -G2BG4, \"Abstandssensor digital\", Anschluss BN=24 V, BU=0 V, BK=Q (Schaltausgang), WH=Q̄ | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6] |\n| Modul | Modul Band digital -G2, Sensorleitung G2BG4 auf Mini-E/A-Terminal -G2XG1, Eingangsstift 4 → \"Bit in 3/7\" = I3 | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6] |\n| Stationsverdrahtung | Centronics X3 Pin 16 des C-Interface -G1XG1: Ader **bn-gn**, Signal \"I3_G2-I3\" | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 5 u. S. 9] |\n| Sub-D 15 HD (X1) | Pin 8 = I3, Aderfarbe bn-gn | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 5] |\n| Handbuch (Kontaktbelegungstabelle) | I3 · SysLink 16 · Farbe **braun-grün** · \"Abstandssensor (Signal Schaltausgang)\" | [Festo_MPS_Trennen_Handbuch.pdf, S. 11 / S. 31] |\n\n### Funktion\nDer Abstandssensor sitzt oberhalb des Stoppers und prüft die Bohrlochtiefe; er liefert ein analoges **und** ein binäres Signal. Das binäre Signal (per Teach-In eingestellt) ist genau dieses I3 und unterscheidet 'Grundkörper' (große Tiefe) von 'Gehäuse' (geringe Tiefe). Der Analogwert desselben Sensors läuft separat über AI0 (Modul -G2, S. 7 zeigt -G2BG4 als \"Abstandssensor analog\" am Analogkanal). [Festo_MPS_Trennen_Handbuch.pdf, S. 17; Festo_MPS_Trennen_Stromlaufplan.pdf, S. 4 u. 7]\n\n### Hinweis zur Unterscheidung (Schlussfolgerung)\n- **braun-grün** = Ader des SysLink-/Centronics-Kabels zwischen Station und Steuerung – das ist die in der Frage gemeinte Aderfarbe.\n- Am Sensor selbst ist der Schaltausgang die **schwarze** Ader (BK = Q); BN = 24 V, BU = 0 V, WH = Q̄. [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6]\n\nAchtung: bn-gn taucht im 24-poligen Centronics-Strang zweimal auf (Pin 16 = I3, danach wh-gn/bn-gn-Folge für I4) – beim Messen daher immer zusätzlich die Pin-Nummer prüfen. Arbeiten an der Verdrahtung nur spannungsfrei durch eine Elektrofachkraft.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "find_tag",
+        "keyword_search",
+        "search_knowledge",
+        "get_page",
+        "get_page"
+      ],
+      "dauer_s": 30.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-technische-daten",
+      "source": "Festo MPS",
+      "question": "Welchen Betriebsdruck und welche Betriebsspannung braucht die Station Trennen, und wie gross ist sie?",
+      "answer": "Ich sehe in der Doku nach den technischen Daten der Station Trennen.\n\n**Technische Daten der Station Trennen** (Handbuch, Kapitel 5.1 „Allgemeine Daten\"):\n\n| Parameter | Wert |\n|---|---|\n| Betriebsdruck | 600 kPa (6 bar) |\n| Betriebsspannung | 24 V DC, 4,5 A |\n| Maße (B x H x T) | 350 mm x 700 mm x 200 mm |\n| Druckluftverbrauch bei 600 kPa (Dauerzyklus) | 1 l/min |\n| Pneumatischer Anschluss | Kunststoffschlauch, 6 mm Außendurchmesser |\n| Elektrischer Anschluss | 24-polige IEEE-488-Buchse (SysLink) |\n| Digitale E/A | Eingänge 5 (6), Ausgänge 6; max. 24 V DC, max. 2 A je Ausgang, max. 4 A gesamt |\n| Analoge E/A | Eingang 1; 0–10 V DC bzw. ±10 V DC |\n\n[Festo_MPS_Trennen_Handbuch.pdf, S. 11]\n\nErgänzend zur Spannungsversorgung: Die Station wird über ein Netzgerät mit 24 V Gleichspannung (max. 5 A) versorgt; die Versorgung der kompletten Station erfolgt über die Rack-SPS [Festo_MPS_Trennen_Handbuch.pdf, S. 21].",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "list_documents"
+      ],
+      "dauer_s": 10.5,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-ablauf-timing",
+      "source": "Festo MPS",
+      "question": "Nach welcher Zeit wird bei der Station Trennen der Bandmotor von Transportband 2 ausgeschaltet, wenn das Signal Puffer voll ansteht?",
+      "answer": "Ich sehe mir die Dokumentation zur Station Trennen und Transportband 2 an.\n\n**Antwort: nach 4 Sekunden.**\n\n**Befund aus der Doku**\n- „Steht das Sensorsignal 'Puffer voll' nach 4 s noch an, wird der Bandmotor von Transportband 2 ausgeschaltet und der Leuchtmelder 'Puffer voll' eingeschaltet.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 18]\n- Gleiche Aussage in der englischen Fassung: „The conveyor motor 2 is switched off, if the sensor signal 'buffer full' is still applied after 2 s…\" – dort steht 4 s für Band 2 [Festo_MPS_Trennen_Handbuch.pdf, S. 38], ebenso in der spanischen (S. 58) und französischen Fassung (S. 78).\n\n**Zum Vergleich / Kontext**\n| Signal | Wartezeit | Folge |\n|---|---|---|\n| 'Werkstück an Abholstelle' | 2 s | Bandmotor Transportband 1 aus, Leuchtmelder 'Werkstück an Abholstelle' ein [S. 18] |\n| 'Puffer voll' | 4 s | Bandmotor Transportband 2 aus, Leuchtmelder 'Puffer voll' ein [S. 18] |\n\nErgänzend: Der Leuchtmelder 'Puffer voll' leuchtet, wenn sich 6 Werkstücke auf Transportband 2 befinden; die Werkstücke sind zu entfernen und mit dem START-Taster zu quittieren [Festo_MPS_Trennen_Handbuch.pdf, S. 21].\n\n**Eigene Anmerkung (Schlussfolgerung, nicht belegt):** Die 4 s sind eine Ablauf-/Überwachungszeit, die im Anwenderprogramm der SPS als Timer realisiert sein dürfte. In den mir vorliegenden Quellen ist der konkrete Timer-Baustein (Nummer/Zeitwert) nicht aufgeführt – wenn du den Wert anpassen willst, müsste der entsprechende Zeitbaustein im Stationsprogramm geprüft werden.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 78,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 58,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 38,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 13.6,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-abstandssensor",
+      "source": "Festo MPS",
+      "question": "Welche Ausgangssignale liefert der Abstandssensor der Station Trennen und wofuer wird er benutzt?",
+      "answer": "Ich sehe mir zuerst an, welche Dokumente vorliegen, und suche parallel nach dem Abstandssensor.\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Kurzantwort\n\nDer Abstandssensor der Station Trennen ist **-G2BG4** (Modul Band -G2, oberhalb des Stoppers). Er liefert **zwei Ausgangssignale**: einen **binären Schaltausgang Q** und einen **analogen Ausgang Q‑**. Benutzt wird er zur **Werkstückunterscheidung nach Bohrlochtiefe** und damit zur Steuerung des weiteren Materialflusses (Weiche/Stopper).\n\n## Befund aus der Dokumentation\n\n### 1. Die beiden Ausgangssignale\n> „Der Abstandssensor liefert sowohl ein analoges als auch ein binäres Ausgangssignal. Der binäre Schaltausgang lässt sich durch einfaches Teach‑In auf die Messanforderung einstellen.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n\nAnschluss laut Plan: BN = 24 V, BU = 0 V, **BK = Q (Schaltausgang)**, **WH = Q‑ (Analogausgang)** [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6 und S. 7].\n\n### 2. Signalweg beider Ausgänge\n\n| Signal | Ader | Modulklemme -G2XG1 | Schnittstelle -G1XG1 | SPS-Seite | Benennung |\n|---|---|---|---|---|---|\n| Schaltausgang Q (binär) | BK | X2:4, Bit **3/7** (in) [S. 6] | X3 Centronix Pin **16**, bn‑gn [S. 9] | **I3** (I3_G2‑I3) | „Abstandssensor (Signal Schaltausgang)\" [Handbuch S. 11] |\n| Analogausgang Q‑ | WH | X2:5 (analog in) [S. 7] | X4 D‑Sub 15 Pin **8**, rot [Handbuch S. 12] | **AIn0** | „Abstandssensor (analoger Ausgang)\" [Handbuch S. 12] |\n\nSignalpegel analog laut technischen Daten der Station: **0–10 V DC bzw. ±10 V DC**, die Station hat genau **1 Analogeingang** [Festo_MPS_Trennen_Handbuch.pdf, S. 11].\n\nHinweis zu einer Unschärfe: Auf der Schnittstellenseite ist X4 Pin 8 mit „UE1_G1‑AI0\" und Pin 15 mit „UE3_G2‑AI0\" beschriftet [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]. Für die Verdrahtung zur SPS gilt die Kontaktbelegungstabelle: **AIn0 = D‑Sub Pin 8 (rot) = Abstandssensor analog** [Handbuch, S. 12]. Die interne Zuordnung X2:5 → Pin 8 ist im Plan nicht ausgezeichnet (Ribbon-Verbindung G2XG1‑X1 → G1XG1‑X1 nur als Sammelleitung dargestellt).\n\n### 3. Wofür der Sensor benutzt wird\n- Die Station unterscheidet Werkstücke **nach ihrer Bohrlochtiefe**; der Abstandssensor prüft an der Messstelle oberhalb des Stoppers diese Tiefe [Handbuch, S. 17].\n- Ablauf: Nach dem Anhalten am Stopper (Reflexlichttaster) **identifiziert der Abstandssensor das Werkstück** (Schritt 3) [Handbuch, S. 17].\n  - **'Grundkörper'** (große Bohrlochtiefe) → Stopper umschalten, Transport zur Abholstelle am Bandende Transportband 1 (Schritte 4/5) [Handbuch, S. 18].\n  - **'Gehäuse'** (geringere Tiefe) → **Weiche ausfahren**, Stopper umschalten, Weiterleitung über Transportband 2 (Schritte 6–8) [Handbuch, S. 18].\n- Betroffene Aktoren an -G2: **-G2MB1 „Weiche ausfahren\"** und **-G2MB2 „Stopper einfahren\"** [Stromlaufplan, S. 6].\n\n## Schlussfolgerung / Praxis\n- Für die reine Sortierentscheidung genügt in der Standardanwendung der **binäre Ausgang auf I3** (Schwelle per Teach‑In eingelernt); der **Analogwert auf AIn0** ist zusätzlich verfügbar, z. B. für Auswerte-/Messübungen oder eine Klassifizierung im SPS-Programm per Vergleich.\n- Ein SPS-Programm (AWL/Symbolik) liegt in den hier verfügbaren Unterlagen **nicht** vor, daher kann die konkrete Verarbeitung von I3/AIn0 im Anwenderprogramm nicht belegt werden.\n\n**Sicherheitshinweis:** Teach‑In, Justage oder Tausch des Sensors nur durch Elektrofachkraft und nach den 5 Sicherheitsregeln; beim erneuten Einlernen der Schaltschwelle ändert sich das Sortierverhalten der Station – vorher Werkstücke entnehmen und Ablauf im sicheren Zustand testen.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 57,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 37,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 20,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 77,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 10,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 72,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "find_tag",
+        "view_page",
+        "search_knowledge",
+        "keyword_search",
+        "get_page",
+        "get_page",
+        "view_page",
+        "get_page",
+        "view_page",
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 103.2,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-ausgangsstellung",
+      "source": "Festo MPS",
+      "question": "Wie ist die Ausgangsstellung der Station Trennen vor dem Start?",
+      "answer": "Ich sehe in der Dokumentation nach der Station \"Trennen\" und ihrer Ausgangsstellung.\n\n\n\n\n\n\n\n## Ausgangsstellung Station Trennen\n\n**Befund aus dem Handbuch** [Festo_MPS_Trennen_Handbuch.pdf, S. 17]:\n\n**Startvoraussetzung**\n- Kein Werkstück am Bandanfang\n\n**Ausgangsstellung**\n- Stopper ausgefahren\n- Weiche eingefahren\n- Bandmotoren aus\n\n(Englische Fassung identisch: \"Stopper advanced / Separator retracted / Conveyor motors off\" [Festo_MPS_Trennen_Handbuch.pdf, S. 37])\n\n## Zuordnung zu Betriebsmitteln und E/A\n\n| Element | Betriebsmittel (Plan) | SysLink | Benennung | Zustand in Ausgangsstellung |\n|---|---|---|---|---|\n| Stopper | -G2MB2 (\"Stopper einfahren / retract gate\") | Q3 \"Stopper aktivieren\" | Magnetventil Stopper | Q3 = 0 → Stopper ausgefahren |\n| Weiche | -G2MB1 (\"Weiche ausfahren / advance separator\") | Q2 \"Vereinzeler ausfahren\" | Magnetventil Weiche | Q2 = 0 → Weiche eingefahren |\n| Bandmotor Band 1 | -G2MA1 über Relais -G2KF1 | Q0 vorwärts / Q1 rückwärts | Modul Band digital -G2 | Q0 = Q1 = 0 → aus |\n| Bandmotor Band 2 | -G3MA1 über Relais -G3KF1 | Q4 vorwärts / Q5 rückwärts | Modul Band digital -G3 | Q4 = Q5 = 0 → aus |\n| Werkstück am Bandanfang | -G2BG1 (Reflexlichttaster \"Werkstück bei Bandanfang\") | I0 | Startabfrage | muss 0 sein (kein WSt.) |\n\nQuellen: [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6] (Modul Band digital -G2 mit -G2MB1 Weiche, -G2MB2 Stopper, -G2BG1…-G2BG4, -G2KF1/-G2MA1), [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 8] (Modul Band digital -G3), [Festo_MPS_Trennen_Handbuch.pdf, S. 12] (SysLink-Belegung Q0–Q7).\n\n## Schlussfolgerung (eigene Ableitung)\nDie Ausgangsstellung ist die **stromlose Ruhelage aller Aktoren**: Die Ventilspulen sind mit \"Stopper **einfahren**\" (-G2MB2) bzw. \"Weiche **ausfahren**\" (-G2MB1) beschriftet – d. h. ohne Ansteuerung (Q2 = Q3 = 0) steht der Stopper federkraftbedingt ausgefahren und die Weiche eingefahren. Es genügt also, nach dem Einschalten von Druckluft und 24 V alle Ausgänge auf 0 zu setzen; eine aktive Referenzfahrt ist für Stopper/Weiche nicht nötig.\n\n## Praktisches Vorgehen vor dem Start\n1. Spannungs- und Druckluftversorgung prüfen (24 V DC max. 5 A; 600 kPa/6 bar).\n2. Werkstücke an Übergabestellen von Hand entnehmen – insbesondere Bandanfang frei (Sensor -G2BG1 / I0 muss 0-Signal liefern).\n3. Richtvorgang durchführen: leuchtender **RICHTEN**-Taster anfordern und betätigen.\n4. Werkstück am Bandanfang auflegen.\n5. Ablauf mit leuchtendem **START**-Taster starten.\n[Festo_MPS_Trennen_Handbuch.pdf, S. 21]\n\n**Sicherheitshinweis:** Arbeiten an der Station nur durch Elektrofachkräfte; beim Quittieren/Richten fährt die Mechanik pneumatisch an – Eingriffsbereich (Stopper, Weiche, Bänder) freihalten und Not-Halt-Kette nicht überbrücken.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 41,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 59,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 10,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 37,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 38,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "list_documents",
+        "get_page",
+        "search_knowledge",
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 35.5,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-notaus-bruecke",
+      "source": "Festo MPS",
+      "question": "Gibt es bei der Station Trennen einen Hinweis zu Kabelbruecken fuer NOT-AUS?",
+      "answer": "I'll look into the documentation for the station \"Trennen\" and any notes about cable bridges (Kabelbrücken) for the emergency stop circuit.\n\nIch suche gezielt nach NOT-AUS-Stellen und Brücken in den Trennen-Dokumenten.\n\n\n\n\n\n\n\n# Ja – es gibt einen expliziten Hinweis.\n\n## Befund aus der Doku\n\nIm Handbuch der Station Trennen steht direkt unterhalb der Kontaktbelegungstabelle (Kapitel 5.2, digitale Ausgänge):\n\n> **Hinweis:** „Bei allen Vorzugsvarianten SPS sind Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt.\"\n> [Festo_MPS_Trennen_Handbuch.pdf, S. 12]\n\nDerselbe Hinweis findet sich in den anderen Sprachfassungen des Handbuchs:\n\n| Sprache | Formulierung | Fundstelle |\n|---|---|---|\n| Deutsch | „Bei allen Vorzugsvarianten SPS sind Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt.\" | [Festo_MPS_Trennen_Handbuch.pdf, S. 12] |\n| Englisch | „Cable jumpers are connected from emergency off to bit 1.5 on all PLC variants.\" | [Festo_MPS_Trennen_Handbuch.pdf, S. 32] |\n| Spanisch | „En todas las variantes de PLC, los cables que puentean la parada de emergencia están conectados a bit 1.5.\" | [Festo_MPS_Trennen_Handbuch.pdf, S. 52] |\n| Französisch | „Sur toutes les variantes préférentielles API, des cavaliers sont enfichés de ARRÊT D'URGENCE à bit 1.5.\" | [Festo_MPS_Trennen_Handbuch.pdf, S. 72] |\n\n## Einordnung\n\nDer Hinweis gehört zur SysLink-Kontaktbelegung der Station. Die dort dokumentierten Signale der Station selbst belegen nur I0…I7 bzw. Q0…Q7, also Bit 0.0…0.7 [Festo_MPS_Trennen_Handbuch.pdf, S. 11 u. 12]:\n\n| Bit | Signal | SysLink-Pin |\n|---|---|---|\n| I0 | Werkstück am Bandanfang | 13 |\n| I1 | Werkstück in Bandmitte | 14 |\n| I2 | Kein Werkstück am Bandende | 15 |\n| I3 | Abstandssensor (Schaltausgang) | 16 |\n| I4 | Werkstück am Bandanfang | 17 |\n| I5 | Werkstück am Bandende | 18 |\n| I6 / I7 | frei | 19 / 20 |\n\n**Schlussfolgerung (eigene Einordnung, nicht wörtlich in der Doku):** Bit 1.5 liegt außerhalb des Stations-SysLink-Bytes; die Brücke wird folglich nicht in der Station Trennen selbst, sondern in der SPS-Vorzugsvariante (Board/Steuerungsträger) gesteckt und führt das NOT-AUS-Signal auf den SPS-Eingang E1.5. Der Stromlaufplan der Station enthält dazu keine Angabe – dort ist nur die Brückung/Trennung von 24 V A und 24 V B über den Schalter S1 am Mini-E/A-Terminal dokumentiert [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 4]. Ein eigenes NOT-AUS-Betriebsmittel ist in den Plänen der Station Trennen nicht zu finden.\n\n## Sicherheitshinweis\n\nDiese Kabelbrücke ist Bestandteil des NOT-AUS-Signalpfads. Entfernen, Umstecken oder Überbrücken darf nur durch eine Elektrofachkraft im spannungsfreien Zustand (5 Sicherheitsregeln) und nur so erfolgen, dass die NOT-AUS-Funktion erhalten bleibt. Eine Brücke, die den NOT-AUS-Kontakt dauerhaft „geschlossen\" simuliert, setzt die Schutzfunktion außer Kraft – dazu gebe ich keine Anleitung. Laut Handbuch muss im Labor-/Unterrichtsraum ohnehin eine wirksame NOT-AUS-Einrichtung vorhanden sein (mindestens eine innerhalb und eine außerhalb des Raums) [Festo_MPS_Trennen_Handbuch.pdf, S. 5].",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 49,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 69,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 72,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "keyword_search",
+        "keyword_search",
+        "get_page",
+        "get_page",
+        "find_tag",
+        "keyword_search",
+        "keyword_search"
+      ],
+      "dauer_s": 29.8,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-analog-ain0",
+      "source": "Festo MPS",
+      "question": "Auf welchem D-Sub-Pin liegt AIn0 der Station Trennen und welche Farbe hat die Ader?",
+      "answer": "Ich schaue in der Dokumentation nach.\n\n**Befund aus der Dokumentation**\n\nAIn0 der MPS®-Station Trennen liegt auf **D-Sub-Pin 8**, Ader **rot (rd)**.\n\n| Funktion | D-Sub-Pin | Aderfarbe | Benennung |\n|---|---|---|---|\n| AIn0 | 8 | rot | Abstandssensor (analoger Ausgang) |\n| AIn1 | 7 | blau | |\n| AIn2 | 15 | weiß-grün | |\n| AIn3 | 14 | rot-blau | |\n| AOut0 | 1 | weiß | |\n| AOut1 | 2 | braun | |\n| GND A | 3 | grün | |\n| GND B | 6 | rosa | |\n\n[Festo_MPS_Trennen_Handbuch.pdf, S. 12] (identisch in den fremdsprachigen Ausgaben S. 32/52/72)\n\n**Querverweis Stromlaufplan**\nAm C-Interface -G1XG1 ist der analoge Stecker **X4 (D-Sub 15)** belegt: Pin 1 = UA1, Pin 2 = UA2, Pin 3 = GND A, Pin 6 = GND B, Pin 7 = UE2, **Pin 8 = UE1**, Pin 14 = UE4, Pin 15 = UE3 [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 5]. Auf Seite 9 ist dieses Signal als **UE1_G1-AI0** gekennzeichnet, also Analogeingang AI0 des Moduls -G1 [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9].\n\n**Schlussfolgerung:** Pin 8 (rot) = UE1 = AI0 führt das Analogsignal des Abstandssensors **-G2BG4** (Modul Band analog, Anschluss BN/BU = 24 V/0 V, schwarz/weiß = Signal) [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 7]. Zum Messen des Analogwerts an Pin 8 gegen GND A (Pin 3) messen.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 72,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "search_knowledge"
+      ],
+      "dauer_s": 17.2,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-modul-band1-sensoren",
+      "source": "Festo MPS",
+      "question": "Wo sitzen die Sensoren auf dem Modul Band 1 der Station Trennen und welcher Typ ist das?",
+      "answer": "Ich sehe mir zunächst an, welche Dokumente vorliegen, und suche parallel nach dem Modul \"Band 1\".\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Kurzantwort\n\n„Modul Band 1\" der Station Trennen ist im Stromlaufplan das Anlagenteil **-G2** (Blatt „Modul Band digital -G2\" bzw. „Modul Band analog -G2\"). Darauf sitzen **vier Sensoren: -G2BG1 … -G2BG4** [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6 u. 7].\n\n## Positionen, Typ und Anschluss\n\n| BMK | Einbauort / Funktion (Plan) | Sensortyp | Signal → Mini-E/A-Terminal -G2XG1 | SPS-Eingang Station |\n|---|---|---|---|---|\n| -G2BG1 | Bandanfang – „Werkstück bei Bandanfang\" | optischer Näherungsschalter mit Lichtleiter (4-Draht, BN 24 V / BU 0 V / BK Q / WH -Q) | X2 Klemme 1, Bit 0/4 | I0 „Werkstück am Bandanfang\" |\n| -G2BG2 | Bandzwischenposition, d. h. vor dem Stopper/Vereinzeler – „Werkstück bei Bandzwischenposition\" | optischer Näherungsschalter mit Lichtleiter, laut Ablaufbeschreibung **Reflexlichttaster vor dem Stopper** | X2 Klemme 2, Bit 1/5 | I1 „Werkstück in Bandmitte\" |\n| -G2BG3 | Bandende – „Werkstück **nicht** bei Bandende\" (Ruhestrom-/Invers-Meldung) | optischer Näherungsschalter mit Lichtleiter (Lichtleiter-Lichtschranke) | X2 Klemme 3, Bit 2/6 | I2 „Kein Werkstück am Bandende\" |\n| -G2BG4 | oberhalb des Stoppers (Messstelle) – **Abstandssensor** zur Bohrlochtiefenprüfung | Abstandssensor mit **binärem Schaltausgang** (Teach-In) **und zusätzlichem Analogausgang** | digital: X2 Klemme 4, Bit 3/7; analog: Blatt 7, X4 (GND A/Signal) → UE3_G2-AI0 | I3 „Abstandssensor (Signal Schaltausgang)\" bzw. AIn0 |\n\nQuellen: Klemmen-/Signalzuordnung und Funktionstexte [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6], Analogteil des Abstandssensors [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 7], Weiterführung auf die C-Interface-Schnittstelle I0_G2-I0 … I3_G2-I3 und UE3_G2-AI0 [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9], Kontaktbelegungstabelle I0…I3 und AIn0 [Festo_MPS_Trennen_Handbuch.pdf, S. 11 u. 12/32].\n\n## Belege aus dem Handbuch\n\n- „Der Nachweis der Werkstücke **am Bandanfang, vor dem Vereinzeler und am Bandende** erfolgt durch **optische Näherungsschalter mit Lichtleitern**.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 15, Abschnitt 7.2 „Das Modul Band 1\"]\n- „**Lichtleiter-Einweglichtschranken und Lichtleiter-Reflexlichttaster** mit optischen Sensoren überwachen den Materialfluss auf den Bändern.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n- Ablauf: „Der **Reflexlichttaster vor dem Stopper** erkennt das Werkstück … Der **Abstandssensor oberhalb des Stoppers** identifiziert die Werkstücke.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n- „Der Abstandssensor liefert sowohl ein analoges als auch ein binäres Ausgangssignal; der binäre Schaltausgang lässt sich durch **Teach-In** einstellen.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n\n## Abgrenzung / Schlussfolgerung\n\n- **Befund:** Modul Band **2** ist -G3 und hat nur zwei Sensoren (-G3BG1 Bandanfang, -G3BG3 Bandende, Eingänge I4/I5) – also nicht Gegenstand der Frage [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 8; Handbuch S. 16].\n- **Schlussfolgerung (nicht wörtlich belegt):** Die Zuordnung „-G2BG3 = Einweglichtschranke, -G2BG1/-G2BG2 = Reflexlichttaster\" ergibt sich aus der invertierten Meldung „Werkstück **nicht** bei Bandende\" und der Formulierung „Reflexlichttaster vor dem Stopper\"; das Handbuch nennt die Bauform je Sensor nicht einzeln.\n- Eine Stückliste mit Hersteller-Typnummern (z. B. Lichtleiter-Verstärker, Abstandssensor-Typ) liegt in den hier verfügbaren Dokumenten **nicht** vor; exakte Artikelbezeichnungen kann ich daher nicht nennen.\n\n**Hinweis:** Zum Nachjustieren/Teachen der Sensoren bitte die Anlagensicherheit beachten – Arbeiten im Schaltschrank bzw. an spannungsführenden Teilen nur durch Elektrofachkräfte nach den 5 Sicherheitsregeln.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 15,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 16,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 55,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 56,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 36,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "get_page",
+        "search_knowledge",
+        "find_tag",
+        "find_tag",
+        "find_tag",
+        "find_tag",
+        "keyword_search",
+        "keyword_search",
+        "view_page",
+        "keyword_search",
+        "keyword_search",
+        "get_page",
+        "get_page",
+        "view_page",
+        "search_knowledge",
+        "get_page"
+      ],
+      "dauer_s": 75.9,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-verteilen-plan",
+      "source": "Festo MPS",
+      "question": "Welche Betriebsmittel mit Kennzeichen sind im Stromlaufplan der Station Verteilen-Band aufgefuehrt?",
+      "answer": "I'll search the documentation for the Verteilen-Band station schematic.\n\nIch sehe mir die restlichen Seiten des Plans an.\n\n\n\n\n\n\n\n\n\n## Betriebsmittel im Stromlaufplan MPS Station Verteilen‑Band\n\nQuelle: `Festo_MPS_Verteilen-Band_Stromlaufplan.pdf` (9 Seiten, Zeichnungs‑Nr. 8034566, Festo Didactic). Der Plan enthält keine Stückliste; die folgende Liste ist aus den Schaltplanseiten zusammengetragen.\n\n### Modul Band digital -G1 (Seite 6)\n\n| Kennzeichen | Funktion laut Plan | Anschluss |\n|---|---|---|\n| -G1BG1 | Werkstück bei Bandanfang / workpiece at conveyor start (optischer Sensor, BN/BU/BK/WH) | -G1XG1 X2:1, Bit in 0/4 |\n| -G1BG2 | Werkstück bei Band‑Zwischenposition | -G1XG1 X2:2, Bit in 1/5 |\n| -G1BG3 | Werkstück **nicht** bei Bandende (Öffner-/-Q-Ausgang genutzt) | -G1XG1 X2:3, Bit in 2/6 |\n| -G1KF1 | Relais/Wendeschützbaustein für Bandmotor (Klemmen 1…16, u. a. G1KF1‑1, ‑2, ‑13, ‑14) | -G1XG1 X3 out 0/4 u. 1/5 |\n| -G1MA1 | Bandmotor, 1: rückwärts / 2: vorwärts (Anschlüsse gr/kl) | über -G1KF1 |\n| -G1MB1 | Vereinzeler ausfahren / advance separator (Magnetventilspule A1/A2, BK/BL) | -G1XG1 X2:9, Bit out 2/6 |\n| -G1XG1 | Mini E/A‑Terminal des Bandmoduls | X2/X3/X4 |\n\n[Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 6]\n\n### Modul Stapelmagazin digital -C2 (Seite 7)\n\n| Kennzeichen | Funktion laut Plan | Anschluss |\n|---|---|---|\n| -C2BG1 | Schieber eingefahren / slide retracted (Näherungsschalter) | -C2XG1 X2:1, in 0/4 |\n| -C2BG2 | Schieber ausgefahren / slide advanced | -C2XG1 X2:2, in 1/5 |\n| -C2BG3 | Magazin leer / magazine empty (optischer Sensor) | -C2XG1 X2:3, in 2/6 |\n| -C2MB1 | Schieber ausfahren / advance slide (Ventilspule A1/A2) | -C2XG1 X3:7, out 0/4 (Leitungsbezeichnung dort „C1MB1“) |\n| -C2XG1 | Mini E/A‑Terminal des Stapelmagazinmoduls | X2/X3/X4 |\n\n[Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 7]\n\n### Pneumatik Stapelmagazin (Seite 9)\n\n| Kennzeichen | Bauteil |\n|---|---|\n| -C1MM1 | Pneumatikzylinder (Schieber) |\n| -C1BG1 / -C1BG2 | Zylinderschalter (Endlagenabfrage) |\n| -C1RZ1 / -C1RZ2 | Drossel‑Rückschlagventile (Abluftdrosselung) |\n| -C1MB1 | Magnetspule des 5/2‑Wegeventils |\n| -C1QM1 | Handhilfsbetätigung/Vorsteuerung am Ventil |\n| -C1GQ1 | Druckluftanschluss/Versorgung (Anschluss 1) |\n\n[Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 9]\n\n### Schnittstellen / Verbindungstechnik (Seiten 4, 5, 8)\n\n| Kennzeichen | Bauteil |\n|---|---|\n| -C1XG1 | C‑Interface (X1/X2 D‑Sub 15 HD, X3 Centronics 24‑pol., X4 D‑Sub 15) [S. 5, S. 8] |\n| -G1XG1, -C2XG1 | Mini E/A‑Terminals, X1 D‑Sub HD mit Schalter S1 (24VA/24VB gebrückt oder getrennt) [S. 4] |\n| -XG1-X1 | Steckverbinder-/Klemmstelle am C‑Interface (Verbindung G1XG1‑X1 bzw. C2XG1‑X1) [S. 8] |\n| -C1 | Kennzeichen der Gesamtstation „MPS® Station Verteilen‑Band -C1“ [S. 8] |\n\n### E/A‑Zuordnung über das C‑Interface (Seite 8)\n\n| Centronics X3 | Signal |\n|---|---|\n| I0…I3 | G1‑I0…G1‑I3 (Bandsensoren -G1BG1…-G1BG3) |\n| I4…I7 | C2‑I0…C2‑I3 (Magazinsensoren -C2BG1…-C2BG3) |\n| Q0…Q3 | G1‑Q0…G1‑Q3 (Motorrelais -G1KF1, Ventil -G1MB1) |\n| Q4…Q7 | C2‑Q0…C2‑Q3 (Ventil -C2MB1) |\n| — | Analog: UE1/UE2 = G1‑AI0/AI1, UE3/UE4 = C2‑AI0/AI1, UA1 = G1‑AQ0, UA2 = C2‑AQ0 |\n\n[Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 8]\n\n### Hinweise (eigene Schlussfolgerung)\n- Seite 9 trägt den Titel „Modul Stapelmagazin pneumatik **-C2**“, die dort eingezeichneten Betriebsmittel sind aber mit **C1…** bezeichnet; ebenso ist auf Seite 7 die Leitung zum Ausgang mit „C1MB1“ statt „C2MB1“ beschriftet. Das ist offenbar eine Inkonsistenz in der Festo‑Zeichnung — funktional gehören diese Teile zum Stapelmagazinmodul (-C2).\n- Seiten 1–3 (Titelblatt, Inhaltsverzeichnis, Aufbauplan) enthalten keine eigenen Betriebsmittelkennzeichen [S. 1–3].\n- Die Kennzeichnung folgt hier der Festo‑MPS‑Systematik (Modulpräfix G1/C1/C2 + BG = Sensor, MA = Motor, MB = Ventilspule, KF = Relais, XG = Steckverbinder/Terminal, MM = Zylinder, RZ = Drossel, GQ = Druckluftquelle) — allgemeines Fachwissen nach IEC 81346.",
+      "sources": [
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "view_page",
+        "view_page",
+        "view_page"
+      ],
+      "dauer_s": 47.5,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-nicht-vorhanden",
+      "source": "Festo MPS",
+      "question": "Welche Artikelnummer hat der Frequenzumrichter der Station Trennen?",
+      "answer": "I'll look this up in the documentation.\n\n\n\n\n\n## Befund: In der Station Trennen gibt es keinen Frequenzumrichter\n\nDie Frage enthält eine falsche Voraussetzung – in der Dokumentation der MPS® Station Trennen (8038802) ist kein Frequenzumrichter dokumentiert. Eine Volltextsuche nach \"Frequenzumrichter\" liefert in allen hinterlegten Dokumenten keinen einzigen Treffer.\n\n**Warum kein FU:** Die Transportbänder werden nicht von Drehstrom-Asynchronmotoren, sondern von **Gleichstrom-Getriebemotoren** angetrieben:\n\n> \"Der Antrieb des Gurtbandes erfolgt durch einen Gleichstrom-Getriebemotor. … Durch den angebauten **Motorcontroller** ist Rechts- und Linkslauf möglich.\" [Festo_MPS_Trennen_Handbuch.pdf, S. 15 (Modul Band 1) und S. 16 (Modul Band 2)]\n\nIm Stromlaufplan ist der Antrieb entsprechend als DC-Motor mit vorgeschaltetem Relais-/Controller-Baustein ausgeführt:\n\n| Betriebsmittel | Funktion | Fundstelle |\n|---|---|---|\n| -G3MA1 | Bandmotor (M), Klemmen 1 = rückwärts, 2 = vorwärts | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 8] |\n| -G3KF1 | Motorcontroller/Relaisbaustein, Ansteuerung über G3KF1-1/-2 bzw. -13/-14 | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 8] |\n| -G3XG1 | Mini-E/A-Terminal, Anbindung an C-Interface -G1XG1 | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 8 und S. 5] |\n\n## Zur Artikelnummer\n\nEine **Stückliste liegt in den Wissensquellen nicht vor** – verfügbar sind nur Handbuch, zwei Stromlaufpläne und das STEP-7-Referenzhandbuch (letzteres nicht durchsuchbar). Die Stromlaufpläne enthalten keine Typ-/Bestellnummern zu -G3MA1 bzw. -G3KF1. Eine Artikelnummer für den Antrieb oder den Motorcontroller kann ich daher aus der Doku **nicht belegen**.\n\nDokumentierte Bestellnummern sind lediglich:\n\n| Nummer | Bedeutung | Quelle |\n|---|---|---|\n| 8038802 | Station Trennen (Gesamtstation) | [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 1] |\n| 8038803 | Handbuch Station Trennen | [Festo_MPS_Trennen_Handbuch.pdf, S. 1] |\n\n**Vermutung (nicht aus der Doku belegt):** Falls die Frage auf eine andere Station zielt – z. B. Station Verteilen/Band (8034566) – prüfe ich das gern; auch dort ist im Plan aber nur ein DC-Bandmotor (-G1MA1) mit Controller -G1KF1 eingezeichnet [Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 6]. Für eine exakte Artikelnummer wäre die Ersatzteil-/Stückliste der Station nötig; bitte diese nachreichen.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 15,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 16,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 35,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 36,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 37,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 38,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 55,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 56,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 57,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 58,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 43,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 1,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search",
+        "list_documents",
+        "keyword_search",
+        "keyword_search",
+        "search_knowledge"
+      ],
+      "dauer_s": 25.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-schieberegister",
+      "source": "AWL Praxisprojekte",
+      "question": "Was macht der Baustein Schieberegister in bnt_modell.awl und wie viele Elemente fasst er?",
+      "answer": "\n\n## FB \"Schieberegister\" (bnt_modell.awl)\n\n**Zweck:** Software‑Schieberegister als **FIFO für 5 Elemente**. Jedes Element besteht aus einem Wertepaar **Dicke (WORD) + Farbe (BOOL)** – gespeichert in den statischen Variablen `Dicke_0/Farbe_0` … `Dicke_4/Farbe_4` [bnt_modell.awl, FB \"Schieberegister\" Deklaration].\n\n**Kapazität:** 5 Elemente. Belegt an zwei Stellen:\n- Deklaration mit den Paaren `Dicke_0`…`Dicke_4` / `Farbe_0`…`Farbe_4`\n- NW 1: `L #Fuellstand; L 5; >=I; SPB Eend` → Überlaufschutz bei 5\n- NW 3: `L 5;` als Schleifenzähler zum Löschen aller Elemente\n[bnt_modell.awl, FB \"Schieberegister\" NW 1 / NW 3]\n\n### Schnittstelle\n\n| Typ | Operand | Bedeutung |\n|---|---|---|\n| IN | `Dicke_Eingang` (WORD) | Messwert Dicke des neuen Teils |\n| IN | `Farbe_Eingang` (BOOL) | Farbkennung des neuen Teils |\n| IN | `Einschieben` (BOOL) | flankengetriggert: Element einfügen |\n| IN | `Ausschieben` (BOOL) | flankengetriggert: Element entnehmen |\n| IN | `reset` (BOOL) | Register komplett löschen |\n| OUT | `Anzahl_Teile` (INT) | aktueller Füllstand |\n| OUT | `Farbe_Ausgang` / `Dicke_Ausgang` | Daten des entnommenen Teils |\n| STAT | `Fuellstand`, `FM_Einschieben`, `FM_Ausschieben`, Dicke_0..4 / Farbe_0..4 | Registerinhalt, Flankenmerker |\n| TEMP | `Zaehler` (INT) | Schleifenzähler |\n\n### Netzwerke\n\n**NW 1 – Element einfügen:** Positive Flanke an `Einschieben` (`FP #FM_Einschieben`). Sicherheitsabfrage `Fuellstand >= 5` → Abbruch (kein Überlauf). Ist das Register leer, wird direkt geschrieben. Sonst werden per **LOOP mit indirekter Adressierung über AR1** alle vorhandenen Elemente um eine Position nach hinten kopiert: Zeiger `P##Dicke_0` + (Index·`P#4.0`), dann `U [AR1,P#2.0] / = [AR1,P#6.0]` (Farbe) und `L W [AR1,P#0.0] / T W [AR1,P#4.0]` (Dicke). Anschließend wird das neue Teil auf Platz 0 (`Dicke_0`/`Farbe_0`) abgelegt und `Fuellstand` um 1 erhöht [bnt_modell.awl, FB \"Schieberegister\" NW 1].\n→ Elementraster: **4 Byte pro Element** (2 Byte Dicke + Farbe im Folgewort).\n\n**NW 2 – Element entnehmen:** Positive Flanke an `Ausschieben`. Abbruch bei `Fuellstand <= 0`. Adressiert das **älteste** Element (Index `Fuellstand-1`), gibt Farbe auf `Farbe_Ausgang` und Dicke auf `Dicke_Ausgang` aus, überschreibt den Platz mit 0 und dekrementiert `Fuellstand` [bnt_modell.awl, FB \"Schieberegister\" NW 2].\n→ Damit ist es tatsächlich ein **FIFO**: neu rein auf Platz 0, raus am Ende.\n\n**NW 3 – Reset:** Bei `reset` werden `Fuellstand`, `Dicke_Ausgang` und `Farbe_Ausgang` auf 0 gesetzt und in einer Schleife über 5 Elemente alle Speicherplätze genullt [bnt_modell.awl, FB \"Schieberegister\" NW 3].\n\n**NW 4 – Füllstand ausgeben:** `Fuellstand` → `Anzahl_Teile` [bnt_modell.awl, FB \"Schieberegister\" NW 4].\n\n### Einbindung in die Anlage\n- Aufruf im **OB \"Programmzyklus\" NW 13** mit Instanz‑DB `\"DB_Schiebereg_Band\"`; Eingänge werden über Lokaldaten L34.0–L34.3 verschaltet, `Anzahl_Teile` geht auf `\"OB1_Daten\".Schiebereg_Fuellstand` [bnt_modell.awl, OB \"Programmzyklus\" NW 13].\n- Einschiebesignal kommt aus **FB \"Ausgänge_Schrittkette_2\" NW 10** (`Schritt_Nr = 4`), Ausschiebesignal aus **OB NW 12** (`SK3_Schritt_Nr = 8`) [bnt_modell.awl, FB \"Ausgänge_Schrittkette_2\" NW 10; OB \"Programmzyklus\" NW 12].\n- Füllstand und Teiledicke werden in **OB NW 14** per `DTB` nach BCD gewandelt und auf `\"Ausgabe_SchReg_Fuellst\"` bzw. `\"Ausgabe_Teiledicke\"` ausgegeben [bnt_modell.awl, OB \"Programmzyklus\" NW 14].\n\n**Hinweis (eigene Schlussfolgerung):** Eine Erweiterung der Kapazität erfordert drei konsistente Änderungen – zusätzliche `Dicke_n`/`Farbe_n`-Paare *lückenlos hintereinander* in der STAT-Deklaration sowie die Konstante `5` in NW 1 und NW 3, da die indirekte Adressierung über AR1 auf dem festen 4‑Byte‑Raster ab `P##Dicke_0` beruht.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 1 Element einfügen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 2 Element entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 3 Reset: Alles löschen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 4 Ausgangssignal: Anzahl Teile"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Schiebereg_Band\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 10 Erzeugung Signal: Schieberegister einschieben"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 12 Signal erzeugen: Schieberegister entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 13 Daten in Schieberegister einschieben und entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 14 Dicke von Teil im Greifer und Füllstand Schieberegister ausgeben"
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "list_documents"
+      ],
+      "dauer_s": 26.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-timer-1b1-1s1",
+      "source": "AWL Praxisprojekte",
+      "question": "Welcher Timer ueberwacht in bnt_modell.awl den Zeitunterschied zwischen 1B1 und 1S1, mit welcher Zeit, und in welchem Schritt startet er?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'You have reached your specified API usage limits. You will regain access on 2026-10-01 at 00:00 UTC.'}, 'request_id': 'req_011CfQworYZbD3dxJ1gX59Dm'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 2.6,
+      "score": {
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "T_zw_1B1_1S1",
+          "1 s|S5T#1S|1S",
+          "Schritt 3|Schritt_Nr.*3|== 3"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "bnt_modell.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-ob1-aufrufe",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche Schrittketten ruft der OB1 Programmzyklus in bnt_modell.awl auf?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'You have reached your specified API usage limits. You will regain access on 2026-10-01 at 00:00 UTC.'}, 'request_id': 'req_011CfQwou67517dFHvxke82f'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "Magazin",
+          "Pr",
+          "Greifer",
+          "Betriebsarten"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "bnt_modell.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-vakuum",
+      "source": "AWL Praxisprojekte",
+      "question": "Welches Ventil schaltet in bnt_modell.awl das Vakuum ein und welches aus?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'You have reached your specified API usage limits. You will regain access on 2026-10-01 at 00:00 UTC.'}, 'request_id': 'req_011CfQwovPF1tic7UmDRXb1B'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "1Y2.11",
+          "1Y2.10"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "bnt_modell.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-rotor",
+      "source": "AWL Praxisprojekte",
+      "question": "Mit welchen Ausgaengen faehrt der Rotor (Umsetzer) in bnt_modell.awl in die Stellungen Magazin und Pruefen?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'You have reached your specified API usage limits. You will regain access on 2026-10-01 at 00:00 UTC.'}, 'request_id': 'req_011CfQwows3LRaSVjrYExjUF'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "1Y3.10",
+          "1Y3.11"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "bnt_modell.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-nicht-vorhanden",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche IP-Adresse hat die CPU im Projekt bnt_modell.awl?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'You have reached your specified API usage limits. You will regain access on 2026-10-01 at 00:00 UTC.'}, 'request_id': 'req_011CfQwoyBfXk3Ct574TQfoB'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "nicht|keine|kein"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    }
+  ]
+}

@@ -79,10 +79,15 @@ def score(question: dict, answer: str, sources: list[dict]) -> dict:
     }
 
 
-def summarize(rows: list[dict]) -> dict:
+def summarize(all_rows: list[dict]) -> dict:
+    """API-/Netzfehler zaehlen nicht als falsche Antwort, sie werden getrennt ausgewiesen."""
+    failed = [r for r in all_rows if r["answer"].startswith("[FEHLER]")]
+    rows = [r for r in all_rows if not r["answer"].startswith("[FEHLER]")]
     n = len(rows) or 1
     return {
-        "fragen": len(rows),
+        "fragen": len(all_rows),
+        "bewertet": len(rows),
+        "nicht_bewertet_fehler": len(failed),
         "fakten_mittel": round(sum(r["score"]["fakten"] for r in rows) / n, 3),
         "quellen_ok": round(sum(r["score"]["quellen_ok"] for r in rows) / n, 3),
         "sauber": round(sum(r["score"]["sauber"] for r in rows) / n, 3),
