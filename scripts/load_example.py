@@ -166,7 +166,8 @@ def main() -> int:
             ids.append(doc["id"])
 
         if not ids:
-            print("Nichts zu tun.")
+            print("Alle Dokumente vorhanden.")
+            setup_plant(client, source["id"])
             return 0
         print("Warte auf Ingestion (erster Lauf laedt Modelle, das dauert einige Minuten) ...")
         ok = wait_for(client, ids)
