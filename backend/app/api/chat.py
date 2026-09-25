@@ -162,6 +162,16 @@ async def chat(body: ChatRequest, request: Request):
                 for update in payload.values():
                     for message in (update or {}).get("messages", []):
                         if isinstance(message, AIMessage):
+                            usage = getattr(message, "usage_metadata", None) or {}
+                            if usage:
+                                yield _sse(
+                                    "usage",
+                                    {
+                                        "input_tokens": usage.get("input_tokens", 0),
+                                        "output_tokens": usage.get("output_tokens", 0),
+                                        "model": message.response_metadata.get("model") or get_settings().chat_model,
+                                    },
+                                )
                             for call in message.tool_calls:
                                 yield _sse("tool_start", {"name": call["name"], "args": call["args"]})
                             if message.tool_calls:
