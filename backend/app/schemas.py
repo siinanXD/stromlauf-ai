@@ -66,3 +66,4 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     message: str = Field(min_length=1)
     source_ids: list[str] = []
+    trace_tags: list[str] = []  # landen als Tags am Langfuse-Trace (z. B. eval:2026-09-26, q:fb01-e03)

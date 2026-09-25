@@ -34,6 +34,11 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3100"
 
+    # Langfuse-Tracing (optional): Keys gesetzt -> jeder Chat wird ein Trace mit Tokens und Kosten.
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+
     @property
     def upload_dir(self) -> Path:
         return self.data_dir / "uploads"

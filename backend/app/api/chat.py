@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.db import get_session, session_scope
 from app.models import Conversation
 from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
+from app.tracing import trace_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -141,6 +142,7 @@ async def chat(body: ChatRequest, request: Request):
         conversation_id, title = conversation.id, conversation.title
 
     config = _thread_config(conversation_id, body.source_ids)
+    config.update(trace_config(conversation_id, body.trace_tags, get_settings().chat_model))
 
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
