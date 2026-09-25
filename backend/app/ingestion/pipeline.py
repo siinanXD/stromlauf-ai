@@ -2,6 +2,7 @@
 
 import logging
 import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,6 +28,10 @@ _FILENAME_HINTS: list[tuple[str, DocType]] = [
     (r"handbuch|manual|anleitung|betriebsanl|datasheet|datenblatt", DocType.MANUAL),
 ]
 _EMBED_BATCH = 64
+
+# Docling und das Embedding-Modell brauchen je Lauf mehrere GB RAM. Mehrere Uploads
+# gleichzeitig (z. B. per Skript) laufen deshalb nacheinander statt parallel.
+_INGEST_LOCK = threading.Lock()
 
 
 @dataclass
@@ -190,6 +195,9 @@ def ingest_document(document_id: str) -> None:
         filename, source_id = document.filename, document.source_id
         doc_type, vision = document.doc_type, document.vision_enrichment
 
+    if not _INGEST_LOCK.acquire(blocking=False):
+        _set_progress(document_id, "wartet, anderes Dokument wird gerade verarbeitet")
+        _INGEST_LOCK.acquire()
     try:
         raw_pieces, page_count, note = _build_pieces(document_id, path, doc_type, vision)
         pieces = [part for piece in raw_pieces for part in _split(piece)]
@@ -252,6 +260,8 @@ def ingest_document(document_id: str) -> None:
                 document.status = DocStatus.FAILED
                 document.error = f"{type(exc).__name__}: {exc}"
                 document.progress = ""
+    finally:
+        _INGEST_LOCK.release()
 
 
 def _embedding_text(filename: str, piece: Piece) -> str:
