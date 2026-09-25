@@ -11,6 +11,28 @@
 Drei Fragen sind Fallen: die Antwort steht in keinem Dokument. Erwartet wird „nicht vorhanden“,
 bestraft wird eine erfundene Zahl.
 
+## Ergebnisse (Referenzlaeufe in `results/`)
+
+| Modell | voll bestanden | Fakten | Quellen | sauber | Dauer/Frage | Kosten/Lauf |
+| --- | --- | --- | --- | --- | --- | --- |
+| claude-opus-5 (`referenz_2026-09-26.json` + AWL-Nachlauf) | 24/24 | 1,00 | 1,00 | 1,00 | 30 s | n. a. |
+| claude-sonnet-5 (`referenz_sonnet-5_2026-09-26.json`) | 23/24 | 1,00 | 0,96 | 1,00 | 23,5 s | 1,96 $ |
+
+Standard ist deshalb `CHAT_MODEL=claude-sonnet-5`.
+
+## Testdaten beschaffen (nicht im Repo)
+
+`testdata/` ist ignoriert (Festo-Unterlagen sind Eigentum von Festo Didactic). Zum Nachbauen:
+
+- Festo InfoPortal: `.../Infoportal/mps/DistributionConveyorStation/Documentation/CircuitDiagrams.pdf`,
+  `.../InfoPortal/mps/SeparatingStation/Documentation/Manual.pdf`, `.../CircuitDiagrams.pdf` (Station Trennen)
+  nach `testdata/festo/` mit den Namen `Festo_MPS_Verteilen-Band_Stromlaufplan.pdf`,
+  `Festo_MPS_Trennen_Handbuch.pdf`, `Festo_MPS_Trennen_Stromlaufplan.pdf`.
+- `git clone https://github.com/mbuesch/awlsim testdata/awlsim`, dann `testdata/awlsim/tests/tc999_projects/bnt_modell.awl`
+  nach `testdata/awl/` kopieren.
+- Laden: `python scripts/load_folder.py testdata/festo --name "Festo MPS"` und
+  `python scripts/load_folder.py testdata/awl --name "AWL Praxisprojekte"`.
+
 ## Bewertung ohne LLM-Richter
 
 Jede Frage hat `must_contain` (Regex-Muster, die in der Antwort stehen muessen), `must_not_contain`

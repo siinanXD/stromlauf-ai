@@ -1,0 +1,2544 @@
+{
+  "summary": {
+    "fragen": 24,
+    "bewertet": 24,
+    "nicht_bewertet_fehler": 0,
+    "fakten_mittel": 1.0,
+    "quellen_ok": 0.958,
+    "sauber": 1.0,
+    "voll_bestanden": 23,
+    "dauer_mittel_s": 23.5,
+    "modell": "claude-sonnet-5",
+    "tokens_input": 759615,
+    "tokens_output": 44038,
+    "kosten_usd": 1.96
+  },
+  "results": [
+    {
+      "id": "fb01-e03",
+      "source": "Foerderband FB-01",
+      "question": "Was haengt an E0.3 und wo ist das im Plan?",
+      "answer": "\n\n\n\n\n\n## E0.3 – NotHalt_OK (Sicherheitsrelais -K3 Freigabe)\n\n**Signalherkunft (Stromlaufplan):**\nIm Not-Halt-Kreis auf Blatt 4 sitzt das zweikanalige Sicherheitsrelais **-K3**. Sein Freigabekontakt 23/24 (Rückführkontakt, Kat. 3/PL d) meldet den entriegelten Zustand des Not-Halt-Kreises über Klemme **-X3:4** als Eingang **E0.3** an die SPS [01_Stromlaufplan_FB-01.pdf, S. 4].\n\n- Speisung des Kreises: +24 V DC von -X2:3, 0 V DC von -X2:4 (/2.6)\n- Not-Halt-Taster **-S3** (2 Öffner, Ort +FE1 Bedienpult) schaltet auf -K3 (S11/S12, S21/S22)\n- -K3 Kontakt 13/14 → Freigabe Schützspulen -K1/-K2 (/6.4)\n- -K3 Kontakt 23/24 → Klemme -X3:4 → **E0.3 NotHalt_OK** (Querverweis /5.5)\n\n**Klemmenplan/Verdrahtung:**\n\n| Klemme | Ziel | Signal | Verweis |\n|---|---|---|---|\n| -X3:4 | -A1.1:4 (E0.3) | von -K3:24 – Not-Halt Freigabe | /5.5 |\n\n[01_Stromlaufplan_FB-01.pdf, S. 5+7; 03_Klemmenplan_FB-01.csv]\n\n**SPS-Verarbeitung (FB10 „Förderband FB-01 Steuerung“):**\nE0.3 wird in OB1 auf den Formalparameter `NotHalt_OK` von FB10 gelegt und dort in **Netzwerk 1 (Selbsthaltung Betrieb)** ausgewertet:\n\n```\nU(\n O  #Start\n O  #Freigabe\n)\nU  #Stop\nU  #MSS_OK\nU  #NotHalt_OK     // E0.3\nUN #Stoerung\n=  #Freigabe\n```\nSolange `NotHalt_OK` = 0 (Not-Halt ausgelöst bzw. noch nicht entriegelt), wird die Selbsthaltung „Freigabe“ zwangsweise zurückgesetzt – das Förderband kann nicht anlaufen bzw. schaltet ab. Nach Entriegeln von -S3 muss laut Anlagenbeschreibung zusätzlich Start -S1 gedrückt werden (Wiederanlaufsperre) [04_SPS_Programm_FB-01.awl, FB 10 NW 1; 06_Betriebsanleitung_FB-01.md].\n\n**Zusammenfassung des Signalwegs:**\n-S3 (Not-Halt) → -K3 (Sicherheitsrelais, Kat.3/PL d) → Kontakt 23/24 → -X3:4 → E0.3 → FB10 `NotHalt_OK` → Netzwerk 1 (Freigabe) → freigibt/sperrt -K1/-K2 → Motor -M1.\n\nHinweis Sicherheit: -K3 ist Teil der Not-Halt-Sicherheitsfunktion (Kat. 3/PL d). Eingriffe an diesem Kreis (Verdrahtung, Kontaktbelegung, Programmlogik der Freigabe) dürfen nur von einer Elektrofachkraft und nur im spannungsfreien Zustand vorgenommen werden; die Sicherheitsfunktion darf nicht überbrückt oder verändert werden.",
+      "sources": [
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_page",
+        "get_page",
+        "get_plc_block"
+      ],
+      "dauer_s": 21.4,
+      "usage": {
+        "input_tokens": 21742,
+        "output_tokens": 1648,
+        "model": "claude-sonnet-5",
+        "calls": 4,
+        "cost_usd": 0.06
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-h2-20s",
+      "source": "Foerderband FB-01",
+      "question": "Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?",
+      "answer": "\n\n\n\n\n\nDie Betriebsanleitung führt genau diesen Fall auf: „-H2 leuchtet nach ca. 20 s Betrieb“ → Ursache **Blockade** [06_Betriebsanleitung_FB-01.md].\n\n**Logik dahinter (SPS FB 10, Netzwerk 5 „Stoerung Blockade Band“):**\n\n```\nU   LS_Einlauf      // Lichtschranke -B1 Einlauf (E0.4) hat ein Teil erkannt\nU   Vorwaerts        // Band läuft vorwärts (-K1, A4.0)\nL   S5T#20S\nSE  T5               // Verlängerungstimer 20 s wird gestartet\nU   LS_Auslauf       // wenn -B2 (E0.5) das Teil rechtzeitig meldet...\nR   T5               // ...wird der Timer zurückgesetzt (kein Fehler)\nU   T5               // läuft der Timer aber ab (nach 20 s), ohne dass -B2 anspricht:\nS   Stoerung          // Sammelstörung M10.0 wird gesetzt\n```\n\nAblauf: Sobald die Lichtschranke Einlauf **-B1** (E0.4) ein Teil erkennt und das Band vorwärts läuft, startet ein 20-Sekunden-Timer (T5, Symbol `T_Blockade`). Trifft das Teil innerhalb dieser 20 s an der Lichtschranke Auslauf **-B2** (E0.5) ein, wird der Timer zurückgesetzt – alles normal. Erreicht das Teil den Auslauf jedoch **nicht** innerhalb von 20 s (Timer läuft ab), wird die Sammelstörung `Stoerung` (M10.0) gesetzt.\n\nDiese Störung liegt am Ausgang **A4.3** (`H2_Stoerung`) an, der über -X3:12 → -A1.2:4 zur Meldeleuchte **-H2** (rot, „Stoerung“) im Feld +FE1 führt [01_Stromlaufplan_FB-01.pdf, S. 6–7; 05_Symboltabelle_FB-01.sdf].\n\nGleichzeitig fällt über Netzwerk 1 (Selbsthaltung) die Freigabe ab, weil `UN Stoerung` in der Verknüpfung steht – das Band bleibt stehen, bis die Störung behoben und mit Start quittiert wird.\n\n**Zu prüfen laut Betriebsanleitung** [06_Betriebsanleitung_FB-01.md]:\n- Band auf mechanische Verklemmung/Stau zwischen Einlauf und Auslauf kontrollieren.\n- Lichtschranke **-B2** (Auslauf, Klemme -X3:6, E0.5) auf Verschmutzung, Ausrichtung und korrekte Funktion prüfen (evtl. Objekt bleibt am Einlauf hängen oder -B2 schaltet nicht).\n\n**Abgrenzung:** Die zweite mögliche Ursache für -H2 (Motorschutz **-F2** ausgelöst, Netzwerk 4) tritt sofort auf und äußert sich zusätzlich dadurch, dass Start ohne Wirkung bleibt und E0.2 (`MSS_OK`) = 0 ist – das passt nicht zu „nach ca. 20 s“, ist hier also auszuschließen; das 20-Sekunden-Muster ist eindeutig die Blockade-Überwachung.\n\nQuittierung nach Beheben der Blockade: laut Netzwerk 4/1 durch Betätigen von Start bei stehendem Band (Freigabe muss dabei 0 sein).",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 5 Stoerung Blockade Band"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 7 Stueckzaehlung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 1 Selbsthaltung Betrieb"
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_plc_block",
+        "get_page",
+        "search_knowledge",
+        "get_page"
+      ],
+      "dauer_s": 34.3,
+      "usage": {
+        "input_tokens": 26863,
+        "output_tokens": 2025,
+        "model": "claude-sonnet-5",
+        "calls": 4,
+        "cost_usd": 0.074
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-motor-brummt",
+      "source": "Foerderband FB-01",
+      "question": "Der Motor brummt, dreht aber nicht. Welche Klemmen muss ich pruefen?",
+      "answer": "Ich schaue zunächst, welche Dokumente vorliegen und suche gezielt nach Motor, Motorschutz und den zugehörigen Klemmen.\n\n## Befund aus der Dokumentation\n\n**Symptom \"Motor brummt, dreht aber nicht\"** deutet (allgemeines Fachwissen, nicht aus der Doku) typischerweise auf **Phasenausfall** hin – der Motor liegt nur an zwei von drei Phasen an, wodurch das Drehfeld fehlt, aber noch ein Wechselfeld ein Brummen erzeugt. Es kann auch mechanisch (Blockade, Lager) verursacht sein, das lässt sich elektrisch aber ausschließen, wenn an -M1 alle drei Phasen korrekt anliegen.\n\nDer Hauptstromkreis des Förderbandmotors verläuft laut Stromlaufplan so [01_Stromlaufplan_FB-01.pdf, S. 3]:\n\n**L1/L2/L3 → -Q1 (Hauptschalter) → -F2 (Motorschutzschalter 2,5–4 A, eingestellt 3,6 A) → -K1 (vorwärts) / -K2 (rückwärts) → -X4 → -M1**\n\nKlemmenplan Motorabgang -X4 [03_Klemmenplan_FB-01.csv]:\n\n| Klemme | Ziel intern | Ziel extern | Funktion |\n|---|---|---|---|\n| -X4:U | -K1:2 / -K2:6 | -M1:U1 | Motor Phase U |\n| -X4:V | -K1:4 / -K2:4 | -M1:V1 | Motor Phase V |\n| -X4:W | -K1:6 / -K2:2 | -M1:W1 | Motor Phase W |\n| -X4:PE | PE-Schiene | -M1:PE | Schutzleiter |\n\nZu beachten: **-K2 vertauscht L1/L3 (U/W)** für die Drehrichtungsumkehr – das ist konstruktiv so vorgesehen, kein Fehler.\n\n## Prüfempfehlung (Schritt für Schritt)\n\n1. **Einspeisung -X1** (Netz L1/L2/L3, N, PE) – alle drei Phasen spannungsführend? [Klemmenplan -X1]\n2. **-Q1** – Hauptschalter, alle 3 Pole schließen sauber durch (kein einzelner Pol hängt/verschweißt).\n3. **-F2 Motorschutzschalter** (2,5–4 A, eingestellt 3,6 A) – nicht ausgelöst? Prüfen, ob alle drei Kontakte durchgängig sind. Hilfskontakt 13/14 gibt \"MSS ok\" an E0.2 (-X3:3) – wenn dieser Hilfskontakt fehlerhaft schaltet, meldet die SPS zwar ggf. keine Störung, ein Hauptkontakt könnte aber trotzdem hängen.\n4. **-K1 / -K2 Schütz-Hauptkontakte** (je nachdem welche Drehrichtung angefordert ist) – Kontakte 1/2, 3/4, 5/6 auf Durchgang und sauberen Kontaktschluss prüfen (kein \"Schweißen\"/Abbrand an einem Kontakt, das würde nur 2 von 3 Phasen durchschalten und genau das Brumm-Symptom erzeugen).\n5. **-X4:U / -X4:V / -X4:W** – am Motorabgang alle drei Phasen gegeneinander und gegen PE messen (Spannung vorhanden und symmetrisch, ca. 400 V verkettet).\n6. **-M1:U1 / V1 / W1 / PE** direkt am Motorklemmbrett – Vergleich mit -X4, um eine Unterbrechung im Kabel (4G2,5, +ST1 → +FE1) auszuschließen.\n\n## Vermutung (keine Dokumentenaussage)\nAm wahrscheinlichsten liegt die Ursache an einem **defekten/verschweißten Schützkontakt bei -K1 oder -K2** oder einer **losen Klemmverbindung an -X4**, da dies genau zum Phasenausfall-Symptom passt. Die Hilfskontaktmeldung von -F2 an E0.2 zeigt nur, ob der Schutzschalter thermisch ausgelöst hat – ein einzelner defekter Hauptkontakt wird davon nicht erkannt.\n\n⚠️ **Sicherheitshinweis:** Die Prüfung auf Spannungsfreiheit bzw. Messung an -X1/-Q1/-F2/-K1/-K2/-X4/-M1 im Hauptstromkreis (400 V) darf nur durch eine Elektrofachkraft und unter Beachtung der 5 Sicherheitsregeln erfolgen. Vor Arbeiten an Klemmen freischalten, gegen Wiedereinschalten sichern, Spannungsfreiheit prüfen.",
+      "sources": [
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "search_knowledge"
+      ],
+      "dauer_s": 32.3,
+      "usage": {
+        "input_tokens": 11302,
+        "output_tokens": 2580,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0484
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_FB-01.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-verriegelung",
+      "source": "Foerderband FB-01",
+      "question": "Wie ist -K1 gegen -K2 verriegelt?",
+      "answer": "\n\n\n\n## Verriegelung -K1 gegen -K2 (Wendeschütze Förderband FB-01)\n\nDie Verriegelung ist **zweifach** ausgeführt – softwareseitig in der SPS und zusätzlich elektromechanisch:\n\n**1. Software-Verriegelung (SPS, FB 10)**\n\n| Netzwerk | Logik | Bedeutung |\n|---|---|---|\n| NW 2 – Schütz vorwärts -K1 | `U Freigabe; UN Richtung_Rueck; UN Rueckwaerts; = Vorwaerts` | -K1 zieht nur an, wenn Freigabe ansteht, **nicht** Rückwärtsbetrieb angefordert ist **und** -K2 (Rueckwaerts, A4.1) **nicht** bereits aktiv ist |\n| NW 3 – Schütz rückwärts -K2 | `U Freigabe; U Richtung_Rueck; UN Vorwaerts; = Rueckwaerts` | -K2 zieht nur an, wenn Rückwärtsbetrieb angefordert ist **und** -K1 (Vorwaerts, A4.0) **nicht** bereits aktiv ist |\n\nDamit schließen sich die Ausgänge A4.0 (-K1) und A4.1 (-K2) softwareseitig gegenseitig aus.\n[04_SPS_Programm_FB-01.awl, FB 10 NW 2+3]\n\n**2. Elektromechanische (hardware) Verriegelung**\n\nZusätzlich zur Software-Verriegelung ist im Spulenstromkreis je ein Hilfsöffner-Kontakt (21/22) des jeweils anderen Schützes in Reihe zur Spule vorgesehen, sodass -K1 und -K2 auch bei einem Fehler in der SPS/Ausgabekarte nie gleichzeitig anziehen können. Dieser Zusatzkontakt ist im Stromlaufplan nicht grafisch dargestellt, wird aber im Klemmenplan referenziert (-X3:9 / -X3:10).\n[01_Stromlaufplan_FB-01.pdf, S. 6: „Verriegelung: -K1 und -K2 duerfen nie gleichzeitig anziehen. Software-Verriegelung in FB10 Netzwerk 2 und 3, zusaetzlich Hilfskontakt 21/22 des jeweils anderen Schuetzes in Reihe zur Spule (nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10).“]\n\n**Zuordnung der Betriebsmittel**\n\n| Kennzeichen | Funktion | SPS-Adresse | Klemme |\n|---|---|---|---|\n| -K1 | Schütz Förderband vorwärts | A4.0 | -X3:9 |\n| -K2 | Schütz Förderband rückwärts | A4.1 | -X3:10 |\n\n**Fazit / eigene Einordnung:** Die Verriegelung verhindert, dass beim Wendeschütz-Antrieb des Förderbandmotors -M1 durch gleichzeitiges Anziehen von -K1 und -K2 ein Netzkurzschluss über die vertauschten Phasen (L1/L3, siehe -K2 „tauscht L1 und L3“ [01_Stromlaufplan_FB-01.pdf, S. 3]) entstehen kann. Die doppelte Absicherung (Software + Hardware-Hilfskontakt) ist eine übliche Schutzmaßnahme bei Wendeschützkombinationen.\n\nHinweis: Das Prüfen bzw. Ändern der Hilfskontakt-Verriegelung im Schützkreis erfordert Arbeiten in der Schützverdrahtung – dies darf nur durch eine Elektrofachkraft im spannungsfreien Zustand nach den 5 Sicherheitsregeln erfolgen.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 2 Schuetz vorwaerts -K1"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "find_tag",
+        "get_plc_block",
+        "view_page"
+      ],
+      "dauer_s": 21.7,
+      "usage": {
+        "input_tokens": 24641,
+        "output_tokens": 1712,
+        "model": "claude-sonnet-5",
+        "calls": 3,
+        "cost_usd": 0.0664
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-f2-typ",
+      "source": "Foerderband FB-01",
+      "question": "Welchen Typ hat -F2 und auf welchen Strom ist er eingestellt?",
+      "answer": "\n\n**-F2** ist ein **Motorschutzschalter (MSS 3P), Typ 2,5–4 A**, eingestellt auf **3,6 A** [01_Stromlaufplan_FB-01.pdf, S. 3].\n\nErgänzende Angaben:\n- Stückliste: „Motorschutzschalter Förder­motor 2,5-4 A\" [02_Stueckliste_FB-01.xlsx].\n- Hilfskontakt 13/14 meldet den Status über -X3:3 an E0.2 (MSS_OK) an die SPS [01_Stromlaufplan_FB-01.pdf, S. 5; 03_Klemmenplan_FB-01.csv].",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "19bbf49d43954b9eb6cca0c1ff3d1bc6",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag"
+      ],
+      "dauer_s": 6.3,
+      "usage": {
+        "input_tokens": 8140,
+        "output_tokens": 290,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0192
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-s3",
+      "source": "Foerderband FB-01",
+      "question": "Was passiert, wenn -S3 gedrueckt wird?",
+      "answer": "\n\n-S3 ist der Not-Halt-Taster (Pilzdrucktaster, 2 Öffner, rastend) im Bedienpult +FE1.\n\n\n\n## Was passiert beim Drücken von -S3\n\n**-S3** ist der Not-Halt-Taster (Pilzdrucktaster, rastend, 2 Öffner) im Bedienpult **+FE1** [02_Stueckliste_FB-01.xlsx; 01_Stromlaufplan_FB-01.pdf, S. 4].\n\n### 1. Hardware-Wirkung (zwangstrennend, kategorienübergreifend zur SPS)\n- -S3 wirkt **zweikanalig** (Kontakte 11-12 und 21-22) direkt auf das **Sicherheitsrelais -K3** (Eingänge S11/S12, S21/S22), unabhängig von der SPS [Stromlaufplan, S. 1 und S. 4].\n- Beim Drücken öffnen beide Kanäle → **-K3 fällt ab**, seine Freigabekontakte 13-14 und 23-24 öffnen.\n- Kontakt 13-14 unterbricht die **Freigabe der Schützspulen -K1/-K2** (Vorwärts/Rückwärts) – der Förderband-Motor **-M1 wird sofort spannungslos geschaltet**, hardwareseitig, ohne Umweg über die SPS [Stromlaufplan, S. 4 und S. 6].\n- Kontakt 23-24 liefert das Signal „+24 V freigegeben“ über -X3:4 an den SPS-Eingang **E0.3 (NotHalt_OK)** – dieses Signal fällt dabei ebenfalls ab (0-Signal = Not-Halt aktiv) [Stromlaufplan, S. 4].\n- Sicherheitsstufe laut Plan: **Not-Halt Kat. 3 / PL d** [Stromlaufplan, S. 4].\n\n### 2. Wirkung im SPS-Programm (FB 10, Netzwerk 1 – Selbsthaltung Betrieb)\n```\nU(  \n   O  Start\n   O  Freigabe\n)\nU  Stop\nU  MSS_OK\nU  NotHalt_OK      // = E0.3, fällt bei Not-Halt auf 0\nUN Stoerung\n=  Freigabe\n```\n- `NotHalt_OK` = 0 reißt die UND-Verknüpfung und damit die Selbsthaltung **Freigabe** ab, egal ob Start/Freigabe vorher gesetzt waren.\n- **Freigabe = 0** bewirkt in NW 2/3: **Vorwärts (A4.0)** und **Rückwärts (A4.1)** werden zurückgesetzt → Schütze -K1/-K2 fallen ab (auch softwareseitig, zusätzlich zur Hardware-Abschaltung).\n- In NW 6: **Betrieb (A4.2 → Leuchte -H1 grün)** erlischt, da sie direkt an `Freigabe` hängt.\n\n### 3. Wiederanlaufsperre\n- Laut Stromlaufplan-Funktionsbeschreibung: *„Rücksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10)“* [Stromlaufplan, S. 4].\n- Im Programm sichergestellt durch NW 1: Solange `NotHalt_OK` nicht wieder 1 ist, kann `Freigabe` nicht gesetzt werden. Nach Entriegeln von -S3 (E0.3 wieder 1) muss zusätzlich erneut **-S1 Start** gedrückt werden, damit `Freigabe` über `O Start` gesetzt wird – ein automatischer Wiederanlauf ist damit ausgeschlossen.\n\n### Zusammengefasst als Ablauf\n1. -S3 gedrückt → -K3 fällt ab.\n2. Hardwareseitig: Schützspulen -K1/-K2 sofort stromlos → Motor -M1 steht.\n3. E0.3 (NotHalt_OK) geht auf 0 → FB10 setzt `Freigabe` zurück → A4.0/A4.1 = 0, A4.2 (Betriebsleuchte) aus.\n4. Entriegeln von -S3 allein reicht nicht: E0.3 geht zwar wieder auf 1, aber `Freigabe` bleibt 0, bis erneut **-S1 Start** betätigt wird (Wiederanlaufsperre).\n\n**Hinweis Sicherheit:** -S3 ist Teil der Not-Halt-Sicherheitsfunktion (Kat. 3/PL d). Eingriffe an Verdrahtung oder Programmlogik dieser Kette (-S3, -K3, NotHalt_OK-Verarbeitung) dürfen nur durch Elektrofachkräfte nach Prüfung/Freigabe erfolgen; ein Überbrücken zu Testzwecken ist nicht zulässig.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_plc_block"
+      ],
+      "dauer_s": 28.0,
+      "usage": {
+        "input_tokens": 22184,
+        "output_tokens": 2188,
+        "model": "claude-sonnet-5",
+        "calls": 4,
+        "cost_usd": 0.0662
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "fb01-nicht-vorhanden",
+      "source": "Foerderband FB-01",
+      "question": "Welche Profinet-Diagnoseadresse hat die SPS -A1 im Foerderband FB-01?",
+      "answer": "\n\nIn der Dokumentation zu Förderband FB-01 findet sich **keine Profinet-Diagnoseadresse** für die SPS -A1.\n\nBefund:\n- Die SPS -A1 ist laut Stückliste als **\"SPS CPU, kompakt, PROFIBUS DP\"** ausgeführt [02_Stueckliste_FB-01.xlsx] – also mit PROFIBUS-DP-Schnittstelle, nicht Profinet.\n- Im Stromlaufplan (Blatt 5/7 und 6/7) sind nur die Adressbereiche der Digital-E/A beschrieben: EB0 (E0.0–E1.7) für -A1.1 und AB4 (A4.0–A5.7) für -A1.2 [01_Stromlaufplan_FB-01.pdf, S. 5–6].\n- Weder im Stromlaufplan, im Klemmenplan, in der Betriebsanleitung noch im AWL-Programm (OB1/FB10) ist eine Profinet-Diagnoseadresse, IP-Adresse oder Gerätename hinterlegt.\n\nSchlussfolgerung: Da die Anlage laut Doku über PROFIBUS DP kommuniziert, existiert für diese SPS keine Profinet-Diagnoseadresse – das Konzept ist hier nicht anwendbar. Falls du eine PROFIBUS-Diagnoseadresse (Stationsadresse) suchst, kann ich dazu gezielt in Klemmenplan/Stromlaufplan nachsehen, dort ist aber ebenfalls bislang keine Busadresse dokumentiert worden. Falls es sich um eine andere Anlage/SPS handelt, bitte den genauen Dokumentnamen oder das Projekt nennen.",
+      "sources": [
+        {
+          "document_id": "752e8affbed14a92962f054aacd359b1",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "a6aca7dab56346fc891a36299bf94ad4",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "bd5c300880af4eae8246aeaf386beeff",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 10 - Instanz Foerderband FB-01"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 6 Meldeleuchte Betrieb -H1"
+        },
+        {
+          "document_id": "3009b9c8fd4245acbb027d6a5474716b",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "e1dc3c9424a94e14858263dc7d85612c",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "search_knowledge"
+      ],
+      "dauer_s": 13.1,
+      "usage": {
+        "input_tokens": 12116,
+        "output_tokens": 895,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0332
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-syslink-pins",
+      "source": "Festo MPS",
+      "question": "Welche Signale liegen am SysLink-Stecker der Station Trennen und auf welchen Pins?",
+      "answer": "\n\n# SysLink-Steckerbelegung – Station Trennen (-G1)\n\nQuelle: 24-polige IEEE-488-Buchse (SysLink), X3 „Centronix\" laut Stromlaufplan und Handbuch-Kontaktbelegungstabelle [Festo_MPS_Trennen_Handbuch.pdf, S. 11–12; Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9].\n\n## Digitale Eingänge\n\n| Pin | Funktion | Ader-Farbe | Signal / Herkunft |\n|---|---|---|---|\n| 13 | I0 | grau-rosa | Werkstück am Bandanfang (Band 1, -G2‑I0) |\n| 14 | I1 | rot-blau | Werkstück in Bandmitte (Band 1, -G2‑I1) |\n| 15 | I2 | weiß-grün | Kein Werkstück am Bandende (Band 1, -G2‑I2) |\n| 16 | I3 | braun-grün | Abstandssensor, Schaltausgang binär (Band 1, -G2‑I3) |\n| 17 | I4 | weiß-grün | Werkstück am Bandanfang (Band 2, -G3‑I0) |\n| 18 | I5 | braun-gelb | Werkstück am Bandende (Band 2, -G3‑I1) |\n| 19 | I6 | weiß-gelb | (Band 2, -G3‑I2, unbelegt/frei laut Handbuch) |\n| 20 | I7 | grau-braun | (Band 2, -G3‑I3, unbelegt/frei laut Handbuch) |\n\n## Digitale Ausgänge\n\n| Pin | Funktion | Ader-Farbe | Signal / Ziel |\n|---|---|---|---|\n| 1 | Q0 | weiß | Band 1 vorwärts (-G2‑Q0) |\n| 2 | Q1 | braun | Band 1 rückwärts (-G2‑Q1) |\n| 3 | Q2 | grün | Vereinzeler ausfahren (-G2‑Q2) |\n| 4 | Q3 | gelb | Stopper aktivieren (-G2‑Q3) |\n| 5 | Q4 | grau | Band 2 vorwärts (-G3‑Q0) |\n| 6 | Q5 | rosa | Band 2 rückwärts (-G3‑Q1) |\n| 7 | Q6 | blau | (-G3‑Q2, unbelegt/frei) |\n| 8 | Q7 | rot | (-G3‑Q3, unbelegt/frei) |\n\n## Versorgung\n\n| Pin | Funktion | Ader-Farbe | Bedeutung |\n|---|---|---|---|\n| 9+10 | 24V A | schwarz | 24 V Versorgung der Ausgänge |\n| 11 | GND A | braun-rosa | 0 V Versorgung der Ausgänge |\n| 12 | GND A | lila | 0 V Versorgung der Ausgänge |\n| 21+22 | 24V B | weiß-rosa | 24 V Versorgung der Eingänge |\n| 23+24 | GND B | weiß-blau | 0 V Versorgung der Eingänge |\n\n**Hinweis aus dem Handbuch:** Bei allen Vorzugsvarianten der SPS sind Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt [Festo_MPS_Trennen_Handbuch.pdf, S. 12].\n\n## Zusätzlicher Analog-Stecker X4 (D-Sub 15)\nNeben dem digitalen SysLink-Stecker X3 existiert am Stromlaufplan noch ein separater analoger Stecker X4 (D-Sub 15) für den Abstandssensor [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]:\n\n| Pin | Signal |\n|---|---|\n| – | UA1_G1-AQ0, UA2_G2-AQ0 (Analogausgänge) |\n| – | UE1_G1-AI0, UE2_G1-AI1 (Analogeingänge) |\n| – | UE3_G2-AI0, UE4_G2-AI1 (Analogeingänge) |\n| – | GND A, GND B |\n\n**Befund:** Die konkrete Pinzuordnung von X4 ist im extrahierten Text nicht vollständig eindeutig einzelnen Pins zugeordnet – falls das für die Fehlersuche wichtig ist, kann ich die Seite als Bild (view_page) prüfen, um die exakte Pin-Zuordnung am Stecker X4 zu bestätigen.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 19,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 20,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 39,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 40,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 59,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 60,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "search_knowledge"
+      ],
+      "dauer_s": 18.0,
+      "usage": {
+        "input_tokens": 18628,
+        "output_tokens": 1762,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0549
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-i3",
+      "source": "Festo MPS",
+      "question": "Welches Signal liegt auf Eingang I3 der Station Trennen und welche Aderfarbe hat es?",
+      "answer": "\n\n\n\n\n\n\n\n## Eingang I3 – Station Trennen\n\n**Kurze Antwort:** I3 der Station Trennen liegt am **Abstandssensor digital `-G2BG4`** (Modul Band digital, Baugruppe G2). Das Signal wird über die Mini-E/A-Klemme `-G2XG1` (Bit 3/7) zum C-Interface geführt und dort im Centronics-Kabel (X3, Pin 16) als **I3_G2‑I3** bezeichnet. Die Aderfarbe dieser Ader ist **braun-grün (bn-gn)**.\n\n### Belegtabelle (Ausschnitt aus dem C-Interface, X3 Centronix)\n\n| Pin X3 | Signal | Aderfarbe | Herkunft |\n|---|---|---|---|\n| 15 | I2_G2-I2 | wh-gn | Modul Band digital -G2 |\n| **16** | **I3_G2-I3** | **bn-gn** | **Modul Band digital -G2, Sensor -G2BG4** |\n| 17 | I4_G3-I0 | wh-gn | Modul Band digital -G3 |\n\nQuelle: [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]\n\n### Herleitung / Signalweg\n\n1. Im Modul „Modul Band digital -G2“ (Trennstation, Baugruppe G2) hängen vier binäre Sensoren an der Mini-E/A-Klemme `-G2XG1`, Steckplatz X2 „in“:\n   - Bit 0/4 → `-G2BG1` (Werkstück bei Bandanfang)\n   - Bit 1/5 → `-G2BG2` (Werkstück bei Bandzwischenposition)\n   - Bit 2/6 → `-G2BG3` (Werkstück nicht bei Bandende)\n   - **Bit 3/7 → `-G2BG4` (Abstandssensor digital, „distance sensor digital“)**\n   \n   [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6]\n\n2. Über die interne Verdrahtung des Mini-I/O-Terminals wird dieses Bit 3/7 zum C-Interface `-G1XG1` weitergeführt, dort als Ader **I3_G2-I3** im 24-poligen Centronics-Kabel (Pin 16), mit der dokumentierten **Aderfarbe braun-grün (bn-gn)**. [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9]\n\n3. Laut Handbuch überwacht dieser Abstandssensor die **Bohrlochtiefe** der Werkstücke oberhalb des Stoppers, um zwischen „Grundkörper“ und „Gehäuse“ zu unterscheiden (Materialflussweiche). Er liefert zusätzlich ein analoges Signal (UE3/UE4 an X4). [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n\n### Einordnung\n- **Befund aus der Doku:** I3 = binärer Ausgang des Abstandssensors `-G2BG4`, Aderfarbe braun-grün (bn-gn) im Centronics-Verbindungskabel zum C-Interface.\n- **Hinweis:** Sollte sich die Frage auf die Adresse **I3 direkt an der SPS** (nach dem C-Interface, z. B. E0.3 o. ä.) beziehen, ist zusätzlich der Klemmen-/AWL-Abgleich am SPS-Eingangsmodul nötig – dazu liegt in den aktuell gewählten Quellen kein SPS-Programm/Klemmenplan der übergeordneten Steuerung vor. Falls gewünscht, kann ich das mit `find_tag`/`get_plc_block` prüfen, sofern die entsprechende AWL-Dokumentation verfügbar ist.",
+      "sources": [
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "find_tag",
+        "get_page",
+        "get_page",
+        "view_page",
+        "view_page"
+      ],
+      "dauer_s": 61.0,
+      "usage": {
+        "input_tokens": 63453,
+        "output_tokens": 5221,
+        "model": "claude-sonnet-5",
+        "calls": 5,
+        "cost_usd": 0.1791
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-technische-daten",
+      "source": "Festo MPS",
+      "question": "Welchen Betriebsdruck und welche Betriebsspannung braucht die Station Trennen, und wie gross ist sie?",
+      "answer": "\n\nLaut technischem Datenblatt der Station Trennen [Festo_MPS_Trennen_Handbuch.pdf, S. 11]:\n\n| Parameter | Wert |\n|---|---|\n| Betriebsdruck | 600 kPa (6 bar) |\n| Betriebsspannung | 24 V DC, 4,5 A |\n| Maße (B x T x H, sinngemäß) | 350 mm x 700 mm x 200 mm |\n\nErgänzend dazu heißt es zur Spannungsversorgung [Festo_MPS_Trennen_Handbuch.pdf, S. 21]: \"Die Stationen werden über ein Netzgerät mit 24 V Gleichspannung (max. 5 A) versorgt. Die Spannungsversorgung der kompletten Station erfolgt über die Rack-SPS.\" — das ist die anlagenseitige Versorgungsgrenze (max. 5 A), während 4,5 A der tatsächliche Betriebsstrombedarf der Station laut Datenblatt ist.\n\nZusätzliche Werte aus dem gleichen Datenblatt, falls relevant:\n- Druckluftverbrauch bei 600 kPa (Dauerzyklus): 1 l/min\n- Pneumatischer Anschluss: Kunststoffschlauch 6 mm Außendurchmesser\n- Elektrischer Anschluss: 24-polige IEEE-488-Buchse (SysLink)",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 31,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 51,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 71,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 10,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 10.1,
+      "usage": {
+        "input_tokens": 20170,
+        "output_tokens": 686,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0472
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-ablauf-timing",
+      "source": "Festo MPS",
+      "question": "Nach welcher Zeit wird bei der Station Trennen der Bandmotor von Transportband 2 ausgeschaltet, wenn das Signal Puffer voll ansteht?",
+      "answer": "\n\nNach **4 Sekunden**: Steht das Sensorsignal „Puffer voll“ nach 4 s noch an, wird der Bandmotor von Transportband 2 ausgeschaltet und der Leuchtmelder „Puffer voll“ eingeschaltet [Festo_MPS_Trennen_Handbuch.pdf, S. 18].",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 78,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 38,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 58,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 81,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 6.2,
+      "usage": {
+        "input_tokens": 11345,
+        "output_tokens": 308,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0258
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-abstandssensor",
+      "source": "Festo MPS",
+      "question": "Welche Ausgangssignale liefert der Abstandssensor der Station Trennen und wofuer wird er benutzt?",
+      "answer": "\n\n\n\n\n\nKein SPS-Programm zur Station Trennen vorhanden – daher lässt sich die konkrete Verarbeitung der Signale nur anhand von Stromlaufplan und Handbuch beschreiben.\n\n## Ausgangssignale des Abstandssensors (-G2BG4)\n\nDer Abstandssensor der Station Trennen liefert **zwei Ausgangssignale gleichzeitig**:\n\n| Signalart | Bezeichnung im Klemmenplan | Verwendung |\n|---|---|---|\n| **Binär/digital** | I3 (grau-braun/braun-grün), Kanal \"Abstandssensor (Signal Schaltausgang)\" | Schwellwert-Erkennung Grundkörper/Gehäuse |\n| **Analog** | AIn0 (D-Sub Pin 8, rot), Kanal \"Abstandssensor (analoger Ausgang)\" | Kontinuierlicher Messwert der Bohrlochtiefe |\n\nQuellen: [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6–7] (Anschluss -G2BG4 an Modul Band digital bzw. Modul Band analog -G2), [Festo_MPS_Trennen_Handbuch.pdf, S. 11–12] (Kontaktbelegungstabelle digital/analog)\n\n## Verwendungszweck\n\n- **Funktion:** Der Sensor sitzt oberhalb des Stoppers und prüft die **Bohrlochtiefe** der angehaltenen Werkstücke [Festo_MPS_Trennen_Handbuch.pdf, S. 17].\n- **Unterscheidung:**\n  - Werkstücke vom Typ **„Grundkörper“** (große Bohrlochtiefe) werden bis zum Bandende weitertransportiert.\n  - Werkstücke vom Typ **„Gehäuse“** (geringere Bohrlochtiefe) werden über die Weiche auf das zweite Transportband umgeleitet [Festo_MPS_Trennen_Handbuch.pdf, S. 17].\n- **Binärer Ausgang (Teach-In):** Der digitale Schaltausgang ist per einfachem Teach-In auf die konkrete Messanforderung (Schwellwert Bohrlochtiefe) einstellbar – er liefert direkt das Sortierkriterium für die Weichensteuerung [Festo_MPS_Trennen_Handbuch.pdf, S. 17].\n- **Analoger Ausgang:** Liefert den kontinuierlichen Abstandsmesswert (z. B. für Diagnose, Feinjustage oder alternative Auswertung durch die Steuerung); er wird auf den Analogeingang AIn0 des Moduls Band analog -G2 geführt [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 7; Handbuch S. 12].\n\n**Anmerkung/Schlussfolgerung:** Wie genau die SPS den Analogwert bzw. den Binärwert im Programm auswertet (Vergleichswert, Netzwerklogik), kann ich nicht belegen, da für die Station Trennen kein durchsuchbares SPS-Programm vorliegt (nur das allgemeine STEP7-AWL-Referenzhandbuch, das nicht verarbeitet werden konnte). Aus dem Stromlaufplan ist aber eindeutig ersichtlich, dass beide Signale (digital I3 und analog AIn0) parallel von der Baugruppe -G2BG4 zur Verfügung gestellt werden.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search",
+        "search_knowledge",
+        "keyword_search",
+        "list_documents"
+      ],
+      "dauer_s": 22.8,
+      "usage": {
+        "input_tokens": 39174,
+        "output_tokens": 1747,
+        "model": "claude-sonnet-5",
+        "calls": 4,
+        "cost_usd": 0.0958
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-ausgangsstellung",
+      "source": "Festo MPS",
+      "question": "Wie ist die Ausgangsstellung der Station Trennen vor dem Start?",
+      "answer": "\n\nLaut Handbuch der Station Trennen gilt vor dem Start:\n\n**Startvoraussetzung:**\n- Kein Werkstück am Bandanfang\n\n**Ausgangsstellung:**\n- Stopper ausgefahren\n- Weiche eingefahren\n- Bandmotoren aus\n\n[Festo_MPS_Trennen_Handbuch.pdf, S. 17]",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 48,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 8,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "list_documents"
+      ],
+      "dauer_s": 6.9,
+      "usage": {
+        "input_tokens": 11368,
+        "output_tokens": 317,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0259
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-notaus-bruecke",
+      "source": "Festo MPS",
+      "question": "Gibt es bei der Station Trennen einen Hinweis zu Kabelbruecken fuer NOT-AUS?",
+      "answer": "\n\nJa. Im Handbuch der Station Trennen findet sich im Abschnitt zur E/A-Belegung folgender Hinweis:\n\n**„Bei allen Vorzugsvarianten SPS sind Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt.“**\n[Festo_MPS_Trennen_Handbuch.pdf, S. 12]\n\n**Kontext (Befund aus der Doku):**\nDieser Hinweis steht direkt unterhalb der digitalen Ausgangsbelegung (Q0–Q7, 24V A/B, GND A/B) und bezieht sich auf die \"Vorzugsvarianten SPS\" – also die Standard-SPS-Steuerungsvarianten der Station. Er besagt, dass bei diesen Varianten das NOT-AUS-Signal per Kabelbrücke fest auf Eingangsbit **1.5** (also z. B. E1.5) gelegt ist.\n\nWeitere Details zur konkreten Verdrahtung (welcher Steckverbinder/Klemme genau überbrückt wird) sind auf dieser Handbuchseite nicht angegeben. Falls du wissen möchtest, wie E1.5 im SPS-Programm verarbeitet wird (z. B. in OB1 oder einem NOT-AUS-Baustein), kann ich das über die AWL-Quellen nachschlagen – sag mir einfach Bescheid.\n\n**Sicherheitshinweis:** NOT-AUS ist eine sicherheitsrelevante Funktion. Änderungen an dieser Kabelbrücke oder der zugehörigen Verdrahtung dürfen nur von einer Elektrofachkraft und unter Beachtung der geltenden Sicherheitsvorschriften durchgeführt werden. Ein Überbrücken oder Deaktivieren der NOT-AUS-Funktion selbst darf ich dir nicht anleiten.",
+      "sources": [
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 49,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 12.1,
+      "usage": {
+        "input_tokens": 12566,
+        "output_tokens": 834,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0335
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-analog-ain0",
+      "source": "Festo MPS",
+      "question": "Auf welchem D-Sub-Pin liegt AIn0 der Station Trennen und welche Farbe hat die Ader?",
+      "answer": "\n\n**AIn0 (Station Trennen):** liegt auf **D-Sub Pin 8**, Ader-Farbe **rot** [Festo_MPS_Trennen_Handbuch.pdf, S. 12].\n\nLaut Handbuch handelt es sich dabei um das analoge Ausgangssignal des Abstandssensors (\"Distance sensor, analogue output signal\"). Diese Information ist geräteneutral (D-Sub-Anschlussbelegung der Station), im Stromlaufplan selbst erscheint die zugehörige Analogleitung als **UE1_G1-AI0** am Steckverbinder **X4 (D-Sub 15)** [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 9].",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 72,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "search_knowledge"
+      ],
+      "dauer_s": 7.4,
+      "usage": {
+        "input_tokens": 11442,
+        "output_tokens": 385,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0267
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-modul-band1-sensoren",
+      "source": "Festo MPS",
+      "question": "Wo sitzen die Sensoren auf dem Modul Band 1 der Station Trennen und welcher Typ ist das?",
+      "answer": "\n\n\n\n\n\n\n\n\n\n\n\n\n\nAnhand des Handbuchs und des Stromlaufplans der Station Trennen lässt sich das Modul Band 1 eindeutig identifizieren (Betriebsmittelkennzeichen **-G2**, in der Stückliste \"Modul Band digital -G2\" bzw. \"Modul Band analog -G2\", 350 mm Bandlänge) [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 3+6+7; Festo_MPS_Trennen_Handbuch.pdf, S. 15].\n\n## Sensoren am Modul Band 1 (-G2)\n\n| Kennzeichen | Position auf dem Band | Funktion | Sensortyp |\n|---|---|---|---|\n| **-G2BG1** | Bandanfang | \"Werkstück bei Bandanfang\" | Optischer Näherungsschalter mit Lichtleiter (Einweglichtschranke) |\n| **-G2BG2** | Bandmitte / vor dem Vereinzeler-Stopper | \"Werkstück bei Band-Zwischenposition\" | Optischer Näherungsschalter mit Lichtleiter, als **Reflexlichttaster** ausgeführt (\"Der Reflexlichttaster vor dem Stopper erkennt das Werkstück\") |\n| **-G2BG3** | Bandende | \"Werkstück nicht bei Bandende\" (invertierte Logik – Signal aktiv, solange kein Werkstück da ist) | Optischer Näherungsschalter mit Lichtleiter (Einweglichtschranke) |\n| **-G2BG4** | oberhalb des Stoppers/Messstelle | Bohrlochtiefen-Messung – **Abstandssensor**, liefert digitales UND analoges Ausgangssignal (Schaltausgang per Teach-In einstellbar) | Optoelektronischer Abstandssensor (Analog-/Digital-Ausgang) |\n\nQuellen:\n- Funktionsbeschreibung und Sensortypen: [Festo_MPS_Trennen_Handbuch.pdf, S. 15 „7.2 Das Modul Band 1“ und S. 17 „8 Funktion“]\n- Ablaufdetails (Reflexlichttaster vor Stopper, Abstandssensor oberhalb Stopper): [Festo_MPS_Trennen_Handbuch.pdf, S. 17]\n- Verdrahtung/Kennzeichen -G2BG1…-G2BG4 im Stromlaufplan: [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6 „Modul Band digital -G2“ und S. 7 „Modul Band analog -G2“]\n- Layout-Zuordnung Modul Band (1) = 350 mm, Modul Band (2) = 300 mm: [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 3 Aufbauplan]\n- I/O-Zuordnung (Kontaktbelegungstabelle I0–I3 = Band-1-Sensoren): [Festo_MPS_Trennen_Handbuch.pdf, S. 11]\n\n**Anmerkung/Schlussfolgerung:** Eine konkrete Festo-Bestellnummer bzw. exakte Typbezeichnung (z. B. SOEG-... für den Abstandssensor oder SIEN-... für die Lichtleitersensoren) ist in den mir vorliegenden Dokumenten (Stromlaufplan, Handbuch) nicht angegeben – dort werden die Sensoren nur funktional benannt (\"Abstandssensor digital/analog\", \"optischer Näherungsschalter mit Lichtleiter\", \"Reflexlichttaster\", \"Einweglichtschranke\"). Eine Stückliste (BOM) mit Artikelnummern liegt in den bereitgestellten Quellen nicht vor; falls vorhanden, könnte dort der exakte Sensortyp (Hersteller/Bestellnummer) nachgeschlagen werden.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 15,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 16,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 32,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 52,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 72,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 18,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "search_knowledge",
+        "find_tag",
+        "find_tag",
+        "find_tag",
+        "get_page",
+        "find_tag",
+        "keyword_search",
+        "search_knowledge",
+        "list_documents",
+        "view_page",
+        "search_knowledge",
+        "get_page",
+        "search_knowledge",
+        "get_page",
+        "view_page",
+        "view_page"
+      ],
+      "dauer_s": 76.0,
+      "usage": {
+        "input_tokens": 191206,
+        "output_tokens": 6213,
+        "model": "claude-sonnet-5",
+        "calls": 8,
+        "cost_usd": 0.4445
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-verteilen-plan",
+      "source": "Festo MPS",
+      "question": "Welche Betriebsmittel mit Kennzeichen sind im Stromlaufplan der Station Verteilen-Band aufgefuehrt?",
+      "answer": "\n\n\n\n\n\n\n\nAuf Basis des Stromlaufplans **Festo_MPS_Verteilen-Band_Stromlaufplan.pdf** (9 Seiten) sind folgende Betriebsmittel mit Kennzeichen aufgeführt:\n\n## Baugruppen / Schnittstellen\n\n| Kennzeichen | Bezeichnung | Seite |\n|---|---|---|\n| -G1XG1 | Mini E/A-Terminal, Modul Band digital | S. 4, 6 |\n| -C2XG1 | Mini E/A-Terminal, Modul Stapelmagazin digital | S. 4, 7 |\n| -C1XG1 | C-Interface (Verbindung zur SPS/Übergeordnetem System) | S. 5, 8 |\n| S1 | Schalter (Brücke 24VA/24VB am Mini-E/A-Terminal) | S. 4 |\n\n## Modul Band digital -G1\n\n| Kennzeichen | Bezeichnung / Funktion | Seite |\n|---|---|---|\n| -G1BG1 | Sensor: Werkstück bei Bandanfang (Reflexlichttaster) | S. 6 |\n| -G1BG2 | Sensor: Werkstück bei Band-Zwischenposition | S. 6 |\n| -G1BG3 | Sensor: Werkstück nicht bei Bandende | S. 6 |\n| -G1KF1 | Steckverbinder/Verteiler (16-pol.), Vereinzeler-Verdrahtung | S. 6 |\n| -G1MA1 | Bandmotor (1: rückwärts, 2: vorwärts) | S. 6 |\n| -G1MB1 | Magnetventil „Vereinzeler ausfahren“ | S. 6 |\n\n## Modul Stapelmagazin digital -C2\n\n| Kennzeichen | Bezeichnung / Funktion | Seite |\n|---|---|---|\n| -C2BG1 | Sensor: Schieber eingefahren | S. 7 |\n| -C2BG2 | Sensor: Schieber ausgefahren | S. 7 |\n| -C2BG3 | Sensor: Magazin leer | S. 7 |\n| -C2MB1 | Magnetventil „Schieber ausfahren“ | S. 7 |\n\n## Modul Stapelmagazin pneumatik (Seite 9)\n\n| Kennzeichen | Bezeichnung / Funktion | Seite |\n|---|---|---|\n| -C1BG1 | Sensor am Zylinder (Endlage 1) | S. 9 |\n| -C1BG2 | Sensor am Zylinder (Endlage 2) | S. 9 |\n| -C1MM1 | Pneumatikzylinder (Schieber) | S. 9 |\n| -C1RZ1 | Drossel-Rückschlagventil, Leitung 1 | S. 9 |\n| -C1RZ2 | Drossel-Rückschlagventil, Leitung 2 | S. 9 |\n| -C1QM1 | 5/2-Wege-Magnetventil (Grundstellung/Vorsteuerung) | S. 9 |\n| -C1MB1 | Vorsteuerspule des Wegeventils | S. 9 |\n| -C1GQ1 | Luftversorgung/Drosseleinheit am Ventil | S. 9 |\n\n**Hinweis / eigene Beobachtung:** Auf Seite 9 lautet die Seitenüberschrift „Modul Stapelmagazin **pneumatik -C2**“ [Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 9], die dort eingezeichneten Betriebsmittel sind jedoch mit dem Präfix **-C1** beschriftet (z. B. -C1BG1, -C1MM1). Das ist eine Inkonsistenz in der vorliegenden Dokumentation – vermutlich eine Kennzeichnungsverwechslung zwischen den Baugruppen -C1 (C-Interface) und -C2 (Stapelmagazin). Für die Praxis empfiehlt sich ein Abgleich mit der realen Anlagenbeschriftung (Aufkleber an Sensoren/Aktoren, siehe Hinweistext „Sensoren und Aktoren mit den Betriebsmittelkennzeichen sauber bekleben“ [Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 6/7]).\n\nDie Stationsstruktur insgesamt gliedert sich in die Baugruppen **-G1** (Band), **-C2** (Stapelmagazin, digital+pneumatik) und **-C1** (C-Interface zur SPS), verbunden über die Steckverbinder X1–X4 [Festo_MPS_Verteilen-Band_Stromlaufplan.pdf, S. 8].",
+      "sources": [
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "399063051c4a4ac5be460347976e540c",
+          "filename": "Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "get_page",
+        "view_page",
+        "view_page",
+        "view_page"
+      ],
+      "dauer_s": 56.0,
+      "usage": {
+        "input_tokens": 62280,
+        "output_tokens": 4877,
+        "model": "claude-sonnet-5",
+        "calls": 5,
+        "cost_usd": 0.1733
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "festo-nicht-vorhanden",
+      "source": "Festo MPS",
+      "question": "Welche Artikelnummer hat der Frequenzumrichter der Station Trennen?",
+      "answer": "\n\nIn der Dokumentation der Station Trennen (Festo MPS® seperating station, 8038802) finde ich **keinen Frequenzumrichter**. Die Bandmotoren (-G2MA1, -G3MA1) werden über einfache Relaisschaltungen mit den Laufrichtungen \"vorwärts/rückwärts\" angesteuert [Festo_MPS_Trennen_Stromlaufplan.pdf, S. 6+8], nicht über einen Frequenzumrichter. Auch die Stückliste bzw. das Handbuch der Station enthalten keinen entsprechenden Eintrag.\n\nMöchtest du, dass ich in einer anderen Station (z. B. bei anderen MPS-Modulen deiner Anlage) nach einem Frequenzumrichter suche, oder war eine andere Station gemeint?",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 17,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 14,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 21,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 2,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 10,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 8.3,
+      "usage": {
+        "input_tokens": 20828,
+        "output_tokens": 440,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0461
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-schieberegister",
+      "source": "AWL Praxisprojekte",
+      "question": "Was macht der Baustein Schieberegister in bnt_modell.awl und wie viele Elemente fasst er?",
+      "answer": "\n\n## Baustein FB \"Schieberegister\" – Funktion\n\nDer FB implementiert ein **FIFO-Schieberegister für 5 Elemente**, das je Element zwei Werte speichert: **Dicke** (WORD) und **Farbe** (BOOL). Er wird typischerweise zur Nachverfolgung von Werkstücken auf einem Förderband genutzt (Deklarationstext: „Schieberegister (FIFO) für 5 Elemente“) [bnt_modell.awl, FB \"Schieberegister\"].\n\n**Schnittstelle:**\n\n| Bereich | Variable | Typ | Bedeutung |\n|---|---|---|---|\n| Input | Dicke_Eingang | WORD | Dickenwert des einzuschiebenden Elements |\n| Input | Farbe_Eingang | BOOL | Farbmerkmal des Elements |\n| Input | Einschieben | BOOL | Flanke löst Einschieben aus |\n| Input | Ausschieben | BOOL | Flanke löst Entnahme aus |\n| Input | reset | BOOL | Register komplett löschen |\n| Output | Anzahl_Teile | INT | aktueller Füllstand |\n| Output | Farbe_Ausgang | BOOL | Farbe des entnommenen Elements |\n| Output | Dicke_Ausgang | WORD | Dicke des entnommenen Elements |\n| Intern | Dicke_0…Dicke_4, Farbe_0…Farbe_4 | WORD/BOOL | die 5 Speicherplätze des Registers |\n| Intern | Fuellstand | WORD | Anzahl belegter Plätze |\n\n**Netzwerke:**\n\n- **NW 1 – Element einfügen**: Bei steigender Flanke von `Einschieben` (Flankenmerker `FM_Einschieben`) wird geprüft, ob das Register voll ist (`Fuellstand >= 5` → Abbruch, Überlauf-Sicherung). Ist noch Platz, werden per Zeiger (Adressregister AR1, Elementabstand `P#4.0`) alle vorhandenen Elemente per LOOP um einen Platz \"nach hinten\" verschoben, danach wird der neue Wert auf Platz 0 geschrieben und `Fuellstand` erhöht [bnt_modell.awl, FB \"Schieberegister\" NW 1].\n- **NW 2 – Element entnehmen**: Bei steigender Flanke von `Ausschieben` (`FM_Ausschieben`) wird geprüft, ob überhaupt ein Element vorhanden ist (`Fuellstand <= 0` → Abbruch). Andernfalls wird das älteste Element (letzter belegter Platz, Index `Fuellstand-1`) über AR1 ausgelesen (Farbe → `Farbe_Ausgang`, Dicke → `Dicke_Ausgang`), der Speicherplatz danach gelöscht und `Fuellstand` um 1 verringert [bnt_modell.awl, FB \"Schieberegister\" NW 2].\n- **NW 3 – Reset**: Bei `reset = 1` werden `Fuellstand`, `Dicke_Ausgang`, `Farbe_Ausgang` sowie alle 5 Registerplätze über eine LOOP-Schleife gelöscht [bnt_modell.awl, FB \"Schieberegister\" NW 3].\n- **NW 4 – Ausgangssignal Anzahl Teile**: `Fuellstand` wird auf den Ausgang `Anzahl_Teile` kopiert [bnt_modell.awl, FB \"Schieberegister\" NW 4].\n\n**Größe:** Das Register fasst **5 Elemente** (Dicke_0…Dicke_4, Farbe_0…Farbe_4), Elementabstand im Speicher 4 Byte (`P#4.0`) [bnt_modell.awl, FB \"Schieberegister\" Deklaration].\n\n**Einbindung im Programm:** Der Baustein wird im `OB \"Programmzyklus\"`, NW 13, mit dem Instanz-DB `\"DB_Schiebereg_Band\"` aufgerufen. Dabei werden `Dicke_Eingang`, `Farbe_Eingang`, `Einschieben`, `Ausschieben` und `reset` aus temporären Merkern (`#TEMP_gemessene_dicke`, `#TEMP_gemessene_farbe`, `#TEMP_wert_einschieben`, `#TEMP_schiebereg_aus`, `#TEMP_Reset`) beschaltet, und `Anzahl_Teile` wird nach `\"OB1_Daten\".Schiebereg_Fuellstand` geschrieben [bnt_modell.awl, OB \"Programmzyklus\" NW 13]. Die Steuersignale zum Einschieben/Ausschieben werden zuvor in NW 10 bzw. NW 12 anhand der Schrittnummer der Schrittkette erzeugt (z.B. „Schritt_Nr == 4“ → Signal schieben) [bnt_modell.awl, FB \"Ausgänge_Schrittkette_2\" NW 10; OB \"Programmzyklus\" NW 12].\n\n**Anmerkung/eigene Einordnung:** Das Modell bildet damit die Verweilzeit/Reihenfolge von Werkstücken auf einem Transportband ab (z.B. Sensor am Einlauf schreibt Dicke/Farbe ins Register, Sensor am Auslauf liest ältestes Element wieder aus) – dies ist eine Interpretation basierend auf Kommentaren und Symbolik, nicht explizit als Fließtext im Handbuch dokumentiert.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 10 Erzeugung Signal: Schieberegister einschieben"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 2 Element entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 1 Element einfügen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 12 Signal erzeugen: Schieberegister entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 3 Reset: Alles löschen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Schiebereg_Band\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 13 Daten in Schieberegister einschieben und entnehmen"
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "get_plc_block"
+      ],
+      "dauer_s": 23.3,
+      "usage": {
+        "input_tokens": 12579,
+        "output_tokens": 2094,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0461
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-timer-1b1-1s1",
+      "source": "AWL Praxisprojekte",
+      "question": "Welcher Timer ueberwacht in bnt_modell.awl den Zeitunterschied zwischen 1B1 und 1S1, mit welcher Zeit, und in welchem Schritt startet er?",
+      "answer": "\n\n\n\n## Timer zur Überwachung des Zeitunterschieds zwischen 1B1 und 1S1\n\n**Timer:** `T_zw_1B1_1S1` (symbolischer Name im Baustein FB \"Ausgaenge_Schrittkette_1\")\n**Zeitwert:** `S5T#1S` – also **1 Sekunde**\n**Timertyp:** SE (speichernde Einschaltverzögerung)\n**Startbedingung/Schritt:** Der Timer wird gestartet, wenn `#Schritt_Nr` **= 3** ist (Vergleich `L 3; L #Schritt_Nr; ==I`), er startet also **in Schritt 3** der Schrittkette.\n\n**Rücksetzbedingung:** Der Timer wird zurückgesetzt (`R \"T_zw_1B1_1S1\"`), wenn `#Schritt_Nr` = 4 **oder** `#Reset` **oder** `#Schritt_Nr` = 10 ist.\n\n**Auswertung:** In einem anderen Netzwerk (FB \"Eingaenge_Schrittkette_1\", NW 8) wird der Timerstatus abgefragt:\n```\nU     \"T_zw_1B1_1S1\";\n=     #T3_10;\n```\nD.h. das Ergebnis `T_zw_1B1_1S1` wird als Merker `#T3_10` weitergegeben – vermutlich zur Fehler-/Zeitüberwachung des Übergangs von Schritt 3 nach Schritt 10 bzw. für eine Zeitüberschreitungsmeldung, falls zwischen dem Rücksetzen von 1B1 und dem Setzen von 1S1 mehr als 1 s vergeht.\n\n**Quelle:** [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 7 \"Zeitunterschied zw. 1B1 und 1S1\"] und [bnt_modell.awl, FB \"Eingaenge_Schrittkette_1\" NW 8]\n\n*Eigene Schlussfolgerung:* Der Timer dient offenbar als Überwachungszeit – läuft er ab (SE, speichernd), obwohl 1S1 noch nicht erreicht wurde, wird dies als Zeitüberschreitung/Störung ausgewertet (über `#T3_10`). Die genaue Weiterverarbeitung von `#T3_10` (z. B. Störmeldung) ist aus den gefundenen Netzwerken nicht ersichtlich; dafür müsste der Baustein weiter durchsucht werden, falls das relevant ist.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 3"
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "find_tag",
+        "keyword_search",
+        "keyword_search"
+      ],
+      "dauer_s": 15.7,
+      "usage": {
+        "input_tokens": 11713,
+        "output_tokens": 1238,
+        "model": "claude-sonnet-5",
+        "calls": 3,
+        "cost_usd": 0.0358
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-ob1-aufrufe",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche Schrittketten ruft der OB1 Programmzyklus in bnt_modell.awl auf?",
+      "answer": "\n\nDer Blockabruf lieferte OB1-Daten aus mehreren Dokumenten (acme-001/003/005/006, EXAMPLE, linuxcnc-demo, raspberrypi-*), aber keine explizit als \"bnt_modell.awl\" gekennzeichnete Quelle. Ich prüfe die Dokumentenliste, um das richtige Dokument zu identifizieren.\n\nJetzt gezielt das OB1 aus bnt_modell.awl abrufen.\n\n\n\n\n\nIm Baustein **OB \"Programmzyklus\"** (der OB1) in **bnt_modell.awl** werden drei Schrittketten als eigene Funktionsbausteine mit jeweils zugehörigem Instanz-Datenbaustein aufgerufen:\n\n| Netzwerk | Aufgerufener Baustein | Instanz-DB | Bedeutung |\n|---|---|---|---|\n| NW 7 | `\"Schrittkette 1 (Magazin)\"` | `DB_Schrittkette_1` | Ablaufsteuerung Magazin |\n| NW 10 | `\"Schrittkette 2 (Prüfen)\"` | `DB_Schrittkette_2` | Ablaufsteuerung Prüfstation |\n| NW 16 | `\"Schrittkette 3 (Greifer)\"` | `DB_Schrittkette_3` | Ablaufsteuerung Greifer |\n\n[bnt_modell.awl, OB \"Programmzyklus\" NW 7, NW 10, NW 16]\n\nJede Schrittkette ist in drei Teile aufgeteilt, die im selben OB umliegend aufgerufen werden:\n\n**Schrittkette 1 (Magazin):**\n- NW 4: `CALL \"Eingaenge_Schrittkette_1\"` (DB_Transitionen_SK1) – ermittelt die Transitionsbedingungen T1_2…T10_1\n- NW 7: `CALL \"Schrittkette 1 (Magazin)\"` (DB_Schrittkette_1) – eigentliche Ablaufkette\n- NW 8: `CALL \"Ausgaenge_Schrittkette_1\"` (DB_Ausgänge_SK1) – setzt die Aktor-Ausgänge je nach Schrittnummer\n\n**Schrittkette 2 (Prüfen):**\n- NW 9: `CALL \"Eingänge_Schrittkette_2\"` (DB_Transitionen_SK2)\n- NW 10: `CALL \"Schrittkette 2 (Prüfen)\"` (DB_Schrittkette_2)\n- NW 11: `CALL \"Ausgänge_Schrittkette_2\"` (DB_Ausgänge_SK2)\n\n**Schrittkette 3 (Greifer):**\n- NW 15: `CALL \"Eingänge Schrittkette_3\"` (DB_Transitionen_SK3)\n- NW 16: `CALL \"Schrittkette 3 (Greifer)\"` (DB_Schrittkette_3)\n- NW 17: `CALL \"Ausgänge_Schrittkette_3\"` (DB_Ausgänge_SK3)\n\n[bnt_modell.awl, OB \"Programmzyklus\" NW 4, 7, 8, 9, 10, 11, 15, 16, 17]\n\n**Zusammenfassung / Schlussfolgerung:** Der OB1 (\"Programmzyklus\") steuert damit drei parallele Ablaufketten – Magazin, Prüfen und Greifer – jeweils über das Muster Eingänge (Transitionen ermitteln) → Schrittkette (Zustandsautomat) → Ausgänge (Aktoren ansteuern), zusätzlich koordiniert über gemeinsame Betriebsarten (NW 5, `\"Betriebsarten\"`/DB_Betriebsarten) und ein Schieberegister für die Werkstückverfolgung (NW 13, `\"Schieberegister\"`/DB_Schiebereg_Band).",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 4 Transitionen für Schrittkette 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 8 Ausgänge für Schrittkette 1"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "b981c11749994d508b3ca9b4dcb0b07c",
+          "filename": "acme-005.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 7 Schrittkette 1 (Magazin)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 9 Transitionen für Schrittkette 2"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 6"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 7"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 9 Magazinbefüllung quittieren"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Transitionen_SK1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 1 1Y1.10 = 1; Magazinschieber fährt nach hinten"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 2 1Y1.11 = 1;Magazinschieber fährt nach vorne"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 3 1Y2.10 = 1; Vakuum wird ausgeschaltet"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\""
+        }
+      ],
+      "tools": [
+        "get_plc_block",
+        "list_documents",
+        "get_page",
+        "search_knowledge",
+        "keyword_search",
+        "get_plc_block"
+      ],
+      "dauer_s": 34.4,
+      "usage": {
+        "input_tokens": 76346,
+        "output_tokens": 3119,
+        "model": "claude-sonnet-5",
+        "calls": 6,
+        "cost_usd": 0.1839
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-vakuum",
+      "source": "AWL Praxisprojekte",
+      "question": "Welches Ventil schaltet in bnt_modell.awl das Vakuum ein und welches aus?",
+      "answer": "\n\nIm AWL-Programm `bnt_modell.awl` findet sich das direkt in den Kommentaren der Netzwerke des Bausteins **FB \"Ausgaenge_Schrittkette_1\"**:\n\n| Ausgang | Funktion | Bedingung (vereinfacht) |\n|---|---|---|\n| **1Y2.11** | **Vakuum EIN** | Netzwerk 4 – wird gesetzt, wenn Schritt_Nr = 5 (Merker4 gesetzt) und Aktorfreigabe + Aktor_vor bei Aktornummer 102 anstehen; rückgesetzt bei Schritt_Nr = 7 oder 1 bzw. Reset [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 4] |\n| **1Y2.10** | **Vakuum AUS** | Netzwerk 3 – wird gesetzt, wenn Schritt_Nr = 1 oder 7 (Merker3 gesetzt) und Aktorfreigabe + Aktor_zurueck bei Aktornummer 102 anstehen; rückgesetzt bei Schritt_Nr = 5 bzw. Reset [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 3] |\n\n**Logik der Schrittkette:**\n- Bei Schritt 5 wird **1Y2.11 gesetzt → Vakuum wird eingeschaltet**.\n- Bei Schritt 1 oder 7 (bzw. bei Reset) wird **1Y2.10 gesetzt → Vakuum wird ausgeschaltet**.\n\nDamit ist das Ventil mit Adresse **1Y2.11** das \"Vakuum-EIN\"-Ventil und **1Y2.10** das \"Vakuum-AUS\"-Ventil.\n\nHinweis: Die Kommentare im AWL-Code selbst (\"Vakuum wird ausgeschaltet\"/\"Vakuum wird eingeschaltet\") bestätigen diese Zuordnung eindeutig [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 3 und NW 4].\n\nFalls du wissen willst, welches physische Ventil (Typ/Artikelnummer, Klemme) hinter 1Y2.10/1Y2.11 im Stromlaufplan bzw. der Stückliste steckt, kann ich das über `find_tag` für \"1Y2.10\" und \"1Y2.11\" in den übrigen Dokumenten nachschlagen – sag mir Bescheid, falls gewünscht.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 3 1Y2.10 = 1; Vakuum wird ausgeschaltet"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 4 1Y2.11 = 1; Vakuum wird eingeschaltet"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 1 - Yalanci632yahoo.com"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 179"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 2 - Pulse Controller"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 2"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 180"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 2 - Pulse Controller / NW 13"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 1 - One Way Motor"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 1 - One Way Motor"
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "search_knowledge"
+      ],
+      "dauer_s": 14.1,
+      "usage": {
+        "input_tokens": 14406,
+        "output_tokens": 1101,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0398
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-rotor",
+      "source": "AWL Praxisprojekte",
+      "question": "Mit welchen Ausgaengen faehrt der Rotor (Umsetzer) in bnt_modell.awl in die Stellungen Magazin und Pruefen?",
+      "answer": "\n\nLaut AWL-Programm `bnt_modell.awl` im Baustein **FB \"Ausgaenge_Schrittkette_1\"**:\n\n| Ausgang | Stellung | Netzwerk |\n|---|---|---|\n| **1Y3.10** | Rotor (Umsetzer) fährt in Stellung „Magazin\" | NW 5 |\n| **1Y3.11** | Rotor (Umsetzer) fährt in Stellung „Prüfen\" | NW 6 |\n\n**Details der Ansteuerung:**\n\n- **NW 5 – 1Y3.10 (Magazin):** Wird gesetzt (`#Merker5`), wenn Schritt_Nr = 4 ist, und rückgesetzt bei Schritt_Nr = 6, Schritt_Nr = 1 oder `#Reset`. Ausgang schaltet, wenn `#Merker5` UND `#Aktorfreigabe` gesetzt sind ODER `#Aktor_zurueck` UND Aktornummer = 103 [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 5].\n\n- **NW 6 – 1Y3.11 (Prüfen):** Wird gesetzt (`#Merker6`), wenn Schritt_Nr = 6 oder Schritt_Nr = 1 ist, und rückgesetzt bei Schritt_Nr = 4 oder `#Reset`. Ausgang schaltet, wenn `#Merker6` UND `#Aktorfreigabe` gesetzt sind ODER (`#Aktor_vor` UND Aktornummer = 103), zusätzlich verundet mit dem Rückmeldesignal `\"2B6\"` [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 6].\n\nDer Rückschluss auf die Ist-Stellung erfolgt im Baustein **FB \"Eingänge_Schrittkette_2\"**, NW 1, wo `1Y3.10` in Verbindung mit den Rückmeldern `2B3`/`2B2` zur Stellung „Magazin\" verknüpft wird [bnt_modell.awl, FB \"Eingänge_Schrittkette_2\" NW 1].\n\nWenn gewünscht, kann ich zusätzlich prüfen, welchem realen Aktor (Ventil/Zylinder-Kennzeichen im Stromlaufplan) die Adressen 1Y3.10 / 1Y3.11 zugeordnet sind – dafür bräuchte ich die Symboltabelle bzw. den Klemmen-/Stromlaufplan zu diesen Adressen.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 5 1Y3.10 = 1; Rotor (Umsetzer) fährt in Stellung \"Magazin\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 6 1Y3.11 = 1; Rotor (Umsetzer) fährt in Stellung \"Prüfen\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 1 1Y3.10 = 1; Rotor (Umsetzer) fährt in Stellung \"Magazin\""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 13.9,
+      "usage": {
+        "input_tokens": 7908,
+        "output_tokens": 1150,
+        "model": "claude-sonnet-5",
+        "calls": 2,
+        "cost_usd": 0.0273
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-nicht-vorhanden",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche IP-Adresse hat die CPU im Projekt bnt_modell.awl?",
+      "answer": "\n\n\n\nDas Dokument existiert. Da AWL-Programme in der Regel keine IP-Adresskonfiguration enthalten (das läuft über Hardwarekonfiguration, z.B. NetPro/HW-Config), prüfe ich den Blockinhalt gezielt.\n\n\n\nIn der Dokumentation ist keine IP-Adresse für die CPU im Projekt **bnt_modell.awl** hinterlegt.\n\n**Befund:** Ich habe das AWL-Programm `bnt_modell.awl` gezielt durchsucht (Volltextsuche nach \"IP-Adresse\", \"192.168\", Blockdeklarationen der Bausteine sowie OB 1). Es enthält ausschließlich Schrittketten-Logik (FB \"Eingaenge_Schrittkette_1\", FB \"Eingänge Schrittkette_3\" usw.) mit binären Verknüpfungen (U, UN) auf Sensor-/Grenztaster-Symbole wie `1B2`, `1S1`, `3B1`. Eine Hardwarekonfiguration mit Ethernet-/PROFINET-Adressierung ist darin nicht enthalten.\n\n**Fachliche Einordnung (kein Dokumentationsbefund, sondern Erklärung):** IP-Adressen von Siemens-CPUs (z. B. S7-300/400 mit integriertem PN/Ethernet-Anschluss) werden nicht im AWL-Programm hinterlegt, sondern in der Hardwarekonfiguration (HW-Config/NetPro bzw. TIA Portal \"Geräte & Netze\"). Diese Information liegt üblicherweise nicht im AWL-Quellcode, sondern in separaten Projektdateien (z. B. `.cfg`, HW-Config-Export) oder im Anlagenhandbuch/Netzwerkplan vor.\n\nFalls eine solche Konfigurationsdatei oder ein Netzwerkplan zu diesem Projekt vorliegt, kann ich dort gezielt nachsehen – aktuell ist mir dazu kein passendes Dokument in der Wissensbasis bekannt (nur AWL-Programme laut `list_documents`).",
+      "sources": [
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 31 / NW 2"
+        },
+        {
+          "document_id": "c1c49f597ab24a77b87c28a8e756bc33",
+          "filename": "raspberrypi-profibus.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 31 / NW 1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 10 - Adjust Input Parameter Form TP / NW 2"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 8 / NW 1"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 42 / NW 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 2 - Scale Data / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 11"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 6"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 4"
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "search_knowledge",
+        "list_documents",
+        "get_plc_block",
+        "keyword_search",
+        "get_plc_block",
+        "search_knowledge"
+      ],
+      "dauer_s": 19.7,
+      "usage": {
+        "input_tokens": 47215,
+        "output_tokens": 1208,
+        "model": "claude-sonnet-5",
+        "calls": 5,
+        "cost_usd": 0.1065
+      },
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    }
+  ]
+}
