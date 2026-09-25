@@ -26,12 +26,23 @@ python eval/run_eval.py --baseline eval/results/2026-09-26_10-00-00.json   # Ver
 
 Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf eine Referenzdatei).
 
+## Modelle vergleichen
+
+`CHAT_MODEL` in `.env` umstellen, Backend neu starten, Lauf mit `--baseline` gegen den Referenzlauf.
+Der Runner summiert Token und rechnet mit den Listenpreisen (`PRICES` in `run_eval.py`) die Kosten
+je Lauf aus, so steht neben der Trefferquote auch der Preis:
+
+```bash
+python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
+```
+
 ## Kennzahlen
 
 - `fakten_mittel`: Anteil gefundener Pflichtangaben, gemittelt ueber alle Fragen
 - `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden
 - `sauber`: Anteil der Fragen ohne verbotene Angaben
 - `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok und sauber
+- `kosten_usd`, `tokens_input`, `tokens_output`: Verbrauch des Laufs (braucht das SSE-Ereignis `usage` aus dem Backend)
 
 ## Fragen ergaenzen
 
