@@ -1,0 +1,913 @@
+{
+  "summary": {
+    "fragen": 6,
+    "bewertet": 6,
+    "nicht_bewertet_fehler": 0,
+    "fakten_mittel": 1.0,
+    "quellen_ok": 1.0,
+    "sauber": 1.0,
+    "voll_bestanden": 6,
+    "dauer_mittel_s": 33.3
+  },
+  "results": [
+    {
+      "id": "awl-schieberegister",
+      "source": "AWL Praxisprojekte",
+      "question": "Was macht der Baustein Schieberegister in bnt_modell.awl und wie viele Elemente fasst er?",
+      "answer": "Ich sehe mir den Baustein in der AWL-Quelle an.\n\n\n\n## Kurzantwort\n\n`FB \"Schieberegister\"` in **bnt_modell.awl** ist ein **FIFO-Speicher für 5 Werkstück-Datensätze**. Jeder Datensatz besteht aus **Dicke (WORD)** und **Farbe (BOOL)**; gespeichert wird in den statischen Variablen `Dicke_0…Dicke_4` / `Farbe_0…Farbe_4` im Instanz-DB `DB_Schiebereg_Band` [bnt_modell.awl, FB \"Schieberegister\" Deklaration].\n\n## Schnittstelle\n\n| Art | Variable | Typ | Funktion |\n|---|---|---|---|\n| IN | `Dicke_Eingang` | WORD | zu speichernde Teiledicke |\n| IN | `Farbe_Eingang` | BOOL | zu speichernde Farbinformation |\n| IN | `Einschieben` | BOOL | flankengetriggert: Element einfügen |\n| IN | `Ausschieben` | BOOL | flankengetriggert: Element entnehmen |\n| IN | `reset` | BOOL | Register komplett löschen |\n| OUT | `Anzahl_Teile` | INT | aktueller Füllstand |\n| OUT | `Farbe_Ausgang` | BOOL | Farbe des entnommenen Teils |\n| OUT | `Dicke_Ausgang` | WORD | Dicke des entnommenen Teils |\n| STAT | `Fuellstand`, `FM_Einschieben`, `FM_Ausschieben`, `Dicke_0..4`, `Farbe_0..4` | – | interner Speicher |\n| TEMP | `Zaehler` | INT | Schleifenzähler |\n\n[bnt_modell.awl, FB \"Schieberegister\" Deklaration]\n\n## Netzwerke im Klartext\n\n**NW 1 – Element einfügen**\nPositive Flanke an `Einschieben` (`FP #FM_Einschieben`), sonst Sprung zu `Eend`.\n- Überlaufschutz: Ist `Fuellstand >= 5`, wird abgebrochen – es passen also maximal 5 Elemente hinein.\n- Ist `Fuellstand = 0`, wird direkt zu `Schr` gesprungen (nichts zu verschieben).\n- Sonst Schleife `next`/`LOOP`: Über indirekte Adressierung mit AR1 (`L P##Dicke_0` = Zeiger auf erstes Element, Elementraster `P#4.0` = 4 Byte je Element) wird jedes Element eine Position weitergeschoben: `Dicke_n → Dicke_n+1` (`L W[AR1,P#0.0]` → `T W[AR1,P#4.0]`) und `Farbe_n → Farbe_n+1` (`U [AR1,P#2.0]` → `= [AR1,P#6.0]`).\n- Ab `Schr`: neues Teil wird auf Platz 0 abgelegt (`Farbe_Eingang → Farbe_0`, `Dicke_Eingang → Dicke_0`), `Fuellstand` um 1 erhöht.\n\n**NW 2 – Element entnehmen**\nPositive Flanke an `Ausschieben`; Abbruch, wenn `Fuellstand <= 0` (leeres Register).\nZeiger auf Element `Fuellstand-1`, also das **älteste** Element → FIFO-Verhalten. Werte werden nach `Farbe_Ausgang` / `Dicke_Ausgang` kopiert, der Platz anschließend mit 0 überschrieben, `Fuellstand` um 1 verringert.\n\n**NW 3 – Reset**\nBei `reset = 1`: `Fuellstand`, `Dicke_Ausgang`, `Farbe_Ausgang` auf 0 und eine `LOOP`-Schleife mit Startwert **5** löscht alle fünf Speicherplätze.\n\n**NW 4 – Füllstand ausgeben**\n`Fuellstand → Anzahl_Teile`.\n\n## Einbindung in die Anlage\n\n| Stelle | Inhalt |\n|---|---|\n| OB \"Programmzyklus\", NW 13 | `CALL \"Schieberegister\", \"DB_Schiebereg_Band\"` mit `Dicke_Eingang := #TEMP_gemessene_dicke`, `Farbe_Eingang/Einschieben/Ausschieben/reset` über Lokalbits L34.0–L34.3, `Anzahl_Teile := \"OB1_Daten\".Schiebereg_Fuellstand` |\n| FB \"Ausgänge_Schrittkette_2\", NW 10 | Einschiebesignal wird bei `Schritt_Nr = 4` gebildet |\n| OB \"Programmzyklus\", NW 12 | Ausschiebesignal bei `SK3_Schritt_Nr = 8` |\n| OB \"Programmzyklus\", NW 14 | Füllstand und Teiledicke per `DTB` auf die BCD-Anzeigen `Ausgabe_SchReg_Fuellst` / `Ausgabe_Teiledicke` |\n\n[bnt_modell.awl, OB \"Programmzyklus\" NW 12–14; FB \"Ausgänge_Schrittkette_2\" NW 10]\n\n## Ergänzende Einordnung (meine Schlussfolgerung, nicht wörtlich in der Doku)\n\n- Die Kapazität **5** steckt an drei Stellen fest im Code (Überlaufvergleich `L 5` in NW 1, Löschschleife `L 5` in NW 3, Variablen `Dicke_0…Dicke_4`). Eine Vergrößerung erfordert Anpassung aller drei Stellen plus neuer STAT-Variablen – das Elementraster `P#4.0` passt nur, solange je Element ein WORD + ein BOOL im 4-Byte-Raster liegen.\n- In NW 1/2/3 wird beim Index-Rechnen `-D` statt `-I` verwendet; das funktioniert hier, weil `Fuellstand` als WORD ohne negative Werte geladen wird, ist aber untypisch.\n- Fachlich handelt es sich um einen FIFO mit „Einschieben vorne, Entnehmen hinten\" – also Teile verlassen das Register in derselben Reihenfolge, in der sie am Band erfasst wurden.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 1 Element einfügen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 2 Element entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 3 Reset: Alles löschen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schieberegister\" - Schieberegister (FIFO) für 5 Elemente / NW 4 Ausgangssignal: Anzahl Teile"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Schiebereg_Band\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 10 Erzeugung Signal: Schieberegister einschieben"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 12 Signal erzeugen: Schieberegister entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 13 Daten in Schieberegister einschieben und entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 14 Dicke von Teil im Greifer und Füllstand Schieberegister ausgeben"
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "keyword_search",
+        "get_plc_block"
+      ],
+      "dauer_s": 35.1,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-timer-1b1-1s1",
+      "source": "AWL Praxisprojekte",
+      "question": "Welcher Timer ueberwacht in bnt_modell.awl den Zeitunterschied zwischen 1B1 und 1S1, mit welcher Zeit, und in welchem Schritt startet er?",
+      "answer": "Ich sehe mir das AWL-Programm an.\n\n\n\n\n\n\n\n\n\n## Befund\n\n**Timer:** `\"T_zw_1B1_1S1\"` (symbolischer Name; eine absolute Timer-Adresse T… ist in der AWL-Quelle nicht enthalten, es gibt keine Symboltabelle zum Projekt).\n\n**Ort:** `FB \"Ausgaenge_Schrittkette_1\"`, Netzwerk 7 mit der Kommentarzeile „Zeitunterschied zw. 1B1 und 1S1\" [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 7].\n\n**Code:**\n```\nU( L 3; L #Schritt_Nr; ==I )     // Start nur in Schritt 3\nL  S5T#1S\nSE \"T_zw_1B1_1S1\"                // Einschaltverzoegerung 1 s\nU( O( L 4; L #Schritt_Nr; ==I )  // Ruecksetzen in Schritt 4\n   O #Reset\n   O( L 10; L #Schritt_Nr; ==I ) //   oder Schritt 10 oder Reset\n )\nR  \"T_zw_1B1_1S1\"\n```\n\n| Merkmal | Wert |\n|---|---|\n| Timer | `T_zw_1B1_1S1` |\n| Typ | `SE` = Einschaltverzögerung |\n| Zeitwert | `S5T#1S` = 1 Sekunde |\n| Startbedingung | `#Schritt_Nr == 3` (Schrittkette 1) |\n| Rücksetzen | `#Schritt_Nr == 4` ODER `#Schritt_Nr == 10` ODER `#Reset` |\n\n**Auswertung des Timers:** in `FB \"Eingaenge_Schrittkette_1\"` NW 8: `U \"T_zw_1B1_1S1\"; = #T3_10` – der abgelaufene Timer bildet die Transition **von Schritt 3 nach Schritt 10** [bnt_modell.awl, FB \"Eingaenge_Schrittkette_1\" NW 8]. Die konkurrierende Transition aus Schritt 3 ist `T3_4 = \"1S1\"` [ebd., NW 3].\n\n## Schlussfolgerung (Interpretation)\n\nDie Schrittkette wartet in Schritt 3 auf `1S1`. Kommt dieses Signal nicht innerhalb von 1 s, läuft `T_zw_1B1_1S1` ab und die Kette verzweigt über `T3_10` nach Schritt 10. Schritt 10 ist der Zustand „Magazin leer\": dort wird `\"H_Mag_Leer\"` gesetzt und im Automatikbetrieb zusätzlich die `\"Hupe\"` angesteuert [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 8]; quittiert wird über `T10_1 = \"Quit\"` [FB \"Eingaenge_Schrittkette_1\" NW 9]. Der Timer dient also als Leermelde-/Überwachungszeit für den Magazinschieber-Vorlauf.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 10"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Transitionen_SK3\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 4 Transitionen für Schrittkette 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 9"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 15 Transitionen für Schrittkette 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\""
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "keyword_search",
+        "find_tag",
+        "keyword_search",
+        "search_knowledge",
+        "get_plc_block",
+        "list_documents",
+        "get_plc_block",
+        "search_knowledge"
+      ],
+      "dauer_s": 40.7,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-ob1-aufrufe",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche Schrittketten ruft der OB1 Programmzyklus in bnt_modell.awl auf?",
+      "answer": "\n\n\n\n\n\n\n\n## Befund: OB \"Programmzyklus\" (OB 1) in bnt_modell.awl ruft **drei Schrittketten** auf\n\nDie drei Schrittketten werden jeweils als Multiinstanz-FB mit eigenem Instanz-DB aufgerufen, eingerahmt von einem Transitions-Baustein (Eingänge) davor und einem Aktions-Baustein (Ausgänge) danach.\n\n| NW | Aufruf (FB) | Instanz-DB | Bedeutung |\n|----|-------------|-----------|-----------|\n| 4 | `\"Eingaenge_Schrittkette_1\"` | `\"DB_Transitionen_SK1\"` | Transitionen SK1 bilden [bnt_modell.awl, OB Programmzyklus NW 4] |\n| **7** | **`\"Schrittkette 1 (Magazin)\"`** | `\"DB_Schrittkette_1\"` | **Schrittkette 1 – Magazin**, Schritt → `\"OB1_Daten\".SK1_Schritt_Nr` [NW 7] |\n| 8 | `\"Ausgaenge_Schrittkette_1\"` | `\"DB_Ausgänge_SK1\"` | Aktionen SK1 [NW 8] |\n| 9 | `\"Eingänge_Schrittkette_2\"` | `\"DB_Transitionen_SK2\"` | Transitionen SK2 (mit Füllstand Schieberegister) [NW 9] |\n| **10** | **`\"Schrittkette 2 (Prüfen)\"`** | `\"DB_Schrittkette_2\"` | **Schrittkette 2 – Prüfen**, Schritt → `\"OB1_Daten\".SK2_Schritt_Nr` [NW 10] |\n| 11 | `\"Ausgänge_Schrittkette_2\"` | `\"DB_Ausgänge_SK2\"` | Aktionen SK2, liefert gemessene Dicke/Farbe [NW 11] |\n| 15 | `\"Eingänge Schrittkette_3\"` | `\"DB_Transitionen_SK3\"` | Transitionen SK3 (u. a. `Farbe_Rot`) [NW 15] |\n| **16** | **`\"Schrittkette 3 (Greifer)\"`** | `\"DB_Schrittkette_3\"` | **Schrittkette 3 – Greifer**, Schritt → `\"OB1_Daten\".SK3_Schritt_Nr` / `SK3_Schritt_Nr_2` [NW 16] |\n| 17 | `\"Ausgänge_Schrittkette_3\"` | `\"DB_Ausgänge_SK3\"` | Aktionen SK3 [NW 17] |\n\n### Weitere Aufrufe im OB 1 (keine Schrittketten)\n| NW | Aufruf | Zweck |\n|----|--------|-------|\n| 3 | `\"BCD_zu_INT_Wandler\"` (FC 100, lt. Kommentar) | Aktornummer Handbetrieb wandeln, Fehlerwert −1 statt CPU-STOP [NW 3] |\n| 5 | `\"Betriebsarten\"`, `\"DB_Betriebsarten\"` | Betriebsartensteuerung; liefert `Reset`, `FR_K_mB`, `FR_K_oB`, `FR_AKTION` an alle Ketten [NW 5] |\n| 13 | `\"Schieberegister\"`, `\"DB_Schiebereg_Band\"` | Teiledaten (Dicke/Farbe) ein-/ausschieben [NW 13] |\n\n### Zusammenhang (Schlussfolgerung)\n- Alle drei Ketten arbeiten nach demselben Muster: Schrittmerker `SM_x` werden per S/R gesetzt, die aktive Schrittnummer wird in `#Schritt` transferiert (z. B. `L 1; T #Schritt`) [bnt_modell.awl, FB \"Schrittkette 1 (Magazin)\" NW 1–8].\n- Gemeinsame Steuersignale aus dem FB `\"Betriebsarten\"`: `Reset` (Grundstellung), `Weiter_oB` (weiter ohne Bedingung) und `Weiter_mB` (weiter mit Bedingung) – damit sind Tipp-/Automatikbetrieb für alle drei Ketten realisiert [NW 5, 7, 10, 16].\n- Kopplung der Ketten: SK2 bekommt den Schieberegister-Füllstand als Transitionsbedingung [NW 9]; SK3 Schritt 8 erzeugt das Signal „Schieberegister entnehmen“ (`L 8; L \"OB1_Daten\".SK3_Schritt_Nr; ==I`) [NW 12].\n- SK1 hat Schritte 1–7 plus Alternativzweig Schritt 10; SK2 Schritte 1–13 mit zwei Alternativzweigen (1→9→10, 4→11→12→13→7); SK3 Schritte 1–19 mit zwei Parallel-/Alternativzweigen (6→16→17→9, 10→18→19→13) – abgeleitet aus den Transitionsnamen und den Instanz-DBs [DB_Schrittkette_1 / _2 / _3].\n\nHinweis: Die konkreten FB-/FC-Nummern sind in der AWL-Quelle nur symbolisch angegeben; eine Symboltabelle mit Nummernzuordnung liegt in den Wissensquellen nicht vor (Ausnahme: FC 100 wird im Kommentar zu NW 3 genannt).",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 1 Handbetrieb: \"Aktor vor\" Signal erzeugen und verriegeln"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 2 Handbetrieb: \"Aktor zurueck\" Signal erzeugen und verriegeln"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 3 Handbetrieb: Aktornummer von BCD wandeln"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 4 Transitionen für Schrittkette 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 5 Betriebsarten"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 6 Merker \"Erster Zyklus\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 7 Schrittkette 1 (Magazin)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 8 Ausgänge für Schrittkette 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 9 Transitionen für Schrittkette 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 10 Schrittkette 2 (Prüfen)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 11 Ausgänge für Schrittkette 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 12 Signal erzeugen: Schieberegister entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 13 Daten in Schieberegister einschieben und entnehmen"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 14 Dicke von Teil im Greifer und Füllstand Schieberegister ausgeben"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 17 Ausgänge für Schrittkette 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 16 Schrittkette 3 (Greifer)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 15 Transitionen für Schrittkette 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 11"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 6"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 7"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Schrittkette_1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Schrittkette_3\""
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "get_plc_block",
+        "keyword_search",
+        "search_knowledge",
+        "get_plc_block",
+        "keyword_search",
+        "keyword_search"
+      ],
+      "dauer_s": 38.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-vakuum",
+      "source": "AWL Praxisprojekte",
+      "question": "Welches Ventil schaltet in bnt_modell.awl das Vakuum ein und welches aus?",
+      "answer": "Ich sehe mir das AWL-Programm an.\n\n\n\n\n\n\n\n\n\n## Antwort\n\nIm Baustein **FB \"Ausgaenge_Schrittkette_1\"** (Datei bnt_modell.awl) steuert ein **monostabil/bistabil angesteuertes Ventilpaar 1Y2** das Vakuum – Aktornummer **102**:\n\n| Ausgang | Funktion | Netzwerk |\n|---|---|---|\n| **\"1Y2.11\"** | Vakuum **EIN** | NW 4 [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 4] |\n| **\"1Y2.10\"** | Vakuum **AUS** (Abblasen/Belüften) | NW 3 [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 3] |\n\n### Ansteuerlogik (Befund aus der AWL)\n\n**NW 4 – 1Y2.11 (Vakuum ein):**\n- Setzen von `#Merker4` bei **Schritt_Nr = 5**\n- Rücksetzen von `#Merker4` bei **Schritt_Nr = 7**, **Schritt_Nr = 1** oder `#Reset`\n- Freigabe über `#Aktorfreigabe`\n- ODER-Zweig Handbetrieb: `#Aktor_vor` UND `#Aktornummer = 102`\n- Ergebnis → `= \"1Y2.11\"`\n\n**NW 3 – 1Y2.10 (Vakuum aus):**\n- Setzen von `#Merker3` bei **Schritt_Nr = 1** oder **Schritt_Nr = 7**\n- Rücksetzen von `#Merker3` bei **Schritt_Nr = 5** oder `#Reset`\n- Freigabe über `#Aktorfreigabe`\n- ODER-Zweig Handbetrieb: `#Aktor_zurueck` UND `#Aktornummer = 102`\n- Ergebnis → `= \"1Y2.10\"`\n\nDie beiden Merker sind gegenläufig verriegelt: Schritt 5 setzt Vakuum ein und löscht gleichzeitig „Vakuum aus\"; Schritt 7 (bzw. Schritt 1 = Grundstellung) dreht es um.\n\n### Einordnung (eigene Schlussfolgerung)\nDie Namensgebung `.10` / `.11` entspricht dem gleichen Muster wie bei den anderen Aktoren des Modells (`1Y1.10`/`1Y1.11` Magazinschieber zurück/vor, `1Y3.10`/`1Y3.11` Rotor Magazin/Prüfen, `2Y2.10`/`2Y2.11` Prüfzylinder senken/heben) – also jeweils **Spule .10 = Rückzug/Aus-Stellung, Spule .11 = Vor/Ein-Stellung** eines Impulsventils, hier des Vakuumventils 1Y2 am Sauger des Umsetzers.\n\n**Hinweis:** In den vorliegenden Quellen ist keine Symboltabelle mit den zugehörigen Absolutadressen (A x.y) und kein Stromlaufplan/Klemmenplan zu 1Y2 enthalten – die physikalische Klemmen- und Ausgangszuordnung lässt sich daher aus der Doku nicht belegen.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 3 1Y2.10 = 1; Vakuum wird ausgeschaltet"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 4 1Y2.11 = 1; Vakuum wird eingeschaltet"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "28a9e1b98048477a97eaafa934babbe3",
+          "filename": "EXAMPLE.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 2 - light chaser"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 4 - Start / Stop / NW 5"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 1 - Yalanci632yahoo.com"
+        },
+        {
+          "document_id": "b981c11749994d508b3ca9b4dcb0b07c",
+          "filename": "acme-005.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 2 2Y2.11 = 1; Prüfzylinder wird gehoben"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 1 1Y1.10 = 1; Magazinschieber fährt nach hinten"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 2 1Y1.11 = 1;Magazinschieber fährt nach vorne"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 5 1Y3.10 = 1; Rotor (Umsetzer) fährt in Stellung \"Magazin\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 6 1Y3.11 = 1; Rotor (Umsetzer) fährt in Stellung \"Prüfen\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Ausgänge_SK1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 1 2Y2.10 = 1; Prüfzylinder wird gesenkt"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 3 Auswerfer vor"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_2\" / NW 5 2K1 = 1; Bandmotor wird eingeschaltet"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB \"DB_Ausgänge_SK2\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_3\""
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "list_documents",
+        "find_tag",
+        "find_tag",
+        "keyword_search",
+        "get_plc_block",
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 27.0,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-rotor",
+      "source": "AWL Praxisprojekte",
+      "question": "Mit welchen Ausgaengen faehrt der Rotor (Umsetzer) in bnt_modell.awl in die Stellungen Magazin und Pruefen?",
+      "answer": "\n\n\n\n\n\n\n\n\n\n## Kurzantwort\n\n| Stellung | Ausgang (Symbol) | Netzwerk |\n|---|---|---|\n| \"Magazin\" | `\"1Y3.10\"` | FB \"Ausgaenge_Schrittkette_1\", NW 5 |\n| \"Prüfen\" | `\"1Y3.11\"` | FB \"Ausgaenge_Schrittkette_1\", NW 6 |\n\nBeide sind die zwei Spulen des Rotor-/Umsetzer-Ventils 1Y3 (Aktornummer **103**). Absolute Adressen (A x.y) sind in der AWL-Quelle nicht enthalten – es gibt keine Symboltabelle in den Wissensquellen, nur die symbolischen Namen in Anführungszeichen.\n\n## Ansteuerlogik im Detail\n\n**NW 5 – 1Y3.10 (Stellung \"Magazin\")** [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 5]\n- Automatik: `#Merker5` wird **gesetzt**, wenn `#Schritt_Nr = 4`; **rückgesetzt** bei `#Schritt_Nr = 6`, `#Schritt_Nr = 1` oder `#Reset`. Dieser Merker wird mit `#Aktorfreigabe` verknüpft.\n- Hand/Tippbetrieb (ODER-Zweig): `#Aktor_zurueck` UND `#Aktornummer = 103`.\n- Ergebnis: `1Y3.10 = (Merker5 & Aktorfreigabe) ODER (Aktor_zurueck & Aktornummer=103)`.\n\n**NW 6 – 1Y3.11 (Stellung \"Prüfen\")** [bnt_modell.awl, FB \"Ausgaenge_Schrittkette_1\" NW 6]\n- Automatik: `#Merker6` wird **gesetzt** bei `#Schritt_Nr = 6` ODER `#Schritt_Nr = 1`; **rückgesetzt** bei `#Schritt_Nr = 4` oder `#Reset`; UND `#Aktorfreigabe`.\n- Hand: `#Aktor_vor` UND `#Aktornummer = 103`.\n- Zusätzlich ist das gesamte Ergebnis noch mit dem Geber `\"2B6\"` UND-verknüpft (Freigabe-/Verriegelungsbedingung) – d. h. ohne `2B6` kein Ausgang 1Y3.11.\n\n## Rückmeldung / Querbezug\n- `\"1Y3.10\"` wird in FB \"Eingänge_Schrittkette_2\" NW 1 zur Transitionsbildung genutzt: `U \"1Y3.10\"; UN \"2B3\"; U \"2B2\"; = #T1_2` – also Ansteuerung Magazinstellung + Stellungsgeber `2B2` gesetzt, `2B3` nicht [bnt_modell.awl, FB \"Eingänge_Schrittkette_2\" NW 1].\n- `\"2B6\"` bildet in FB \"Eingänge_Schrittkette_2\" NW 7 die Transition `#T7_1` [bnt_modell.awl, FB \"Eingänge_Schrittkette_2\" NW 7].\n\n## Schlussfolgerung (eigene Bewertung, nicht wörtlich in der Doku)\nDie gegenseitige Verriegelung der beiden Ventilspulen erfolgt nicht direkt (kein `UN \"1Y3.11\"` o. ä.), sondern über die Set/Reset-Merker 5 und 6, die sich durch dieselben Schrittnummern (4 ↔ 6/1) gegenseitig ausschließen. Im Handbetrieb wirkt lediglich `Aktor_vor` / `Aktor_zurueck` bei Aktornummer 103 – hier hängt die Ausschließlichkeit von der Bedienung bzw. Hardware (5/2-Impulsventil) ab.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 5 1Y3.10 = 1; Rotor (Umsetzer) fährt in Stellung \"Magazin\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 6 1Y3.11 = 1; Rotor (Umsetzer) fährt in Stellung \"Prüfen\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 1 1Y3.10 = 1; Rotor (Umsetzer) fährt in Stellung \"Magazin\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 9 Magazinbefüllung quittieren"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 1 1Y1.10 = 1; Magazinschieber fährt nach hinten"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 2 1Y1.11 = 1;Magazinschieber fährt nach vorne"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 8 H_Mag_Leer = 1; Lampe Magazin leer"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 4"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 6"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 7"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Schrittkette 1 (Magazin)\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 3 1Y2.10 = 1; Vakuum wird ausgeschaltet"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\""
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgänge_Schrittkette_3\" / NW 3 4K3 = 1; Horizontalmotor Handhabungsgerät zurück"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 4 1Y2.11 = 1; Vakuum wird eingeschaltet"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 1 - One Way Motor / NW 10 Checking Circuit Breaker Feedback"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 7"
+        }
+      ],
+      "tools": [
+        "keyword_search",
+        "keyword_search",
+        "find_tag",
+        "find_tag",
+        "keyword_search",
+        "search_knowledge",
+        "list_documents",
+        "search_knowledge",
+        "get_plc_block",
+        "keyword_search"
+      ],
+      "dauer_s": 38.2,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    },
+    {
+      "id": "awl-nicht-vorhanden",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche IP-Adresse hat die CPU im Projekt bnt_modell.awl?",
+      "answer": "Ich schaue in den verfügbaren Dokumenten nach.\n\n\n\n\n\n## Befund\n\n**In `bnt_modell.awl` ist keine IP-Adresse dokumentiert.**\n\nGeprüft wurde:\n\n| Suche | Ergebnis |\n|---|---|\n| „IP-Adresse\" | kein Treffer in allen Wissensquellen |\n| „192.168\" | kein Treffer |\n| „Ethernet\" | kein Treffer |\n| „CPU\" | nur Treffer in der Deklaration des Hochlauf-OB (OB 100), dort lediglich Standard-Kommentare der Temp-Variablen (`OB100_STOP : WORD; //Event that caused CPU to stop`) [bnt_modell.awl, OB \"COMPLETE RESTART\"] |\n\n## Einordnung (Fachwissen, nicht aus der Doku)\n\nEine `.awl`-Datei ist eine reine **STEP-7-AWL-Quelle** (Bausteincode + Deklarationen). Die IP-Adresse der CPU bzw. der CP-Baugruppe steht nicht im Programmcode, sondern in der **Hardware-Konfiguration** des Projekts (HW Konfig / `hardware.cfg`, bei TIA in den Geräteeigenschaften der PROFINET-Schnittstelle). Diese Projektdaten liegen hier nicht vor.\n\n## Wo du die Adresse findest\n\n- HW Konfig des STEP-7-Projekts → Eigenschaften der CPU-/CP-Schnittstelle → Register „Parameter“/„IP-Adresse“\n- Online: SIMATIC Manager → „Erreichbare Teilnehmer“ (bzw. TIA „Erreichbare Teilnehmer“) über die eingestellte Schnittstelle\n- Am Gerät: bei S7-300/400 mit CP ggf. aufgedruckte MAC, IP nur per Projektierung; bei S7-1200/1500 über das Display bzw. Web-Server\n\nWenn du mir die Hardware-Konfiguration oder einen Stromlaufplan mit dem Netzwerkschema als Wissensquelle hinzufügst, kann ich die Adresse dort gezielt suchen.",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 6"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 16 / NW 13"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 8"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge_Schrittkette_2\" / NW 3"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 6 / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"COMPLETE RESTART\" - Complete Restart"
+        }
+      ],
+      "tools": [
+        "list_documents",
+        "keyword_search",
+        "keyword_search",
+        "search_knowledge",
+        "keyword_search",
+        "keyword_search"
+      ],
+      "dauer_s": 20.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": []
+      }
+    }
+  ]
+}
