@@ -58,7 +58,12 @@ def wait_for(client: httpx.Client, document_ids: list[str], timeout_s: int = 180
     last = {}
     while pending and time.time() - start < timeout_s:
         for doc_id in list(pending):
-            doc = client.get(f"/api/documents/{doc_id}").json()
+            try:
+                doc = client.get(f"/api/documents/{doc_id}").json()
+            except httpx.HTTPError as exc:
+                print(f"  Backend nicht erreichbar ({exc.__class__.__name__}), neuer Versuch in 10 s ...")
+                time.sleep(10)
+                continue
             state = (doc.get("status") or "").lower()
             line = f"{doc['filename']}: {doc.get('status')} {doc.get('progress') or ''}".strip()
             if last.get(doc_id) != line:
