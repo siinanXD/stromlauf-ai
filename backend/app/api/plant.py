@@ -370,12 +370,18 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
         logger.exception("Vision-Erkennung fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
 
-    # alte, unbestaetigte Vorschlaege ersetzen, bestaetigte behalten
+    # alte, unbestaetigte Vorschlaege ersetzen; bestaetigte behalten und nicht doppeln
     for old in list(cabinet.hotspots):
         if old.origin == "vision" and not old.confirmed:
             session.delete(old)
+    confirmed_tags = {h.tag for h in cabinet.hotspots if h.confirmed and h.tag}
+    added = 0
     for item in items:
+        if item["tag"] and item["tag"] in confirmed_tags:
+            continue
         session.add(CabinetHotspot(cabinet_id=cabinet.id, origin="vision", confirmed=False, **item))
+        added += 1
+    logger.info("Vision: %d Bauteile erkannt, %d neue Vorschlaege", len(items), added)
     session.commit()
     session.refresh(cabinet)
     return CabinetOut.model_validate(cabinet)
