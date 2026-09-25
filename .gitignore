@@ -38,3 +38,6 @@ desktop.ini
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Lokale Testdaten (Festo, Siemens: nicht weiterverteilen)
+testdata/
