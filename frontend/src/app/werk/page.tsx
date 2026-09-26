@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { AppNav } from "@/components/AppNav";
+import { AppShell } from "@/components/AppShell";
 import { HallCanvas } from "@/components/HallCanvas";
 import {
   api,
@@ -123,122 +123,86 @@ export default function WerkPage() {
   const selected: Machine | undefined = current?.machines.find((m) => m.id === selectedId);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-border bg-surface">
-        <AppNav />
-      </div>
+    <AppShell breadcrumb={current ? [{ label: "Werk", href: "/werk" }, { label: current.name }] : [{ label: "Werk" }]}>
+      <div className="flex h-full flex-col">
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-64 shrink-0 border-r border-border bg-surface md:block">
-          <div className="flex items-center justify-between px-4 pb-1.5 pt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Hallen</h2>
-          </div>
-          <ul>
-            {halls.map((h) => (
-              <li key={h.id}>
-                <button
-                  onClick={() => {
-                    setHallId(h.id);
-                    setSelectedId(null);
-                  }}
-                  className={`flex w-full items-center gap-2 px-4 py-1.5 text-left text-sm hover:bg-surface-2 ${h.id === hallId ? "bg-surface-2 font-medium" : ""}`}
-                >
-                  <span className="truncate">{h.name}</span>
-                  <span className="ml-auto text-xs text-muted">{h.machine_count}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <form onSubmit={createHall} className="flex gap-1.5 px-3 pt-2">
-            <input
-              value={newHall}
-              onChange={(event) => setNewHall(event.target.value)}
-              placeholder="Neue Halle, z. B. Halle 3"
-              className="min-w-0 flex-1 rounded-md border border-border bg-bg px-2 py-1.5 text-sm"
-            />
-            <button className="rounded-md bg-accent px-2.5 text-sm font-medium text-accent-fg">+</button>
-          </form>
-          {error && <p className="px-4 pt-2 text-xs text-danger">{error}</p>}
-        </aside>
-
-        <main className="flex min-w-0 flex-1 flex-col">
-          {!current ? (
-            <div className="p-8 text-muted">
-              <h1 className="text-xl font-semibold text-text">Werk</h1>
-              <p className="mt-2 max-w-md text-sm">
-                Lege links eine Halle an. Darin ordnest du Maschinen als Kacheln an, zeichnest den Materialfluss und
-                hängst an jede Maschine ihre Doku, Fehlerliste und Schaltschrankbilder.
-              </p>
+        <div className="flex min-h-0 flex-1">
+          <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
+            <div className="flex items-center justify-between px-4 pb-1.5 pt-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hallen</h2>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 border-b border-border px-4 py-2">
-                <h1 className="truncate text-lg font-semibold">{current.name}</h1>
-                <span className="text-sm text-muted">{current.machines.length} Maschinen</span>
-                <button onClick={deleteHall} className="ml-auto text-sm text-muted hover:text-danger">
-                  Halle löschen
-                </button>
+            <ul>
+              {halls.map((h) => (
+                <li key={h.id}>
+                  <button
+                    onClick={() => {
+                      setHallId(h.id);
+                      setSelectedId(null);
+                    }}
+                    className={`flex w-full items-center gap-2 px-4 py-1.5 text-left text-sm hover:bg-secondary ${h.id === hallId ? "bg-secondary font-medium" : ""}`}
+                  >
+                    <span className="truncate">{h.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{h.machine_count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <form onSubmit={createHall} className="flex gap-1.5 px-3 pt-2">
+              <input
+                value={newHall}
+                onChange={(event) => setNewHall(event.target.value)}
+                placeholder="Neue Halle, z. B. Halle 3"
+                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              />
+              <button className="rounded-md bg-primary px-2.5 text-sm font-medium text-primary-foreground">+</button>
+            </form>
+            {error && <p className="px-4 pt-2 text-xs text-danger">{error}</p>}
+          </aside>
+
+          <main className="flex min-w-0 flex-1 flex-col">
+            {!current ? (
+              <div className="p-8 text-muted-foreground">
+                <h1 className="text-xl font-semibold text-foreground">Werk</h1>
+                <p className="mt-2 max-w-md text-sm">
+                  Lege links eine Halle an. Darin ordnest du Maschinen als Kacheln an, zeichnest den Materialfluss und
+                  hängst an jede Maschine ihre Doku, Fehlerliste und Schaltschrankbilder.
+                </p>
               </div>
-              <div className="flex min-h-0 flex-1">
-                <div className="min-w-0 flex-1">
-                  <HallCanvas
-                    machines={current.machines}
-                    flows={current.flows}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    onMoved={(id, x, y) => plant.updateMachine(id, { pos_x: x, pos_y: y }).catch((err) => setError(err.message))}
-                    onFlowsChanged={saveFlows}
-                  />
+            ) : (
+              <>
+                <div className="flex items-center gap-3 border-b border-border px-4 py-2">
+                  <h1 className="truncate text-lg font-semibold">{current.name}</h1>
+                  <span className="text-sm text-muted-foreground">{current.machines.length} Maschinen</span>
+                  <button onClick={deleteHall} className="ml-auto text-sm text-muted-foreground hover:text-danger">
+                    Halle löschen
+                  </button>
                 </div>
-
-                <aside className="w-80 shrink-0 overflow-y-auto border-l border-border bg-surface p-4">
-                  <form onSubmit={createMachine} className="space-y-2">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Maschine anlegen</h2>
-                    <input
-                      value={newMachine.name}
-                      onChange={(event) => setNewMachine({ ...newMachine, name: event.target.value })}
-                      placeholder="Name, z. B. Förderband FB-01"
-                      className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-sm"
+                <div className="flex min-h-0 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <HallCanvas
+                      machines={current.machines}
+                      flows={current.flows}
+                      selectedId={selectedId}
+                      onSelect={setSelectedId}
+                      onMoved={(id, x, y) => plant.updateMachine(id, { pos_x: x, pos_y: y }).catch((err) => setError(err.message))}
+                      onFlowsChanged={saveFlows}
                     />
-                    <div className="flex gap-1.5">
-                      <select
-                        value={newMachine.machine_type}
-                        onChange={(event) => setNewMachine({ ...newMachine, machine_type: event.target.value as MachineType })}
-                        className="min-w-0 flex-1 rounded-md border border-border bg-bg px-2 py-1.5 text-sm"
-                      >
-                        {TYPES.map((type) => (
-                          <option key={type} value={type}>
-                            {MACHINE_TYPE_LABELS[type]}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="rounded-md bg-accent px-3 text-sm font-medium text-accent-fg">Anlegen</button>
-                    </div>
-                  </form>
+                  </div>
 
-                  {selected && (
-                    <div className="mt-6 space-y-3 border-t border-border pt-4">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Ausgewählt</h2>
-                        <Link href={`/werk/maschine/${selected.id}`} className="text-sm text-accent hover:underline">
-                          Maschinenseite →
-                        </Link>
-                      </div>
-                      <label className="block text-sm">
-                        <span className="text-xs text-muted">Name</span>
-                        <input
-                          key={selected.id + selected.name}
-                          defaultValue={selected.name}
-                          onBlur={(event) => event.target.value.trim() && event.target.value !== selected.name && updateSelected({ name: event.target.value.trim() })}
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1.5"
-                        />
-                      </label>
-                      <label className="block text-sm">
-                        <span className="text-xs text-muted">Typ</span>
+                  <aside className="w-80 shrink-0 overflow-y-auto border-l border-border bg-card p-4">
+                    <form onSubmit={createMachine} className="space-y-2">
+                      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Maschine anlegen</h2>
+                      <input
+                        value={newMachine.name}
+                        onChange={(event) => setNewMachine({ ...newMachine, name: event.target.value })}
+                        placeholder="Name, z. B. Förderband FB-01"
+                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                      />
+                      <div className="flex gap-1.5">
                         <select
-                          value={selected.machine_type}
-                          onChange={(event) => updateSelected({ machine_type: event.target.value as MachineType })}
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1.5"
+                          value={newMachine.machine_type}
+                          onChange={(event) => setNewMachine({ ...newMachine, machine_type: event.target.value as MachineType })}
+                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
                         >
                           {TYPES.map((type) => (
                             <option key={type} value={type}>
@@ -246,35 +210,70 @@ export default function WerkPage() {
                             </option>
                           ))}
                         </select>
-                      </label>
-                      <label className="block text-sm">
-                        <span className="text-xs text-muted">Wissensquelle (Doku)</span>
-                        <select
-                          value={selected.source_id ?? ""}
-                          onChange={(event) =>
-                            event.target.value ? updateSelected({ source_id: event.target.value }) : updateSelected({ clear_source: true })
-                          }
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1.5"
-                        >
-                          <option value="">keine</option>
-                          {sources.map((source) => (
-                            <option key={source.id} value={source.id}>
-                              {source.name} ({source.document_count})
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button onClick={deleteSelected} className="text-sm text-muted hover:text-danger">
-                        Maschine löschen
-                      </button>
-                    </div>
-                  )}
-                </aside>
-              </div>
-            </>
-          )}
-        </main>
+                        <button className="rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Anlegen</button>
+                      </div>
+                    </form>
+
+                    {selected && (
+                      <div className="mt-6 space-y-3 border-t border-border pt-4">
+                        <div className="flex items-center justify-between">
+                          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ausgewählt</h2>
+                          <Link href={`/werk/maschine/${selected.id}`} className="text-sm text-primary hover:underline">
+                            Maschinenseite →
+                          </Link>
+                        </div>
+                        <label className="block text-sm">
+                          <span className="text-xs text-muted-foreground">Name</span>
+                          <input
+                            key={selected.id + selected.name}
+                            defaultValue={selected.name}
+                            onBlur={(event) => event.target.value.trim() && event.target.value !== selected.name && updateSelected({ name: event.target.value.trim() })}
+                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
+                          />
+                        </label>
+                        <label className="block text-sm">
+                          <span className="text-xs text-muted-foreground">Typ</span>
+                          <select
+                            value={selected.machine_type}
+                            onChange={(event) => updateSelected({ machine_type: event.target.value as MachineType })}
+                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
+                          >
+                            {TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                {MACHINE_TYPE_LABELS[type]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="block text-sm">
+                          <span className="text-xs text-muted-foreground">Wissensquelle (Doku)</span>
+                          <select
+                            value={selected.source_id ?? ""}
+                            onChange={(event) =>
+                              event.target.value ? updateSelected({ source_id: event.target.value }) : updateSelected({ clear_source: true })
+                            }
+                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
+                          >
+                            <option value="">keine</option>
+                            {sources.map((source) => (
+                              <option key={source.id} value={source.id}>
+                                {source.name} ({source.document_count})
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button onClick={deleteSelected} className="text-sm text-muted-foreground hover:text-danger">
+                          Maschine löschen
+                        </button>
+                      </div>
+                    )}
+                  </aside>
+                </div>
+              </>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

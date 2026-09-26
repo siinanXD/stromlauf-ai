@@ -81,14 +81,14 @@ export function SourcePanel({
   }
 
   return (
-    <div className="space-y-2 border-t border-border bg-bg/60 px-3 py-3 text-sm">
-      {documents.length === 0 && <p className="text-muted">Noch keine Dokumente.</p>}
+    <div className="space-y-2 border-t border-border bg-background/60 px-3 py-3 text-sm">
+      {documents.length === 0 && <p className="text-muted-foreground">Noch keine Dokumente.</p>}
       <ul className="space-y-1.5">
         {documents.map((document) => (
-          <li key={document.id} className="rounded-lg border border-border bg-surface px-2.5 py-2">
+          <li key={document.id} className="rounded-lg border border-border bg-card px-2.5 py-2">
             <div className="flex items-start gap-2">
               <button
-                className="min-w-0 flex-1 truncate text-left font-medium enabled:hover:text-accent"
+                className="min-w-0 flex-1 truncate text-left font-medium enabled:hover:text-primary"
                 disabled={!document.page_count}
                 title={document.page_count ? "Seiten ansehen" : document.filename}
                 onClick={() =>
@@ -104,13 +104,13 @@ export function SourcePanel({
               </button>
               <button
                 onClick={() => remove(document)}
-                className="shrink-0 text-muted hover:text-danger"
+                className="shrink-0 text-muted-foreground hover:text-danger"
                 aria-label={`${document.filename} löschen`}
               >
                 ✕
               </button>
             </div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
               <span>{DOC_TYPE_LABELS[document.doc_type] ?? document.doc_type}</span>
               <span
                 className={
@@ -118,7 +118,7 @@ export function SourcePanel({
                     ? "text-ok"
                     : document.status === "failed"
                       ? "text-danger"
-                      : "animate-pulse text-accent"
+                      : "animate-pulse text-primary"
                 }
               >
                 {STATUS_LABELS[document.status]}
@@ -144,7 +144,7 @@ export function SourcePanel({
         <select
           value={docType}
           onChange={(event) => setDocType(event.target.value as DocType)}
-          className="w-full rounded-md border border-border bg-surface px-2 py-1.5"
+          className="w-full rounded-md border border-border bg-card px-2 py-1.5"
           aria-label="Dokumenttyp"
         >
           {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
@@ -153,12 +153,12 @@ export function SourcePanel({
             </option>
           ))}
         </select>
-        <label className="flex items-start gap-2 text-xs text-muted">
+        <label className="flex items-start gap-2 text-xs text-muted-foreground">
           <input
             type="checkbox"
             checked={vision}
             onChange={(event) => setVision(event.target.checked)}
-            className="mt-0.5 accent-[var(--accent)]"
+            className="mt-0.5 accent-[var(--primary)]"
           />
           <span>
             Vision-Analyse für Schaltplanseiten (PDF). Erkennt Verbindungen im Bild, kostet
@@ -176,7 +176,7 @@ export function SourcePanel({
         <button
           onClick={() => fileInput.current?.click()}
           disabled={uploading}
-          className="w-full rounded-md bg-accent px-3 py-1.5 font-medium text-accent-fg disabled:opacity-50"
+          className="w-full rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground disabled:opacity-50"
         >
           {uploading ? "Lädt hoch …" : "Dateien hochladen"}
         </button>

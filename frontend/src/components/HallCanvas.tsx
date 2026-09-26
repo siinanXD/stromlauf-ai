@@ -122,14 +122,14 @@ export function HallCanvas({
             setFlowMode(!flowMode);
             setFlowStart(null);
           }}
-          className={`rounded-md border px-2.5 py-1 ${flowMode ? "border-accent bg-accent-soft" : "border-border hover:bg-surface-2"}`}
+          className={`rounded-md border px-2.5 py-1 ${flowMode ? "border-primary bg-primary/10" : "border-border hover:bg-secondary"}`}
         >
           {flowMode ? "Fluss-Modus an: zwei Kacheln anklicken" : "Materialfluss zeichnen"}
         </button>
-        <span className="text-muted">Kacheln ziehen zum Anordnen. Klick öffnet die Maschine rechts.</span>
+        <span className="text-muted-foreground">Kacheln ziehen zum Anordnen. Klick öffnet die Maschine rechts.</span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-bg">
+      <div className="min-h-0 flex-1 overflow-auto bg-background">
         <div
           ref={canvasRef}
           className="relative"
@@ -148,7 +148,7 @@ export function HallCanvas({
           <svg className="pointer-events-none absolute inset-0" width={width} height={height}>
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)" />
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)" />
               </marker>
             </defs>
             {flows.map((flow) => {
@@ -162,10 +162,10 @@ export function HallCanvas({
               const my = (y1 + y2) / 2;
               return (
                 <g key={`${flow.from_machine_id}-${flow.to_machine_id}`}>
-                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--accent)" strokeWidth={2.5} markerEnd="url(#arrow)" />
+                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--primary)" strokeWidth={2.5} markerEnd="url(#arrow)" />
                   <g className="pointer-events-auto cursor-pointer" onClick={() => removeFlow(flow)}>
-                    <circle cx={mx} cy={my} r={9} fill="var(--surface)" stroke="var(--border)" />
-                    <text x={mx} y={my + 4} textAnchor="middle" fontSize="11" fill="var(--muted)">
+                    <circle cx={mx} cy={my} r={9} fill="var(--card)" stroke="var(--border)" />
+                    <text x={mx} y={my + 4} textAnchor="middle" fontSize="11" fill="var(--muted-foreground)">
                       ✕
                     </text>
                   </g>
@@ -184,19 +184,19 @@ export function HallCanvas({
                 tabIndex={0}
                 onPointerDown={(event) => onPointerDown(event, machine)}
                 onClick={() => onTileClick(machine)}
-                className={`absolute select-none rounded-xl border bg-surface p-2.5 shadow-sm ${
-                  selected ? "border-accent ring-2 ring-accent/30" : "border-border hover:border-accent"
+                className={`absolute select-none rounded-xl border bg-card p-2.5 shadow-sm ${
+                  selected ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary"
                 } ${flowMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
                 style={{ left: p.x, top: p.y, width: TILE_W, height: TILE_H }}
               >
-                <div className="flex items-center gap-1.5 text-xs text-muted">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span>{TYPE_ICON[machine.machine_type] ?? "◻"}</span>
                   <span className="truncate">{MACHINE_TYPE_LABELS[machine.machine_type] ?? machine.machine_type}</span>
                 </div>
                 <div className="mt-1 truncate font-medium" title={machine.name}>
                   {machine.name}
                 </div>
-                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
+                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span title="Dokumente">📄 {machine.document_count}</span>
                   <span title="Fehlereinträge" className={machine.fault_count ? "text-danger" : ""}>
                     ⚠ {machine.fault_count}
@@ -206,7 +206,7 @@ export function HallCanvas({
                     href={`/werk/maschine/${machine.id}`}
                     onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => event.stopPropagation()}
-                    className="ml-auto rounded px-1 text-accent hover:bg-accent-soft"
+                    className="ml-auto rounded px-1 text-primary hover:bg-primary/10"
                   >
                     öffnen
                   </Link>
@@ -216,7 +216,7 @@ export function HallCanvas({
           })}
 
           {machines.length === 0 && (
-            <p className="absolute left-6 top-6 max-w-md text-sm text-muted">
+            <p className="absolute left-6 top-6 max-w-md text-sm text-muted-foreground">
               Noch keine Maschinen. Rechts eine anlegen, dann hier anordnen und den Materialfluss zeichnen.
             </p>
           )}

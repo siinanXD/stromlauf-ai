@@ -56,3 +56,28 @@ def test_normalize_user_input():
     assert normalize_tag("%I0.0") == "E0.0"
     assert normalize_tag("=A1+S1-K12") == "=A1+S1-K12"
     assert normalize_tag("db10.dbx2.0") == "DB10.DBX2.0"
+
+
+def test_search_key_normalizes():
+    from app.ingestion.tags import search_key
+
+    assert search_key("k1") == "-K1"
+    assert search_key(" -x1:5 ") == "-X1:5"
+    assert search_key("%I0.0") == "E0.0"
+
+
+def test_search_key_rejects_empty():
+    from app.ingestion.tags import search_key
+
+    assert search_key("") is None
+    assert search_key("  - ") is None
+
+
+def test_search_prefixes_cover_partial_input():
+    from app.ingestion.tags import search_prefixes
+
+    assert "E0" in search_prefixes("e0")
+    assert "M10" in search_prefixes("M10")
+    assert "-K" in search_prefixes("k")
+    assert "-K1" in search_prefixes("k1")
+    assert search_prefixes("  - ") == []

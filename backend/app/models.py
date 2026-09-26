@@ -200,6 +200,9 @@ class Machine(Base):
     cabinets: Mapped[list["CabinetImage"]] = relationship(
         back_populates="machine", cascade="all, delete-orphan", order_by="CabinetImage.created_at"
     )
+    layout: Mapped["MachineLayout | None"] = relationship(
+        back_populates="machine", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class HallFlow(Base):
@@ -274,3 +277,51 @@ class CabinetHotspot(Base):
     confirmed: Mapped[bool] = mapped_column(default=True)  # Vision-Vorschlaege bis Bestaetigung False
 
     cabinet: Mapped[CabinetImage] = relationship(back_populates="hotspots")
+
+
+class MachineLayout(Base):
+    """Draufsicht einer Maschine in mm; Skizze als Upload oder als Seite eines Dokuments."""
+
+    __tablename__ = "machine_layouts"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    machine_id: Mapped[str] = mapped_column(
+        ForeignKey("machines.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    width_mm: Mapped[float] = mapped_column(Float, default=0.0)
+    depth_mm: Mapped[float] = mapped_column(Float, default=0.0)
+    image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    document_id: Mapped[str | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), nullable=True
+    )
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    scale_note: Mapped[str] = mapped_column(String(60), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+    machine: Mapped[Machine] = relationship(back_populates="layout")
+    parts: Mapped[list["LayoutPart"]] = relationship(
+        back_populates="layout", cascade="all, delete-orphan", order_by="LayoutPart.tag"
+    )
+
+
+class LayoutPart(Base):
+    """Baugruppe oder Feldgeraet in der Draufsicht (Rechteck oder Kreis, Werte in mm)."""
+
+    __tablename__ = "layout_parts"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    layout_id: Mapped[str] = mapped_column(ForeignKey("machine_layouts.id", ondelete="CASCADE"), index=True)
+    tag: Mapped[str] = mapped_column(String(120), default="")
+    label: Mapped[str] = mapped_column(String(200), default="")
+    kind: Mapped[str] = mapped_column(String(40), default="Sonstiges")
+    shape: Mapped[str] = mapped_column(String(10), default="rect")  # rect | circle
+    x_mm: Mapped[float] = mapped_column(Float, default=0.0)
+    y_mm: Mapped[float] = mapped_column(Float, default=0.0)
+    w_mm: Mapped[float] = mapped_column(Float, default=100.0)
+    h_mm: Mapped[float] = mapped_column(Float, default=100.0)
+    rotation_deg: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # nur bei Vision
+    origin: Mapped[str] = mapped_column(String(16), default="manual")  # manual | vision
+    confirmed: Mapped[bool] = mapped_column(default=True)
+
+    layout: Mapped[MachineLayout] = relationship(back_populates="parts")

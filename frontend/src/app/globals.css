@@ -1,54 +1,85 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+/* Nur helles Theme: dark:-Klassen der shadcn-Komponenten greifen nie (keine .dark-Klasse). */
+@custom-variant dark (&:is(.dark *));
+
+/* Blaupause: technisches Zeichnungsblatt. Figma 25Zi2sbyA5rXJcwViTqB10, Frame 5:273.
+   Blau = Auswahl/Aktion, Rot nur fuer Fehler und Not-Halt. Nur helles Theme. */
 :root {
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --surface-2: #eceef2;
-  --border: #dde1e7;
-  --text: #15181d;
-  --muted: #5f6b7c;
-  --accent: #b45309;
-  --accent-fg: #ffffff;
-  --accent-soft: #fdf1e0;
-  --ok: #15803d;
-  --danger: #b91c1c;
-}
+  --background: #f4f1e8;
+  --foreground: #14263d;
+  --card: #fbf9f3;
+  --card-foreground: #14263d;
+  --popover: #fbf9f3;
+  --popover-foreground: #14263d;
+  --primary: #1e5bd8;
+  --primary-foreground: #ffffff;
+  --secondary: #efebe0;
+  --secondary-foreground: #14263d;
+  --muted: #efebe0;
+  --muted-foreground: #5a6a80;
+  --accent: #e6eaf0;
+  --accent-foreground: #14263d;
+  --destructive: #d7263d;
+  --border: #aeb9c7;
+  --input: #aeb9c7;
+  --ring: #1e5bd8;
+  --radius: 0rem;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d1015;
-    --surface: #151920;
-    --surface-2: #1d222b;
-    --border: #2a303b;
-    --text: #e6e9ef;
-    --muted: #8d97a8;
-    --accent: #f59e0b;
-    --accent-fg: #1a1204;
-    --accent-soft: #2a2110;
-    --ok: #4ade80;
-    --danger: #f87171;
-  }
+  --ok: #1f7a4d;
+  --danger: #d7263d;
+  --nav: #14263d;
+  --nav-foreground: #8fa0b8;
+  --grid: #e3e7ec;
+  --line: #14263d;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-border: var(--border);
-  --color-text: var(--text);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
-  --color-accent-soft: var(--accent-soft);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --color-ok: var(--ok);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-grid: var(--grid);
+  --color-line: var(--line);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-heading: var(--font-plex-mono);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
 /* Markdown in Chat-Antworten */
@@ -73,18 +104,18 @@ body {
 .markdown ul { list-style: disc; padding-left: 1.4em; }
 .markdown ol { list-style: decimal; padding-left: 1.4em; }
 .markdown li + li { margin-top: 0.25em; }
-.markdown a { color: var(--accent); text-decoration: underline; }
+.markdown a { color: var(--primary); text-decoration: underline; }
 .markdown code {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-size: 0.875em;
-  background: var(--surface-2);
-  border-radius: 4px;
+  background: var(--secondary);
+  border-radius: 0;
   padding: 0.1em 0.35em;
 }
 .markdown pre {
-  background: var(--surface-2);
+  background: var(--secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 0.75rem 1rem;
   overflow-x: auto;
 }
@@ -102,10 +133,10 @@ body {
   text-align: left;
   vertical-align: top;
 }
-.markdown th { background: var(--surface-2); font-weight: 600; }
+.markdown th { background: var(--secondary); font-weight: 600; }
 .markdown blockquote {
   border-left: 3px solid var(--border);
-  color: var(--muted);
+  color: var(--muted-foreground);
   padding-left: 0.9em;
 }
 .markdown hr { border-color: var(--border); }

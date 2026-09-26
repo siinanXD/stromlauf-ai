@@ -34,7 +34,7 @@ Antworte NUR mit JSON, ohne Erklaertext:
 """
 
 
-def _load_png(path: Path) -> tuple[bytes, int, int]:
+def load_png(path: Path) -> tuple[bytes, int, int]:
     image = Image.open(path).convert("RGB")
     width, height = image.size
     scale = min(1.0, MAX_EDGE / max(width, height))
@@ -54,7 +54,7 @@ def detect_components(path: Path, known_tags: list[str] | None = None) -> list[d
     settings = get_settings()
     if not settings.anthropic_api_key:
         raise RuntimeError("ANTHROPIC_API_KEY fehlt")
-    png, _, _ = _load_png(path)
+    png, _, _ = load_png(path)
     known = ""
     if known_tags:
         known = (

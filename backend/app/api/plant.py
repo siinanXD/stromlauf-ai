@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size
-from app.ingestion.tags import normalize_tag
+from app.ingestion.tags import normalize_tag, search_prefixes
 from app.models import (
     CabinetHotspot,
     CabinetImage,
@@ -45,6 +45,8 @@ from app.schemas import (
     MachineUpdate,
     TagHit,
     TagLookup,
+    TagSearchHit,
+    TagSearchMachine,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,6 +174,8 @@ def replace_flows(hall_id: str, body: list[FlowIn], session: Session = Depends(g
 
 def _remove_machine_files(machine: Machine) -> None:
     paths = [machine.image_path] + [c.image_path for c in machine.cabinets]
+    if machine.layout:
+        paths.append(machine.layout.image_path)
     for path in paths:
         if path:
             Path(path).unlink(missing_ok=True)
@@ -410,3 +414,41 @@ def lookup_tag(machine_id: str, tag: str, session: Session = Depends(get_session
     ]
     bom = next((h.context for h in hits if h.doc_type == "bom"), None)
     return TagLookup(tag=normalized, hits=hits, bom_line=bom)
+
+
+# --- Globale Suche nach Kennzeichen ---------------------------------------------------------
+
+
+@router.get("/tags/search", response_model=list[TagSearchHit])
+def search_tags(q: str = "", session: Session = Depends(get_session)):
+    prefixes = search_prefixes(q)
+    if not prefixes:
+        return []
+    escaped = [p.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_") + "%" for p in prefixes]
+    rows = session.execute(
+        select(TagOccurrence.tag, TagOccurrence.tag_type, func.count())
+        .where(or_(*(TagOccurrence.tag.like(pattern, escape="\\") for pattern in escaped)))
+        .group_by(TagOccurrence.tag, TagOccurrence.tag_type)
+        .order_by(func.length(TagOccurrence.tag), TagOccurrence.tag)
+        .limit(30)
+    ).all()
+    if not rows:
+        return []
+    tags = [r[0] for r in rows]
+    sources: dict[str, set[str]] = {}
+    for tag, source_id in session.execute(
+        select(TagOccurrence.tag, TagOccurrence.source_id).where(TagOccurrence.tag.in_(tags)).distinct()
+    ):
+        sources.setdefault(tag, set()).add(source_id)
+    machines_by_source: dict[str, list[TagSearchMachine]] = {}
+    for machine in session.scalars(select(Machine).where(Machine.source_id.is_not(None)).order_by(Machine.name)):
+        machines_by_source.setdefault(machine.source_id, []).append(TagSearchMachine(id=machine.id, name=machine.name))
+    return [
+        TagSearchHit(
+            tag=tag,
+            tag_type=str(tag_type),
+            occurrences=count,
+            machines=[m for s in sorted(sources.get(tag, ())) for m in machines_by_source.get(s, [])],
+        )
+        for tag, tag_type, count in rows
+    ]
