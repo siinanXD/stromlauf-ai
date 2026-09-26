@@ -183,7 +183,13 @@ export default function MachinePage() {
   const canDetect = Boolean(layout && (layout.has_image || (layout.document_id && layout.page)));
 
   return (
-    <AppShell breadcrumb={[{ label: "Werk", href: "/werk" }, { label: machine.name }]}>
+    <AppShell
+      breadcrumb={[
+        { label: "Werk", href: "/werk" },
+        { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
+        { label: machine.name },
+      ]}
+    >
       <Tabs value={tab} onValueChange={(value) => setTab(value as TabId)} className="flex h-full flex-col gap-0">
         <div className="flex flex-wrap items-end gap-x-8 gap-y-2 border-b border-line px-6 pt-4">
           <div className="min-w-0 pb-2">

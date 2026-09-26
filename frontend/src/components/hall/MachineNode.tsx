@@ -6,10 +6,11 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 
 import { MACHINE_TYPE_LABELS, type Machine, type MachineType } from "@/lib/api";
+import { TILE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-export const TILE_W = 184;
-export const TILE_H = 96;
+export const TILE_W = TILE.w;
+export const TILE_H = TILE.h;
 
 const TYPE_ICON: Record<MachineType, ComponentType<{ className?: string }>> = {
   conveyor: MoveRight,
@@ -44,6 +45,11 @@ export function MachineNode({ data, selected }: NodeProps<MachineNodeType>) {
       <div className="mt-1 truncate font-mono text-[13px] font-semibold uppercase" title={machine.name}>
         {machine.name}
       </div>
+      {machine.key_figure && (
+        <div className="truncate font-mono text-[11px] text-muted-foreground" title="Erste Kennzahl">
+          {machine.key_figure}
+        </div>
+      )}
       <div className="mt-auto flex items-center gap-2.5 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-0.5" title="Dokumente">
           <FileText className="size-3" />
