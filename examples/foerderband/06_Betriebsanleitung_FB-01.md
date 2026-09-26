@@ -60,7 +60,7 @@ Eingabebaugruppe -A1.1 (Blatt /5), Ausgabebaugruppe -A1.2 (Blatt /6):
 | Start ohne Wirkung, -H1 aus, -H2 aus | Not-Halt nicht entriegelt oder -K3 ohne Freigabe (E0.3 = 0) | -S3 entriegeln. An -X3:4 muessen 24 V anliegen. Beide Kanaele -S3 11/12 und 21/22 pruefen (Blatt /4.2). |
 | Start ohne Wirkung, E0.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) | Leitung -W1 Ader zu -S2:11/12 pruefen, Klemme -X3:2. |
 | Band laeuft, Stueckzahl MW100 zaehlt nicht | Lichtschranke -B1/-B2 defekt oder Versorgung fehlt | 24 V an -X3:7, 0 V an -X3:8 pruefen. Schaltausgang BK an -X3:5 bzw. -X3:6 (E0.4, E0.5) beobachten. |
-| -K1 zieht an, Motor brummt, dreht nicht | Phase fehlt am Motorabgang | Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und Klemmen -M1:U1/V1/W1 (Blatt /3.8). |
+| -K1 zieht an, Motor brummt, dreht nicht | Phase fehlt am Motorabgang | Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und Klemmen -M1:U1/V1/W1 (Blatt /3.5). |
 | Band laeuft in falscher Richtung | -K2 statt -K1 angesteuert (M20.0 gesetzt) oder Phasenfolge vertauscht | M20.0 zuruecksetzen. Bei Erstinbetriebnahme Phasenfolge an -X1 pruefen. |
 
 ## 7. Wartung

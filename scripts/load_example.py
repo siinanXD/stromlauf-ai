@@ -1,6 +1,6 @@
 """Laedt die Beispielanlage "Foerderband FB-01" in ein laufendes Stromlauf-AI-Backend.
 
-Aufruf:  python scripts/load_example.py [--api http://localhost:8010] [--vision]
+Aufruf:  python scripts/load_example.py [--api http://localhost:8010] [--vision] [--refresh]
 
 Legt die Wissensquelle an (oder verwendet eine vorhandene gleichen Namens), laedt alle Dateien aus
 examples/foerderband/ hoch und wartet, bis jede Ingestion abgeschlossen ist.
@@ -193,6 +193,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--api", default="http://localhost:8010", help="Backend-URL")
     parser.add_argument("--vision", action="store_true", help="Vision-Analyse des PDFs (kostet API-Tokens)")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Beispieldokumente neu hochladen (nach python scripts/example_docs/build.py)")
     parser.add_argument("--layout-vision", action="store_true",
                         help="Draufsicht zusaetzlich per Vision erkennen und mit dem Soll vergleichen (kostet API-Tokens)")
     args = parser.parse_args()
@@ -208,7 +210,15 @@ def main() -> int:
             sys.exit(f"Backend unter {args.api} nicht erreichbar: {exc}")
 
         source = find_or_create_source(client)
-        existing = {d["filename"] for d in client.get(f"/api/sources/{source['id']}/documents").json()}
+        documents = client.get(f"/api/sources/{source['id']}/documents").json()
+        if args.refresh:
+            names = {name for name, _ in FILES}
+            for document in documents:
+                if document["filename"] in names:
+                    client.delete(f"/api/documents/{document['id']}").raise_for_status()
+                    print(f"entfernt: {document['filename']}")
+            documents = []
+        existing = {d["filename"] for d in documents}
         ids = []
         for name, doc_type in FILES:
             if name in existing:
