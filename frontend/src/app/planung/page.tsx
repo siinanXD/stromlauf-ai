@@ -4,11 +4,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { CostTable } from "@/components/planning/CostTable";
+import { MasterData } from "@/components/planning/MasterData";
 import { MaterialTable } from "@/components/planning/MaterialTable";
 import { newPosition, OrderForm, type OrderDraft } from "@/components/planning/OrderForm";
 import { Schedule } from "@/components/planning/Schedule";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { planning, type ArticleInfo, type CalcResult } from "@/lib/api";
 import { minutesText, num, whenText } from "@/lib/format";
+
+const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -72,10 +76,17 @@ export default function PlanningPage() {
   const incomplete = !!draft?.positions.some((p) => !p.article_id || !(Number(p.quantity) > 0));
   return (
     <AppShell breadcrumb={[{ label: "Planung" }]}>
-      <div className="flex h-full flex-col">
-        <div className="flex items-end gap-4 border-b border-border px-4 pt-3">
+      <Tabs defaultValue="kalkulation" className="flex h-full flex-col gap-0">
+        <div className="flex flex-wrap items-end gap-x-6 border-b border-border px-4 pt-3">
           <h1 className="pb-2 font-mono text-lg font-semibold uppercase tracking-[0.04em]">Planung</h1>
-          <span className="border-b-2 border-primary pb-2 text-sm font-semibold text-primary">Kalkulation</span>
+          <TabsList variant="line" className="h-10 justify-start gap-2 pb-1">
+            <TabsTrigger value="kalkulation" className={TRIGGER}>
+              Kalkulation
+            </TabsTrigger>
+            <TabsTrigger value="stammdaten" className={TRIGGER}>
+              Stammdaten
+            </TabsTrigger>
+          </TabsList>
         </div>
 
         {articles && articles.length === 0 && (
@@ -85,96 +96,102 @@ export default function PlanningPage() {
           </p>
         )}
 
-        {draft && articles && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-            <aside className="shrink-0 border-b border-border bg-card p-4 lg:w-80 lg:overflow-y-auto lg:border-b-0 lg:border-r">
-              <OrderForm articles={articles} draft={draft} onChange={setDraft} />
-            </aside>
+        <TabsContent value="kalkulation" className="flex min-h-0 flex-1 flex-col">
+          {draft && articles && (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+              <aside className="shrink-0 border-b border-border bg-card p-4 lg:w-80 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+                <OrderForm articles={articles} draft={draft} onChange={setDraft} />
+              </aside>
 
-            <main className="min-w-0 flex-1 space-y-5 p-4 md:px-6 lg:overflow-y-auto">
-              {error && <p className="border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
-              {incomplete && (
-                <p className="border-l-[3px] border-nav bg-secondary px-3 py-2 text-[13px]">
-                  Menge eingeben, dann wird neu gerechnet. Unten steht noch der letzte vollständige Stand.
-                </p>
-              )}
-              {result && s && (
-                <div className={incomplete ? "space-y-5 opacity-50" : "space-y-5"}>
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Verladebereit</span>
-                    <span className="font-mono text-2xl font-semibold uppercase">{whenText(result.ready_at)}</span>
-                    {result.meets_due !== null && result.days_delta !== null && (
-                      result.meets_due ? (
-                        <span className="border border-ok px-2 text-sm font-semibold text-ok">
-                          hält · {result.days_delta === 0 ? "ohne Puffer" : `${result.days_delta} ${result.days_delta === 1 ? "Tag" : "Tage"} Puffer`}
-                        </span>
-                      ) : (
-                        <span className="border border-foreground px-2 text-sm font-semibold">
-                          +{-result.days_delta} {result.days_delta === -1 ? "Tag" : "Tage"} nach Wunschtermin
-                        </span>
-                      )
-                    )}
-                    <span className="text-[13px] text-muted-foreground">Durchlauf {minutesText(s.lead_minutes)}</span>
-                  </div>
-
-                  <dl className="grid grid-cols-2 gap-3 border-y border-line py-2.5 font-mono sm:grid-cols-5">
-                    {[
-                      [num(s.units), "Einheiten"],
-                      [num(s.pallets), "Paletten"],
-                      [num(s.trucks), "LKW"],
-                      [`${num(s.paper_t, 1)} t`, "Rohpapier"],
-                      [s.bottleneck?.split(" ")[0] ?? "–", "Engpass"],
-                    ].map(([value, label]) => (
-                      <div key={label}>
-                        <dd className="text-lg font-semibold">{value}</dd>
-                        <dt className="text-[11px] text-muted-foreground">{label}</dt>
-                      </div>
-                    ))}
-                  </dl>
-
-                  {result.warnings.length > 0 && (
-                    <ul className="space-y-1 border-l-[3px] border-nav bg-secondary px-3 py-2 text-[13px]">
-                      {result.warnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <Section title="Zeitplan">
-                    <Schedule result={result} />
-                    <p className="text-[11px] text-muted-foreground">
-                      Schraffiert: geschlossen (Büro Mo–Fr 07–16, Versand Mo–Fr 06–22). Gestauchte Spalte: Leerlauf. Balken antippen
-                      oder überfahren zeigt die Herleitung.
-                    </p>
-                  </Section>
-
-                  <Section title="Herleitung">
-                    <ol className="divide-y divide-border border border-line bg-card text-[13px]">
-                      {result.stations.map((station) => (
-                        <li key={station.key} className="grid gap-x-3 px-3 py-1.5 sm:grid-cols-[180px_270px_1fr]">
-                          <span className="font-medium">{station.label}</span>
-                          <span className="font-mono text-[12px] text-muted-foreground">
-                            {whenText(station.start)} – {whenText(station.end)}
+              <main className="min-w-0 flex-1 space-y-5 p-4 md:px-6 lg:overflow-y-auto">
+                {error && <p className="border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
+                {incomplete && (
+                  <p className="border-l-[3px] border-nav bg-secondary px-3 py-2 text-[13px]">
+                    Menge eingeben, dann wird neu gerechnet. Unten steht noch der letzte vollständige Stand.
+                  </p>
+                )}
+                {result && s && (
+                  <div className={incomplete ? "space-y-5 opacity-50" : "space-y-5"}>
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Verladebereit</span>
+                      <span className="font-mono text-2xl font-semibold uppercase">{whenText(result.ready_at)}</span>
+                      {result.meets_due !== null && result.days_delta !== null && (
+                        result.meets_due ? (
+                          <span className="border border-ok px-2 text-sm font-semibold text-ok">
+                            hält · {result.days_delta === 0 ? "ohne Puffer" : `${result.days_delta} ${result.days_delta === 1 ? "Tag" : "Tage"} Puffer`}
                           </span>
-                          <span className="text-muted-foreground">{station.basis}</span>
-                        </li>
+                        ) : (
+                          <span className="border border-foreground px-2 text-sm font-semibold">
+                            +{-result.days_delta} {result.days_delta === -1 ? "Tag" : "Tage"} nach Wunschtermin
+                          </span>
+                        )
+                      )}
+                      <span className="text-[13px] text-muted-foreground">Durchlauf {minutesText(s.lead_minutes)}</span>
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-3 border-y border-line py-2.5 font-mono sm:grid-cols-5">
+                      {[
+                        [num(s.units), "Einheiten"],
+                        [num(s.pallets), "Paletten"],
+                        [num(s.trucks), "LKW"],
+                        [`${num(s.paper_t, 1)} t`, "Rohpapier"],
+                        [s.bottleneck?.split(" ")[0] ?? "–", "Engpass"],
+                      ].map(([value, label]) => (
+                        <div key={label}>
+                          <dd className="text-lg font-semibold">{value}</dd>
+                          <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                        </div>
                       ))}
-                    </ol>
-                  </Section>
+                    </dl>
 
-                  <Section title="Materialbedarf">
-                    <MaterialTable materials={result.materials} />
-                  </Section>
+                    {result.warnings.length > 0 && (
+                      <ul className="space-y-1 border-l-[3px] border-nav bg-secondary px-3 py-2 text-[13px]">
+                        {result.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    )}
 
-                  <Section title="Kosten">
-                    <CostTable costs={result.costs} />
-                  </Section>
-                </div>
-              )}
-            </main>
-          </div>
-        )}
-      </div>
+                    <Section title="Zeitplan">
+                      <Schedule result={result} />
+                      <p className="text-[11px] text-muted-foreground">
+                        Schraffiert: geschlossen (Büro Mo–Fr 07–16, Versand Mo–Fr 06–22). Gestauchte Spalte: Leerlauf. Balken antippen
+                        oder überfahren zeigt die Herleitung.
+                      </p>
+                    </Section>
+
+                    <Section title="Herleitung">
+                      <ol className="divide-y divide-border border border-line bg-card text-[13px]">
+                        {result.stations.map((station) => (
+                          <li key={station.key} className="grid gap-x-3 px-3 py-1.5 sm:grid-cols-[180px_270px_1fr]">
+                            <span className="font-medium">{station.label}</span>
+                            <span className="font-mono text-[12px] text-muted-foreground">
+                              {whenText(station.start)} – {whenText(station.end)}
+                            </span>
+                            <span className="text-muted-foreground">{station.basis}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </Section>
+
+                    <Section title="Materialbedarf">
+                      <MaterialTable materials={result.materials} />
+                    </Section>
+
+                    <Section title="Kosten">
+                      <CostTable costs={result.costs} />
+                    </Section>
+                  </div>
+                )}
+              </main>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="stammdaten" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+          {articles && articles.length > 0 && <MasterData articles={articles} />}
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }
