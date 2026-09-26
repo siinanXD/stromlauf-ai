@@ -16,6 +16,8 @@ Seite **Planung** (`/planung`, neuer Eintrag in der Navigation): Auftrag mit Pos
 3. **Materialbedarf**: Rohpapier und daraus Zellstoff, Altpapier, Chemie, Wasser; Verpackung
    (Hülsen, Folie, Kartons), Paletten, Stretchfolie; je Zeile die Herleitung.
 4. **Kennzahlen**: Pakete, Paletten, LKW, Rohpapier t, Linienzeit, Engpassmaschine.
+5. **Kosten** (Nutzerentscheid: mit Richtwerten): Material, Fertigung je Maschine, Büro, Versand,
+   Summe und je Einheit pro Position. Jeder Preis heißt „Richtwert (Annahme)“.
 
 Annahme, sichtbar auf der Seite: freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig.
 Warteschlangen und Bestände kommen mit Teil 3 (Simulation).
@@ -37,11 +39,17 @@ Warteschlangen und Bestände kommen mit Teil 3 (Simulation).
 - **Kalender**: Büro Mo–Fr 07:00–16:00, Produktion 24/7, Versand Mo–Fr 06:00–22:00. Arbeitszeit
   wird über Fenster addiert (Freitag 15:30 + 60 min = Montag 07:30). Feiertage: noch nicht.
 - Alle Parameter mit Quelle oder „Richtwert“ (LKW 33 Paletten, 30–90 min Torbelegung aus der Recherche).
+- **Kosten**: Material = Menge × Preis (nur Zukaufteile; Rohpapier zählt über Rezeptur + PM1-Zeit).
+  Fertigung = belegte Minuten × Maschinenstundensatz; in einer gekoppelten Linie ist jede Maschine
+  die ganze Gruppendauer belegt. Der Stundensatz ist die Kennzahl „Maschinenstundensatz“ (€/h) der
+  Maschine, also im Tab Kennzahlen änderbar. Büro = Minuten × Bürostundensatz, Versand = LKW ×
+  Beladezeit × Satz der Verladetore. Büro und Versand werden nach Paletten auf die Positionen
+  verteilt; je Position Kosten je Einheit. Fehlt ein Satz: 0 € und Hinweis.
 
 ## Daten
 
-Neue Tabellen (nur neue, `create_all`): `articles`, `materials` (optional Eigenfertigung auf
-Maschine mit Leistung), `bom_lines` (Artikel- oder Material-Eltern), `routing_steps`
+Neue Tabellen (nur neue, `create_all`): `articles`, `materials` (Preis €/Einheit mit Quelle,
+optional Eigenfertigung auf Maschine mit Leistung), `bom_lines` (Artikel- oder Material-Eltern), `routing_steps`
 (Artikel → Maschine, FK CASCADE), `plant_settings` (Schlüssel → JSON: Büro-Stationen, Kalender,
 LKW, Tore, Freigabegrenze). Testwerk-Daten in `examples/testwerk/testwerk.json` (8 Artikel,
 ~14 Materialien), der Lader legt sie nach den Hallen an (`--refresh` ersetzt sie).
@@ -62,7 +70,7 @@ Kennzahlen, Herleitung aufklappbar. Neu berechnen bei jeder Änderung (kein Knop
 
 ## Nicht in Teil 2
 
-Kosten/Preise (mit Finanzen in Teil 3), Aufträge speichern, Bestände, Kapazitätskonflikte zwischen
+Aufträge speichern, Bestände, Kapazitätskonflikte zwischen
 Aufträgen, Stammdaten bearbeiten, Feiertage.
 
 ## Tests
