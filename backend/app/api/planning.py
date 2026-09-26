@@ -1,6 +1,7 @@
 """Vorkalkulation: Stammdaten lesen/ersetzen und Auftraege durchrechnen (ohne LLM)."""
 
 from datetime import date, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -110,16 +111,44 @@ class ArticleIn(BaseModel):
     plies: int = Field(gt=0)
     gsm: float = Field(gt=0)
     waste_pct: float = Field(default=3, ge=0)
+    price: float = Field(default=0, ge=0)  # Verkaufspreis EUR/Einheit (Richtwert)
     line: str = Field(default="", max_length=120)
     description: str = ""
     routing: list[RoutingIn] = []
     bom: list[BomIn] = []
 
 
+class CustomerIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    credit_limit: float = Field(default=0, ge=0)
+
+
+class StockIn(BaseModel):
+    article: str  # Artikelcode
+    units: int = Field(ge=0)
+
+
+class OrderLineImport(BaseModel):
+    article: str  # Artikelcode
+    quantity: float = Field(gt=0)
+    unit: Literal["unit", "pallet"] = "unit"
+
+
+class OrderImport(BaseModel):
+    number: str = Field(min_length=1, max_length=40)
+    customer: str
+    received_at: datetime
+    due_date: date | None = None
+    lines: list[OrderLineImport] = Field(min_length=1)
+
+
 class MasterDataIn(BaseModel):
     materials: list[MaterialIn] = []
     articles: list[ArticleIn] = []
     settings: dict[str, dict] = {}
+    customers: list[CustomerIn] = []
+    stock: list[StockIn] = []
+    orders: list[OrderImport] = []
 
 
 class CalcPosition(BaseModel):
@@ -307,8 +336,54 @@ def replace_master_data(body: MasterDataIn, session: Session = Depends(get_sessi
         article.bom = lines(item.bom, f"Artikel {item.code}")
     for key, value in body.settings.items():
         session.merge(models.PlantSetting(key=key, value=value))
+    session.flush()
+    _import_orders(session, body)
     session.commit()
-    return {"materials": len(body.materials), "articles": len(body.articles), "settings": sorted(body.settings)}
+    return {
+        "materials": len(body.materials), "articles": len(body.articles), "settings": sorted(body.settings),
+        "customers": len(body.customers), "stock": len(body.stock), "orders": len(body.orders),
+    }
+
+
+def _import_orders(session: Session, body: MasterDataIn) -> None:
+    """Kunden (nach Name), Bestand (nach Artikelcode) und Auftraege (nach Nummer) aktualisieren oder anlegen."""
+    articles = {a.code: a for a in session.scalars(select(models.Article))}
+
+    def article(code: str, owner: str) -> models.Article:
+        if code not in articles:
+            raise HTTPException(400, f"{owner}: Artikel {code} unbekannt")
+        return articles[code]
+
+    customers = {c.name: c for c in session.scalars(select(models.Customer))}
+    for item in body.customers:
+        customer = customers.get(item.name) or models.Customer(name=item.name)
+        customer.credit_limit = item.credit_limit
+        session.add(customer)
+        customers[item.name] = customer
+    for item in body.stock:
+        row = session.get(models.StockItem, article(item.article, "Bestand").id)
+        if row is None:
+            session.add(models.StockItem(article_id=articles[item.article].id, units=item.units))
+        else:
+            row.units = item.units
+    session.flush()
+    orders = {o.number: o for o in session.scalars(select(models.Order))}
+    for item in body.orders:
+        if item.customer not in customers:
+            raise HTTPException(400, f"Auftrag {item.number}: Kunde {item.customer} unbekannt")
+        order = orders.get(item.number) or models.Order(number=item.number)
+        order.customer_id = customers[item.customer].id
+        received = item.received_at
+        if received.tzinfo is not None:
+            received = received.astimezone().replace(tzinfo=None)
+        order.received_at = received
+        order.due_date = item.due_date
+        order.lines = [
+            models.OrderLine(article_id=article(line.article, f"Auftrag {item.number}").id, quantity=line.quantity,
+                             unit=line.unit, position=i)
+            for i, line in enumerate(item.lines)
+        ]
+        session.add(order)
 
 
 @router.post("/calc")

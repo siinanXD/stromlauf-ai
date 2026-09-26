@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import { CostTable } from "@/components/planning/CostTable";
@@ -9,7 +12,7 @@ import { MaterialTable } from "@/components/planning/MaterialTable";
 import { newPosition, OrderForm, type OrderDraft } from "@/components/planning/OrderForm";
 import { Schedule } from "@/components/planning/Schedule";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { planning, type ArticleInfo, type CalcResult } from "@/lib/api";
+import { leitstand, planning, type ArticleInfo, type CalcResult } from "@/lib/api";
 import { minutesText, num, parseAmount, whenText } from "@/lib/format";
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
@@ -39,7 +42,30 @@ export default function PlanningPage() {
   const [draft, setDraft] = useState<OrderDraft | null>(null);
   const [result, setResult] = useState<CalcResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const latest = useRef(0);
+  const router = useRouter();
+
+  // Kalkulierte Bestellung ins Auftragsbuch (Leitstand) uebernehmen
+  async function createOrder() {
+    if (!draft) return;
+    setCreating(true);
+    try {
+      const order = await leitstand.createOrder({
+        customer: draft.customer.trim() || "Kunde ohne Namen",
+        received_at: draft.received_at,
+        due_date: draft.due_date || null,
+        lines: draft.positions.map((p) => ({ article_id: p.article_id, quantity: parseAmount(p.quantity) ?? 0, unit: p.unit })),
+      });
+      toast.success(`Auftrag ${order.number} angelegt`, {
+        action: { label: "Zum Leitstand", onClick: () => router.push("/leitstand") },
+      });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  }
 
   useEffect(() => {
     planning
@@ -129,6 +155,19 @@ export default function PlanningPage() {
                         )
                       )}
                       <span className="text-[13px] text-muted-foreground">Durchlauf {minutesText(s.lead_minutes)}</span>
+                      <span className="ml-auto flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={creating || incomplete}
+                          onClick={createOrder}
+                          className="h-8 border border-line bg-card px-3 text-sm font-medium hover:border-primary hover:text-primary disabled:opacity-50"
+                        >
+                          Als Auftrag anlegen
+                        </button>
+                        <Link href="/leitstand" className="text-[13px] text-primary hover:underline">
+                          Leitstand →
+                        </Link>
+                      </span>
                     </div>
 
                     <dl className="grid grid-cols-2 gap-3 border-y border-line py-2.5 font-mono sm:grid-cols-3 xl:grid-cols-6">

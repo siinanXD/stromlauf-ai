@@ -11,14 +11,16 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
 - `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Standortplan, `/werk/halle/[id]` Hallen-Baukasten,
-  `/werk/maschine/[id]`, `/planung` Vorkalkulation.
+  `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand` Durchlauf-Simulation.
 - Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
   CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
   (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
   Reine Werk-Logik in `backend/app/werk/`. Vorkalkulation: Article -> RoutingStep (Maschine) und BomLine,
   Material (Zukauf mit Preis oder Eigenfertigung auf Maschine mit Rezeptur), PlantSetting "calc" (Kalender,
   Buero-Stationen, LKW, Tore, Saetze); Rechenkern `app/werk/calc.py`, Stundensatz = Kennzahl
-  "Maschinenstundensatz" der Maschine.
+  "Maschinenstundensatz" der Maschine. Leitstand: Customer (Kreditlimit) -> Order -> OrderLine, StockItem
+  (Anfangsbestand je Artikel), `articles.price`; Simulationskern `app/werk/sim.py` (heapq-Ereignisschleife,
+  Parameter `workers` je Buero-Station und `credit_hold_min` in PlantSetting "calc").
 - Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in

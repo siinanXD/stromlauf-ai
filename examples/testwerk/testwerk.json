@@ -1159,7 +1159,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 2.4
     },
     {
       "code": "TP-4L-9x160",
@@ -1228,7 +1229,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 3.1
     },
     {
       "code": "TP-2L-10x250",
@@ -1297,7 +1299,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 2.2
     },
     {
       "code": "KR-2L-4x64",
@@ -1366,7 +1369,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 2.1
     },
     {
       "code": "SV-3L-33x33",
@@ -1435,7 +1439,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 1.6
     },
     {
       "code": "KT-2L-100",
@@ -1504,7 +1509,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 1.4
     },
     {
       "code": "FH-1L-25x23",
@@ -1573,7 +1579,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 18.0
     },
     {
       "code": "IR-2L-1000",
@@ -1642,7 +1649,8 @@
           "qty": 1,
           "per": "pallet"
         }
-      ]
+      ],
+      "price": 9.5
     }
   ],
   "settings": {
@@ -1677,25 +1685,29 @@
           "key": "ks",
           "label": "Kundenservice",
           "minutes": 30,
-          "min_pallets": 0
+          "min_pallets": 0,
+          "workers": 2
         },
         {
           "key": "fin",
           "label": "Finanzen",
           "minutes": 60,
-          "min_pallets": 0
+          "min_pallets": 0,
+          "workers": 1
         },
         {
           "key": "av",
           "label": "Arbeitsvorbereitung",
           "minutes": 45,
-          "min_pallets": 0
+          "min_pallets": 0,
+          "workers": 1
         },
         {
           "key": "gf",
           "label": "Geschäftsführung",
           "minutes": 30,
-          "min_pallets": 100
+          "min_pallets": 100,
+          "workers": 1
         }
       ],
       "office_rate": 65,
@@ -1709,8 +1721,255 @@
         "docks": "Kennzahl LV-VT Verladetore",
         "office_steps": "Richtwert (Annahme)",
         "office_rate": "Richtwert (Annahme)",
-        "dock_rate": "Richtwert (Annahme)"
-      }
+        "dock_rate": "Richtwert (Annahme)",
+        "workers": "Richtwert (Annahme)",
+        "credit_hold_min": "Richtwert (Annahme): 1 Arbeitstag Klärung",
+        "prices": "Richtwert (Annahme)",
+        "credit_limit": "Richtwert (Annahme)"
+      },
+      "credit_hold_min": 540
     }
-  }
+  },
+  "customers": [
+    {
+      "name": "Muster Handel GmbH",
+      "credit_limit": 400000
+    },
+    {
+      "name": "Nordmarkt eG",
+      "credit_limit": 150000
+    },
+    {
+      "name": "Drogerie Süd AG",
+      "credit_limit": 80000
+    },
+    {
+      "name": "Hotelgruppe Ost",
+      "credit_limit": 60000
+    },
+    {
+      "name": "Klinik West",
+      "credit_limit": 8000
+    },
+    {
+      "name": "Bäckerei Rau",
+      "credit_limit": 3000
+    }
+  ],
+  "orders": [
+    {
+      "number": "A-1001",
+      "customer": "Muster Handel GmbH",
+      "received_at": "2026-09-28T07:10",
+      "due_date": "2026-09-30",
+      "lines": [
+        {
+          "article": "TP-3L-8x150",
+          "quantity": 120,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1002",
+      "customer": "Nordmarkt eG",
+      "received_at": "2026-09-28T07:40",
+      "due_date": "2026-10-01",
+      "lines": [
+        {
+          "article": "KR-2L-4x64",
+          "quantity": 40,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1003",
+      "customer": "Drogerie Süd AG",
+      "received_at": "2026-09-28T09:15",
+      "due_date": "2026-09-29",
+      "lines": [
+        {
+          "article": "SV-3L-33x33",
+          "quantity": 18,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1004",
+      "customer": "Hotelgruppe Ost",
+      "received_at": "2026-09-28T11:30",
+      "due_date": "2026-09-30",
+      "lines": [
+        {
+          "article": "TP-4L-9x160",
+          "quantity": 60,
+          "unit": "pallet"
+        },
+        {
+          "article": "FH-1L-25x23",
+          "quantity": 10,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1005",
+      "customer": "Klinik West",
+      "received_at": "2026-09-28T14:20",
+      "due_date": "2026-10-02",
+      "lines": [
+        {
+          "article": "FH-1L-25x23",
+          "quantity": 12,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1006",
+      "customer": "Muster Handel GmbH",
+      "received_at": "2026-09-29T08:05",
+      "due_date": "2026-10-05",
+      "lines": [
+        {
+          "article": "TP-3L-8x150",
+          "quantity": 200,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1007",
+      "customer": "Bäckerei Rau",
+      "received_at": "2026-09-29T10:00",
+      "due_date": "2026-10-01",
+      "lines": [
+        {
+          "article": "SV-3L-33x33",
+          "quantity": 3,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1008",
+      "customer": "Nordmarkt eG",
+      "received_at": "2026-09-29T13:45",
+      "due_date": "2026-10-02",
+      "lines": [
+        {
+          "article": "KT-2L-100",
+          "quantity": 20,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1009",
+      "customer": "Drogerie Süd AG",
+      "received_at": "2026-09-30T07:30",
+      "due_date": "2026-10-02",
+      "lines": [
+        {
+          "article": "TP-2L-10x250",
+          "quantity": 30,
+          "unit": "pallet"
+        },
+        {
+          "article": "FH-1L-25x23",
+          "quantity": 20,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1010",
+      "customer": "Hotelgruppe Ost",
+      "received_at": "2026-09-30T09:00",
+      "due_date": "2026-10-01",
+      "lines": [
+        {
+          "article": "IR-2L-1000",
+          "quantity": 8,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1011",
+      "customer": "Muster Handel GmbH",
+      "received_at": "2026-09-30T15:30",
+      "due_date": "2026-10-05",
+      "lines": [
+        {
+          "article": "KR-2L-4x64",
+          "quantity": 60,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1012",
+      "customer": "Klinik West",
+      "received_at": "2026-10-01T08:00",
+      "due_date": "2026-10-01",
+      "lines": [
+        {
+          "article": "FH-1L-25x23",
+          "quantity": 2,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1013",
+      "customer": "Bäckerei Rau",
+      "received_at": "2026-10-01T11:10",
+      "due_date": "2026-10-02",
+      "lines": [
+        {
+          "article": "TP-3L-8x150",
+          "quantity": 2,
+          "unit": "pallet"
+        }
+      ]
+    },
+    {
+      "number": "A-1014",
+      "customer": "Nordmarkt eG",
+      "received_at": "2026-10-02T09:30",
+      "due_date": "2026-10-06",
+      "lines": [
+        {
+          "article": "TP-3L-8x150",
+          "quantity": 150,
+          "unit": "pallet"
+        }
+      ]
+    }
+  ],
+  "stock": [
+    {
+      "article": "TP-3L-8x150",
+      "units": 7056
+    },
+    {
+      "article": "TP-4L-9x160",
+      "units": 2100
+    },
+    {
+      "article": "KR-2L-4x64",
+      "units": 2496
+    },
+    {
+      "article": "SV-3L-33x33",
+      "units": 2400
+    },
+    {
+      "article": "FH-1L-25x23",
+      "units": 320
+    }
+  ]
 }

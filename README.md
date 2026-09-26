@@ -115,6 +115,25 @@ freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätz
 Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
 Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
 
+## Leitstand: Durchlauf-Simulation (ohne KI-Kosten)
+
+Reiter **Leitstand** (`/leitstand`): alle Aufträge des Auftragsbuchs laufen deterministisch durch
+das Werk. Eine **Simulationsuhr** (Abspielen, 1 h / 6 h / 1 Tag je Sekunde, Schieberegler) zeigt zu
+jeder Uhrzeit den Zustand von **Büro** (Kundenservice, Finanzen mit Kreditklärung, Arbeitsvorbereitung,
+Geschäftsführung ab 100 Paletten; Personen belegt/frei, Warteschlange), **Fertigung** (PM1 und
+Linien mit Fortschritt), **Lager** (Bestand je Artikel, „heute raus“) und **Versand** (8 Tore, LKW,
+wartende LKW). Klick auf einen Auftrag zeigt seinen Weg (Warten hell, Arbeiten blau). Kennzahlen:
+Termintreue, Ø Durchlauf, Auslastung, Ø Wartezeit Finanzen.
+
+Regeln: Büro und PM1 nach Ankunft, Linien nach Wunschtermin, Tore nach Ankunft; vorhandener Bestand
+wird von der Arbeitsvorbereitung reserviert, der Rest gefertigt; übersteigen offene Aufträge eines
+Kunden sein Kreditlimit, folgt ein Arbeitstag Klärung. Simulationskern `backend/app/werk/sim.py`
+(Ereignisschleife, rein, getestet), API `POST /api/simulation`, Auftragsbuch `GET/POST /api/orders`,
+Bestand `GET /api/stock`. In der Planung legt „Als Auftrag anlegen“ die kalkulierte Bestellung ins
+Auftragsbuch. Testwerk: 6 Kunden, 14 Aufträge in KW 40, Anfangsbestand (`python scripts/load_testwerk.py`).
+Kreditlimits, Personenzahl und Klärungsdauer sind Richtwerte. Nicht enthalten: Maschinenausfälle,
+Schichtpläne, Nachproduktion aufs Lager, Teillieferungen.
+
 ## MCP-Server (Claude Desktop, Claude Code)
 
 Stromlauf stellt seine Funktionen als MCP-Server bereit: Werk, Maschinen, Kennzeichen,
@@ -168,7 +187,7 @@ Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`),
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
             Werk (Standortplan, Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
-            Planung/Vorkalkulation,
+            Planung/Vorkalkulation, Leitstand (Simulationsuhr),
             Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
@@ -179,7 +198,7 @@ backend/    FastAPI
                    Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
                    site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
   app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen, Kalender,
-                   Vorkalkulation)
+                   Vorkalkulation, Durchlauf-Simulation)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860
