@@ -29,6 +29,7 @@ class Node:
     kind: str  # device | terminal | address | network | variable
     label: str = ""
     ref: str = ""
+    detail: str = ""  # AWL-Code eines Netzwerks
 
 
 @dataclass
@@ -163,6 +164,7 @@ def _add_awl(graph: Graph, awl_text: str, symbols: dict[str, str]) -> None:
             if not writes:
                 continue
             nw = graph.node(f"{name}/NW{network.number}", "network", network.title, f"{name} NW {network.number}")
+            graph.nodes[nw].detail = "\n".join(line.rstrip() for line in network.lines)
             for node_id, kind in reads:
                 graph.edge(graph.node(node_id, kind, comments.get(node_id, "")), nw)
             for node_id, kind in writes:

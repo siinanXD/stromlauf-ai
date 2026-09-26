@@ -447,3 +447,26 @@ export async function factCard(tag: string, sourceIds: string[]): Promise<FactCa
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
 }
+
+// --- Signalweg ---------------------------------------------------------------------------------
+
+export type SignalNodeKind = "device" | "terminal" | "address" | "network" | "variable";
+
+export interface SignalNode {
+  id: string;
+  kind: SignalNodeKind;
+  label: string;
+  ref: string;
+  detail: string;
+  level: number;
+}
+
+export interface SignalPathData {
+  start: string;
+  nodes: SignalNode[];
+  edges: { source: string; target: string }[];
+  schematic: { document_id: string; filename: string } | null;
+}
+
+export const signalPath = (tag: string, sourceId: string) =>
+  request<SignalPathData>(`/api/signal-path?tag=${encodeURIComponent(tag)}&source_id=${encodeURIComponent(sourceId)}`);

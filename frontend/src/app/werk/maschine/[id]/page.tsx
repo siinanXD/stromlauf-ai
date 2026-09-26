@@ -12,6 +12,7 @@ import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
 import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
 import { PartPanel } from "@/components/machine/PartPanel";
+import { SignalPath } from "@/components/signal/SignalPath";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,17 +28,20 @@ import {
   type MachineDetail,
 } from "@/lib/api";
 
-type TabId = "draufsicht" | "fehler" | "schaltschrank" | "dokumente";
+type TabId = "draufsicht" | "signalweg" | "fehler" | "schaltschrank" | "dokumente";
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
 export default function MachinePage() {
   const { id } = useParams<{ id: string }>();
-  const urlTag = useSearchParams().get("tag");
+  const searchParams = useSearchParams();
+  const urlTag = searchParams.get("tag");
+  const urlTab = searchParams.get("tab");
   const [machine, setMachine] = useState<MachineDetail | null>(null);
   const [layout, setLayout] = useState<Layout | null | undefined>(undefined);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
-  const [tab, setTab] = useState<TabId>("draufsicht");
+  const [tab, setTab] = useState<TabId>(urlTab === "signalweg" ? "signalweg" : "draufsicht");
+  const [signalTag, setSignalTag] = useState<string>(urlTag ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faultFilter, setFaultFilter] = useState<string | null>(null);
   const [highlightTag, setHighlightTag] = useState<string | null>(urlTag);
@@ -74,7 +78,8 @@ export default function MachinePage() {
     if (urlTag) {
       const hit = layout?.parts.find((p) => p.tag.toUpperCase() === urlTag.toUpperCase());
       setHighlightTag(urlTag);
-      if (hit) {
+      if (urlTab === "signalweg") setTab("signalweg");
+      else if (hit) {
         setSelectedId(hit.id);
         setTab("draufsicht");
       } else setTab("schaltschrank");
@@ -154,9 +159,12 @@ export default function MachinePage() {
               {layout ? `${layout.parts.length} Teile` : "keine Draufsicht"}
             </p>
           </div>
-          <TabsList variant="line" className="ml-auto h-10 gap-2 pb-1">
+          <TabsList variant="line" className="ml-auto h-10 max-w-full justify-start gap-2 overflow-x-auto pb-1">
             <TabsTrigger value="draufsicht" className={TRIGGER}>
               Draufsicht
+            </TabsTrigger>
+            <TabsTrigger value="signalweg" className={TRIGGER}>
+              Signalweg
             </TabsTrigger>
             <TabsTrigger value="fehler" className={TRIGGER}>
               Fehler {machine.fault_count}
@@ -202,8 +210,22 @@ export default function MachinePage() {
                   setFaultFilter(tag);
                   setTab("fehler");
                 }}
+                onShowSignal={(tag) => {
+                  setSignalTag(tag);
+                  setTab("signalweg");
+                }}
               />
             </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="signalweg" className="min-h-0 flex-1 p-4 md:px-6">
+          {machine.source_id ? (
+            <div className="h-full min-h-[480px]">
+              <SignalPath sourceId={machine.source_id} initialTag={signalTag || selected?.tag || ""} onOpen={setPageTarget} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Keine Dokumentation verknüpft. Im Tab „Dokumente“ eine Wissensquelle wählen.</p>
           )}
         </TabsContent>
 

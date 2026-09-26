@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, MessageSquare } from "lucide-react";
+import { FileText, MessageSquare, Route } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ export function PartPanel({
   onChanged,
   onOpenPage,
   onShowFaults,
+  onShowSignal,
 }: {
   machine: MachineDetail;
   layout: Layout;
@@ -44,6 +45,7 @@ export function PartPanel({
   onChanged: () => void;
   onOpenPage: (target: PageTarget) => void;
   onShowFaults: (tag: string) => void;
+  onShowSignal: (tag: string) => void;
 }) {
   const [lookup, setLookup] = useState<TagLookup | null>(null);
 
@@ -200,6 +202,13 @@ export function PartPanel({
                 x {Math.round(part.x_mm)} · y {Math.round(part.y_mm)} · {Math.round(part.w_mm)} × {Math.round(part.h_mm)}
               </span>
             </div>
+
+            {part.tag && machine.source_id && (
+              <Button size="sm" variant="outline" className="mt-3 w-full border-line" onClick={() => onShowSignal(part.tag)}>
+                <Route className="size-3.5" />
+                Signalweg von {part.tag}
+              </Button>
+            )}
 
             <SectionTitle>In der Dokumentation</SectionTitle>
             {!machine.source_id ? (
