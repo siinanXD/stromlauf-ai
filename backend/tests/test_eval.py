@@ -194,3 +194,18 @@ def test_rescore_counts_unknown_ids():
     run = {"results": [{"id": "zz", "answer": "x", "sources": [], "dauer_s": 1.0}]}
     summary, rows, unknown = rescore.rescore(run, [Q])
     assert unknown == ["zz"] and rows == [] and summary["fragen"] == 0
+
+
+# --- Task 4: Fragen ------------------------------------------------------------------------------
+
+
+def test_questions_cover_testdoku_and_testwerk():
+    rows = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
+    by_source: dict[str, list[dict]] = {}
+    for r in rows:
+        by_source.setdefault(r.get("source") or "Testwerk", []).append(r)
+    assert len(by_source["Umroller UR-01"]) >= 10 and len(by_source["Aufrollung PM1-AR"]) >= 9
+    assert len([r for r in rows if r.get("agent") is False]) >= 4
+    assert sum(1 for r in rows if r.get("retrieval")) >= 30
+    assert all(r["id"].endswith("nicht-vorhanden") for r in rows if not r["expect_sources"] and r.get("agent", True))
+    assert all(r["must_not_contain"] for r in rows if r["id"].endswith("nicht-vorhanden"))
