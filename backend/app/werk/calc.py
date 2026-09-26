@@ -155,11 +155,11 @@ def _units(position: Position) -> int:
     return units
 
 
-def _units_per_min(step: Step, units_per_pallet: int) -> float:
+def units_per_min(step: Step, units_per_pallet: int) -> float:
     return step.rate * units_per_pallet / 60 if step.rate_unit == "pallet_h" else step.rate
 
 
-def _groups(routing: list[Step]) -> list[list[Step]]:
+def step_groups(routing: list[Step]) -> list[list[Step]]:
     groups: list[list[Step]] = []
     for step in routing:
         if groups and step.coupled:
@@ -288,11 +288,11 @@ def calculate(
         article = position.article
         t = ready[index]
         cost = 0.0
-        groups = _groups(article.routing)
+        groups = step_groups(article.routing)
         if not groups:
             warnings.append(f"Kein Arbeitsplan für {article.name}: ohne Fertigungszeit gerechnet")
         for g, group in enumerate(groups):
-            rates = [(_units_per_min(s, article.units_per_pallet), s) for s in group]
+            rates = [(units_per_min(s, article.units_per_pallet), s) for s in group]
             rate, bottleneck = min(rates, key=lambda item: item[0])
             setup = max(s.setup_min for s in group)
             minutes = setup + units[index] / rate
