@@ -45,3 +45,18 @@ def test_layout_kinds_fixed_list():
         "Motor", "Sensor", "Taster", "Not-Halt", "Leuchte", "Schaltschrank",
         "Band/Förderer", "Rahmen", "Schutztür", "Sonstiges",
     )
+
+
+def test_parse_vision_json_extracts_object():
+    from app.ingestion.layout_vision import parse_vision_json
+
+    assert parse_vision_json('bla {"items": [], "width_mm": 6000} bla') == {"items": [], "width_mm": 6000}
+
+
+def test_parse_vision_json_without_json_raises():
+    import pytest
+
+    from app.ingestion.layout_vision import parse_vision_json
+
+    with pytest.raises(ValueError):
+        parse_vision_json("kein json")
