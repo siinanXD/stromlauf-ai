@@ -13,10 +13,17 @@ from sqlalchemy.orm import Session
 from app.api.plant import _get, _store_image
 from app.db import get_session
 from app.ingestion.cabinet_vision import load_png
-from app.ingestion.layout_geometry import LAYOUT_KINDS, SHAPES, clamp_part, drop_known_tags, rebase_to_floor, to_parts
+from app.ingestion.layout_geometry import (
+    LAYOUT_KINDS,
+    SHAPES,
+    clamp_part,
+    drop_known_tags,
+    rebase_to_floor,
+    to_parts,
+)
 from app.ingestion.layout_vision import detect_layout
-from app.ingestion.vision import render_page_png
 from app.ingestion.tags import normalize_tag
+from app.ingestion.vision import render_page_png
 from app.models import Document, LayoutPart, Machine, MachineLayout, TagOccurrence
 from app.schemas import LayoutIn, LayoutOut, LayoutPartIn, LayoutPartOut, LayoutPartUpdate
 

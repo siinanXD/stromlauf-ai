@@ -22,7 +22,7 @@ def test_page_columns_reads_header_row():
     assert 0.8 < last.x0 < last.x1 and last.x1 > 0.9
     assert all(c.y0 < 0.1 for c in columns)
     assert all(0.7 < c.y1 < 0.9 for c in columns)
-    assert all(a.x1 <= b.x0 + 1e-6 for a, b in zip(columns, columns[1:]))
+    assert all(a.x1 <= b.x0 + 1e-6 for a, b in zip(columns, columns[1:], strict=False))
 
 
 def test_page_columns_without_header_is_empty(tmp_path):

@@ -123,7 +123,7 @@ def page_columns(path: Path, page: int) -> list[Column]:
 
     centers = [(t.left + t.right) / 2 for t in best]
     half = (centers[-1] - centers[0]) / (len(centers) - 1) / 2
-    bounds = [centers[0] - half] + [(a + b) / 2 for a, b in zip(centers, centers[1:])] + [centers[-1] + half]
+    bounds = [centers[0] - half] + [(a + b) / 2 for a, b in zip(centers, centers[1:], strict=False)] + [centers[-1] + half]
     top = min(t.top for t in best)
     title = [t.top for t in tokens if t.top > TITLE_BLOCK_START]
     bottom = min(title) - 0.01 if title else FALLBACK_BOTTOM
