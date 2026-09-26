@@ -7,6 +7,7 @@ from app.agent.tools import find_tag, keyword_search, search_knowledge
 router = APIRouter(prefix="/api", tags=["search"])
 
 MODES = {"semantic", "keyword", "tag"}
+MAX_QUERY = 200
 
 
 @router.get("/search")
@@ -14,6 +15,8 @@ def search(q: str = "", mode: str = "semantic", source_id: str | None = None, k:
     """Semantisch (Embeddings, lokal), woertlich oder exakt nach Kennzeichen; optional je Wissensquelle."""
     if not q.strip():
         raise HTTPException(400, "Suchbegriff fehlt")
+    if len(q) > MAX_QUERY:
+        raise HTTPException(400, f"Suchbegriff zu lang (höchstens {MAX_QUERY} Zeichen)")
     if mode not in MODES:
         raise HTTPException(400, f"mode muss eins sein von {sorted(MODES)}")
     config = {"configurable": {"source_ids": [source_id] if source_id else []}}

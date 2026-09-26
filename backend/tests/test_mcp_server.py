@@ -1,13 +1,15 @@
 """MCP-Server ohne Netz: Stromlauf-API als httpx.MockTransport."""
 
 import asyncio
+import json
+from pathlib import Path
 
 import httpx
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
 from stromlauf_mcp.client import StromlaufClient
-from stromlauf_mcp.core import resolve
+from stromlauf_mcp.core import resolve, truncate
 from stromlauf_mcp.server import TOOL_NAMES, build_server
 
 SITE = {
@@ -63,6 +65,8 @@ class Backend:
             return httpx.Response(200, json=SITE)
         if path == "/api/machines/fb":
             return httpx.Response(200, json=MACHINE)
+        if path == "/api/machines/m1":  # Maschine ohne Doku
+            return httpx.Response(200, json={**MACHINE, "id": "m1", "name": "L1-UR Umroller Toilettenpapier", "source_id": None})
         if path in {"/api/machines/fb/specs", "/api/machines/fb/diagnoses"}:
             return httpx.Response(200, json=[])
         if path == "/api/articles":
@@ -73,6 +77,8 @@ class Backend:
             return httpx.Response(200, json={"start": "-S1", "schematic": None, "edges": [{"source": "-S1", "target": "E0.0"}],
                                              "nodes": [{"id": "-S1", "kind": "device", "label": "Start", "ref": "/4.6", "detail": "", "level": 0},
                                                        {"id": "E0.0", "kind": "address", "label": "", "ref": "", "detail": "", "level": 1}]})
+        if path == "/api/tags/search":
+            return httpx.Response(200, json=[])
         if path == "/api/search":
             return httpx.Response(200, json={"mode": request.url.params["mode"], "text": "Treffer", "refs": []})
         return httpx.Response(404, json={"detail": "nicht gefunden"})
@@ -159,4 +165,78 @@ def test_unreachable_backend_gives_a_start_hint():
 
 def test_backend_errors_are_passed_as_text(server):
     with pytest.raises(ToolError, match="404: nicht gefunden"):
-        tool(server, "machine_details")(machine="L1-UR")  # Mock kennt nur Maschine fb
+        tool(server, "machine_details")(machine="L2-PAL")  # Mock kennt diese Maschine nicht
+
+
+# --- Befunde aus dem Abschluss-Review ---------------------------------------------------------
+
+
+def test_ids_only_match_exactly_never_by_prefix():
+    items = [{"id": "1a2b3c", "name": "Foerderband FB-01"}, {"id": "9f8e7d", "name": "L1-UR Umroller"}]
+    assert resolve(items, "1a2b3c", "Maschine")["name"] == "Foerderband FB-01"
+    with pytest.raises(ToolError, match="nicht gefunden"):
+        resolve(items, "1a2", "Maschine")  # Anfang einer ID, kommt in keinem Namen vor
+
+
+def test_empty_reference_and_long_candidate_lists():
+    items = [{"id": str(i), "name": f"Palettierer {i}", "hall": "Verarbeitung"} for i in range(12)]
+    with pytest.raises(ToolError, match="fehlt"):
+        resolve(items, "  ", "Maschine")
+    with pytest.raises(ToolError, match=r"Palettierer 0 \(Verarbeitung\).*und 4 weitere"):
+        resolve(items, "Palettierer", "Maschine")
+
+
+def test_timeout_is_not_reported_as_backend_down():
+    def slow(request):
+        raise httpx.ReadTimeout("timeout", request=request)
+
+    client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(slow))
+    with pytest.raises(ToolError, match="antwortet nicht"):
+        tool(build_server(client, "http://app.test"), "site_overview")()
+
+
+def test_validation_errors_name_the_field(backend):
+    def invalid(request):
+        return httpx.Response(422, json={"detail": [{"loc": ["body", "received_at"], "msg": "Input should be a valid datetime"}]})
+
+    client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(invalid))
+    with pytest.raises(ToolError, match="received_at: Input should be a valid datetime"):
+        client.post("/api/calc", {})
+
+
+def test_search_tags_without_hits_says_so(server):
+    result = tool(server, "search_tags")(query="-Q99")
+    assert result["hits"] == [] and "Keine" in result["note"]
+
+
+def test_signal_path_link_encodes_the_tag(server):
+    result = tool(server, "signal_path")(tag="=A1+S1-K12", machine="FB-01")
+    assert "tag=%3DA1%2BS1-K12" in result["url"]
+
+
+def test_machine_without_documentation_gets_a_hint(server):
+    with pytest.raises(ToolError, match="keine Dokumentation"):
+        tool(server, "signal_path")(tag="-S1", machine="L1-UR")
+
+
+def test_truncation_keeps_whole_chunks():
+    text = "\n\n".join(f"### Dokument {i}\n" + "x" * 900 for i in range(20))
+    cut = truncate(text, 3000)
+    body = cut.split("\n… ")[0]
+    assert body.endswith("x") and body.count("### ") == 3
+    assert "gekürzt" in cut
+
+
+def test_readme_desktop_config_is_valid_json():
+    readme = (Path(__file__).resolve().parents[2] / "README.md").read_text(encoding="utf-8")
+    block = readme.split("claude_desktop_config.json")[1].split("```json")[1].split("```")[0]
+    assert json.loads(block)["mcpServers"]["stromlauf"]["args"][0].endswith("mcp_server.py")
+
+
+def test_search_endpoint_rejects_overlong_queries():
+    from fastapi import HTTPException
+
+    from app.api.search import search
+
+    with pytest.raises(HTTPException):
+        search(q="x" * 201)

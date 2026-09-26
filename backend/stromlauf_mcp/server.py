@@ -1,13 +1,14 @@
 """MCP-Server fuer Stromlauf AI: Werk, Doku, Signalweg und Vorkalkulation als Lese-Werkzeuge.
 
 Start (stdio):  backend/.venv/Scripts/python scripts/mcp_server.py
-Umgebung:       STROMLAUF_API (Standard http://localhost:8010), STROMLAUF_APP (http://localhost:3100)
+Umgebung:       STROMLAUF_API (Standard http://127.0.0.1:8010), STROMLAUF_APP (http://localhost:3100)
 """
 
 import argparse
 import logging
 import os
 from typing import Literal
+from urllib.parse import quote
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -133,7 +134,7 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
         }
 
     @server.tool(annotations=READ_ONLY)
-    def search_tags(query: str) -> list[dict]:
+    def search_tags(query: str) -> dict:
         """In welchen Maschinen kommt ein Kennzeichen vor? Betriebsmittel (-K1), Klemmen (-X3:1),
         SPS-Adressen (E0.0); Anfang genügt, Schreibweise egal.
 
@@ -141,13 +142,17 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
             query: Kennzeichen oder Anfang davon, z. B. "-K1" oder "E0."
         """
         hits = client.get("/api/tags/search", q=query)
-        return [
-            {
-                "tag": h["tag"], "type": h["tag_type"], "occurrences": h["occurrences"],
-                "machines": [{"name": m["name"], "url": machine_url(m["id"])} for m in h["machines"]],
-            }
-            for h in hits[:30]
-        ]
+        if not hits:
+            return {"hits": [], "note": f"Keine Treffer für „{query}“. Schreibweise prüfen oder search_documents nutzen."}
+        return {
+            "hits": [
+                {
+                    "tag": h["tag"], "type": h["tag_type"], "occurrences": h["occurrences"],
+                    "machines": [{"name": m["name"], "url": machine_url(m["id"])} for m in h["machines"]],
+                }
+                for h in hits[:30]
+            ]
+        }
 
     @server.tool(annotations=READ_ONLY)
     def find_references(tag: str, machine: str | None = None) -> dict:
@@ -204,7 +209,7 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
             "consequences": [node(n) for n in nodes if n["level"] > 0],
             "edges": [f"{e['source']} -> {e['target']}" for e in path["edges"]],
             "schematic": path.get("schematic"),
-            "url": f"{machine_url(detail['id'])}?tag={tag}&tab=signalweg",
+            "url": f"{machine_url(detail['id'])}?tag={quote(tag, safe='')}&tab=signalweg",
         }
 
     @server.tool(annotations=READ_ONLY)
@@ -238,7 +243,7 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
         body_positions = []
         for raw in positions:
             position = raw if isinstance(raw, OrderPosition) else OrderPosition.model_validate(raw)
-            article = resolve(articles, position.article, "Artikel", keys=("code", "name", "id"))
+            article = resolve(articles, position.article, "Artikel", keys=("code", "name"))
             body_positions.append({"article_id": article["id"], "quantity": position.quantity, "unit": position.unit})
         result = client.post(
             "/api/calc", {"received_at": received_at, "due_date": due_date, "positions": body_positions}
@@ -254,7 +259,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
     logging.getLogger("httpx").setLevel(logging.WARNING)  # keine Zeile je Anfrage im Client-Log
-    client = StromlaufClient(os.environ.get("STROMLAUF_API", "http://localhost:8010"))
+    client = StromlaufClient(os.environ.get("STROMLAUF_API", "http://127.0.0.1:8010"))
     server = build_server(client, os.environ.get("STROMLAUF_APP", "http://localhost:3100").rstrip("/"))
     if args.http:
         server.run("streamable-http", host="127.0.0.1", port=args.port)

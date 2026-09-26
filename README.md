@@ -130,27 +130,27 @@ Voraussetzung: Backend läuft (Port 8010).
 | `signal_path` | Quellen und Folgen eines Kennzeichens (Klemmenplan, AWL) |
 | `list_articles`, `calculate_order` | Vorkalkulation: Termin, Zeitplan, Material, Kosten |
 
-Claude Code (im Repo-Ordner):
+Claude Code (Pfade absolut, dann egal aus welchem Ordner gestartet):
 
 ```bash
-claude mcp add stromlauf -- backend/.venv/Scripts/python.exe scripts/mcp_server.py
+claude mcp add stromlauf -- C:/dev/Repositories/stromlauf-ai/backend/.venv/Scripts/python.exe C:/dev/Repositories/stromlauf-ai/scripts/mcp_server.py
 ```
 
-Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen):
+Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen; Schrägstriche `/` gehen unter Windows):
 
 ```json
 {
   "mcpServers": {
     "stromlauf": {
-      "command": "C:\dev\Repositories\stromlauf-ai\backend\.venv\Scripts\python.exe",
-      "args": ["C:\dev\Repositories\stromlauf-ai\scripts\mcp_server.py"],
-      "env": { "STROMLAUF_API": "http://localhost:8010" }
+      "command": "C:/dev/Repositories/stromlauf-ai/backend/.venv/Scripts/python.exe",
+      "args": ["C:/dev/Repositories/stromlauf-ai/scripts/mcp_server.py"],
+      "env": { "STROMLAUF_API": "http://127.0.0.1:8010" }
     }
   }
 }
 ```
 
-Als HTTP-Server (z. B. für den MCP Inspector): `python scripts/mcp_server.py --http` →
+Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python scripts/mcp_server.py --http` →
 `http://127.0.0.1:8765/mcp`. Code: `backend/stromlauf_mcp/`, Suche über `GET /api/search`.
 
 ## Chat-Antworten
