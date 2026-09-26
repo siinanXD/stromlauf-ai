@@ -56,6 +56,14 @@ def normalize_tag(raw: str) -> str:
     return compact
 
 
+def search_key(query: str) -> str | None:
+    """Suchpraefix fuer die globale Suche; None bei leerer oder sinnloser Eingabe."""
+    if not query or not query.strip():
+        return None
+    key = normalize_tag(query)
+    return key if re.search(r"[A-Z0-9]", key) else None
+
+
 def _snippet(text: str, start: int, end: int, width: int = 80) -> str:
     left = max(0, start - width)
     right = min(len(text), end + width)
