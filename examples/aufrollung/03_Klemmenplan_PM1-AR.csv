@@ -1,0 +1,64 @@
+Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
+-X3;-X3:1;-A1.1:1 (E0.0);-S5:14;Taster -S5 Start, Schliesser;/7.3
+-X3;-X3:2;-A1.1:2 (E0.1);-S6:12;Taster -S6 Stop, Oeffner (1 = nicht beta;/7.3
+-X3;-X3:3;-A1.1:3 (E0.2);-S7:14;Taster -S7 Stoerung quittieren;/7.3
+-X3;-X3:4;-A1.1:4 (E0.3);-S8:14;Taster -S8 Tambourwechsel Hand;/7.3
+-X3;-X3:5;-A1.1:5 (E0.4);-S9:14;Wahlschalter -S9 Betriebsart Automatik;/7.3
+-X3;-X3:6;-A1.1:6 (E0.5);-B1:4 (BK);Laser-Distanzsensor -B1 Tambourdurchmess;/7.3
+-X3;-X3:7;-A1.1:7 (E0.6);-B2:4 (BK);Ultraschallsensor -B2 Bahnriss vor Tragt;/7.3
+-X3;-X3:8;-A1.1:8 (E0.7);-B3:4 (BK);Druckschalter -B3 Hydraulikdruck 150 bar;/7.3
+-X3;-X3:9;-A1.1:9 (E1.0);-B4:4 (BK);Schwimmerschalter -B4 Oelstand Lagerschm;/7.3
+-X3;-X3:10;-A1.1:10 (E1.1);-B5:4 (BK);Naeherungsschalter -B5 Wechselarm ausgef;/7.3
+-X3;-X3:11;-A1.1:11 (E1.2);-B6:4 (BK);Naeherungsschalter -B6 Wechselarm Grunds;/7.3
+-X3;-X3:12;-A1.1:12 (E1.3);-B7:4 (BK);Lichtschranke -B7 Leertambour eingelegt;/7.3
+-X3;-X3:13;-A1.1:13 (E1.4);-K1:24;Sicherheitsrelais -K1 Freigabe (1 = Not-;/8.3
+-X3;-X3:14;-A1.1:14 (E1.5);-K2:24;Sicherheitsrelais -K2 Freigabe (1 = Schu;/8.3
+-X3;-X3:15;-A1.1:15 (E1.6);-U1:COM;Umrichter -U1 Tragtrommel betriebsbereit;/8.3
+-X3;-X3:16;-A1.1:16 (E1.7);-U2:COM;Umrichter -U2 Tambourantrieb betriebsber;/8.3
+-X3;-X3:17;-A1.2:1 (E2.0);-F4:14;Motorschutz -F4 Hilfskontakt (1 = ok);/9.3
+-X3;-X3:18;-A1.2:2 (E2.1);-F5:14;Motorschutz -F5 Hilfskontakt (1 = ok);/9.3
+-X3;-X3:19;-A1.2:3 (E2.2);-B8:4 (BK);Thermostat -B8 Oeltemperatur unter 60 Gr;/9.3
+-X3;-X3:20;-X2:1 (+24V);-B1:1 (BN), -B2:1 (BN), -B3:1 (BN), -B4:1 (BN), -B5:1 (BN), -B6:1 (BN), -B7:1 (BN), -B8:1 (BN);+24 V Sensoren;/7.3
+-X3;-X3:21;-X2:2 (0V);-B1:3 (BU), -B2:3 (BU), -B3:3 (BU), -B4:3 (BU), -B5:3 (BU), -B6:3 (BU), -B7:3 (BU), -B8:3 (BU);0 V Sensoren;/7.4
+-X3;-X3:22;-A1.3:1 (A4.0);-U1:DI1;Freigabe Umrichter -U1 Tragtrommel;/10.3
+-X3;-X3:23;-A1.3:2 (A4.1);-U2:DI1;Freigabe Umrichter -U2 Tambourantrieb;/10.3
+-X3;-X3:24;-A1.3:3 (A4.2);-K3:A1;Schuetz -K3 Hydraulikpumpe -M3;/10.3
+-X3;-X3:25;-A1.3:4 (A4.3);-K4:A1;Schuetz -K4 Oelumlaufpumpe -M4;/10.3
+-X3;-X3:26;-A1.3:5 (A4.4);-Y1:A1;Magnetventil -Y1 Wechselarm ausfahren;/10.3
+-X3;-X3:27;-A1.3:6 (A4.5);-Y2:A1;Magnetventil -Y2 Wechselarm zurueck;/10.3
+-X3;-X3:28;-A1.3:7 (A4.6);-Y3:A1;Magnetventil -Y3 Trennmesser;/10.3
+-X3;-X3:29;-A1.3:8 (A4.7);-H1:X1;Meldeleuchte -H1 Betrieb gruen;/10.3
+-X3;-X3:30;-A1.3:9 (A5.0);-H2:X1;Meldeleuchte -H2 Stoerung rot;/10.3
+-X3;-X3:31;-A1.3:10 (A5.1);-H3:X1;Meldeleuchte -H3 Tambourwechsel angeford;/10.3
+-X3;-X3:32;-A1.3:11 (A5.2);-H4:X1;Hupe -H4 Stoerung;/10.3
+-X3;-X3:33;-X2:2 (0V);-K3:A2, -K4:A2, -Y1:A2, -Y2:A2, -Y3:A2;0 V Schuetzspulen;/10.3
+-X3;-X3:34;-X2:2 (0V);-H1:X2, -H2:X2, -H3:X2, -H4:X2;0 V Meldeleuchten und Hupe;/10.3
+-X4;-X4:U;-U1:U;-M1:U1;Motor Tragtrommel Phase U;/3.2
+-X4;-X4:V;-U1:V;-M1:V1;Motor Tragtrommel Phase V;/3.2
+-X4;-X4:W;-U1:W;-M1:W1;Motor Tragtrommel Phase W;/3.2
+-X4;-X4:PE;PE-Schiene;-M1:PE;Schutzleiter;/3.2
+-X5;-X5:U;-U2:U;-M2:U1;Motor Tambourantrieb Phase U;/3.6
+-X5;-X5:V;-U2:V;-M2:V1;Motor Tambourantrieb Phase V;/3.6
+-X5;-X5:W;-U2:W;-M2:W1;Motor Tambourantrieb Phase W;/3.6
+-X5;-X5:PE;PE-Schiene;-M2:PE;Schutzleiter;/3.6
+-X6;-X6:U;-K3:U;-M3:U1;Motor Hydraulikpumpe Wechselarme Phase U;/4.2
+-X6;-X6:V;-K3:V;-M3:V1;Motor Hydraulikpumpe Wechselarme Phase V;/4.2
+-X6;-X6:W;-K3:W;-M3:W1;Motor Hydraulikpumpe Wechselarme Phase W;/4.2
+-X6;-X6:PE;PE-Schiene;-M3:PE;Schutzleiter;/4.2
+-X7;-X7:U;-K4:U;-M4:U1;Motor Oelumlaufpumpe Lager Phase U;/4.6
+-X7;-X7:V;-K4:V;-M4:V1;Motor Oelumlaufpumpe Lager Phase V;/4.6
+-X7;-X7:W;-K4:W;-M4:W1;Motor Oelumlaufpumpe Lager Phase W;/4.6
+-X7;-X7:PE;PE-Schiene;-M4:PE;Schutzleiter;/4.6
+-X1;-X1:1;-Q1:1;Netz L1;Einspeisung L1;/2.1
+-X1;-X1:2;-Q1:3;Netz L2;Einspeisung L2;/2.1
+-X1;-X1:3;-Q1:5;Netz L3;Einspeisung L3;/2.1
+-X1;-X1:N;-T1:N;Netz N;Neutralleiter;/2.1
+-X1;-X1:PE;PE-Schiene;Netz PE;Schutzleiter;/2.1
+-X2;-X2:1;-T1:+;-X3:20;+24 V Sensoren;/2.5
+-X2;-X2:2;-T1:-;-X3:21, -X3:33, -X3:34;0 V;/2.5
+-X2;-X2:3;-T1:+;-S1:11, -S10:11;+24 V Sicherheitskreise;/2.6
+-X2;-X2:4;-T1:-;-K1:A2, -K2:A2;0 V Sicherheitskreise;/2.6
+-X2;-X2:5;-T1:+;-A1:L+, -U1:24V, -U2:24V;+24 V SPS und Umrichter;/2.7
+-X2;-X2:6;-T1:-;-A1:M;0 V SPS und Umrichter;/2.7
+-X2;-X2:3a;-K1:14;STO -U1/-U2, Spulen -K3/-K4;+24 V freigegeben;/5.3
+-X2;-X2:3b;-K2:14;Freigabe Tambourwechsel -Y1..-Y3;+24 V freigegeben;/5.6
