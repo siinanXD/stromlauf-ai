@@ -120,6 +120,11 @@ def de(value: float, digits: int = 0) -> str:
     return text.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def short(value: float) -> str:
+    """Faktor ohne unnoetige Nullen: 0.550 -> '0,55', 8.0 -> '8'."""
+    return de(value, 3).rstrip("0").rstrip(",")
+
+
 def duration(minutes: float) -> str:
     hours, rest = divmod(round(minutes), 60)
     return f"{hours} h {rest:02d} min" if hours else f"{rest} min"
@@ -177,7 +182,7 @@ def _explode(position_units: int, pallets: int, article: Article, materials: dic
     for line in article.bom:
         count = position_units if line.per == "unit" else pallets
         per = "Palette" if line.per == "pallet" else article.unit_name
-        add(line.material_code, line.qty * count, f"{de(line.qty, 3).rstrip('0').rstrip(',')} je {per} × {de(count)}", 0, None)
+        add(line.material_code, line.qty * count, f"{short(line.qty)} je {per} × {de(count)}", 0, None)
 
     def expand(code: str, qty: float, depth: int) -> None:
         material = materials.get(code)
@@ -186,7 +191,7 @@ def _explode(position_units: int, pallets: int, article: Article, materials: dic
         if depth > 5:
             raise ValueError(f"Rezeptur von {code} ist zu tief verschachtelt (Kreis?)")
         for line in material.bom:
-            add(line.material_code, qty * line.qty, f"{de(line.qty, 3).rstrip('0').rstrip(',')} je {material.unit} {material.name}", depth + 1, code)
+            add(line.material_code, qty * line.qty, f"{short(line.qty)} je {material.unit} {material.name}", depth + 1, code)
             expand(line.material_code, qty * line.qty, depth + 1)
 
     for code, entry in list(need.items()):
@@ -328,6 +333,11 @@ def calculate(
     material_rows = []
     for code, entry in _ordered(merged):
         material = materials.get(code)
+        parent = materials.get(entry["parent"]) if entry["parent"] else None
+        recipe = next((line for line in parent.bom if line.material_code == code), None) if parent else None
+        if parent and recipe:
+            parent_qty = merged[entry["parent"]]["qty"]
+            entry["basis"] = [f"{short(recipe.qty)} je {parent.unit} {parent.name} × {de(parent_qty, 2)} {parent.unit}"]
         purchased = material is not None and material.made_on is None
         price = material.price if material else None
         if material is None:

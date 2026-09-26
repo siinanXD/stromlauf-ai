@@ -52,4 +52,11 @@ describe("timeAxis", () => {
     expect(day?.x).toBeCloseTo(axis.x(at(29, 0)));
     expect(axis.ticks.filter((tick) => !tick.day).map((tick) => tick.label)).toEqual(["20", "04"]);
   });
+
+  it("beschriftet bei langen Zeitraeumen nur so viele Tage, dass sich nichts ueberlappt", () => {
+    const axis = timeAxis([{ start: at(28, 0), end: at(28, 0) + 33 * 24 * 3_600_000 }], 800);
+    const labeled = axis.ticks.filter((tick) => tick.day && tick.label);
+    expect(labeled.length).toBeGreaterThan(3);
+    labeled.slice(1).forEach((tick, i) => expect(tick.x - labeled[i].x).toBeGreaterThanOrEqual(64));
+  });
 });

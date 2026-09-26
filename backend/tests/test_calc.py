@@ -99,6 +99,12 @@ def test_material_explosion_over_two_levels():
     assert zellstoff["level"] == 1 and zellstoff["parent"] == PAPER
 
 
+def test_recipe_basis_is_given_once_for_the_whole_order():
+    result = run([Position(tp(), 10_000), Position(kr(), 1920)])
+    zellstoff = next(m for m in result["materials"] if m["code"] == "ZELLSTOFF")
+    assert zellstoff["basis"] == "0,55 je t Rohpapier × 8,41 t"
+
+
 def test_friday_order_waits_for_monday_office_and_line_uses_bottleneck():
     result = run([Position(tp(), 10_000)])
     assert station(result, "office:ks")["end"] == "2026-09-25T16:00"

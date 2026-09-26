@@ -1,6 +1,7 @@
 /** Zeitachse fuer den Zeitplan: linear, lange Leerlaeufe (z. B. Wochenende) als schmaler Bruch. */
 
 const HOUR = 3_600_000;
+const MIN_DAY_LABEL_PX = 64;
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
 export interface AxisBreak {
@@ -77,14 +78,19 @@ export function timeAxis(
 
   const ticks: AxisTick[] = [];
   const hourStep = 4 * HOUR * scale >= 28 ? 4 : 0;
+  let lastDayLabel = -Infinity; // Tagesbeschriftung nur mit Abstand, damit nichts ueberlappt
   for (const segment of segments.filter((s) => !s.compressed)) {
     const first = new Date(segment.start);
     first.setMinutes(0, 0, 0);
     for (let t = first.getTime(); t <= segment.end; t += HOUR) {
       if (t < segment.start) continue;
       const d = new Date(t);
-      if (d.getHours() === 0) ticks.push({ x: x(t), label: dayLabel(d), day: true });
-      else if (hourStep && d.getHours() % hourStep === 0) ticks.push({ x: x(t), label: pad(d.getHours()), day: false });
+      if (d.getHours() === 0) {
+        const px = x(t);
+        const label = px - lastDayLabel >= MIN_DAY_LABEL_PX ? dayLabel(d) : "";
+        if (label) lastDayLabel = px;
+        ticks.push({ x: px, label, day: true });
+      } else if (hourStep && d.getHours() % hourStep === 0) ticks.push({ x: x(t), label: pad(d.getHours()), day: false });
     }
   }
   return {
