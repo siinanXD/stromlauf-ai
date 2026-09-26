@@ -348,3 +348,41 @@ class FactCard(BaseModel):
     title: str | None = None
     bom_line: str | None = None
     rows: list[FactRow] = []
+
+
+class DiagnosisStep(BaseModel):
+    text: str
+    tag: str = ""
+    ref: str = ""
+    status: str = Field(default="open", pattern="^(open|ok|nok|skip)$")
+    note: str = ""
+
+
+class DiagnosisStart(BaseModel):
+    fault_id: str | None = None
+    title: str = ""
+
+
+class DiagnosisUpdate(BaseModel):
+    steps: list[DiagnosisStep] | None = None
+    finding: str | None = None
+
+
+class DiagnosisFinish(BaseModel):
+    outcome: str = Field(pattern="^(resolved|unresolved)$")
+    finding: str = ""
+    add_to_faults: bool = False
+
+
+class DiagnosisOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    machine_id: str
+    fault_id: str | None
+    title: str
+    steps: list[DiagnosisStep]
+    outcome: str
+    finding: str
+    started_at: datetime
+    finished_at: datetime | None
