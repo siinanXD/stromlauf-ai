@@ -5,6 +5,7 @@ Umgebung:       STROMLAUF_API (Standard http://localhost:8010), STROMLAUF_APP (h
 """
 
 import argparse
+import logging
 import os
 from typing import Literal
 
@@ -252,6 +253,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--http", action="store_true", help="Streamable HTTP statt stdio")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # keine Zeile je Anfrage im Client-Log
     client = StromlaufClient(os.environ.get("STROMLAUF_API", "http://localhost:8010"))
     server = build_server(client, os.environ.get("STROMLAUF_APP", "http://localhost:3100").rstrip("/"))
     if args.http:
