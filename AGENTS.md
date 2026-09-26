@@ -32,7 +32,7 @@ cd backend && .venv/Scripts/uvicorn app.main:app --reload --port 8010
 cd frontend && npm run dev        # http://localhost:3100
 
 cd backend && .venv/Scripts/python -m pytest -q
-cd frontend && npm run lint && npx tsc --noEmit
+cd frontend && npm run lint && npx tsc --noEmit && npm test
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.

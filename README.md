@@ -67,6 +67,16 @@ Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `ki
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
+## Chat-Antworten
+
+Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,
+je ein Beleg), **Sicherheit** (nur wenn relevant), **Details** (eingeklappt). Belege schreibt das
+Modell als `[[Dateiname|Ort]]`; die Oberflaeche macht daraus Chips und listet nur zitierte Stellen.
+Ein Klick auf einen Stromlaufplan-Verweis wie `/3.8` oeffnet rechts Blatt 3 und markiert Spalte 8.
+Blatt und Spalten liest das Backend aus der PDF-Textebene (`GET /api/documents/{id}/locate`),
+ohne Vision. Nennt die Frage ein Betriebsmittel (-K1), zeigt eine **Befundkarte** Stromlaufplan-
+Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`), nicht vom Modell.
+
 ## Architektur
 
 ```
@@ -114,5 +124,5 @@ sie an das laufende Backend und bewertet ohne LLM-Richter. Details in [`eval/REA
 
 ```bash
 cd backend && .venv/Scripts/python -m pytest -q
-cd frontend && npm run lint && npx tsc --noEmit
+cd frontend && npm run lint && npx tsc --noEmit && npm test
 ```
