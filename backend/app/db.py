@@ -16,10 +16,15 @@ class Base(DeclarativeBase):
 
 def init_db() -> None:
     from app import models  # noqa: F401  (registriert die Tabellen)
+    from app.migrations import upgrade_statements
 
     with engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     Base.metadata.create_all(engine)
+    # Neue Spalten auf Tabellen, die create_all nicht mehr anfasst
+    with engine.begin() as conn:
+        for statement in upgrade_statements():
+            conn.execute(text(statement))
 
 
 def get_session() -> Iterator[Session]:

@@ -166,6 +166,13 @@ class Hall(Base):
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Art (generic|base|production|warehouse|office) und Rechteck im Standortplan (px, 0 = nicht platziert).
+    # Spalten kamen nach der ersten Version dazu: siehe app/migrations.py
+    kind: Mapped[str] = mapped_column(String(24), default="generic", server_default="generic")
+    site_x: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    site_y: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    site_w: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    site_h: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
 
     machines: Mapped[list["Machine"]] = relationship(
         back_populates="hall", cascade="all, delete-orphan", order_by="Machine.order_index"
@@ -190,9 +197,13 @@ class Machine(Base):
     pos_x: Mapped[float] = mapped_column(Float, default=0.0)  # Layout-Position in der Halle (px)
     pos_y: Mapped[float] = mapped_column(Float, default=0.0)
     order_index: Mapped[int] = mapped_column(Integer, default=0)  # Reihenfolge im Ablauf
+    line: Mapped[str] = mapped_column(String(120), default="", server_default="")  # Linie/Sektor
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     hall: Mapped[Hall] = relationship(back_populates="machines")
+    specs: Mapped[list["MachineSpec"]] = relationship(
+        cascade="all, delete-orphan", order_by="MachineSpec.position"
+    )
     source: Mapped[KnowledgeSource | None] = relationship()
     faults: Mapped[list["FaultEntry"]] = relationship(
         back_populates="machine", cascade="all, delete-orphan", order_by="FaultEntry.code"
@@ -217,6 +228,31 @@ class HallFlow(Base):
     label: Mapped[str] = mapped_column(String(120), default="")
 
     hall: Mapped[Hall] = relationship(back_populates="flows")
+
+
+class SiteFlow(Base):
+    """Materialfluss zwischen zwei Hallen im Standortplan."""
+
+    __tablename__ = "site_flows"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    from_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
+    to_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
+    label: Mapped[str] = mapped_column(String(120), default="")
+
+
+class MachineSpec(Base):
+    """Kennzahl einer Maschine mit Quelle, z. B. 'Leistung 10 Logs/min (Hersteller-Datenblatt)'."""
+
+    __tablename__ = "machine_specs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    label: Mapped[str] = mapped_column(String(200))
+    value: Mapped[str] = mapped_column(Text, default="")
+    unit: Mapped[str] = mapped_column(String(60), default="")
+    source: Mapped[str] = mapped_column(Text, default="")  # URL oder "Richtwert ..."
 
 
 class FaultEntry(Base):
