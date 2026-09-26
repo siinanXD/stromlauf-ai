@@ -313,3 +313,38 @@ class TagSearchHit(BaseModel):
     tag_type: str
     occurrences: int
     machines: list[TagSearchMachine] = []
+
+
+class LocateBox(BaseModel):
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+
+class LocateOut(BaseModel):
+    """Ziel eines Belegs im Dokument: Seite und optional die markierte Spalte (relativ 0..1)."""
+
+    page: int
+    column: int | None = None
+    box: LocateBox | None = None
+
+
+class FactValue(BaseModel):
+    text: str
+    ref: str
+    document_id: str | None = None
+    filename: str | None = None
+    page: int | None = None
+
+
+class FactRow(BaseModel):
+    label: str
+    values: list[FactValue]
+
+
+class FactCard(BaseModel):
+    tag: str
+    title: str | None = None
+    bom_line: str | None = None
+    rows: list[FactRow] = []

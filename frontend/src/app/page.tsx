@@ -13,7 +13,6 @@ import {
   type Conversation,
   type Health,
   type KnowledgeSource,
-  type SourceRef,
 } from "@/lib/api";
 
 const EXAMPLES = [
@@ -140,10 +139,6 @@ export default function Home() {
     loadConversations();
   }
 
-  function openSource(source: SourceRef) {
-    if (!source.page) return;
-    setPageTarget({ documentId: source.document_id, filename: source.filename, page: source.page });
-  }
 
   return (
     <AppShell breadcrumb={[{ label: "Chat" }]}>
@@ -215,8 +210,11 @@ export default function Home() {
                   <Message
                     key={index}
                     message={message}
+                    question={messages[index - 1]?.role === "user" ? messages[index - 1].content : ""}
                     streaming={streaming && index === messages.length - 1}
-                    onOpenSource={openSource}
+                    sourceIds={selectedSourceIds}
+                    activeReference={pageTarget?.reference ? `${pageTarget.documentId}${pageTarget.reference}` : null}
+                    onOpen={setPageTarget}
                   />
                 ))
               )}
@@ -265,7 +263,7 @@ export default function Home() {
           </form>
         </main>
 
-        {pageTarget && <PageViewer target={pageTarget} onClose={() => setPageTarget(null)} />}
+        {pageTarget && <PageViewer target={pageTarget} onClose={() => setPageTarget(null)} docked />}
       </div>
     </AppShell>
   );

@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.docling_parser import DOCLING_SUFFIXES, PLAIN_TEXT_SUFFIXES
+from app.ingestion.pdf_layout import page_columns, parse_ref, sheet_page
 from app.ingestion.pipeline import detect_doc_type, ingest_document
 from app.ingestion.vision import render_page_png
 from app.models import DocStatus, DocType, Document, KnowledgeSource
-from app.schemas import DocumentOut, SourceCreate, SourceOut
+from app.schemas import DocumentOut, LocateBox, LocateOut, SourceCreate, SourceOut
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
@@ -149,3 +150,25 @@ def page_image(document_id: str, page: int, session: Session = Depends(get_sessi
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
     return Response(png, media_type="image/png", headers={"Cache-Control": "max-age=3600"})
+
+
+@router.get("/documents/{document_id}/locate", response_model=LocateOut)
+def locate(document_id: str, ref: str, session: Session = Depends(get_session)):
+    """Beleg wie '/3.8' oder 'S. 12' auf Seite und Spaltenmarkierung abbilden."""
+    document = _get_document(session, document_id)
+    path = Path(document.storage_path)
+    if path.suffix.lower() != ".pdf":
+        raise HTTPException(400, "Nur PDF-Dokumente haben Seiten")
+    sheet, column, page = parse_ref(ref)
+    if sheet is not None:
+        page = sheet_page(path, sheet) or page
+        if page is None:
+            raise HTTPException(404, f"Blatt {sheet} nicht gefunden")
+    if page is None:
+        raise HTTPException(400, f"Verweis '{ref}' nennt weder Blatt noch Seite")
+    if column is None:
+        return LocateOut(page=page)
+    hit = next((c for c in page_columns(path, page) if c.n == column), None)
+    if hit is None:
+        return LocateOut(page=page, column=column)
+    return LocateOut(page=page, column=column, box=LocateBox(x0=hit.x0, y0=hit.y0, x1=hit.x1, y1=hit.y1))
