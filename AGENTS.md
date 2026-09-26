@@ -45,6 +45,7 @@ cd frontend && npm run dev        # http://localhost:3100
 
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
+python eval/run_retrieval.py      # Eval ohne Kosten; eval/run_eval.py kostet Tokens je Frage
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
