@@ -165,3 +165,32 @@ def test_run_retrieval_unknown_article():
                          "positions": [{"article": "TP-1", "quantity": 2, "unit": "pallet"}]}, {"TP-1": "id1"})
     assert body["positions"] == [{"article_id": "id1", "quantity": 2, "unit": "pallet"}]
     assert body["received_at"] == "2026-09-28T07:00"
+
+
+# --- Task 3: Wiederbewertung --------------------------------------------------------------------
+
+
+def test_rescore_reproduces_reference_run():
+    rescore = _load("rescore")
+    run = json.loads((ROOT / "eval" / "results" / "referenz_2026-09-26.json").read_text(encoding="utf-8"))
+    questions = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
+    summary, rows, unknown = rescore.rescore(run, questions)
+    assert unknown == [] and summary["fragen"] == len(run["results"])
+    assert summary["fakten_mittel"] == run["summary"]["fakten_mittel"]
+    for old, new in zip(run["results"], rows, strict=True):
+        assert new["id"] == old["id"]
+        assert new["score"]["fakten"] == old["score"]["fakten"] and new["score"]["sauber"] == old["score"]["sauber"]
+
+
+def test_rescore_without_tools():
+    rescore = _load("rescore")
+    run = {"results": [{"id": "q1", "answer": "-K3 Blatt 4", "sources": [{"filename": "a.pdf"}], "dauer_s": 1.0}]}
+    summary, rows, unknown = rescore.rescore(run, [Q])
+    assert rows[0]["score"]["werkzeug_ok"] is None and summary["werkzeug_ok"] is None
+
+
+def test_rescore_counts_unknown_ids():
+    rescore = _load("rescore")
+    run = {"results": [{"id": "zz", "answer": "x", "sources": [], "dauer_s": 1.0}]}
+    summary, rows, unknown = rescore.rescore(run, [Q])
+    assert unknown == ["zz"] and rows == [] and summary["fragen"] == 0
