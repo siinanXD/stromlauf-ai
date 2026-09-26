@@ -38,3 +38,12 @@ def test_parse_ref_variants():
     assert parse_ref("S. 12") == (None, None, 12)
     assert parse_ref("Kap. 6") == (None, None, None)
     assert parse_ref("S. 3 /3.8") == (3, 8, 3)
+
+
+def test_sheet_page_is_cached_per_file():
+    from app.ingestion.pdf_layout import _sheet_map
+
+    _sheet_map.cache_clear()
+    sheet_page(FB01, 3)
+    sheet_page(FB01, 5)
+    assert _sheet_map.cache_info().hits >= 1

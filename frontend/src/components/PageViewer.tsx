@@ -2,7 +2,8 @@
 
 import { ChevronLeft, ChevronRight, Factory, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { api, locate, searchTags, type LocateResult } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,8 @@ import { cn } from "@/lib/utils";
 export interface PageTarget {
   documentId: string;
   filename: string;
-  page: number;
+  /** Fehlt bei Blatt-Verweisen: die Seite bestimmt dann das Backend. */
+  page?: number;
   pageCount?: number | null;
   /** Beleg wie "/3.8": Seite wird ueber das Blatt bestimmt, die Spalte markiert. */
   reference?: string;
@@ -26,35 +28,41 @@ export interface PageTarget {
  */
 export function PageViewer({ target, onClose, docked = false }: { target: PageTarget; onClose: () => void; docked?: boolean }) {
   const router = useRouter();
-  const [page, setPage] = useState(target.page);
+  const [page, setPage] = useState<number | null>(target.page ?? null);
   const [zoomed, setZoomed] = useState(false);
   const [failed, setFailed] = useState(false);
   const [located, setLocated] = useState<LocateResult | null>(null);
   const [machineId, setMachineId] = useState<string | null>(null);
+  const userPaged = useRef(false);
   const lastPage = target.pageCount ?? Number.MAX_SAFE_INTEGER;
 
-  // Neuer Beleg: Seite und Spalte vom Backend bestimmen lassen
+  // Jeder Klick auf einen Beleg ist ein neues target-Objekt: Zustand zuruecksetzen und neu anspringen
   const [seen, setSeen] = useState(target);
   if (seen !== target) {
     setSeen(target);
-    setPage(target.page);
+    setPage(target.page ?? null);
     setLocated(null);
     setFailed(false);
   }
   useEffect(() => {
+    userPaged.current = false;
     if (!target.reference) return;
     let cancelled = false;
     locate(target.documentId, target.reference)
       .then((result) => {
         if (cancelled) return;
         setLocated(result);
-        setPage(result.page);
+        if (!userPaged.current) setPage(result.page);
       })
-      .catch(() => {});
+      .catch((err: Error) => {
+        if (cancelled) return;
+        toast.warning(`${target.reference} nicht gefunden (${err.message}), zeige Seite ${target.page ?? 1}.`);
+        setPage((current) => current ?? 1);
+      });
     return () => {
       cancelled = true;
     };
-  }, [target.documentId, target.reference]);
+  }, [target]);
 
   useEffect(() => {
     if (!target.tag) return;
@@ -68,12 +76,17 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
   }, [target.tag]);
 
   const go = (next: number) => {
+    userPaged.current = true;
     setFailed(false);
     setPage(Math.min(Math.max(1, next), lastPage));
   };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // Angedockt bleibt der Chat bedienbar: Tasten in Eingabefeldern gehoeren nicht der Seitenansicht
+      const el = event.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      if (page === null) return;
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") go(page - 1);
       if (event.key === "ArrowRight") go(page + 1);
@@ -114,11 +127,13 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
           </button>
         </header>
         <div className="px-4 py-1.5 font-mono text-[11px] text-muted-foreground">
-          {target.filename} · S. {page}
+          {target.filename} · {page === null ? "Blatt wird gesucht …" : `S. ${page}`}
           {target.pageCount ? ` / ${target.pageCount}` : ""}
         </div>
         <div className="min-h-0 flex-1 overflow-auto bg-white">
-          {failed ? (
+          {page === null ? (
+            <p className="p-8 text-center text-sm text-muted-foreground">Lade {target.reference} …</p>
+          ) : failed ? (
             <p className="p-8 text-center text-sm text-muted-foreground">Seite {page} konnte nicht geladen werden.</p>
           ) : (
             <div className={cn("relative", zoomed ? "w-[200%]" : "w-full")}>
@@ -147,11 +162,11 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
           )}
         </div>
         <footer className="flex items-center gap-3 border-t border-line px-4 py-2.5 text-sm">
-          <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => go(page - 1)} disabled={page <= 1}>
-            <ChevronLeft className="size-4" />S. {page - 1 || "–"}
+          <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => page && go(page - 1)} disabled={!page || page <= 1}>
+            <ChevronLeft className="size-4" />S. {(page ?? 1) - 1 || "–"}
           </button>
-          <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => go(page + 1)} disabled={page >= lastPage}>
-            S. {page + 1}
+          <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => page && go(page + 1)} disabled={!page || page >= lastPage}>
+            S. {(page ?? 0) + 1}
             <ChevronRight className="size-4" />
           </button>
           {target.tag && machineId && (

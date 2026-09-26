@@ -77,3 +77,13 @@ def test_pages_dropped_when_sheet_refs_exist():
     toc = hit("schematic", "Blatt 3 Hauptstromkreis Foerdermotor -M1", page=1)
     card = build_fact_card("-M1", [BOM, toc])
     assert rows(card)["Stromlaufplan"] == ["/3.8"]
+
+
+def test_single_source_only():
+    from app.ingestion.fact_card import hits_of_single_source
+
+    a = {**BOM, "source_id": "A"}
+    b = {**TERMINAL_U, "source_id": "B"}
+    assert hits_of_single_source([a, {**SCHEMATIC, "source_id": "A"}]) == [a, {**SCHEMATIC, "source_id": "A"}]
+    assert hits_of_single_source([a, b]) is None
+    assert hits_of_single_source([]) == []

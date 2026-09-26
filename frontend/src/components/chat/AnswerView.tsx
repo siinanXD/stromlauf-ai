@@ -29,6 +29,9 @@ function toolSummary(call: ToolCall): string {
   return detail ? `${label}: ${detail}` : label;
 }
 
+const stem = (filename: string) => filename.toLowerCase().replace(/\.[^.]+$/, "");
+const MAX_FALLBACK_SOURCES = 8;
+
 function SectionLabel({ children }: { children: ReactNode }) {
   return <h3 className="mb-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{children}</h3>;
 }
@@ -65,7 +68,7 @@ export function AnswerView({
 
   const resolve = (citation: Citation): SourceRef | undefined =>
     message.sources.find((s) => s.filename === citation.filename) ??
-    message.sources.find((s) => s.filename.toLowerCase().startsWith(citation.filename.toLowerCase().replace(/\.[^.]+$/, "")));
+    message.sources.find((s) => stem(s.filename) === stem(citation.filename));
 
   const chip = (citation: Citation) => {
     const source = resolve(citation);
@@ -75,7 +78,7 @@ export function AnswerView({
     const key = `${source?.document_id}${ref}`;
     const open =
       source && pdf && ref
-        ? () => onOpen({ documentId: source.document_id, filename: source.filename, page: page ?? 1, reference: ref, label, tag })
+        ? () => onOpen({ documentId: source.document_id, filename: source.filename, page, reference: ref, label, tag })
         : undefined;
     return { label, open, active: activeReference === key, key, title: open ? `${source!.filename} öffnen` : citation.filename };
   };
@@ -179,6 +182,24 @@ export function AnswerView({
               <div className="markdown pb-3 text-[13px]">{md(block.body)}</div>
             </details>
           ))}
+        </section>
+      )}
+
+      {!streaming && citations.length === 0 && message.sources.some((s) => s.page) && (
+        <section>
+          <SectionLabel>Fundstellen</SectionLabel>
+          <div className="flex flex-wrap gap-1">
+            {message.sources
+              .filter((s) => s.page)
+              .slice(0, MAX_FALLBACK_SOURCES)
+              .map((s) => (
+                <CitationChip
+                  key={`${s.document_id}-${s.page}`}
+                  label={`${s.filename} S. ${s.page}`}
+                  onClick={() => onOpen({ documentId: s.document_id, filename: s.filename, page: s.page! })}
+                />
+              ))}
+          </div>
         </section>
       )}
 

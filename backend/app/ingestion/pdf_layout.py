@@ -7,6 +7,7 @@ werden relativ (0..1) zum gerenderten Seitenbild zurueckgegeben, Ursprung oben l
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import pypdfium2 as pdfium
@@ -47,24 +48,28 @@ def parse_ref(ref: str) -> tuple[int | None, int | None, int | None]:
     return sheet, column, page
 
 
-def sheet_page(path: Path, sheet: int) -> int | None:
-    """PDF-Seite (1-basiert) mit "Blatt {sheet}"; ohne Blatt-Beschriftung gilt Seite = Blatt."""
+@lru_cache(maxsize=32)
+def _sheet_map(path: str, mtime: float) -> tuple[dict[int, int], int]:
+    """Blatt -> Seite aus den Schriftfeldern, einmal je Datei(stand); dazu die Seitenzahl."""
     with pdfium_lock:
-        pdf = pdfium.PdfDocument(str(path))
+        pdf = pdfium.PdfDocument(path)
         try:
-            labelled = False
+            sheets: dict[int, int] = {}
             for index in range(len(pdf)):
-                text = pdf[index].get_textpage().get_text_range()
-                match = SHEET_RE.search(text)
+                match = SHEET_RE.search(pdf[index].get_textpage().get_text_range())
                 if match:
-                    labelled = True
-                    if int(match.group(1)) == sheet:
-                        return index + 1
-            if not labelled and 1 <= sheet <= len(pdf):
-                return sheet
-            return None
+                    sheets.setdefault(int(match.group(1)), index + 1)
+            return sheets, len(pdf)
         finally:
             pdf.close()
+
+
+def sheet_page(path: Path, sheet: int) -> int | None:
+    """PDF-Seite (1-basiert) mit "Blatt {sheet}"; ohne Blatt-Beschriftung gilt Seite = Blatt."""
+    sheets, pages = _sheet_map(str(path), path.stat().st_mtime)
+    if sheets:
+        return sheets.get(sheet)
+    return sheet if 1 <= sheet <= pages else None
 
 
 def _tokens(page: pdfium.PdfPage) -> list[_Token]:

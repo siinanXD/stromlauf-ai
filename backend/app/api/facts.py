@@ -5,7 +5,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db import get_session
-from app.ingestion.fact_card import build_fact_card
+from app.ingestion.fact_card import build_fact_card, hits_of_single_source
 from app.ingestion.tags import normalize_tag
 from app.models import Chunk, Document, TagOccurrence
 from app.schemas import FactCard
@@ -35,6 +35,7 @@ def fact_card(tag: str, source_ids: list[str] = Query(default=[]), session: Sess
         statement = statement.where(TagOccurrence.source_id.in_(source_ids))
     hits = [
         {
+            "source_id": occurrence.source_id,
             "doc_type": document.doc_type,
             "filename": document.filename,
             "document_id": document.id,
@@ -44,12 +45,17 @@ def fact_card(tag: str, source_ids: list[str] = Query(default=[]), session: Sess
         }
         for occurrence, document in session.execute(statement).all()
     ]
+    # Gleiches BMK in mehreren Anlagen (keine Quelle gewaehlt): keine gemischte Karte
+    single = hits_of_single_source(hits)
+    if single is None:
+        raise HTTPException(404, f"{normalized} kommt in mehreren Wissensquellen vor")
+    hits = single
     # Tabellen: Index-Snippets sind kurz, darum die ganzen Abschnitte mit dem Kennzeichen dazunehmen
     table_docs = {h["document_id"]: h for h in hits if h["doc_type"] in TABLE_DOC_TYPES}
     if table_docs:
         chunks = session.execute(
             select(Chunk.document_id, Chunk.content).where(
-                Chunk.document_id.in_(table_docs), Chunk.content.contains(normalized)
+                Chunk.document_id.in_(table_docs), Chunk.content.contains(normalized, autoescape=True)
             )
         ).all()
         for document_id, content in chunks:

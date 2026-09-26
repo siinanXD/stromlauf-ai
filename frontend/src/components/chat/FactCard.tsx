@@ -50,7 +50,7 @@ export function FactCard({ tag, sourceIds, onOpen }: { tag: string; sourceIds: s
                         onOpen({
                           documentId: value.document_id!,
                           filename: value.filename!,
-                          page: value.page ?? 1,
+                          page: value.page ?? undefined,
                           reference: value.ref,
                           label: `${row.label} ${value.text}`,
                           tag: card.tag,

@@ -41,6 +41,12 @@ def _unique(pairs: list[tuple[str, dict]]) -> list[dict]:
     return [_value(text, hit, text) for text, hit in seen.items()]
 
 
+def hits_of_single_source(hits: list[dict]) -> list[dict] | None:
+    """Befundkarte nur eindeutig: stammen die Treffer aus mehreren Quellen (Anlagen), None."""
+    sources = {h.get("source_id") for h in hits}
+    return hits if len(sources) <= 1 else None
+
+
 def build_fact_card(tag: str, hits: list[dict]) -> dict | None:
     """Befundkarte oder None, wenn der Index nichts Verwertbares hergibt."""
     title = bom_line = None
