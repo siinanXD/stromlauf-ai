@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.config import get_settings
@@ -379,3 +379,104 @@ class DiagnosisSession(Base):
     finding: Mapped[str] = mapped_column(Text, default="")
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+# --- Vorkalkulation: Stammdaten ---------------------------------------------------------------
+
+
+class Article(Base):
+    """Verkaufsartikel mit technischen Daten (daraus Rohpapier je Einheit), Stueckliste, Arbeitsplan."""
+
+    __tablename__ = "articles"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(60), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    unit_name: Mapped[str] = mapped_column(String(40), default="Paket")
+    units_per_pallet: Mapped[int] = mapped_column(Integer)
+    sheets_per_unit: Mapped[int] = mapped_column(Integer)
+    sheet_w_mm: Mapped[float] = mapped_column(Float)
+    sheet_l_mm: Mapped[float] = mapped_column(Float)
+    plies: Mapped[int] = mapped_column(Integer)
+    gsm: Mapped[float] = mapped_column(Float)
+    waste_pct: Mapped[float] = mapped_column(Float, default=3.0)
+    line: Mapped[str] = mapped_column(String(120), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+
+    routing: Mapped[list["RoutingStep"]] = relationship(
+        cascade="all, delete-orphan", order_by="RoutingStep.seq"
+    )
+    bom: Mapped[list["BomLine"]] = relationship(
+        cascade="all, delete-orphan", foreign_keys="BomLine.article_id", order_by="BomLine.position"
+    )
+
+
+class Material(Base):
+    """Material (Zukauf mit Preis oder Eigenfertigung auf einer Maschine mit eigener Rezeptur)."""
+
+    __tablename__ = "materials"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(60), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    unit: Mapped[str] = mapped_column(String(20))
+    price: Mapped[float | None] = mapped_column(Float, nullable=True)  # EUR je Einheit
+    price_source: Mapped[str] = mapped_column(Text, default="")
+    made_on_machine_id: Mapped[str | None] = mapped_column(
+        ForeignKey("machines.id", ondelete="SET NULL"), nullable=True
+    )
+    made_rate_per_h: Mapped[float | None] = mapped_column(Float, nullable=True)
+    made_basis: Mapped[str] = mapped_column(Text, default="")
+
+    made_on: Mapped["Machine | None"] = relationship()
+    bom: Mapped[list["BomLine"]] = relationship(
+        cascade="all, delete-orphan", foreign_keys="BomLine.parent_material_id", order_by="BomLine.position"
+    )
+
+
+class BomLine(Base):
+    """Stuecklistenzeile: Eltern (Artikel oder Material) braucht qty Einheiten eines Materials."""
+
+    __tablename__ = "bom_lines"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    article_id: Mapped[str | None] = mapped_column(
+        ForeignKey("articles.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    parent_material_id: Mapped[str | None] = mapped_column(
+        ForeignKey("materials.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    material_id: Mapped[str] = mapped_column(ForeignKey("materials.id", ondelete="CASCADE"))
+    qty: Mapped[float] = mapped_column(Float)
+    per: Mapped[str] = mapped_column(String(10), default="unit")  # unit | pallet
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+    material: Mapped[Material] = relationship(foreign_keys=[material_id])
+
+
+class RoutingStep(Base):
+    """Arbeitsplanschritt: Artikel auf Maschine mit Leistung, Ruestzeit und Herleitung."""
+
+    __tablename__ = "routing_steps"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), index=True)
+    seq: Mapped[int] = mapped_column(Integer, default=0)
+    # SET NULL: wird die Maschine geloescht, bleibt der Schritt (mit Leistung) und die Kalkulation warnt
+    machine_id: Mapped[str | None] = mapped_column(ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
+    rate: Mapped[float] = mapped_column(Float)
+    rate_unit: Mapped[str] = mapped_column(String(12), default="unit_min")  # unit_min | pallet_h
+    setup_min: Mapped[float] = mapped_column(Float, default=0.0)
+    coupled: Mapped[bool] = mapped_column(Boolean, default=True)
+    basis: Mapped[str] = mapped_column(Text, default="")
+
+    machine: Mapped[Machine | None] = relationship()
+
+
+class PlantSetting(Base):
+    """Werksparameter als JSON, z. B. 'calc': Kalender, Buero-Stationen, LKW, Tore, Saetze."""
+
+    __tablename__ = "plant_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, default=dict)

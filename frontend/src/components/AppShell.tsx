@@ -1,6 +1,6 @@
 "use client";
 
-import { Factory, MessageSquare, Search } from "lucide-react";
+import { Calculator, Factory, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
@@ -17,6 +17,7 @@ export interface Crumb {
 const NAV = [
   { href: "/", label: "Chat", icon: MessageSquare },
   { href: "/werk", label: "Werk", icon: Factory },
+  { href: "/planung", label: "Planung", icon: Calculator },
 ];
 
 /** Rahmen aller Seiten: dunkle Navigationsleiste links, Kopfzeile mit Pfad, Suche und Status. */

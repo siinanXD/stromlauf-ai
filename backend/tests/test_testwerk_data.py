@@ -70,3 +70,57 @@ def test_site_flows_and_rects(werk):
 def test_warehouse_has_eight_gates(werk):
     specs = [s for m in _hall(werk, "warehouse")["machines"] for s in m["specs"]]
     assert dock_count(specs) == 8
+
+
+# --- Stammdaten fuer die Vorkalkulation (Teil 2) ----------------------------------------------
+
+
+def _machines_by_key(werk: dict) -> dict:
+    return {m["key"]: m for h in werk["halls"] for m in h["machines"]}
+
+
+def test_eight_articles_cover_all_six_lines(werk):
+    lines = {m["line"] for m in _hall(werk, "production")["machines"]}
+    assert len(werk["articles"]) == 8
+    assert len({a["code"] for a in werk["articles"]}) == 8
+    assert {a["line"] for a in werk["articles"]} == lines
+
+
+def test_routing_and_bom_reference_existing_machines_and_materials(werk):
+    machines = _machines_by_key(werk)
+    codes = {m["code"] for m in werk["materials"]}
+    for article in werk["articles"]:
+        assert article["routing"], article["code"]
+        for step in article["routing"]:
+            assert step["machine"] in machines, (article["code"], step["machine"])
+            assert machines[step["machine"]]["line"] == article["line"]
+            assert step["rate"] > 0 and step["rate_unit"] in {"unit_min", "pallet_h"} and step["basis"]
+        for line in article["bom"]:
+            assert line["material"] in codes and line["per"] in {"unit", "pallet"}
+    for material in werk["materials"]:
+        for line in material["bom"]:
+            assert line["material"] in codes
+
+
+def test_purchased_materials_have_price_and_paper_is_made_on_pm1(werk):
+    for material in werk["materials"]:
+        if material.get("made_on"):
+            continue
+        assert material["price"] > 0 and material["price_source"], material["code"]
+    paper = next(m for m in werk["materials"] if m["code"] == "ROHPAPIER")
+    assert paper["made_on"]["machine"] == "pm1-s6" and paper["made_on"]["rate_per_h"] > 0
+
+
+def test_machines_used_for_production_have_an_hourly_rate(werk):
+    machines = _machines_by_key(werk)
+    used = {s["machine"] for a in werk["articles"] for s in a["routing"]} | {"pm1-s6"}
+    for key in used:
+        labels = [s["label"] for s in machines[key]["specs"]]
+        assert "Maschinenstundensatz" in labels, key
+        assert labels[0] != "Maschinenstundensatz", key  # Kachel zeigt weiter die Leistung
+
+
+def test_settings_for_calculation(werk):
+    settings = werk["settings"]["calc"]
+    assert settings["truck_capacity"] == 33 and settings["docks"] == 8
+    assert [s["key"] for s in settings["office_steps"]] == ["ks", "fin", "av", "gf"]

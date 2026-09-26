@@ -11,11 +11,14 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
 - `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Standortplan, `/werk/halle/[id]` Hallen-Baukasten,
-  `/werk/maschine/[id]`.
+  `/werk/maschine/[id]`, `/planung` Vorkalkulation.
 - Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
   CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
   (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
-  Reine Werk-Logik in `backend/app/werk/`.
+  Reine Werk-Logik in `backend/app/werk/`. Vorkalkulation: Article -> RoutingStep (Maschine) und BomLine,
+  Material (Zukauf mit Preis oder Eigenfertigung auf Maschine mit Rezeptur), PlantSetting "calc" (Kalender,
+  Buero-Stationen, LKW, Tore, Saetze); Rechenkern `app/werk/calc.py`, Stundensatz = Kennzahl
+  "Maschinenstundensatz" der Maschine.
 - Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
