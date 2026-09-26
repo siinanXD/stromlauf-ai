@@ -171,14 +171,14 @@ export default function WerkPage() {
             ) : (
               <>
                 <div className="flex items-center gap-3 border-b border-border px-4 py-2">
-                  <h1 className="truncate text-lg font-semibold">{current.name}</h1>
+                  <h1 className="truncate font-mono text-lg font-semibold uppercase">{current.name}</h1>
                   <span className="text-sm text-muted-foreground">{current.machines.length} Maschinen</span>
                   <button onClick={deleteHall} className="ml-auto text-sm text-muted-foreground hover:text-danger">
                     Halle löschen
                   </button>
                 </div>
-                <div className="flex min-h-0 flex-1">
-                  <div className="min-w-0 flex-1">
+                <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+                  <div className="min-h-[420px] min-w-0 flex-1">
                     <HallCanvas
                       machines={current.machines}
                       flows={current.flows}
@@ -189,7 +189,7 @@ export default function WerkPage() {
                     />
                   </div>
 
-                  <aside className="w-80 shrink-0 overflow-y-auto border-l border-border bg-card p-4">
+                  <aside className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-4 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
                     <form onSubmit={createMachine} className="space-y-2">
                       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Maschine anlegen</h2>
                       <input
