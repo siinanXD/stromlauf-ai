@@ -3,8 +3,9 @@
 Aufruf:  python scripts/load_testwerk.py [--api http://localhost:8010] [--refresh]
 
 Legt 4 Hallen (Papiermaschine PM1, Verarbeitung, Lager & Versand, Buero) mit 30 Maschinen,
-Linien, Kennzahlen und Materialfluss an. Kein KI-Aufruf, keine Kosten. Ohne --refresh bricht der
-Lader ab, wenn eine dieser Hallen schon existiert; --refresh ersetzt sie samt Maschinen.
+Linien, Kennzahlen und Materialfluss an. Kein KI-Aufruf, keine Kosten. Die Beschreibung jeder
+Halle beginnt mit "Testwerk Tissue:"; nur solche Hallen ersetzt --refresh (samt Maschinen).
+Gibt es eine gleichnamige eigene Halle, bricht der Lader ab und fasst sie nicht an.
 Standort-Fluesse zwischen anderen Hallen bleiben erhalten.
 """
 
@@ -29,13 +30,29 @@ def call(client: httpx.Client, method: str, url: str, body=None):
     return response.json() if response.content else None
 
 
-def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
+def marked_description(werk: dict, hall: dict) -> str:
+    """Beschreibung mit Kennung, damit --refresh nur eigene Hallen ersetzt."""
+    return f"{werk['name']}: {hall['description']}"
+
+
+def split_existing(existing: list[dict], werk: dict) -> tuple[list[dict], list[dict]]:
+    """Vorhandene Hallen mit Testwerk-Namen: (vom Lader angelegt, fremd)."""
     names = {hall["name"] for hall in werk["halls"]}
-    existing = [h for h in call(client, "GET", "/api/site")["halls"] if h["name"] in names]
-    if existing and not refresh:
-        found = ", ".join(h["name"] for h in existing)
-        sys.exit(f"Testwerk ist schon da ({found}). --refresh ersetzt es.")
-    for hall in existing:
+    marker = f"{werk['name']}:"
+    same_name = [h for h in existing if h["name"] in names]
+    own = [h for h in same_name if h["description"].startswith(marker)]
+    return own, [h for h in same_name if not h["description"].startswith(marker)]
+
+
+def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
+    own, foreign = split_existing(call(client, "GET", "/api/site")["halls"], werk)
+    if foreign:
+        found = ", ".join(h["name"] for h in foreign)
+        sys.exit(f"Eigene Halle(n) mit gleichem Namen: {found}. Umbenennen, dann erneut laden.")
+    if own and not refresh:
+        found = ", ".join(h["name"] for h in own)
+        sys.exit(f"Testwerk ist schon da ({found}). --refresh loescht diese Hallen samt Maschinen und legt sie neu an.")
+    for hall in own:
         call(client, "DELETE", f"/api/halls/{hall['id']}")
         print(f"ersetzt: {hall['name']}")
 
@@ -47,7 +64,7 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
     hall_ids: dict[str, str] = {}
     for hall in werk["halls"]:
         created = call(client, "POST", "/api/halls", {
-            "name": hall["name"], "description": hall["description"], "kind": hall["kind"],
+            "name": hall["name"], "description": marked_description(werk, hall), "kind": hall["kind"],
         })
         site = hall["site"]
         call(client, "PATCH", f"/api/halls/{created['id']}", {

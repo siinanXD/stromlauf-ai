@@ -10,6 +10,7 @@ DEFAULT_H = 260
 PER_ROW = 3
 
 GATE_LABEL = "Anzahl Tore"
+MAX_DOCKS = 50  # Tippfehler wie 88888888 sollen den Plan nicht einfrieren
 
 Rect = tuple[float, float, float, float]
 
@@ -62,9 +63,11 @@ def key_figure(specs: list[dict]) -> str:
 
 
 def dock_count(specs: list[dict]) -> int:
-    """Summe der Kennzahlen 'Anzahl Tore' (nur ganze Zahlen)."""
-    return sum(
-        int(spec["value"])
+    """Summe der Kennzahlen 'Anzahl Tore' (nur ganze Zahlen), hoechstens MAX_DOCKS."""
+    total = sum(
+        int(value)
         for spec in specs
-        if spec.get("label") == GATE_LABEL and str(spec.get("value", "")).strip().isdigit()
+        if spec.get("label") == GATE_LABEL
+        and (value := str(spec.get("value", "")).strip()).isdecimal()
     )
+    return min(total, MAX_DOCKS)

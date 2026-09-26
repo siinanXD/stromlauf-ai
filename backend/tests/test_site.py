@@ -1,7 +1,14 @@
 import pytest
 
 from app.migrations import upgrade_statements
-from app.werk.site import check_site_flows, clean_specs, dock_count, key_figure, place_halls
+from app.werk.site import (
+    MAX_DOCKS,
+    check_site_flows,
+    clean_specs,
+    dock_count,
+    key_figure,
+    place_halls,
+)
 
 
 def test_upgrade_statements_add_each_column_idempotently():
@@ -71,3 +78,11 @@ def test_dock_count_sums_numeric_gate_specs():
         {"label": "Leistung", "value": "4"},
     ]
     assert dock_count(specs) == 8
+
+
+def test_dock_count_ignores_non_decimal_digits():
+    assert dock_count([{"label": "Anzahl Tore", "value": "²"}]) == 0
+
+
+def test_dock_count_is_capped():
+    assert dock_count([{"label": "Anzahl Tore", "value": "88888888"}]) == MAX_DOCKS
