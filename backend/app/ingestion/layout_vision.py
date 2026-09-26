@@ -18,16 +18,22 @@ DETECT_PROMPT = """Du bist Konstrukteur im Anlagenbau. Das Bild zeigt eine Drauf
 (Vogelperspektive) einer Maschine oder Anlage: Aufstellungsplan, Skizze, Scan oder Foto.
 
 Finde alle erkennbaren Baugruppen und Feldgeraete. Erlaubte Arten (kind): {kinds}.
-Fuer jedes Teil: Rechteck als Anteil der Bildbreite/-hoehe (0.0 bis 1.0, Ursprung oben links), \
-shape "circle" fuer runde Teile (z. B. Not-Halt), sonst "rect". Lies das \
-Betriebsmittelkennzeichen (BMK) nur, wenn es lesbar ist (z. B. -M1, -B2, -S3); sonst tag = null. \
+Alle Rechtecke sind Anteile der GESAMTEN Bildbreite/-hoehe (0.0 bis 1.0, Ursprung oben links).
+Fuer jedes Teil: Rechteck, shape "circle" fuer runde Teile (z.
+B.
+Not-Halt, Leuchten), sonst "rect".
+Lies das Betriebsmittelkennzeichen (BMK) nur, wenn es lesbar ist (z.
+B.
+-M1, -B2, -S3, +ST1); sonst tag = null.
 Erfinde keine BMK.
-Wenn Masse angegeben sind (Masskette, Schriftfeld), gib die Gesamtbreite und -tiefe der \
-gezeichneten Grundflaeche in mm an und beziehe die Rechtecke auf genau diese Grundflaeche; \
-sonst width_mm/depth_mm = null.
+Gib ausserdem die Grundflaeche (floor) als Rechteck im selben Bildmassstab an:
+die gezeichnete Aufstellflaeche der Maschine, bei einer Masskette genau die von ihr bemassten Kanten;
+ohne erkennbare Grundflaeche das umschliessende Rechteck aller Teile.
+Rand, Masslinien und Schriftfeld gehoeren nicht dazu.
+width_mm/depth_mm sind Breite und Tiefe dieser Grundflaeche in mm, wenn Masse angegeben sind, sonst null.
 {known}
 Antworte NUR mit JSON, ohne Erklaertext:
-{{"width_mm": 6000, "depth_mm": 1500, "items": [{{"kind": "Motor", "shape": "rect", "tag": "-M1", \
+{{"width_mm": 6000, "depth_mm": 1500, "floor": {{"x": 0.07, "y": 0.12, "w": 0.86, "h": 0.5}}, "items": [{{"kind": "Motor", "shape": "rect", "tag": "-M1", \
 "label": "Antriebsmotor", "x": 0.02, "y": 0.30, "w": 0.06, "h": 0.2, "confidence": 0.8}}]}}
 """
 
@@ -48,7 +54,7 @@ def _positive(value) -> float | None:
 
 
 def detect_layout(png: bytes, known_tags: list[str] | None = None) -> dict:
-    """Ruft Claude Vision auf (kostet API-Tokens). Rueckgabe: items, width_mm, depth_mm."""
+    """Ruft Claude Vision auf (kostet API-Tokens). Rueckgabe: items, floor, width_mm, depth_mm."""
     settings = get_settings()
     if not settings.anthropic_api_key:
         raise RuntimeError("ANTHROPIC_API_KEY fehlt")
@@ -78,6 +84,7 @@ def detect_layout(png: bytes, known_tags: list[str] | None = None) -> dict:
     items = data.get("items")
     return {
         "items": items if isinstance(items, list) else [],
+        "floor": data.get("floor") if isinstance(data.get("floor"), dict) else None,
         "width_mm": _positive(data.get("width_mm")),
         "depth_mm": _positive(data.get("depth_mm")),
     }

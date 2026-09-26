@@ -67,3 +67,20 @@ def test_drop_known_tags_skips_confirmed_duplicates():
 
     parts = [{"tag": "-M1"}, {"tag": "-B1"}, {"tag": ""}]
     assert drop_known_tags(parts, {"-M1"}) == [{"tag": "-B1"}, {"tag": ""}]
+
+
+def test_rebase_to_floor_maps_image_coords_onto_footprint():
+    from app.ingestion.layout_geometry import rebase_to_floor
+
+    floor = {"x": 0.1, "y": 0.2, "w": 0.8, "h": 0.5}
+    [item] = rebase_to_floor([{"kind": "Motor", "x": 0.1, "y": 0.2, "w": 0.4, "h": 0.25}], floor)
+    assert (item["x"], item["y"], item["w"], item["h"]) == (0.0, 0.0, 0.5, 0.5)
+    assert item["kind"] == "Motor"
+
+
+def test_rebase_to_floor_without_valid_floor_keeps_items():
+    from app.ingestion.layout_geometry import rebase_to_floor
+
+    items = [{"x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1}]
+    assert rebase_to_floor(items, None) == items
+    assert rebase_to_floor(items, {"x": 0, "y": 0, "w": 0, "h": 0.5}) == items

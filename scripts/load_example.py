@@ -160,14 +160,23 @@ def setup_layout(client: httpx.Client, machine_id: str) -> dict:
     return layout
 
 
-def compare_layout_vision(client: httpx.Client, layout_id: str) -> None:
+def compare_layout_vision(client: httpx.Client, machine_id: str) -> dict:
     """Vision gegen das Soll pruefen: welche BMK wurden gefunden (kostet API-Tokens)."""
     expected = {p["tag"] for p in json.loads(LAYOUT_JSON.read_text(encoding="utf-8"))["parts"] if p["tag"]}
-    result = client.post(f"/api/layouts/{layout_id}/detect", timeout=300)
+    # Bestaetigte Teile unterdruecken gleichnamige Vorschlaege: fuer den Vergleich leer erkennen lassen
+    layout = client.get(f"/api/machines/{machine_id}/layout").json()
+    for part in layout["parts"]:
+        client.delete(f"/api/layout-parts/{part['id']}")
+    result = client.post(f"/api/layouts/{layout['id']}/detect", timeout=300)
     result.raise_for_status()
-    found = {p["tag"] for p in result.json()["parts"] if p["origin"] == "vision" and p["tag"]}
+    proposals = [p for p in result.json()["parts"] if p["origin"] == "vision"]
+    found = {p["tag"] for p in proposals if p["tag"]}
     print(f"Vision: {len(found & expected)}/{len(expected)} Soll-BMK gefunden; fehlend: {sorted(expected - found)}; "
-          f"zusaetzlich: {sorted(found - expected)}")
+          f"zusaetzlich: {sorted(found - expected)}; {len(proposals)} Vorschlaege insgesamt")
+    for p in sorted(proposals, key=lambda p: p["tag"]):
+        print(f"  {p['tag'] or '(ohne BMK)':8} {p['kind']:14} x={p['x_mm']:7.0f} y={p['y_mm']:6.0f} "
+              f"{p['w_mm']:5.0f}x{p['h_mm']:<5.0f} {p['shape']:6} conf={p['confidence']}")
+    return result.json()
 
 
 def maybe_compare(client: httpx.Client, enabled: bool) -> None:
@@ -176,7 +185,7 @@ def maybe_compare(client: httpx.Client, enabled: bool) -> None:
     for hall in client.get("/api/halls").json():
         for machine in client.get(f"/api/halls/{hall['id']}").json()["machines"]:
             if machine["name"] == MACHINE_NAME:
-                compare_layout_vision(client, client.get(f"/api/machines/{machine['id']}/layout").json()["id"])
+                compare_layout_vision(client, machine["id"])
                 return
 
 

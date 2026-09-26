@@ -72,3 +72,22 @@ def to_parts(items: list[dict], width_mm: float, depth_mm: float) -> list[dict]:
 def drop_known_tags(parts: list[dict], known: set[str]) -> list[dict]:
     """Vorschlaege fuer BMK weglassen, die in der Draufsicht schon bestaetigt sind."""
     return [p for p in parts if not p["tag"] or p["tag"] not in known]
+
+
+def rebase_to_floor(items: list[dict], floor: dict | None) -> list[dict]:
+    """Bild-relative Rechtecke auf die Grundflaeche umrechnen (Skizzen haben Rand, Masse, Schriftfeld)."""
+    try:
+        fx, fy, fw, fh = (float(floor[k]) for k in ("x", "y", "w", "h"))  # type: ignore[index]
+    except (KeyError, TypeError, ValueError):
+        return items
+    if fw <= 0 or fh <= 0:
+        return items
+    rebased = []
+    for item in items:
+        try:
+            x, y, w, h = (float(item[k]) for k in ("x", "y", "w", "h"))
+        except (KeyError, TypeError, ValueError):
+            rebased.append(item)  # to_parts verwirft unbrauchbare Eintraege
+            continue
+        rebased.append({**item, "x": (x - fx) / fw, "y": (y - fy) / fh, "w": w / fw, "h": h / fh})
+    return rebased
