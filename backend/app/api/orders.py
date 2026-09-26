@@ -117,8 +117,10 @@ def create_order(body: OrderIn, session: Session = Depends(get_session)):
         if line.unit not in {"unit", "pallet"}:
             raise HTTPException(400, "Einheit muss unit oder pallet sein")
     received = body.received_at or datetime.now().replace(second=0, microsecond=0)
+    if received.tzinfo is not None:  # mit Zeitzone gesendet: in Ortszeit umrechnen, nicht abschneiden
+        received = received.astimezone().replace(tzinfo=None)
     order = models.Order(
-        number=_next_number(session), customer=customer, received_at=received.replace(tzinfo=None),
+        number=_next_number(session), customer=customer, received_at=received,
         due_date=body.due_date,
         lines=[models.OrderLine(article_id=line.article_id, quantity=line.quantity, unit=line.unit, position=i)
                for i, line in enumerate(body.lines)],

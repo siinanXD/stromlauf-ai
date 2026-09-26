@@ -6,7 +6,7 @@ import type { LeitstandState } from "@/lib/leitstand";
 import { cn } from "@/lib/utils";
 
 function DueBadge({ order }: { order: SimOrderResult }) {
-  if (order.on_time === null) return <span className="text-muted-foreground">offen</span>;
+  if (order.on_time === null) return <span className="text-muted-foreground">kein Termin</span>;
   if (order.on_time) return <span className="text-ok">hält</span>;
   return <span className="font-semibold">+{-(order.days_delta ?? 0)} {order.days_delta === -1 ? "Tag" : "Tage"}</span>;
 }

@@ -1,5 +1,7 @@
 from datetime import date, datetime
 
+import pytest
+
 from app.werk.calc import PAPER, Article, BomLine, Maker, Material, OfficeStep, Settings, Step
 from app.werk.sim import Customer, SimLine, SimOrder, simulate
 
@@ -33,7 +35,7 @@ def order(number, lines, received=MONDAY, due=None, customer=RICH) -> SimOrder:
 
 
 def run(orders, stock=None, prices=None, credit_hold=540):
-    return simulate(orders, stock or {}, MATERIALS, SETTINGS, WORKERS, credit_hold, prices or {"TP": 2.0, "KR": 2.0})
+    return simulate(orders, stock or {}, MATERIALS, SETTINGS, WORKERS, credit_hold, prices if prices is not None else {"TP": 2.0, "KR": 2.0})
 
 
 def stage(result, number, key):
@@ -142,3 +144,48 @@ def test_office_resources_are_listed_in_process_order():
     result = run([order("A1", [SimLine(article(), 100, "pallet")])])
     keys = [r["key"] for r in result["resources"] if r["kind"] == "office"]
     assert keys == ["office:ks", "office:fin", "office:av", "office:gf"]
+
+
+# --- Befunde aus dem Abschluss-Review ---------------------------------------------------------
+
+import dataclasses  # noqa: E402
+
+ONE_SHIFT = {"days": [0, 1, 2, 3, 4], "from": "06:00", "to": "14:00"}
+NO_OFFICE = dataclasses.replace(SETTINGS, office_steps=[], production=ONE_SHIFT)
+FRIDAY = datetime(2026, 10, 2, 13, 0)
+
+
+def test_closed_line_keeps_earliest_due_date_first():
+    later = order("A2", [SimLine(article(), 840)], received=datetime(2026, 10, 5, 14, 15), due=date(2026, 10, 30))
+    sooner = order("A3", [SimLine(article(), 840)], received=datetime(2026, 10, 5, 15, 15), due=date(2026, 9, 29))
+    result = simulate([later, sooner], {}, {}, NO_OFFICE, WORKERS, 540, {"TP": 2.0})
+    assert stage(result, "A3", "line:0:0")["start"] == "2026-10-06T06:00"
+    assert stage(result, "A2", "line:0:0")["start"] >= stage(result, "A3", "line:0:0")["end"]
+
+
+def test_utilization_counts_working_minutes_over_open_minutes():
+    result = simulate([order("A1", [SimLine(article(), 3500)], received=FRIDAY)], {}, {}, NO_OFFICE, WORKERS, 540, {"TP": 2.0})
+    line = stage(result, "A1", "line:0:0")
+    assert line["start"] == "2026-10-02T13:00" and line["end"] == "2026-10-05T07:00"  # 120 min Arbeit ueber das Wochenende
+    assert result["orders"][0]["shipped_at"] == "2026-10-05T07:45"
+    # offen zwischen Fr 13:00 und Mo 07:45: 60 + 105 = 165 min, davon 120 belegt
+    assert result["kpis"]["utilization"]["line:L1"] == pytest.approx(120 / 165, abs=0.01)
+
+
+def test_wait_time_excludes_closed_hours():
+    late = datetime(2026, 10, 2, 15, 30)  # Kundenservice endet 16:00, Finanzen erst Montag
+    result = run([order("A1", [SimLine(article(), 84)], received=late), order("A2", [SimLine(article(), 84)], received=late)])
+    assert stage(result, "A1", "office:fin")["start"] == "2026-10-05T07:00"
+    assert result["kpis"]["avg_wait_hours"]["office:fin"] == 0.5  # 0 h und 1 h echte Wartezeit
+
+
+def test_credit_hold_continues_over_the_weekend():
+    poor = Customer("c2", "Klinik West", 100)
+    result = run([order("A1", [SimLine(article(), 840)], received=datetime(2026, 10, 2, 14, 0), customer=poor)])
+    assert stage(result, "A1", "credit")["end"] == "2026-10-05T15:30"
+    assert stage(result, "A1", "office:av")["start"] == "2026-10-05T15:30"
+
+
+def test_missing_price_warns_about_credit_check():
+    result = run([order("A1", [SimLine(article(), 84)])], prices={})
+    assert any("Verkaufspreis" in w for w in result["warnings"])

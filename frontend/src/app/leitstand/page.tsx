@@ -20,6 +20,10 @@ export default function LeitstandPage() {
   const [speed, setSpeed] = useState(SPEEDS[1].value);
   const [selected, setSelected] = useState<string | null>(null);
   const frame = useRef<number>(0);
+  const timeRef = useRef(0);
+  useEffect(() => {
+    timeRef.current = time;
+  }, [time]);
 
   useEffect(() => {
     leitstand
@@ -39,16 +43,16 @@ export default function LeitstandPage() {
     if (!playing) return;
     let last = performance.now();
     const tick = (now: number) => {
-      const delta = ((now - last) / 1000) * speed;
+      const next = timeRef.current + ((now - last) / 1000) * speed;
       last = now;
-      setTime((t) => {
-        const next = t + delta;
-        if (next >= end) {
-          setPlaying(false);
-          return end;
-        }
-        return next;
-      });
+      if (next >= end) {
+        timeRef.current = end;
+        setTime(end);
+        setPlaying(false);
+        return;
+      }
+      timeRef.current = next;
+      setTime(next);
       frame.current = requestAnimationFrame(tick);
     };
     frame.current = requestAnimationFrame(tick);
@@ -84,7 +88,7 @@ export default function LeitstandPage() {
               time={time}
               playing={playing}
               speed={speed}
-              arrivals={result.orders.map((o) => ms(o.received_at))}
+              arrivals={result.orders.map((o) => ({ key: o.number, t: ms(o.received_at) }))}
               onTime={setTime}
               onPlaying={setPlaying}
               onSpeed={setSpeed}

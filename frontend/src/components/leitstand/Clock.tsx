@@ -30,7 +30,7 @@ export function Clock({
   time: number;
   playing: boolean;
   speed: number;
-  arrivals: number[];
+  arrivals: { key: string; t: number }[];
   onTime: (t: number) => void;
   onPlaying: (playing: boolean) => void;
   onSpeed: (speed: number) => void;
@@ -82,11 +82,12 @@ export function Clock({
       </div>
       <div className="relative pt-2">
         {arrivals.map((a) => (
-          <span key={a} className="absolute top-0 h-1.5 w-px bg-muted-foreground" style={{ left: pct(a) }} />
+          <span key={a.key} className="absolute top-0 h-1.5 w-px bg-muted-foreground" style={{ left: pct(a.t) }} />
         ))}
         <input
           type="range"
           aria-label="Simulationszeit"
+          aria-valuetext={whenText(toLocalIso(time))}
           min={start}
           max={end}
           step={60_000}

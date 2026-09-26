@@ -75,8 +75,9 @@ class _Resource:
     by_due: bool = False
     slots: list = field(default_factory=list)
     queue: list = field(default_factory=list)
-    busy_minutes: float = 0.0
-    waits: list = field(default_factory=list)
+    busy_minutes: float = 0.0  # Arbeitsminuten
+    waits: list = field(default_factory=list)  # Wartezeit in offenen Stunden
+    wakeup: datetime | None = None  # geplantes Aufwachen zur naechsten Oeffnung
 
     def __post_init__(self) -> None:
         self.slots = [None] * max(1, self.capacity)
@@ -122,20 +123,36 @@ def simulate(
         heapq.heappush(res.queue, (priority(res, job), next(counter), job))
         dispatch(res, now)
 
+    def open_minutes(a: datetime, b: datetime, window: Window) -> float:
+        closed = sum(((y - x).total_seconds() for x, y in closed_spans(a, b, window)), 0.0)
+        return max(0.0, (b - a).total_seconds() - closed) / 60
+
     def dispatch(res: _Resource, now: datetime) -> None:
+        # Plaetze nur vergeben, wenn geoeffnet: sonst wuerde ein frueh angekommener Auftrag den Platz
+        # ueber die Schliesszeit halten und ein dringenderer (frueherer Termin) nachrangig werden
+        opening = next_open(now, res.window)
+        if opening > now:
+            if res.queue and res.wakeup != opening:
+                res.wakeup = opening
+                at(opening, wake, res)
+            return
         while None in res.slots and res.queue:
             _, _, job = heapq.heappop(res.queue)
             slot = res.slots.index(None)
             res.slots[slot] = job
-            start = next_open(now, res.window)
+            start = now
             end = add_work(now, job.minutes, res.window)
-            res.busy_minutes += (end - start).total_seconds() / 60
-            res.waits.append((start - job.arrive).total_seconds() / 3600)
+            res.busy_minutes += job.minutes
+            res.waits.append(open_minutes(job.arrive, start, res.window) / 60)
             records[job.order.id]["stages"].append({
                 "stage": job.stage, "label": job.label, "resource": res.key, "slot": slot,
                 "arrive": iso(job.arrive), "start": iso(start), "end": iso(end),
             })
             at(end, finish, res, slot, job)
+
+    def wake(now: datetime, res: _Resource) -> None:
+        res.wakeup = None
+        dispatch(res, now)
 
     def finish(now: datetime, res: _Resource, slot: int, job: _Job) -> None:
         res.slots[slot] = None
@@ -269,6 +286,9 @@ def simulate(
         pallets = sum(
             math.ceil(p["units"] / line.article.units_per_pallet) for p, line in zip(positions, order.lines, strict=True)
         )
+        for p in positions:
+            if not prices.get(p["code"]):
+                warnings.append(f"Kein Verkaufspreis für {p['code']}: Kreditprüfung ohne Auftragswert")
         records[order.id] = {
             "id": order.id, "number": order.number, "customer": order.customer.name,
             "value": sum(p["units"] * prices.get(p["code"], 0.0) for p in positions),
@@ -285,10 +305,10 @@ def simulate(
         t, _, fn, args = heapq.heappop(events)
         fn(t, *args)
 
-    return _result(records, resources, points, articles, settings, start_time, warnings)
+    return _result(records, resources, points, articles, settings, start_time, warnings, open_minutes)
 
 
-def _result(records, resources, points, articles, settings, start_time, warnings) -> dict:
+def _result(records, resources, points, articles, settings, start_time, warnings, open_minutes) -> dict:
     orders = []
     for rec in records.values():
         rec = {k: v for k, v in rec.items() if not k.startswith("_")}
@@ -313,7 +333,9 @@ def _result(records, resources, points, articles, settings, start_time, warnings
     orders.sort(key=lambda o: (o["received_at"], o["number"]))
 
     end_time = max((datetime.fromisoformat(o["shipped_at"]) for o in orders if o["shipped_at"]), default=start_time)
-    span = (end_time - start_time).total_seconds() / 60 if start_time and end_time else 0
+
+    def capacity_minutes(res: _Resource) -> float:
+        return open_minutes(start_time, end_time, res.window) if start_time and end_time else 0.0
     with_due = [o for o in orders if o["on_time"] is not None]
     shipped = [o for o in orders if o["shipped_at"]]
     office_order = [f"office:{step.key}" for step in settings.office_steps]
@@ -350,7 +372,7 @@ def _result(records, resources, points, articles, settings, start_time, warnings
                 for o in shipped
             ) / len(shipped) if shipped else None,
             "utilization": {
-                r.key: round(min(1.0, r.busy_minutes / span), 3) if span else 0.0
+                r.key: round(min(1.0, r.busy_minutes / capacity_minutes(r)), 3) if capacity_minutes(r) else 0.0
                 for r in order_resources if r.kind in {"paper", "line"}
             },
             "avg_wait_hours": {r.key: round(sum(r.waits) / len(r.waits), 2) if r.waits else 0.0 for r in order_resources},

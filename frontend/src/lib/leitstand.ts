@@ -18,7 +18,7 @@ export interface LeitstandState {
   docks: ({ order: string; truck: number; progress: number } | null)[];
   waitingTrucks: number;
   todayOut: { order: string; trucks: number }[];
-  orders: Record<string, { status: string; done: boolean; waiting: boolean }>;
+  orders: Record<string, { status: string; done: boolean }>;
   closed: { office: boolean; shipping: boolean };
 }
 
@@ -39,16 +39,12 @@ export function stateAt(result: SimResult, t: number): LeitstandState {
 
   for (const order of result.orders) {
     let status = "";
-    let waiting = false;
     for (const stage of order.stages) {
       const active = inside(t, stage.start, stage.end);
       const queued = inside(t, stage.arrive, stage.start);
       const label = stage.stage === "credit" ? "Kreditklärung" : stage.stage === "ship" ? "Verladung" : (labels[stage.resource] ?? stage.label);
       if (active) status = label;
-      else if (queued && !status) {
-        status = `wartet ${label}`;
-        waiting = true;
-      }
+      else if (queued && !status) status = `wartet ${label}`;
       if (stage.stage === "credit") {
         if (active) resources["office:fin"]?.hold.push(order.number);
         continue;
@@ -71,7 +67,7 @@ export function stateAt(result: SimResult, t: number): LeitstandState {
     if (t < ms(order.received_at)) status = "noch nicht eingegangen";
     else if (done) status = "verladen";
     else if (!status) status = "bereit";
-    orders[order.number] = { status, done, waiting };
+    orders[order.number] = { status, done };
   }
 
   const stock = Object.entries(result.stock).map(([code, item]) => {

@@ -1,6 +1,7 @@
 """Vorkalkulation: Stammdaten lesen/ersetzen und Auftraege durchrechnen (ohne LLM)."""
 
 from datetime import date, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -130,7 +131,7 @@ class StockIn(BaseModel):
 class OrderLineImport(BaseModel):
     article: str  # Artikelcode
     quantity: float = Field(gt=0)
-    unit: str = "unit"
+    unit: Literal["unit", "pallet"] = "unit"
 
 
 class OrderImport(BaseModel):
@@ -372,7 +373,10 @@ def _import_orders(session: Session, body: MasterDataIn) -> None:
             raise HTTPException(400, f"Auftrag {item.number}: Kunde {item.customer} unbekannt")
         order = orders.get(item.number) or models.Order(number=item.number)
         order.customer_id = customers[item.customer].id
-        order.received_at = item.received_at.replace(tzinfo=None)
+        received = item.received_at
+        if received.tzinfo is not None:
+            received = received.astimezone().replace(tzinfo=None)
+        order.received_at = received
         order.due_date = item.due_date
         order.lines = [
             models.OrderLine(article_id=article(line.article, f"Auftrag {item.number}").id, quantity=line.quantity,
