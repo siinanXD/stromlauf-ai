@@ -41,25 +41,25 @@ export function PageViewer({ target, onClose }: { target: PageTarget; onClose: (
       aria-label={`${target.filename}, Seite ${page}`}
     >
       <div
-        className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface"
+        className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-sm">
           <span className="min-w-0 flex-1 truncate font-medium">{target.filename}</span>
-          <button className="rounded-md px-2 py-1 hover:bg-surface-2 disabled:opacity-30" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Vorherige Seite">
+          <button className="rounded-md px-2 py-1 hover:bg-secondary disabled:opacity-30" onClick={() => go(page - 1)} disabled={page <= 1} aria-label="Vorherige Seite">
             ←
           </button>
-          <span className="tabular-nums text-muted">
+          <span className="tabular-nums text-muted-foreground">
             S. {page}
             {target.pageCount ? ` / ${target.pageCount}` : ""}
           </span>
-          <button className="rounded-md px-2 py-1 hover:bg-surface-2 disabled:opacity-30" onClick={() => go(page + 1)} disabled={page >= lastPage} aria-label="Nächste Seite">
+          <button className="rounded-md px-2 py-1 hover:bg-secondary disabled:opacity-30" onClick={() => go(page + 1)} disabled={page >= lastPage} aria-label="Nächste Seite">
             →
           </button>
-          <button className="rounded-md px-2 py-1 hover:bg-surface-2" onClick={() => setZoomed(!zoomed)}>
+          <button className="rounded-md px-2 py-1 hover:bg-secondary" onClick={() => setZoomed(!zoomed)}>
             {zoomed ? "Einpassen" : "Zoom"}
           </button>
-          <button className="rounded-md px-2 py-1 hover:bg-surface-2" onClick={onClose} aria-label="Schließen">
+          <button className="rounded-md px-2 py-1 hover:bg-secondary" onClick={onClose} aria-label="Schließen">
             ✕
           </button>
         </header>

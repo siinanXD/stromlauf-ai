@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { api, type Conversation, type KnowledgeSource } from "@/lib/api";
-import { AppNav } from "@/components/AppNav";
 import type { PageTarget } from "@/components/PageViewer";
 import { SourcePanel } from "@/components/SourcePanel";
 
@@ -58,15 +57,13 @@ export function Sidebar({
 
   return (
     <div className="flex h-full flex-col">
-      <AppNav />
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <section>
-          <div className="flex items-center justify-between px-4 pb-1.5 pt-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Wissensquellen</h2>
+          <div className="flex items-center justify-between px-4 pb-1.5 pt-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wissensquellen</h2>
             <button
               onClick={() => setCreating(!creating)}
-              className="rounded-md px-1.5 text-lg leading-none text-muted hover:bg-surface-2 hover:text-text"
+              className="rounded-md px-1.5 text-lg leading-none text-muted-foreground hover:bg-secondary hover:text-foreground"
               aria-label="Wissensquelle anlegen"
             >
               +
@@ -80,15 +77,15 @@ export function Sidebar({
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="z.B. Anlage 4711 oder Siemens-Handbücher"
-                className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                className="min-w-0 flex-1 rounded-md border border-border bg-card px-2 py-1.5 text-sm"
               />
-              <button className="rounded-md bg-accent px-2.5 text-sm font-medium text-accent-fg">OK</button>
+              <button className="rounded-md bg-primary px-2.5 text-sm font-medium text-primary-foreground">OK</button>
             </form>
           )}
           {error && <p className="px-4 pb-2 text-xs text-danger">{error}</p>}
 
           {sources.length === 0 && !creating && (
-            <p className="px-4 pb-2 text-sm text-muted">
+            <p className="px-4 pb-2 text-sm text-muted-foreground">
               Lege mit + eine Wissensquelle an und lade Pläne, Stücklisten, AWL-Quellen oder Handbücher hoch.
             </p>
           )}
@@ -96,12 +93,12 @@ export function Sidebar({
           <ul>
             {sources.map((source) => (
               <li key={source.id}>
-                <div className="group flex items-center gap-2 px-4 py-1.5 hover:bg-surface-2">
+                <div className="group flex items-center gap-2 px-4 py-1.5 hover:bg-secondary">
                   <input
                     type="checkbox"
                     checked={selectedSourceIds.includes(source.id)}
                     onChange={() => onToggleSource(source.id)}
-                    className="accent-[var(--accent)]"
+                    className="accent-[var(--primary)]"
                     aria-label={`${source.name} im Chat verwenden`}
                   />
                   <button
@@ -110,11 +107,11 @@ export function Sidebar({
                     aria-expanded={expanded === source.id}
                   >
                     {source.name}
-                    <span className="ml-1.5 text-xs text-muted">{source.document_count}</span>
+                    <span className="ml-1.5 text-xs text-muted-foreground">{source.document_count}</span>
                   </button>
                   <button
                     onClick={() => deleteSource(source)}
-                    className="text-muted opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                    className="text-muted-foreground opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                     aria-label={`${source.name} löschen`}
                   >
                     ✕
@@ -127,7 +124,7 @@ export function Sidebar({
             ))}
           </ul>
           {sources.length > 0 && (
-            <p className="px-4 pt-1 text-xs text-muted">
+            <p className="px-4 pt-1 text-xs text-muted-foreground">
               {selectedSourceIds.length === 0
                 ? "Keine Auswahl: der Chat durchsucht alle Quellen."
                 : `Chat durchsucht ${selectedSourceIds.length} von ${sources.length} Quellen.`}
@@ -137,10 +134,10 @@ export function Sidebar({
 
         <section className="mt-5">
           <div className="flex items-center justify-between px-4 pb-1.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Chats</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Chats</h2>
             <button
               onClick={onNewConversation}
-              className="rounded-md px-1.5 text-lg leading-none text-muted hover:bg-surface-2 hover:text-text"
+              className="rounded-md px-1.5 text-lg leading-none text-muted-foreground hover:bg-secondary hover:text-foreground"
               aria-label="Neuer Chat"
             >
               +
@@ -150,8 +147,8 @@ export function Sidebar({
             {conversations.map((conversation) => (
               <li
                 key={conversation.id}
-                className={`group flex items-center gap-2 px-4 py-1.5 text-sm hover:bg-surface-2 ${
-                  conversation.id === activeConversationId ? "bg-surface-2 font-medium" : ""
+                className={`group flex items-center gap-2 px-4 py-1.5 text-sm hover:bg-secondary ${
+                  conversation.id === activeConversationId ? "bg-secondary font-medium" : ""
                 }`}
               >
                 <button
@@ -162,7 +159,7 @@ export function Sidebar({
                 </button>
                 <button
                   onClick={() => onDeleteConversation(conversation)}
-                  className="text-muted opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                  className="text-muted-foreground opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                   aria-label={`Chat „${conversation.title}“ löschen`}
                 >
                   ✕

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AppShell } from "@/components/AppShell";
 import { Message } from "@/components/Message";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Sidebar } from "@/components/Sidebar";
@@ -142,125 +143,127 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-full">
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-80 max-w-[88vw] border-r border-border bg-surface transition-transform md:static md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <Sidebar
-          sources={sources}
-          selectedSourceIds={selectedSourceIds}
-          onToggleSource={(id) =>
-            setSelectedSourceIds((current) =>
-              current.includes(id) ? current.filter((s) => s !== id) : [...current, id],
-            )
-          }
-          onSourcesChanged={loadSources}
-          conversations={conversations}
-          activeConversationId={conversationId}
-          onSelectConversation={selectConversation}
-          onNewConversation={newConversation}
-          onDeleteConversation={deleteConversation}
-          onOpenPage={setPageTarget}
-        />
-      </aside>
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-border px-4 py-2.5 md:hidden">
-          <button onClick={() => setSidebarOpen(true)} aria-label="Menü öffnen" className="text-xl">
-            ☰
-          </button>
-          <span className="font-semibold">Stromlauf AI</span>
-        </header>
-
-        {(backendError || (health && !health.api_key_configured)) && (
-          <p className="border-b border-border bg-accent-soft px-4 py-2 text-sm">
-            {backendError ??
-              "ANTHROPIC_API_KEY fehlt: In .env eintragen und das Backend neu starten. Upload und Verwaltung funktionieren bereits."}
-          </p>
+    <AppShell breadcrumb={[{ label: "Chat" }]}>
+      <div className="flex h-full">
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-80 max-w-[88vw] border-r border-border bg-card transition-transform md:static md:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <Sidebar
+            sources={sources}
+            selectedSourceIds={selectedSourceIds}
+            onToggleSource={(id) =>
+              setSelectedSourceIds((current) =>
+                current.includes(id) ? current.filter((s) => s !== id) : [...current, id],
+              )
+            }
+            onSourcesChanged={loadSources}
+            conversations={conversations}
+            activeConversationId={conversationId}
+            onSelectConversation={selectConversation}
+            onNewConversation={newConversation}
+            onDeleteConversation={deleteConversation}
+            onOpenPage={setPageTarget}
+          />
+        </aside>
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-            {messages.length === 0 ? (
-              <div className="pt-[12vh]">
-                <h1 className="text-2xl font-semibold tracking-tight">Was möchtest du über die Anlage wissen?</h1>
-                <p className="mt-2 text-muted">
-                  Ich verfolge Betriebsmittel, Klemmen und SPS-Adressen über Stromlaufplan, Stückliste,
-                  Klemmenplan, AWL-Programm und Handbücher hinweg.
-                </p>
-                <div className="mt-6 grid gap-2 sm:grid-cols-2">
-                  {EXAMPLES.map((example) => (
-                    <button
-                      key={example}
-                      onClick={() => setInput(example)}
-                      className="rounded-xl border border-border bg-surface p-3 text-left text-sm hover:border-accent"
-                    >
-                      {example}
-                    </button>
-                  ))}
+        <main className="flex min-w-0 flex-1 flex-col">
+          <header className="flex items-center gap-3 border-b border-border px-4 py-2.5 md:hidden">
+            <button onClick={() => setSidebarOpen(true)} aria-label="Menü öffnen" className="text-xl">
+              ☰
+            </button>
+            <span className="font-semibold">Stromlauf AI</span>
+          </header>
+
+          {(backendError || (health && !health.api_key_configured)) && (
+            <p className="border-b border-border bg-primary/10 px-4 py-2 text-sm">
+              {backendError ??
+                "ANTHROPIC_API_KEY fehlt: In .env eintragen und das Backend neu starten. Upload und Verwaltung funktionieren bereits."}
+            </p>
+          )}
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+              {messages.length === 0 ? (
+                <div className="pt-[12vh]">
+                  <h1 className="text-2xl font-semibold tracking-tight">Was möchtest du über die Anlage wissen?</h1>
+                  <p className="mt-2 text-muted-foreground">
+                    Ich verfolge Betriebsmittel, Klemmen und SPS-Adressen über Stromlaufplan, Stückliste,
+                    Klemmenplan, AWL-Programm und Handbücher hinweg.
+                  </p>
+                  <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                    {EXAMPLES.map((example) => (
+                      <button
+                        key={example}
+                        onClick={() => setInput(example)}
+                        className="rounded-xl border border-border bg-card p-3 text-left text-sm hover:border-primary"
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                <Message
-                  key={index}
-                  message={message}
-                  streaming={streaming && index === messages.length - 1}
-                  onOpenSource={openSource}
-                />
-              ))
-            )}
-            <div ref={bottomRef} />
+              ) : (
+                messages.map((message, index) => (
+                  <Message
+                    key={index}
+                    message={message}
+                    streaming={streaming && index === messages.length - 1}
+                    onOpenSource={openSource}
+                  />
+                ))
+              )}
+              <div ref={bottomRef} />
+            </div>
           </div>
-        </div>
 
-        <form
-          className="border-t border-border bg-surface px-4 py-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            send(input);
-          }}
-        >
-          <div className="mx-auto flex max-w-3xl items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  send(input);
-                }
-              }}
-              rows={Math.min(6, input.split("\n").length)}
-              placeholder="Frage zur Anlage stellen … (Enter sendet, Shift+Enter neue Zeile)"
-              className="min-w-0 flex-1 resize-none rounded-xl border border-border bg-bg px-3.5 py-2.5 outline-none focus:border-accent"
-            />
-            {streaming ? (
-              <button
-                type="button"
-                onClick={() => abortRef.current?.abort()}
-                className="rounded-xl border border-border px-4 py-2.5 font-medium hover:bg-surface-2"
-              >
-                Stopp
-              </button>
-            ) : (
-              <button
-                disabled={!input.trim()}
-                className="rounded-xl bg-accent px-4 py-2.5 font-medium text-accent-fg disabled:opacity-40"
-              >
-                Senden
-              </button>
-            )}
-          </div>
-        </form>
-      </main>
+          <form
+            className="border-t border-border bg-card px-4 py-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              send(input);
+            }}
+          >
+            <div className="mx-auto flex max-w-3xl items-end gap-2">
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    send(input);
+                  }
+                }}
+                rows={Math.min(6, input.split("\n").length)}
+                placeholder="Frage zur Anlage stellen … (Enter sendet, Shift+Enter neue Zeile)"
+                className="min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary"
+              />
+              {streaming ? (
+                <button
+                  type="button"
+                  onClick={() => abortRef.current?.abort()}
+                  className="rounded-xl border border-border px-4 py-2.5 font-medium hover:bg-secondary"
+                >
+                  Stopp
+                </button>
+              ) : (
+                <button
+                  disabled={!input.trim()}
+                  className="rounded-xl bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-40"
+                >
+                  Senden
+                </button>
+              )}
+            </div>
+          </form>
+        </main>
 
-      {pageTarget && <PageViewer target={pageTarget} onClose={() => setPageTarget(null)} />}
-    </div>
+        {pageTarget && <PageViewer target={pageTarget} onClose={() => setPageTarget(null)} />}
+      </div>
+    </AppShell>
   );
 }

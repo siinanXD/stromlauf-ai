@@ -137,24 +137,24 @@ export function CabinetEditor({
           <button
             onClick={detect}
             disabled={!!busy}
-            className="rounded-md border border-border px-2.5 py-1 hover:bg-surface-2 disabled:opacity-50"
+            className="rounded-md border border-border px-2.5 py-1 hover:bg-secondary disabled:opacity-50"
             title="Claude Vision schlägt Bauteile und BMK vor (kostet API-Tokens)"
           >
             Bauteile erkennen lassen
           </button>
           {proposals > 0 && (
-            <button onClick={confirmAll} className="rounded-md border border-accent bg-accent-soft px-2.5 py-1">
+            <button onClick={confirmAll} className="rounded-md border border-primary bg-primary/10 px-2.5 py-1">
               {proposals} Vorschläge alle übernehmen
             </button>
           )}
-          <span className="text-muted">Rechteck aufziehen = Bauteil markieren. Klick = Fundstellen in der Doku.</span>
-          {busy && <span className="text-accent">{busy}</span>}
+          <span className="text-muted-foreground">Rechteck aufziehen = Bauteil markieren. Klick = Fundstellen in der Doku.</span>
+          {busy && <span className="text-primary">{busy}</span>}
           {error && <span className="text-danger">{error}</span>}
         </div>
 
         <div
           ref={imageRef}
-          className="relative w-full cursor-crosshair select-none overflow-hidden rounded-xl border border-border bg-surface-2"
+          className="relative w-full cursor-crosshair select-none overflow-hidden rounded-xl border border-border bg-secondary"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -171,14 +171,14 @@ export function CabinetEditor({
                 title={`${hotspot.tag || "(ohne BMK)"} ${hotspot.kind}`.trim()}
                 className={`absolute rounded-sm border-2 text-[11px] font-semibold leading-none ${
                   isActive
-                    ? "border-accent bg-accent/25 text-accent-fg"
+                    ? "border-primary bg-primary/25 text-primary-foreground"
                     : hotspot.confirmed
-                      ? "border-accent/80 bg-accent/10 hover:bg-accent/25"
+                      ? "border-primary/80 bg-primary/10 hover:bg-primary/25"
                       : "border-dashed border-ok/90 bg-ok/10 hover:bg-ok/25"
                 }`}
                 style={{ left: `${hotspot.x * 100}%`, top: `${hotspot.y * 100}%`, width: `${hotspot.w * 100}%`, height: `${hotspot.h * 100}%` }}
               >
-                <span className="absolute -top-0.5 left-0 -translate-y-full rounded-t bg-accent px-1 py-0.5 text-accent-fg">
+                <span className="absolute -top-0.5 left-0 -translate-y-full rounded-t bg-primary px-1 py-0.5 text-primary-foreground">
                   {hotspot.tag || "?"}
                 </span>
               </button>
@@ -186,7 +186,7 @@ export function CabinetEditor({
           })}
           {draft && (
             <div
-              className="pointer-events-none absolute border-2 border-dashed border-accent bg-accent/10"
+              className="pointer-events-none absolute border-2 border-dashed border-primary bg-primary/10"
               style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, width: `${draft.w * 100}%`, height: `${draft.h * 100}%` }}
             />
           )}
@@ -195,13 +195,13 @@ export function CabinetEditor({
 
       <aside className="space-y-3 text-sm">
         {!active ? (
-          <div className="rounded-xl border border-border bg-surface p-3 text-muted">
-            <p className="font-medium text-text">{cabinet.hotspots.length} Bauteile markiert</p>
+          <div className="rounded-xl border border-border bg-card p-3 text-muted-foreground">
+            <p className="font-medium text-foreground">{cabinet.hotspots.length} Bauteile markiert</p>
             <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto">
               {cabinet.hotspots.map((h) => (
                 <li key={h.id}>
-                  <button onClick={() => setActiveId(h.id)} className="flex w-full gap-2 rounded px-1 text-left hover:bg-surface-2">
-                    <span className={`font-mono ${h.confirmed ? "text-text" : "text-ok"}`}>{h.tag || "?"}</span>
+                  <button onClick={() => setActiveId(h.id)} className="flex w-full gap-2 rounded px-1 text-left hover:bg-secondary">
+                    <span className={`font-mono ${h.confirmed ? "text-foreground" : "text-ok"}`}>{h.tag || "?"}</span>
                     <span className="truncate">{h.kind || h.label}</span>
                     {!h.confirmed && <span className="ml-auto text-xs">Vorschlag</span>}
                   </button>
@@ -210,7 +210,7 @@ export function CabinetEditor({
             </ul>
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="rounded-xl border border-border bg-card p-3">
             <div className="flex items-center justify-between">
               <span className="font-mono text-base font-semibold">{active.tag || "ohne BMK"}</span>
               {!active.confirmed && (
@@ -220,23 +220,23 @@ export function CabinetEditor({
               )}
             </div>
             <label className="mt-2 block">
-              <span className="text-xs text-muted">BMK</span>
+              <span className="text-xs text-muted-foreground">BMK</span>
               <input
                 key={active.id + active.tag}
                 defaultValue={active.tag}
                 placeholder="-K1"
                 onBlur={(event) => event.target.value.trim() !== active.tag && patch(active, { tag: event.target.value.trim() })}
-                className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 font-mono"
+                className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1 font-mono"
               />
             </label>
             <label className="mt-2 block">
-              <span className="text-xs text-muted">Bauteilart</span>
+              <span className="text-xs text-muted-foreground">Bauteilart</span>
               <input
                 key={active.id + active.kind}
                 list="cabinet-kinds"
                 defaultValue={active.kind}
                 onBlur={(event) => event.target.value !== active.kind && patch(active, { kind: event.target.value })}
-                className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1"
+                className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1"
               />
               <datalist id="cabinet-kinds">
                 {KINDS.map((kind) => (
@@ -245,46 +245,46 @@ export function CabinetEditor({
               </datalist>
             </label>
             <label className="mt-2 block">
-              <span className="text-xs text-muted">Beschreibung</span>
+              <span className="text-xs text-muted-foreground">Beschreibung</span>
               <input
                 key={active.id + active.label}
                 defaultValue={active.label}
                 onBlur={(event) => event.target.value !== active.label && patch(active, { label: event.target.value })}
-                className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1"
+                className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1"
               />
             </label>
             <div className="mt-3 flex gap-2">
               {!active.confirmed && (
-                <button onClick={() => patch(active, { confirmed: true })} className="rounded-md bg-accent px-2.5 py-1 text-accent-fg">
+                <button onClick={() => patch(active, { confirmed: true })} className="rounded-md bg-primary px-2.5 py-1 text-primary-foreground">
                   Übernehmen
                 </button>
               )}
               <button onClick={() => remove(active)} className="rounded-md border border-border px-2.5 py-1 hover:text-danger">
                 Entfernen
               </button>
-              <button onClick={() => setActiveId(null)} className="ml-auto text-muted hover:text-text">
+              <button onClick={() => setActiveId(null)} className="ml-auto text-muted-foreground hover:text-foreground">
                 Schließen
               </button>
             </div>
 
             {active.tag && (
               <div className="mt-4 border-t border-border pt-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">In der Doku</h3>
-                {shownLookup?.bom_line && <p className="mt-1 text-xs text-muted">Stückliste: …{shownLookup.bom_line}…</p>}
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">In der Doku</h3>
+                {shownLookup?.bom_line && <p className="mt-1 text-xs text-muted-foreground">Stückliste: …{shownLookup.bom_line}…</p>}
                 {shownLookup && shownLookup.hits.length === 0 && (
-                  <p className="mt-1 text-muted">Kein Treffer für {shownLookup.tag}. Ist eine Wissensquelle zugeordnet und fertig verarbeitet?</p>
+                  <p className="mt-1 text-muted-foreground">Kein Treffer für {shownLookup.tag}. Ist eine Wissensquelle zugeordnet und fertig verarbeitet?</p>
                 )}
-                {!shownLookup && <p className="mt-1 text-muted">Suche Fundstellen …</p>}
+                {!shownLookup && <p className="mt-1 text-muted-foreground">Suche Fundstellen …</p>}
                 <ul className="mt-1 max-h-64 space-y-1 overflow-y-auto">
                   {shownLookup?.hits.map((hit, index) => (
                     <li key={index}>
                       <button
                         disabled={!hit.page}
                         onClick={() => hit.page && onOpenPage({ documentId: hit.document_id, filename: hit.filename, page: hit.page })}
-                        className="w-full rounded px-1 text-left hover:bg-surface-2 disabled:cursor-default"
+                        className="w-full rounded px-1 text-left hover:bg-secondary disabled:cursor-default"
                       >
                         <span className="font-medium">{hit.filename}</span>
-                        <span className="text-muted"> · {hit.page ? `S. ${hit.page}` : hit.section || hit.doc_type}</span>
+                        <span className="text-muted-foreground"> · {hit.page ? `S. ${hit.page}` : hit.section || hit.doc_type}</span>
                       </button>
                     </li>
                   ))}
