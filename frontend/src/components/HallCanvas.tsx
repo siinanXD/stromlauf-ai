@@ -80,6 +80,9 @@ export function HallCanvas({
         position: { x: lane.x, y: lane.y },
         width: lane.w,
         height: lane.h,
+        // Groesse als gemessen vorgeben: sonst misst React Flow jedes neu gebaute Band erneut,
+        // meldet eine Aenderung und loest den naechsten Aufbau aus (Endlosschleife)
+        measured: { width: lane.w, height: lane.h },
         data: { line: lane.line },
         selectable: false,
         draggable: false,
