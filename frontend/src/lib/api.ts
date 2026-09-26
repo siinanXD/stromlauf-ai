@@ -470,3 +470,38 @@ export interface SignalPathData {
 
 export const signalPath = (tag: string, sourceId: string) =>
   request<SignalPathData>(`/api/signal-path?tag=${encodeURIComponent(tag)}&source_id=${encodeURIComponent(sourceId)}`);
+
+// --- Gefuehrte Fehlersuche -------------------------------------------------------------------
+
+export type StepStatus = "open" | "ok" | "nok" | "skip";
+
+export interface DiagnosisStep {
+  text: string;
+  tag: string;
+  ref: string;
+  status: StepStatus;
+  note: string;
+}
+
+export interface Diagnosis {
+  id: string;
+  machine_id: string;
+  fault_id: string | null;
+  title: string;
+  steps: DiagnosisStep[];
+  outcome: "open" | "resolved" | "unresolved";
+  finding: string;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export const diagnoses = {
+  list: (machineId: string) => request<Diagnosis[]>(`/api/machines/${machineId}/diagnoses`),
+  start: (machineId: string, faultId: string | null, title = "") =>
+    request<Diagnosis>(`/api/machines/${machineId}/diagnoses`, json({ fault_id: faultId, title })),
+  update: (id: string, body: { steps?: DiagnosisStep[]; finding?: string }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}`, json(body, "PATCH")),
+  finish: (id: string, body: { outcome: "resolved" | "unresolved"; finding: string; add_to_faults: boolean }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}/finish`, json(body)),
+  remove: (id: string) => request<void>(`/api/diagnoses/${id}`, { method: "DELETE" }),
+};

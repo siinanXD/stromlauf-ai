@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import { LayoutCanvas } from "@/components/layout/LayoutCanvas";
+import { DiagnosisRunner } from "@/components/diagnosis/DiagnosisRunner";
+import { MaintenanceLog } from "@/components/diagnosis/MaintenanceLog";
 import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
 import { FaultDialog } from "@/components/machine/FaultDialog";
@@ -17,9 +19,11 @@ import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   api,
+  diagnoses as diagnosesApi,
   layout as layoutApi,
   MACHINE_TYPE_LABELS,
   plant,
+  type Diagnosis,
   type Fault,
   type FaultInput,
   type KnowledgeSource,
@@ -50,6 +54,9 @@ export default function MachinePage() {
   const [imageBust, setImageBust] = useState(0);
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [diagnosisLog, setDiagnosisLog] = useState<Diagnosis[]>([]);
+  const [activeDiagnosis, setActiveDiagnosis] = useState<Diagnosis | null>(null);
+  const [schematic, setSchematic] = useState<{ document_id: string; filename: string } | null>(null);
 
   const loadMachine = useCallback(() => plant.getMachine(id).then(setMachine).catch((err: Error) => setError(err.message)), [id]);
   const loadLayout = useCallback(
@@ -64,11 +71,14 @@ export default function MachinePage() {
     [id],
   );
 
+  const loadDiagnoses = useCallback(() => diagnosesApi.list(id).then(setDiagnosisLog).catch(() => {}), [id]);
+
   useEffect(() => {
+    loadDiagnoses();
     loadMachine();
     loadLayout();
     api.listSources().then(setSources).catch(() => {});
-  }, [loadMachine, loadLayout]);
+  }, [loadMachine, loadLayout, loadDiagnoses]);
 
   // ?tag=-M1 aus Suche oder Chat: passendes Teil in der Draufsicht waehlen, sonst Schaltschrank zeigen.
   // Merkt sich den angewendeten Tag, damit eine neue Suche auf derselben Seite wieder greift.
@@ -83,6 +93,29 @@ export default function MachinePage() {
         setSelectedId(hit.id);
         setTab("draufsicht");
       } else setTab("schaltschrank");
+    }
+  }
+
+  // Stromlaufplan der Quelle fuer Belege in der Fehlersuche
+  const sourceId = machine?.source_id ?? null;
+  useEffect(() => {
+    if (!sourceId) return;
+    api
+      .listDocuments(sourceId)
+      .then((docs) => {
+        const doc = docs.find((d) => d.doc_type === "schematic" && d.filename.toLowerCase().endsWith(".pdf"));
+        setSchematic(doc ? { document_id: doc.id, filename: doc.filename } : null);
+      })
+      .catch(() => {});
+  }, [sourceId]);
+
+  async function startDiagnosis(fault: Fault) {
+    try {
+      const diagnosis = await diagnosesApi.start(id, fault.id);
+      setActiveDiagnosis(diagnosis);
+      loadDiagnoses();
+    } catch (err) {
+      toast.error((err as Error).message);
     }
   }
 
@@ -159,7 +192,7 @@ export default function MachinePage() {
               {layout ? `${layout.parts.length} Teile` : "keine Draufsicht"}
             </p>
           </div>
-          <TabsList variant="line" className="ml-auto h-10 max-w-full justify-start gap-2 overflow-x-auto pb-1">
+          <TabsList variant="line" className="ml-auto h-10 max-w-full justify-start gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             <TabsTrigger value="draufsicht" className={TRIGGER}>
               Draufsicht
             </TabsTrigger>
@@ -229,14 +262,38 @@ export default function MachinePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="fehler" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+        <TabsContent value="fehler" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:px-6">
+          {activeDiagnosis && (
+            <DiagnosisRunner
+              diagnosis={activeDiagnosis}
+              schematic={schematic}
+              onChanged={setActiveDiagnosis}
+              onClose={() => {
+                setActiveDiagnosis(null);
+                loadDiagnoses();
+                loadMachine();
+              }}
+              onOpen={setPageTarget}
+            />
+          )}
           <FaultTable
+            onDiagnose={startDiagnosis}
             faults={machine.faults}
             tagFilter={faultFilter}
             onTagFilter={setFaultFilter}
             onTagClick={selectTag}
             onEdit={editFault}
             onDelete={deleteFault}
+          />
+          <MaintenanceLog
+            items={diagnosisLog}
+            onResume={setActiveDiagnosis}
+            onDelete={async (d) => {
+              if (!confirm(`Fehlersuche „${d.title}“ aus dem Log löschen?`)) return;
+              await diagnosesApi.remove(d.id).catch((err: Error) => toast.error(err.message));
+              if (activeDiagnosis?.id === d.id) setActiveDiagnosis(null);
+              loadDiagnoses();
+            }}
           />
         </TabsContent>
 

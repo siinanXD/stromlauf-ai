@@ -34,3 +34,13 @@ def test_semicolons_split_and_empty_fix_falls_back():
 def test_append_finding_is_dated():
     assert append_finding("Alt.", "Kontakt -K1 3/4 verbrannt", date(2026, 9, 26)) == "Alt.\n[26.09.2026] Kontakt -K1 3/4 verbrannt"
     assert append_finding("", "neu", date(2026, 9, 26)) == "[26.09.2026] neu"
+
+
+def test_step_prefers_tag_with_reference_and_counts_terminals_as_mentioned():
+    steps = build_steps(
+        "Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und -M1:U1/V1/W1.",
+        ["-X4", "-M1", "-K1"],
+        {"-X4:U": "/3.5", "-M1": "/3.5", "-K1": "/3.4"},
+    )
+    assert steps[0]["tag"] == "-X4:U" and steps[0]["ref"] == "/3.5"
+    assert [s["text"] for s in steps[1:]] == ["-K1 pruefen"]

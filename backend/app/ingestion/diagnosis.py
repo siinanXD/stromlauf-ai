@@ -21,8 +21,21 @@ def _step(text: str, tag: str, refs: dict[str, str]) -> dict:
     return {"text": text, "tag": tag, "ref": refs.get(tag, ""), "status": "open", "note": ""}
 
 
-def _devices(text: str) -> list[str]:
-    return [t.tag for t in extract_tags(text) if t.tag_type == TagType.DEVICE]
+def _tags(text: str) -> list[str]:
+    """Betriebsmittel und Klemmen in Textreihenfolge."""
+    found = [t for t in extract_tags(text) if t.tag_type in (TagType.DEVICE, TagType.TERMINAL)]
+    ordered = sorted(found, key=lambda t: text.find(t.tag.split(":")[0]))
+    tags = []
+    for tag in (t.tag for t in ordered):
+        strip, _, points = tag.partition(":")
+        # Sammelschreibweise -X4:U/V/W -> -X4:U, -X4:V, -X4:W
+        tags += [f"{strip}:{point}" for point in points.split("/")] if "/" in points else [tag]
+    return list(dict.fromkeys(tags))
+
+
+def _pick(tags: list[str], refs: dict[str, str]) -> str:
+    """Erstes Kennzeichen mit Blatt-Verweis, sonst das erste ueberhaupt."""
+    return next((tag for tag in tags if tag in refs), tags[0] if tags else "")
 
 
 def build_steps(fix: str, tags: list[str], refs: dict[str, str]) -> list[dict]:
@@ -30,9 +43,9 @@ def build_steps(fix: str, tags: list[str], refs: dict[str, str]) -> list[dict]:
     for sentence in SENTENCE_END.split(fix or ""):
         text = sentence.strip().rstrip(".").strip()
         if text:
-            found = _devices(text)
-            steps.append(_step(text, found[0] if found else "", refs))
-    mentioned = {tag for step in steps for tag in _devices(step["text"])}
+            steps.append(_step(text, _pick(_tags(text), refs), refs))
+    # Klemmleiste -X4 gilt als genannt, wenn eine ihrer Klemmen (-X4:U) vorkommt
+    mentioned = {part for step in steps for tag in _tags(step["text"]) for part in (tag, tag.split(":")[0])}
     steps += [_step(f"{tag} pruefen", tag, refs) for tag in tags if tag not in mentioned]
     return steps or [_step("Befund aufnehmen", "", refs)]
 

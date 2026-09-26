@@ -179,6 +179,9 @@ def build_graph(
 ) -> Graph:
     graph = Graph()
     labels = {normalize_tag(tag): (str(title or ""), str(ref or "")) for tag, title, ref in bom_rows if tag}
+    for tag, (title, ref) in labels.items():
+        if tag.startswith("-") and not tag.startswith("-W") and not re.fullmatch(r"-X\d+", tag):
+            graph.node(tag, "device", title, ref)
     symbol_map = {row["symbol"]: address for row in symbols if (address := _address(row["address"]))}
     for row in symbols:
         if address := _address(row["address"]):

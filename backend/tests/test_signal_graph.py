@@ -67,3 +67,8 @@ def test_lowercase_input_is_normalized():
 def test_internal_variables_get_their_declaration_comment():
     nodes = {n["id"]: n for n in signal_path(fb01_graph(), "-S1")["nodes"]}
     assert nodes["FB 10#Freigabe"]["label"] == "Selbsthaltung Betrieb"
+
+
+def test_every_bom_device_is_a_node_with_ref():
+    graph = fb01_graph()
+    assert graph.nodes["-Q1"].ref == "/2.2" and graph.nodes["-T1"].label.startswith("Netzteil")
