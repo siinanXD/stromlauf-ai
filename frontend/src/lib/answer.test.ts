@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { citationLabel, parseCitations, refOf, splitSections } from "./answer";
+import { citationLabel, deviceTagOf, parseCitations, refOf, splitSections } from "./answer";
 
 describe("parseCitations", () => {
   it("replaces markers with numbered cite links and dedupes", () => {
@@ -65,5 +65,14 @@ describe("citationLabel and refOf", () => {
     expect(refOf("/3.8")).toEqual({ ref: "/3.8" });
     expect(refOf("S. 12")).toEqual({ ref: "S. 12", page: 12 });
     expect(refOf("FB 10 NW 3")).toEqual({});
+  });
+});
+
+describe("deviceTagOf", () => {
+  it("finds the first device tag, not terminals", () => {
+    expect(deviceTagOf("-K1 zieht an, Motor -M1 brummt")).toBe("-K1");
+    expect(deviceTagOf("was liegt an -x1:5?")).toBeNull();
+    expect(deviceTagOf("wo ist k12")).toBeNull();
+    expect(deviceTagOf("Motor -m1 läuft nicht")).toBe("-M1");
   });
 });

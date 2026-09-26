@@ -81,3 +81,9 @@ export function refOf(loc: string): { ref?: string; page?: number } {
   if (page) return { ref: `S. ${page[1]}`, page: Number(page[1]) };
   return {};
 }
+
+/** Erstes Geraete-Kennzeichen (-M1, -K12) eines Textes; Klemmen (-X1:5) zaehlen nicht. */
+export function deviceTagOf(text: string): string | null {
+  const match = text.toUpperCase().match(/(?<![\w-])-[A-Z]{1,3}\d{1,4}(?![\d:.])/);
+  return match ? match[0] : null;
+}

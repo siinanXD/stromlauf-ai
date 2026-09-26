@@ -140,3 +140,29 @@
   padding-left: 0.9em;
 }
 .markdown hr { border-color: var(--border); }
+
+/* Pruefschritte als nummerierte Karten (Chat-Antwort, Abschnitt "Pruefen") */
+.answer-steps ol {
+  counter-reset: step;
+  list-style: none;
+  padding-left: 0;
+}
+.answer-steps ol > li {
+  counter-increment: step;
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 0.45rem 0.75rem 0.45rem 2.25rem;
+}
+.answer-steps ol > li + li {
+  margin-top: 0.375rem;
+}
+.answer-steps ol > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0.75rem;
+  top: 0.45rem;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--primary);
+}
