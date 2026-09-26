@@ -1,9 +1,11 @@
 "use client";
 
+import { Route } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { PageTarget } from "@/components/PageViewer";
-import { factCard, type FactCardData } from "@/lib/api";
+import { factCard, searchTags, type FactCardData } from "@/lib/api";
 
 import { CitationChip } from "./CitationChip";
 
@@ -11,6 +13,7 @@ const MAX_VALUES = 4;
 
 /** Befundkarte zum Betriebsmittel der Frage; Daten aus dem Kennzeichen-Index, nicht vom Modell. */
 export function FactCard({ tag, sourceIds, onOpen }: { tag: string; sourceIds: string[]; onOpen: (target: PageTarget) => void }) {
+  const router = useRouter();
   const [card, setCard] = useState<FactCardData | null>(null);
   const key = `${tag}|${sourceIds.join(",")}`;
 
@@ -31,7 +34,21 @@ export function FactCard({ tag, sourceIds, onOpen }: { tag: string; sourceIds: s
     <section className="border border-line bg-card">
       <div className="flex items-center justify-between bg-nav px-3 py-1.5">
         <span className="font-mono text-[11px] font-semibold tracking-[0.06em] text-white">BEFUNDKARTE</span>
-        <span className="text-[11px] text-nav-foreground">aus dem Dokument-Index</span>
+        <span className="flex items-center gap-3 text-[11px] text-nav-foreground">
+          aus dem Dokument-Index
+          <button
+            type="button"
+            className="flex items-center gap-1 text-white hover:underline"
+            onClick={async () => {
+              const hit = (await searchTags(card.tag).catch(() => [])).find((h) => h.tag === card.tag);
+              const machine = hit?.machines[0];
+              if (machine) router.push(`/werk/maschine/${machine.id}?tag=${encodeURIComponent(card.tag)}&tab=signalweg`);
+            }}
+          >
+            <Route className="size-3" />
+            Signalweg
+          </button>
+        </span>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-3 px-3 pt-2.5">
         <span className="font-mono text-[22px] font-semibold text-primary">{card.tag}</span>

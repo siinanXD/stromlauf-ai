@@ -218,7 +218,7 @@ def ingest_document(document_id: str) -> None:
             session.execute(delete(TagOccurrence).where(TagOccurrence.document_id == document_id))
 
             seen_tags: set[tuple] = set()
-            for piece, vector in zip(pieces, vectors, strict=True):
+            for seq, (piece, vector) in enumerate(zip(pieces, vectors, strict=True)):
                 session.add(
                     Chunk(
                         document_id=document_id,
@@ -227,7 +227,7 @@ def ingest_document(document_id: str) -> None:
                         kind=piece.kind,
                         section=piece.section,
                         content=piece.content,
-                        meta=piece.meta,
+                        meta={**piece.meta, "seq": seq},
                         embedding=vector,
                     )
                 )

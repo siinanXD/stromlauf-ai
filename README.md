@@ -67,6 +67,21 @@ Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `ki
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
+## Signalweg, Fehlersuche, Onboarding (ohne KI-Kosten)
+
+Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:
+
+- **Signalweg** (Maschinenseite, Tab „Signalweg“): Graph aus Klemmenplan, Stueckliste,
+  Symboltabelle und AWL. Links die Quellen, rechts die Folgen, z. B. `-S1 → -X3:1 → E0.0 →
+  FB 10 NW 1 → Freigabe → NW 2 → A4.0 → -X3:9 → -K1 → -X4:U → -M1`. Klick oeffnet das Blatt
+  mit markierter Spalte bzw. den AWL-Code, Doppelklick verfolgt ab dort. `GET /api/signal-path`.
+- **Gefuehrte Fehlersuche** (Tab „Fehler“, „Diagnose“): Pruefschritte aus der Behebung eines
+  Fehlereintrags mit Blatt-Verweisen, abhaken (ok / Fehler / uebersprungen), Befund datiert in die
+  Fehlerliste uebernehmen. Instandhaltungslog zeigt wiederkehrende Fehler.
+- **Onboarding** (Werk, „Aus Dokumentation anlegen“): Name und Typ aus dem Stuecklisten-Titel,
+  Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
+  Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
+
 ## Chat-Antworten
 
 Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,

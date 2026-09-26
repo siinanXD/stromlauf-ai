@@ -447,3 +447,82 @@ export async function factCard(tag: string, sourceIds: string[]): Promise<FactCa
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
 }
+
+// --- Signalweg ---------------------------------------------------------------------------------
+
+export type SignalNodeKind = "device" | "terminal" | "address" | "network" | "variable";
+
+export interface SignalNode {
+  id: string;
+  kind: SignalNodeKind;
+  label: string;
+  ref: string;
+  detail: string;
+  level: number;
+}
+
+export interface SignalPathData {
+  start: string;
+  nodes: SignalNode[];
+  edges: { source: string; target: string }[];
+  schematic: { document_id: string; filename: string } | null;
+}
+
+export const signalPath = (tag: string, sourceId: string) =>
+  request<SignalPathData>(`/api/signal-path?tag=${encodeURIComponent(tag)}&source_id=${encodeURIComponent(sourceId)}`);
+
+// --- Gefuehrte Fehlersuche -------------------------------------------------------------------
+
+export type StepStatus = "open" | "ok" | "nok" | "skip";
+
+export interface DiagnosisStep {
+  text: string;
+  tag: string;
+  ref: string;
+  status: StepStatus;
+  note: string;
+}
+
+export interface Diagnosis {
+  id: string;
+  machine_id: string;
+  fault_id: string | null;
+  title: string;
+  steps: DiagnosisStep[];
+  outcome: "open" | "resolved" | "unresolved";
+  finding: string;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export const diagnoses = {
+  list: (machineId: string) => request<Diagnosis[]>(`/api/machines/${machineId}/diagnoses`),
+  start: (machineId: string, faultId: string | null, title = "") =>
+    request<Diagnosis>(`/api/machines/${machineId}/diagnoses`, json({ fault_id: faultId, title })),
+  updateStep: (id: string, index: number, change: { status?: StepStatus; note?: string }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}/steps/${index}`, json(change, "PATCH")),
+  update: (id: string, body: { steps?: DiagnosisStep[]; finding?: string }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}`, json(body, "PATCH")),
+  finish: (id: string, body: { outcome: "resolved" | "unresolved"; finding: string; add_to_faults: boolean }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}/finish`, json(body)),
+  remove: (id: string) => request<void>(`/api/diagnoses/${id}`, { method: "DELETE" }),
+};
+
+// --- Onboarding aus der Doku -----------------------------------------------------------------
+
+export interface OnboardingProposal {
+  source_id: string;
+  source_name: string;
+  name: string;
+  machine_type: MachineType;
+  devices: number;
+  documents: { filename: string; doc_type: DocType }[];
+  faults: FaultInput[];
+  hints: string[];
+}
+
+export const onboarding = {
+  proposal: (sourceId: string) => request<OnboardingProposal>(`/api/sources/${sourceId}/onboarding`),
+  create: (hallId: string, body: { source_id: string; name: string; machine_type: MachineType; faults: FaultInput[] }) =>
+    request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
+};

@@ -12,7 +12,9 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
 - `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Hallen-Baukasten, `/werk/maschine/[id]`.
 - Werk-Datenmodell (`models.py`): Hall -> Machine (-> KnowledgeSource) -> FaultEntry, CabinetImage -> CabinetHotspot,
-  Machine -> MachineLayout (1:1, mm) -> LayoutPart.
+  Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession (Fehlersuche-Log).
+- Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
+  `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
   Tabellen entstehen per `create_all`; Bilder liegen unter `backend/data/images/`.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.

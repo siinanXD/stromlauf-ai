@@ -9,7 +9,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Plus, Stethoscope, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 
 import { Tag } from "@/components/Tag";
@@ -32,6 +32,7 @@ export function FaultTable({
   onTagClick,
   onEdit,
   onDelete,
+  onDiagnose,
 }: {
   faults: Fault[];
   tagFilter: string | null;
@@ -39,6 +40,7 @@ export function FaultTable({
   onTagClick: (tag: string) => void;
   onEdit: (fault: Fault | "new") => void;
   onDelete: (fault: Fault) => void;
+  onDiagnose: (fault: Fault) => void;
 }) {
   const rows = useMemo(
     () => (tagFilter ? faults.filter((f) => f.tags.some((t) => t.toUpperCase() === tagFilter.toUpperCase())) : faults),
@@ -69,6 +71,10 @@ export function FaultTable({
           header: "",
           cell: ({ row }) => (
             <div className="flex justify-end gap-1">
+              <Button size="xs" variant="outline" className="border-primary/60 text-primary" onClick={() => onDiagnose(row.original)}>
+                <Stethoscope />
+                Diagnose
+              </Button>
               <Button size="icon-xs" variant="ghost" aria-label="Bearbeiten" onClick={() => onEdit(row.original)}>
                 <Pencil />
               </Button>
@@ -79,7 +85,7 @@ export function FaultTable({
           ),
         }),
       ]),
-    [onDelete, onEdit, onTagClick],
+    [onDelete, onDiagnose, onEdit, onTagClick],
   );
 
   const table = useTable({
