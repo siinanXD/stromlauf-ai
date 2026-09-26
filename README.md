@@ -53,17 +53,33 @@ Bauteilart und BMK vor, kostet API-Tokens je Bild). Klick auf ein Bauteil zeigt 
 in Stromlaufplan, Stueckliste, Klemmenplan und AWL. `scripts/load_example.py` legt dazu eine
 Beispielhalle mit Aufbauplan und 14 fertigen Markierungen an.
 
+### Draufsicht (Vogelperspektive)
+
+Die Maschinenseite hat Tabs **Draufsicht · Fehler · Schaltschrank · Dokumente**. Die Draufsicht
+zeigt Baugruppen und Feldgeraete (-M1, -B1, -S3 ...) als Rechtecke oder Kreise in mm auf einem
+Raster (100/1000 mm). Quelle ist eine Skizze (Upload oder PDF-Seite aus der Doku) oder eine eigene
+Zeichnung. **Vorschlaege erkennen** laesst Claude Vision die Skizze lesen (kostet API-Tokens pro
+Aufruf); Vorschlaege erscheinen gestrichelt und werden einzeln oder alle bestaetigt. Klick auf ein
+Teil zeigt Stueckliste, Klemmen, SPS-Adressen, Stromlaufplan-Seiten und Fehler zu diesem BMK.
+Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `kind`, `shape`,
+`x_mm`, `y_mm`, `w_mm`, `h_mm`, `rotation_deg`. Referenz: `examples/foerderband/08_Aufstellungsplan_FB-01.*`
+(PNG wird aus dem JSON gezeichnet: `python scripts/make_layout_sketch.py`).
+
+**Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
+
 ## Architektur
 
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
-            Werk (Hallen-Baukasten, Maschinenseite, Schaltschrank-Editor)
+            Werk (Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
+            Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
                    optionale Vision-Analyse der Schaltplanseiten (Claude)
   app/agent/       LangGraph-Agent (Claude) mit Werkzeugen: search_knowledge, find_tag,
                    keyword_search, get_page, view_page, get_plc_block, list_documents
-  app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots
+  app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
+                   Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860
