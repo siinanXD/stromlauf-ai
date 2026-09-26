@@ -99,6 +99,22 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
   Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
 
+## Planung: Vorkalkulation (ohne KI-Kosten)
+
+Reiter **Planung** (`/planung`): Auftrag mit Positionen (Artikel, Menge in Paketen oder Paletten),
+Eingang und Wunschtermin eingeben; sofort erscheinen **Verladebereit am** (grün „hält“ oder
+„+N Tage“), ein **Zeitplan** je Station (Büro, PM1-Rohpapier, Linien, Verladung; geschlossene Zeiten
+schraffiert, Leerlauf wie das Wochenende gestaucht), der **Materialbedarf** mit Herleitung
+(Rohpapier aus Blatt × Fläche × Lagen × g/m², daraus Zellstoff, Altpapier, Chemie, Wasser) und die
+**Kosten** je Position (Material, Fertigung, Büro, Versand, je Einheit). Tab **Stammdaten** zeigt
+Artikel mit Arbeitsplan und Stückliste sowie Materialpreise.
+
+Rechenkern: `backend/app/werk/calc.py` (rein, getestet), Kalender `calendar.py`; API
+`POST /api/calc`, `GET /api/articles`, `GET /api/materials`, `PUT /api/master-data`. Annahmen:
+freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätze sind Richtwerte;
+Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
+Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
+
 ## Chat-Antworten
 
 Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,
@@ -114,6 +130,7 @@ Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`),
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
             Werk (Standortplan, Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
+            Planung/Vorkalkulation,
             Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
@@ -123,7 +140,8 @@ backend/    FastAPI
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
                    Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
                    site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
-  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen)
+  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen, Kalender,
+                   Vorkalkulation)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860
