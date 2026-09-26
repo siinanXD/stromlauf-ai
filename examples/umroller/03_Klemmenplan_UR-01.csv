@@ -1,0 +1,88 @@
+Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
+-X3;-X3:1;-A1.1:1 (E0.0);-S4:14;Taster -S4 Start, Schliesser;/9.3
+-X3;-X3:2;-A1.1:2 (E0.1);-S5:12;Taster -S5 Stop, Oeffner (1 = nicht beta;/9.3
+-X3;-X3:3;-A1.1:3 (E0.2);-S6:14;Taster -S6 Stoerung quittieren;/9.3
+-X3;-X3:4;-A1.1:4 (E0.3);-S7:14;Wahlschalter -S7 Betriebsart Tippen;/9.3
+-X3;-X3:5;-A1.1:5 (E0.4);-S8:14;Taster -S8 Huelsenzufuhr Hand;/9.3
+-X3;-X3:6;-A1.1:6 (E0.5);-S9:14;Taster -S9 Logabschub Hand;/9.3
+-X3;-X3:7;-A1.1:7 (E0.6);-B1:4 (BK);Ultraschallsensor -B1 Bahnriss Abwickler;/9.3
+-X3;-X3:8;-A1.1:8 (E0.7);-B2:4 (BK);Ultraschallsensor -B2 Bahnriss Abwickler;/9.3
+-X3;-X3:9;-A1.1:9 (E1.0);-B3:4 (BK);Sensor -B3 Mutterrolle 1 Restdurchmesser;/9.3
+-X3;-X3:10;-A1.1:10 (E1.1);-B4:4 (BK);Sensor -B4 Mutterrolle 2 Restdurchmesser;/9.3
+-X3;-X3:11;-A1.1:11 (E1.2);-K1:24;Sicherheitsrelais -K1 Freigabe (1 = Not-;/9.3
+-X3;-X3:12;-A1.1:12 (E1.3);-K2:24;Sicherheitsrelais -K2 Freigabe (1 = Schu;/9.3
+-X3;-X3:13;-A1.1:13 (E1.4);-B5:4 (BK);Kapazitiver Sensor -B5 Huelsenmagazin le;/10.3
+-X3;-X3:14;-A1.1:14 (E1.5);-B6:4 (BK);Lichtschranke -B6 Log fertig gewickelt;/10.3
+-X3;-X3:15;-A1.1:15 (E1.6);-B7:4 (BK);Endschalter -B7 Logabschub Endlage;/10.3
+-X3;-X3:16;-A1.1:16 (E1.7);-B8:4 (BK);Lichtschranke -B8 Huelse eingelegt;/10.3
+-X3;-X3:17;-A1.2:1 (E2.0);-U1:COM;Umrichter -U1 betriebsbereit (DO1);/11.3
+-X3;-X3:18;-A1.2:2 (E2.1);-U2:COM;Umrichter -U2 betriebsbereit (DO1);/11.3
+-X3;-X3:19;-A1.2:3 (E2.2);-U3:COM;Umrichter -U3 betriebsbereit (DO1);/11.3
+-X3;-X3:20;-A1.2:4 (E2.3);-U4:COM;Umrichter -U4 betriebsbereit (DO1);/11.3
+-X3;-X3:21;-A1.2:5 (E2.4);-U5:COM;Umrichter -U5 betriebsbereit (DO1);/11.3
+-X3;-X3:22;-A1.2:6 (E2.5);-F7:14;Motorschutz -F7 Hilfskontakt (1 = ok);/11.3
+-X3;-X3:23;-A1.2:7 (E2.6);-F8:14;Motorschutz -F8 Hilfskontakt (1 = ok);/11.3
+-X3;-X3:24;-X2:1 (+24V);-B1:1 (BN), -B2:1 (BN), -B3:1 (BN), -B4:1 (BN), -B5:1 (BN), -B6:1 (BN), -B7:1 (BN), -B8:1 (BN);+24 V Sensoren;/9.3
+-X3;-X3:25;-X2:2 (0V);-B1:3 (BU), -B2:3 (BU), -B3:3 (BU), -B4:3 (BU), -B5:3 (BU), -B6:3 (BU), -B7:3 (BU), -B8:3 (BU);0 V Sensoren;/9.4
+-X3;-X3:26;-A1.3:1 (A4.0);-U1:DI1;Freigabe Umrichter -U1 Abwickler 1;/12.3
+-X3;-X3:27;-A1.3:2 (A4.1);-U2:DI1;Freigabe Umrichter -U2 Abwickler 2;/12.3
+-X3;-X3:28;-A1.3:3 (A4.2);-U3:DI1;Freigabe Umrichter -U3 Praegewerk;/12.3
+-X3;-X3:29;-A1.3:4 (A4.3);-U4:DI1;Freigabe Umrichter -U4 Perforation;/12.3
+-X3;-X3:30;-A1.3:5 (A4.4);-U5:DI1;Freigabe Umrichter -U5 Wickler;/12.3
+-X3;-X3:31;-A1.3:6 (A4.5);-K3:A1;Schuetz -K3 Huelsenzufuhr -M6;/12.3
+-X3;-X3:32;-A1.3:7 (A4.6);-K4:A1;Schuetz -K4 Logabschub -M7;/12.3
+-X3;-X3:33;-A1.3:8 (A4.7);-H1:X1;Meldeleuchte -H1 Betrieb gruen;/12.3
+-X3;-X3:34;-A1.3:9 (A5.0);-H2:X1;Meldeleuchte -H2 Stoerung rot;/12.3
+-X3;-X3:35;-A1.3:10 (A5.1);-H3:X1;Meldeleuchte -H3 Huelsenmangel gelb;/12.3
+-X3;-X3:36;-A1.3:11 (A5.2);-H4:X1;Hupe -H4 Stoerung;/12.3
+-X3;-X3:37;-X2:2 (0V);-K3:A2, -K4:A2;0 V Schuetzspulen;/12.3
+-X3;-X3:38;-X2:2 (0V);-H1:X2, -H2:X2, -H3:X2, -H4:X2;0 V Meldeleuchten und Hupe;/12.3
+-X4;-X4:U;-U1:U;-M1:U1;Motor Abwickler 1 Phase U;/3.2
+-X4;-X4:V;-U1:V;-M1:V1;Motor Abwickler 1 Phase V;/3.2
+-X4;-X4:W;-U1:W;-M1:W1;Motor Abwickler 1 Phase W;/3.2
+-X4;-X4:PE;PE-Schiene;-M1:PE;Schutzleiter;/3.2
+-X5;-X5:U;-U2:U;-M2:U1;Motor Abwickler 2 Phase U;/3.6
+-X5;-X5:V;-U2:V;-M2:V1;Motor Abwickler 2 Phase V;/3.6
+-X5;-X5:W;-U2:W;-M2:W1;Motor Abwickler 2 Phase W;/3.6
+-X5;-X5:PE;PE-Schiene;-M2:PE;Schutzleiter;/3.6
+-X6;-X6:U;-U3:U;-M3:U1;Motor Praegewerk Phase U;/4.2
+-X6;-X6:V;-U3:V;-M3:V1;Motor Praegewerk Phase V;/4.2
+-X6;-X6:W;-U3:W;-M3:W1;Motor Praegewerk Phase W;/4.2
+-X6;-X6:PE;PE-Schiene;-M3:PE;Schutzleiter;/4.2
+-X7;-X7:U;-U4:U;-M4:U1;Motor Perforation Phase U;/4.6
+-X7;-X7:V;-U4:V;-M4:V1;Motor Perforation Phase V;/4.6
+-X7;-X7:W;-U4:W;-M4:W1;Motor Perforation Phase W;/4.6
+-X7;-X7:PE;PE-Schiene;-M4:PE;Schutzleiter;/4.6
+-X8;-X8:U;-U5:U;-M5:U1;Motor Wickler Phase U;/5.2
+-X8;-X8:V;-U5:V;-M5:V1;Motor Wickler Phase V;/5.2
+-X8;-X8:W;-U5:W;-M5:W1;Motor Wickler Phase W;/5.2
+-X8;-X8:PE;PE-Schiene;-M5:PE;Schutzleiter;/5.2
+-X9;-X9:U;-K3:U;-M6:U1;Motor Huelsenzufuhr Phase U;/5.6
+-X9;-X9:V;-K3:V;-M6:V1;Motor Huelsenzufuhr Phase V;/5.6
+-X9;-X9:W;-K3:W;-M6:W1;Motor Huelsenzufuhr Phase W;/5.6
+-X9;-X9:PE;PE-Schiene;-M6:PE;Schutzleiter;/5.6
+-X10;-X10:U;-K4:U;-M7:U1;Motor Logabschub Phase U;/6.2
+-X10;-X10:V;-K4:V;-M7:V1;Motor Logabschub Phase V;/6.2
+-X10;-X10:W;-K4:W;-M7:W1;Motor Logabschub Phase W;/6.2
+-X10;-X10:PE;PE-Schiene;-M7:PE;Schutzleiter;/6.2
+-X1;-X1:1;-Q1:1;Netz L1;Einspeisung L1;/2.1
+-X1;-X1:2;-Q1:3;Netz L2;Einspeisung L2;/2.1
+-X1;-X1:3;-Q1:5;Netz L3;Einspeisung L3;/2.1
+-X1;-X1:N;-T1:N;Netz N;Neutralleiter;/2.1
+-X1;-X1:PE;PE-Schiene;Netz PE;Schutzleiter;/2.1
+-X2;-X2:1;-T1:+;-X3:24;+24 V Sensoren;/2.5
+-X2;-X2:2;-T1:-;-X3:25, -X3:37, -X3:38;0 V;/2.5
+-X2;-X2:3;-T1:+;-K1:A1, -K2:A1;+24 V Sicherheitskreise;/2.6
+-X2;-X2:4;-T1:-;-K1:A2, -K2:A2;0 V Sicherheitskreise;/2.6
+-X2;-X2:5;-T1:+;-A1:L+, -U1:24V, -U2:24V, -U3:24V, -U4:24V, -U5:24V;+24 V SPS und Umrichter;/2.7
+-X2;-X2:6;-T1:-;-A1:M;0 V SPS und Umrichter;/2.7
+-X2;-X2:3a;-K1:14;STO -U1..-U5, Spulen -K3/-K4;+24 V freigegeben;/7.3
+-X3;-X3:39;-K1:S11;-S1:11;Sicherheitsrelais Not- Kanal 1 Beginn;/7.2
+-X3;-X3:40;-K1:S12;-S3:12 (Reihe: -S1, -S2, -S3);Sicherheitsrelais Not- Kanal 1 Ende;/7.2
+-X3;-X3:41;-K1:S21;-S1:21;Sicherheitsrelais Not- Kanal 2 Beginn;/7.2
+-X3;-X3:42;-K1:S22;-S3:22 (Reihe: -S1, -S2, -S3);Sicherheitsrelais Not- Kanal 2 Ende;/7.2
+-X2;-X2:3b;-K2:14;Freigabe -U3/-U4 Tippbetrieb;+24 V freigegeben;/7.6
+-X3;-X3:43;-K2:S11;-S10:11;Sicherheitsrelais Schu Kanal 1 Beginn;/7.5
+-X3;-X3:44;-K2:S12;-S13:12 (Reihe: -S10, -S11, -S12, -S13);Sicherheitsrelais Schu Kanal 1 Ende;/7.5
+-X3;-X3:45;-K2:S21;-S10:21;Sicherheitsrelais Schu Kanal 2 Beginn;/7.5
+-X3;-X3:46;-K2:S22;-S13:22 (Reihe: -S10, -S11, -S12, -S13);Sicherheitsrelais Schu Kanal 2 Ende;/7.5

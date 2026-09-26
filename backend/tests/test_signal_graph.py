@@ -89,3 +89,14 @@ def test_broken_files_do_not_raise(tmp_path):
     bad_csv.write_text('Klemme;"' + "x" * 200_000 + "\n", encoding="utf-8")
     graph = _graph((("bom", str(bad_xlsx), 0.0), ("terminal_plan", str(bad_csv), 0.0)))
     assert graph.nodes == {}
+
+
+def test_safety_relay_input_terminals_count_as_inputs():
+    """S12/S22 eines Sicherheitsrelais sind Eingaenge: Not-Halt -> Klemme -> Relais, nicht umgekehrt."""
+    rows = [
+        ["-X3", "-X3:40", "-K1:S12", "-S3:12 (Reihe: -S1, -S2, -S3)", "Not-Halt Kanal 1 Ende", "/7.2"],
+        ["-X3", "-X3:39", "-K1:S11", "-S1:11", "Not-Halt Kanal 1 Beginn", "/7.2"],
+    ]
+    graph = build_graph(rows, [("-K1", "Sicherheitsrelais", "/7.2"), ("-S1", "Not-Halt", "/7.2"), ("-S3", "Not-Halt", "/7.2")], [], "")
+    assert ("-S3", "-X3:40") in graph.edges and ("-X3:40", "-K1") in graph.edges
+    assert ("-K1", "-X3:39") in graph.edges and ("-X3:39", "-S1") in graph.edges

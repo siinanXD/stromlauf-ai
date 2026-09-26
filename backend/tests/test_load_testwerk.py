@@ -42,3 +42,31 @@ def test_master_data_payload_resolves_machine_keys_and_flattens_tech():
     assert article["sheets_per_unit"] == 1200 and "tech" not in article
     assert article["routing"][0]["machine_id"] == "id-ur" and "machine" not in article["routing"][0]
     assert payload["settings"] == {"calc": {"docks": 8}}
+
+
+# --- Testdokumentation (--docs) ---------------------------------------------------------------
+
+
+def test_doc_type_from_filename():
+    assert loader.doc_type_of("03_Klemmenplan_UR-01.csv") == "terminal_plan"
+    assert loader.doc_type_of("06_Betriebsanleitung_PM1-AR.md") == "manual"
+    assert loader.doc_type_of("README.md") is None
+
+
+def test_machine_for_needs_a_unique_prefix():
+    site = {"halls": [{"machines": [{"id": "1", "name": "L1-UR Umroller"}, {"id": "2", "name": "L1-VP Verpacker"},
+                                    {"id": "3", "name": "L1-PAL Palettierer"}, {"id": "4", "name": "L2-PAL Palettierer"}]}]}
+    assert loader.machine_for(site, "l1-ur")["id"] == "1"
+    assert loader.machine_for(site, "L1-") is None
+    assert loader.machine_for(site, "PM1-S6") is None
+
+
+def test_new_faults_skips_known_symptoms():
+    existing = [{"symptom": "Band steht"}]
+    proposed = [{"symptom": "band steht "}, {"symptom": "-H2 leuchtet"}]
+    assert loader.new_faults(existing, proposed) == [{"symptom": "-H2 leuchtet"}]
+
+
+def test_stale_faults_are_the_ones_imported_from_the_manual():
+    faults = [{"id": "1", "doc_ref": "Betriebsanleitung Kap. 7"}, {"id": "2", "doc_ref": "Stromlaufplan Blatt 4"}, {"id": "3", "doc_ref": ""}]
+    assert [f["id"] for f in loader.stale_faults(faults)] == ["1"]

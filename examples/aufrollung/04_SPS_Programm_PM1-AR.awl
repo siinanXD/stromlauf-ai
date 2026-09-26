@@ -1,0 +1,275 @@
+FUNCTION_BLOCK FB 30
+TITLE =Aufrollung PM1-AR Steuerung
+//Aufrollung PM1-AR: Die Aufrollung PM1-AR wickelt die Tissuebahn der Papiermaschine PM1 auf Tambours. Die Tragtrommel -M1 (75 kW, Leitantrieb)
+//Anlage =PM1, Schaltschrank +ST6.
+AUTHOR : Beispiel
+FAMILY : PM1AR
+NAME : PM1AR
+VERSION : 1.0
+
+VAR_INPUT
+  Start : BOOL ;	//Taster -S5 Start, Schliesser (E0.0)
+  Stop : BOOL ;	//Taster -S6 Stop, Oeffner (1 = nicht betaetigt) (E0.1)
+  Quitt : BOOL ;	//Taster -S7 Stoerung quittieren (E0.2)
+  Wechsel_Hand : BOOL ;	//Taster -S8 Tambourwechsel Hand (E0.3)
+  Automatik : BOOL ;	//Wahlschalter -S9 Betriebsart Automatik (E0.4)
+  Durchm_OK : BOOL ;	//Laser-Distanzsensor -B1 Tambourdurchmesser erreicht (E0.5)
+  Bahnriss : BOOL ;	//Ultraschallsensor -B2 Bahnriss vor Tragtrommel (1 = Bahn fehlt) (E0.6)
+  Druck_OK : BOOL ;	//Druckschalter -B3 Hydraulikdruck 150 bar erreicht (E0.7)
+  Oel_OK : BOOL ;	//Schwimmerschalter -B4 Oelstand Lagerschmierung ok (E1.0)
+  Arm_Aus : BOOL ;	//Naeherungsschalter -B5 Wechselarm ausgefahren (E1.1)
+  Arm_Grund : BOOL ;	//Naeherungsschalter -B6 Wechselarm Grundstellung (E1.2)
+  Tambour_Da : BOOL ;	//Lichtschranke -B7 Leertambour eingelegt (E1.3)
+  NotHalt_OK : BOOL ;	//Sicherheitsrelais -K1 Freigabe (1 = Not-Halt und Reissleine entriegelt) (E1.4)
+  Tuer_OK : BOOL ;	//Sicherheitsrelais -K2 Freigabe (1 = Schutztueren zu) (E1.5)
+  U1_Bereit : BOOL ;	//Umrichter -U1 Tragtrommel betriebsbereit (DO1) (E1.6)
+  U2_Bereit : BOOL ;	//Umrichter -U2 Tambourantrieb betriebsbereit (DO1) (E1.7)
+  MSS_Hydr_OK : BOOL ;	//Motorschutz -F4 Hilfskontakt (1 = ok) (E2.0)
+  MSS_Oel_OK : BOOL ;	//Motorschutz -F5 Hilfskontakt (1 = ok) (E2.1)
+  Oeltemp_OK : BOOL ;	//Thermostat -B8 Oeltemperatur unter 60 Grad (E2.2)
+END_VAR
+VAR_OUTPUT
+  U1_Frei : BOOL ;	//Freigabe Umrichter -U1 Tragtrommel (A4.0)
+  U2_Frei : BOOL ;	//Freigabe Umrichter -U2 Tambourantrieb (A4.1)
+  K3_Hydr : BOOL ;	//Schuetz -K3 Hydraulikpumpe -M3 (A4.2)
+  K4_Oel : BOOL ;	//Schuetz -K4 Oelumlaufpumpe -M4 (A4.3)
+  Y1_Aus : BOOL ;	//Magnetventil -Y1 Wechselarm ausfahren (A4.4)
+  Y2_Rueck : BOOL ;	//Magnetventil -Y2 Wechselarm zurueck (A4.5)
+  Y3_Trenn : BOOL ;	//Magnetventil -Y3 Trennmesser (A4.6)
+  H1_Betrieb : BOOL ;	//Meldeleuchte -H1 Betrieb gruen (A4.7)
+  H2_Stoerung : BOOL ;	//Meldeleuchte -H2 Stoerung rot (A5.0)
+  H3_Wechsel : BOOL ;	//Meldeleuchte -H3 Tambourwechsel angefordert gelb (A5.1)
+  H4_Hupe : BOOL ;	//Hupe -H4 Stoerung (A5.2)
+END_VAR
+VAR
+  Freigabe : BOOL ;	//Selbsthaltung Betrieb
+  Stoerung : BOOL ;	//Sammelstoerung
+  Wechsel_Anf : BOOL ;	//Tambourwechsel angefordert
+  Flanke_Wechsel : BOOL ;	//Flankenmerker Grundstellung
+  Tambourzahl : INT ;	//Tambours seit Quittierung
+END_VAR
+BEGIN
+NETWORK
+TITLE =Freigabe Betrieb
+//Start setzt die Freigabe; Stop, Not-Halt/Reissleine, offene Schutztuer oder Stoerung setzen zurueck.
+      U(    ;
+      O     #Start;
+      O     #Freigabe;
+      )     ;
+      U     #Stop;
+      U     #NotHalt_OK;
+      U     #Tuer_OK;
+      UN    #Stoerung;
+      =     #Freigabe;
+NETWORK
+TITLE =Oelumlaufpumpe -K4
+//Lagerschmierung laeuft, sobald Not-Halt frei ist; bleibt bei Stoerung an, solange Motorschutz ok.
+      U     #NotHalt_OK;
+      U     #MSS_Oel_OK;
+      =     #K4_Oel;
+NETWORK
+TITLE =Oelmangel und Oeltemperatur
+//10 s nach Pumpenstart muss der Oelstand ok sein; Uebertemperatur (-B8) ist sofort Stoerung.
+      U     #K4_Oel;
+      L     S5T#10S;
+      SE    T     30;
+      U     T     30;
+      UN    #Oel_OK;
+      S     #Stoerung;
+      UN    #Oeltemp_OK;
+      S     #Stoerung;
+NETWORK
+TITLE =Hydraulikpumpe -K3
+//Hydraulik fuer die Wechselarme laeuft mit der Freigabe.
+      U     #Freigabe;
+      U     #MSS_Hydr_OK;
+      =     #K3_Hydr;
+NETWORK
+TITLE =Hydraulikdruck
+//5 s nach Pumpenstart muss der Druckschalter -B3 150 bar melden.
+      U     #K3_Hydr;
+      L     S5T#5S;
+      SE    T     31;
+      U     T     31;
+      UN    #Druck_OK;
+      S     #Stoerung;
+NETWORK
+TITLE =Bahnriss
+//Ultraschallsensor -B2 meldet fehlende Bahn bei laufender Tragtrommel: Stoerung, Aufrollung stoppt geregelt.
+      U     #Bahnriss;
+      U     #U1_Frei;
+      S     #Stoerung;
+NETWORK
+TITLE =Stoerung Umrichter
+//Tragtrommel oder Tambourantrieb bei laufender Aufrollung nicht bereit.
+      U     #U1_Frei;
+      U(    ;
+      ON    #U1_Bereit;
+      ON    #U2_Bereit;
+      )     ;
+      S     #Stoerung;
+NETWORK
+TITLE =Quittierung
+//Quittieren nur bei stehender Aufrollung, bereiten Umrichtern und Oelstand ok.
+      U     #Quitt;
+      UN    #Freigabe;
+      U     #U1_Bereit;
+      U     #U2_Bereit;
+      U     #Oel_OK;
+      U     #Oeltemp_OK;
+      U     #MSS_Hydr_OK;
+      U     #MSS_Oel_OK;
+      R     #Stoerung;
+NETWORK
+TITLE =Freigabe Tragtrommel -U1
+//Leitantrieb der Aufrollung, Sollwert Bahngeschwindigkeit ueber PROFIBUS.
+      U     #Freigabe;
+      UN    #Stoerung;
+      =     #U1_Frei;
+NETWORK
+TITLE =Freigabe Tambourantrieb -U2
+//Zentrumsantrieb des Tambours nur mit eingelegtem Tambour (-B7).
+      U     #U1_Frei;
+      U     #Tambour_Da;
+      =     #U2_Frei;
+NETWORK
+TITLE =Tambourwechsel anfordern
+//Durchmesser erreicht (-B1) im Automatik oder Hand-Taster -S8; Schrittkette startet nur in Grundstellung.
+      U(    ;
+      U     #Durchm_OK;
+      U     #Automatik;
+      O     #Wechsel_Hand;
+      )     ;
+      U     #Freigabe;
+      U     #Tuer_OK;
+      =     #Wechsel_Anf;
+      =     #H3_Wechsel;
+      U     #Wechsel_Anf;
+      U     #Arm_Grund;
+      UN    M     30.1;
+      UN    M     30.2;
+      UN    M     30.3;
+      S     M     30.0;
+NETWORK
+TITLE =Schritt 2 Wechselarm ausfahren -Y1
+//Mit Hydraulikdruck: Arm ausfahren bis Endlage -B5.
+      U     M     30.0;
+      U     #Druck_OK;
+      S     M     30.1;
+      R     M     30.0;
+      U     M     30.1;
+      =     #Y1_Aus;
+NETWORK
+TITLE =Schritt 3 Bahn trennen -Y3
+//Trennmesser 2 s, dann weiter.
+      U     M     30.1;
+      U     #Arm_Aus;
+      S     M     30.2;
+      R     M     30.1;
+      U     M     30.2;
+      =     #Y3_Trenn;
+      U     M     30.2;
+      L     S5T#2S;
+      SE    T     32;
+      U     T     32;
+      S     M     30.3;
+      R     M     30.2;
+NETWORK
+TITLE =Schritt 4 Wechselarm zurueck -Y2
+//Arm zurueck bis Grundstellung -B6, dann Schrittkette beenden.
+      U     M     30.3;
+      =     #Y2_Rueck;
+      U     M     30.3;
+      U     #Arm_Grund;
+      R     M     30.3;
+NETWORK
+TITLE =Tambourzaehlung
+//Steigende Flanke Grundstellung nach einem Wechsel zaehlt einen Tambour (MW102).
+      U     #Arm_Grund;
+      FP    #Flanke_Wechsel;
+      SPBN  m015;
+      L     #Tambourzahl;
+      L     1;
+      +I    ;
+      T     #Tambourzahl;
+      T     MW   102;
+m015: NOP   0;
+NETWORK
+TITLE =Meldungen
+//Betrieb gruen, Stoerung rot, Hupe bis zur Quittierung.
+      U     #Freigabe;
+      =     #H1_Betrieb;
+      U     #Stoerung;
+      =     #H2_Stoerung;
+      U     #Stoerung;
+      UN    #Quitt;
+      =     #H4_Hupe;
+END_FUNCTION_BLOCK
+
+DATA_BLOCK DB 30
+TITLE =Instanz Aufrollung PM1-AR
+VERSION : 1.0
+ FB 30
+BEGIN
+END_DATA_BLOCK
+
+ORGANIZATION_BLOCK OB 1
+TITLE = "Main Program Sweep (Cycle)"
+VERSION : 1.0
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;
+  OB1_SCAN_1 : BYTE ;
+  OB1_PRIORITY : BYTE ;
+  OB1_OB_NUMBR : BYTE ;
+  OB1_RESERVED_1 : BYTE ;
+  OB1_RESERVED_2 : BYTE ;
+  OB1_PREV_CYCLE : INT ;
+  OB1_MIN_CYCLE : INT ;
+  OB1_MAX_CYCLE : INT ;
+  OB1_DATE_TIME : DATE_AND_TIME ;
+END_VAR
+BEGIN
+NETWORK
+TITLE =Aufruf Aufrollung PM1-AR
+//Eingaenge -A1.1 ff., Ausgaenge siehe DO-Blaetter
+      CALL  FB    30 , DB    30
+       Start                    :=E      0.0
+       Stop                     :=E      0.1
+       Quitt                    :=E      0.2
+       Wechsel_Hand             :=E      0.3
+       Automatik                :=E      0.4
+       Durchm_OK                :=E      0.5
+       Bahnriss                 :=E      0.6
+       Druck_OK                 :=E      0.7
+       Oel_OK                   :=E      1.0
+       Arm_Aus                  :=E      1.1
+       Arm_Grund                :=E      1.2
+       Tambour_Da               :=E      1.3
+       NotHalt_OK               :=E      1.4
+       Tuer_OK                  :=E      1.5
+       U1_Bereit                :=E      1.6
+       U2_Bereit                :=E      1.7
+       MSS_Hydr_OK              :=E      2.0
+       MSS_Oel_OK               :=E      2.1
+       Oeltemp_OK               :=E      2.2
+       U1_Frei                  :=A      4.0
+       U2_Frei                  :=A      4.1
+       K3_Hydr                  :=A      4.2
+       K4_Oel                   :=A      4.3
+       Y1_Aus                   :=A      4.4
+       Y2_Rueck                 :=A      4.5
+       Y3_Trenn                 :=A      4.6
+       H1_Betrieb               :=A      4.7
+       H2_Stoerung              :=A      5.0
+       H3_Wechsel               :=A      5.1
+       H4_Hupe                  :=A      5.2
+      NOP   0;
+NETWORK
+TITLE =Merker fuer die Visualisierung
+//Sammelstoerung und Betrieb spiegeln.
+      U     A      5.0;
+      =     M     10.0;
+      U     A      4.7;
+      =     M     10.2;
+END_ORGANIZATION_BLOCK

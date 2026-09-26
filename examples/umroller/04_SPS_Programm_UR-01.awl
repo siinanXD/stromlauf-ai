@@ -1,0 +1,264 @@
+FUNCTION_BLOCK FB 20
+TITLE =Umroller UR-01 Steuerung
+//Umroller UR-01: Der Umroller UR-01 wickelt Tissue von zwei Mutterrollen (Abwickler -M1, -M2) ueber Praegewerk (-M3) und Perforation (-M4)
+//Anlage =L1, Schaltschrank +ST1.
+AUTHOR : Beispiel
+FAMILY : UR01
+NAME : UR01
+VERSION : 1.0
+
+VAR_INPUT
+  Start : BOOL ;	//Taster -S4 Start, Schliesser (E0.0)
+  Stop : BOOL ;	//Taster -S5 Stop, Oeffner (1 = nicht betaetigt) (E0.1)
+  Quitt : BOOL ;	//Taster -S6 Stoerung quittieren (E0.2)
+  Tippen : BOOL ;	//Wahlschalter -S7 Betriebsart Tippen (E0.3)
+  Huelse_Hand : BOOL ;	//Taster -S8 Huelsenzufuhr Hand (E0.4)
+  Abschub_Hand : BOOL ;	//Taster -S9 Logabschub Hand (E0.5)
+  Bahnriss1 : BOOL ;	//Ultraschallsensor -B1 Bahnriss Abwickler 1 (1 = Bahn fehlt) (E0.6)
+  Bahnriss2 : BOOL ;	//Ultraschallsensor -B2 Bahnriss Abwickler 2 (1 = Bahn fehlt) (E0.7)
+  Rolle1_Min : BOOL ;	//Sensor -B3 Mutterrolle 1 Restdurchmesser erreicht (E1.0)
+  Rolle2_Min : BOOL ;	//Sensor -B4 Mutterrolle 2 Restdurchmesser erreicht (E1.1)
+  NotHalt_OK : BOOL ;	//Sicherheitsrelais -K1 Freigabe (1 = Not-Halt entriegelt) (E1.2)
+  Tuer_OK : BOOL ;	//Sicherheitsrelais -K2 Freigabe (1 = Schutztueren zu) (E1.3)
+  Huelse_Leer : BOOL ;	//Kapazitiver Sensor -B5 Huelsenmagazin leer (E1.4)
+  Log_Fertig : BOOL ;	//Lichtschranke -B6 Log fertig gewickelt (E1.5)
+  Abschub_Ende : BOOL ;	//Endschalter -B7 Logabschub Endlage (E1.6)
+  Huelse_Da : BOOL ;	//Lichtschranke -B8 Huelse eingelegt (E1.7)
+  U1_Bereit : BOOL ;	//Umrichter -U1 betriebsbereit (DO1) (E2.0)
+  U2_Bereit : BOOL ;	//Umrichter -U2 betriebsbereit (DO1) (E2.1)
+  U3_Bereit : BOOL ;	//Umrichter -U3 betriebsbereit (DO1) (E2.2)
+  U4_Bereit : BOOL ;	//Umrichter -U4 betriebsbereit (DO1) (E2.3)
+  U5_Bereit : BOOL ;	//Umrichter -U5 betriebsbereit (DO1) (E2.4)
+  MSS_Huelse_OK : BOOL ;	//Motorschutz -F7 Hilfskontakt (1 = ok) (E2.5)
+  MSS_Abschub_OK : BOOL ;	//Motorschutz -F8 Hilfskontakt (1 = ok) (E2.6)
+END_VAR
+VAR_OUTPUT
+  U1_Frei : BOOL ;	//Freigabe Umrichter -U1 Abwickler 1 (A4.0)
+  U2_Frei : BOOL ;	//Freigabe Umrichter -U2 Abwickler 2 (A4.1)
+  U3_Frei : BOOL ;	//Freigabe Umrichter -U3 Praegewerk (A4.2)
+  U4_Frei : BOOL ;	//Freigabe Umrichter -U4 Perforation (A4.3)
+  U5_Frei : BOOL ;	//Freigabe Umrichter -U5 Wickler (A4.4)
+  K3_Huelse : BOOL ;	//Schuetz -K3 Huelsenzufuhr -M6 (A4.5)
+  K4_Abschub : BOOL ;	//Schuetz -K4 Logabschub -M7 (A4.6)
+  H1_Betrieb : BOOL ;	//Meldeleuchte -H1 Betrieb gruen (A4.7)
+  H2_Stoerung : BOOL ;	//Meldeleuchte -H2 Stoerung rot (A5.0)
+  H3_Huelsenmangel : BOOL ;	//Meldeleuchte -H3 Huelsenmangel gelb (A5.1)
+  H4_Hupe : BOOL ;	//Hupe -H4 Stoerung (A5.2)
+END_VAR
+VAR
+  Freigabe : BOOL ;	//Selbsthaltung Betrieb
+  Stoerung : BOOL ;	//Sammelstoerung
+  Bahnriss : BOOL ;	//Bahnriss an einem Abwickler
+  Wechsel_Anf : BOOL ;	//Rollenwechsel angefordert
+  Flanke_Log : BOOL ;	//Flankenmerker Log fertig
+  Logzahl : INT ;	//Logs seit Quittierung
+END_VAR
+BEGIN
+NETWORK
+TITLE =Freigabe Betrieb
+//Start setzt die Freigabe; Stop (Oeffner), Not-Halt, offene Schutztuer oder Stoerung setzen zurueck.
+//Wiederanlaufsperre: nach Not-Halt ist ein neuer Start noetig.
+      U(    ;
+      O     #Start;
+      O     #Freigabe;
+      )     ;
+      U     #Stop;
+      U     #NotHalt_OK;
+      U     #Tuer_OK;
+      UN    #Stoerung;
+      =     #Freigabe;
+NETWORK
+TITLE =Bahnriss
+//Ultraschallsensoren -B1 / -B2 melden fehlende Bahn: Stoerung setzen, Anlage stoppt.
+      U     #Bahnriss1;
+      O     #Bahnriss2;
+      =     #Bahnriss;
+      U     #Bahnriss;
+      U     #Freigabe;
+      S     #Stoerung;
+NETWORK
+TITLE =Stoerung Umrichter
+//Ein Umrichter nicht bereit (Sammelstoerung des Geraets): Stoerung setzen.
+      U     #Freigabe;
+      U(    ;
+      ON    #U1_Bereit;
+      ON    #U2_Bereit;
+      ON    #U3_Bereit;
+      ON    #U4_Bereit;
+      ON    #U5_Bereit;
+      )     ;
+      S     #Stoerung;
+NETWORK
+TITLE =Stoerung Motorschutz
+//Motorschutz -F7 (Huelsenzufuhr) oder -F8 (Logabschub) ausgeloest.
+      UN    #MSS_Huelse_OK;
+      ON    #MSS_Abschub_OK;
+      S     #Stoerung;
+NETWORK
+TITLE =Quittierung
+//Quittieren nur bei stehender Anlage, behobenem Bahnriss und bereiten Umrichtern.
+      U     #Quitt;
+      UN    #Freigabe;
+      UN    #Bahnriss;
+      U     #U1_Bereit;
+      U     #U2_Bereit;
+      U     #U3_Bereit;
+      U     #U4_Bereit;
+      U     #U5_Bereit;
+      U     #MSS_Huelse_OK;
+      U     #MSS_Abschub_OK;
+      R     #Stoerung;
+NETWORK
+TITLE =Freigabe Wickler -U5
+//Leitantrieb der Linie. Sollwert (Bahngeschwindigkeit) ueber PROFIBUS.
+      U     #Freigabe;
+      UN    #Stoerung;
+      =     #U5_Frei;
+NETWORK
+TITLE =Freigabe Abwickler -U1 / -U2
+//Abwickler laufen mit dem Wickler; bei Restdurchmesser wird der jeweilige Abwickler gesperrt (Rollenwechsel).
+      U     #U5_Frei;
+      UN    #Rolle1_Min;
+      =     #U1_Frei;
+      U     #U5_Frei;
+      UN    #Rolle2_Min;
+      =     #U2_Frei;
+NETWORK
+TITLE =Freigabe Praegewerk -U3 und Perforation -U4
+//Im Automatik mit dem Wickler; im Tippbetrieb (-S7) nur bei gedruecktem Start und geschlossenen Tueren.
+      U     #U5_Frei;
+      O     ;
+      U     #Tippen;
+      U     #Start;
+      U     #Tuer_OK;
+      =     #U3_Frei;
+      =     #U4_Frei;
+NETWORK
+TITLE =Huelsenzufuhr -K3
+//Neue Huelse einlegen, wenn ein Log fertig ist oder Hand-Taster -S8; nicht bei leerem Magazin oder eingelegter Huelse.
+      U(    ;
+      O     #Log_Fertig;
+      O     #Huelse_Hand;
+      )     ;
+      UN    #Huelse_Leer;
+      UN    #Huelse_Da;
+      U     #MSS_Huelse_OK;
+      U     #Freigabe;
+      =     #K3_Huelse;
+NETWORK
+TITLE =Logabschub -K4
+//Fertigen Log ausschieben: -K4 zieht 3 s nach Log fertig an (Saege raeumt), Hand-Taster -S9 moeglich; Endschalter -B7 beendet.
+      U(    ;
+      O     #Log_Fertig;
+      O     #Abschub_Hand;
+      )     ;
+      U     #MSS_Abschub_OK;
+      UN    #Abschub_Ende;
+      L     S5T#3S;
+      SE    T     20;
+      U     T     20;
+      =     #K4_Abschub;
+NETWORK
+TITLE =Logzaehlung
+//Steigende Flanke Lichtschranke -B6 zaehlt einen Log (MW100 fuer die Visualisierung).
+      U     #Log_Fertig;
+      FP    #Flanke_Log;
+      SPBN  m010;
+      L     #Logzahl;
+      L     1;
+      +I    ;
+      T     #Logzahl;
+      T     MW   100;
+m010: NOP   0;
+NETWORK
+TITLE =Rollenwechsel anfordern
+//Restdurchmesser an einem Abwickler: Anforderung fuer den Bediener (M10.1).
+      U     #Rolle1_Min;
+      O     #Rolle2_Min;
+      =     #Wechsel_Anf;
+      =     M     10.1;
+NETWORK
+TITLE =Meldungen
+//Betrieb gruen, Stoerung rot, Huelsenmangel gelb, Hupe bis zur Quittierung.
+      U     #Freigabe;
+      =     #H1_Betrieb;
+      U     #Stoerung;
+      =     #H2_Stoerung;
+      U     #Huelse_Leer;
+      =     #H3_Huelsenmangel;
+      U     #Stoerung;
+      UN    #Quitt;
+      =     #H4_Hupe;
+END_FUNCTION_BLOCK
+
+DATA_BLOCK DB 20
+TITLE =Instanz Umroller UR-01
+VERSION : 1.0
+ FB 20
+BEGIN
+END_DATA_BLOCK
+
+ORGANIZATION_BLOCK OB 1
+TITLE = "Main Program Sweep (Cycle)"
+VERSION : 1.0
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;
+  OB1_SCAN_1 : BYTE ;
+  OB1_PRIORITY : BYTE ;
+  OB1_OB_NUMBR : BYTE ;
+  OB1_RESERVED_1 : BYTE ;
+  OB1_RESERVED_2 : BYTE ;
+  OB1_PREV_CYCLE : INT ;
+  OB1_MIN_CYCLE : INT ;
+  OB1_MAX_CYCLE : INT ;
+  OB1_DATE_TIME : DATE_AND_TIME ;
+END_VAR
+BEGIN
+NETWORK
+TITLE =Aufruf Umroller UR-01
+//Eingaenge -A1.1 ff., Ausgaenge siehe DO-Blaetter
+      CALL  FB    20 , DB    20
+       Start                    :=E      0.0
+       Stop                     :=E      0.1
+       Quitt                    :=E      0.2
+       Tippen                   :=E      0.3
+       Huelse_Hand              :=E      0.4
+       Abschub_Hand             :=E      0.5
+       Bahnriss1                :=E      0.6
+       Bahnriss2                :=E      0.7
+       Rolle1_Min               :=E      1.0
+       Rolle2_Min               :=E      1.1
+       NotHalt_OK               :=E      1.2
+       Tuer_OK                  :=E      1.3
+       Huelse_Leer              :=E      1.4
+       Log_Fertig               :=E      1.5
+       Abschub_Ende             :=E      1.6
+       Huelse_Da                :=E      1.7
+       U1_Bereit                :=E      2.0
+       U2_Bereit                :=E      2.1
+       U3_Bereit                :=E      2.2
+       U4_Bereit                :=E      2.3
+       U5_Bereit                :=E      2.4
+       MSS_Huelse_OK            :=E      2.5
+       MSS_Abschub_OK           :=E      2.6
+       U1_Frei                  :=A      4.0
+       U2_Frei                  :=A      4.1
+       U3_Frei                  :=A      4.2
+       U4_Frei                  :=A      4.3
+       U5_Frei                  :=A      4.4
+       K3_Huelse                :=A      4.5
+       K4_Abschub               :=A      4.6
+       H1_Betrieb               :=A      4.7
+       H2_Stoerung              :=A      5.0
+       H3_Huelsenmangel         :=A      5.1
+       H4_Hupe                  :=A      5.2
+      NOP   0;
+NETWORK
+TITLE =Merker fuer die Visualisierung
+//Sammelstoerung und Betrieb spiegeln.
+      U     A      5.0;
+      =     M     10.0;
+      U     A      4.7;
+      =     M     10.2;
+END_ORGANIZATION_BLOCK

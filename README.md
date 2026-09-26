@@ -42,6 +42,25 @@ Danach im Frontend fragen, zum Beispiel: *„Was haengt an E0.3 und wo ist das i
 *„Warum leuchtet -H2 nach 20 Sekunden?“* Weitere Fragen mit Loesungsweg in
 [`examples/foerderband/README.md`](examples/foerderband/README.md).
 
+## Testdokumentation: Umroller UR-01 und Aufrollung PM1-AR
+
+Zwei größere Maschinen des Testwerks haben eine vollständige Elektrodokumentation, frei erfunden und
+in sich stimmig: Stromlaufplan (16 bzw. 13 Blätter), Stückliste, Klemmenplan, AWL (FB mit 13 bzw.
+16 Netzwerken, Schrittkette), Symboltabelle und Betriebsanleitung mit Fehlertabelle. Sie liegen in
+[`examples/umroller/`](examples/umroller/) und [`examples/aufrollung/`](examples/aufrollung/) und
+entstehen aus einem datengetriebenen Generator (`scripts/testdoku/`, Maschinenmodell → alle sechs
+Dokumente, Blatt/Spalten-Verweise werden beim Zeichnen erfasst):
+
+```bash
+pip install -e "backend[examples]"                 # reportlab, openpyxl
+python scripts/testdoku/build.py all               # erzeugt beide Sätze neu
+python scripts/load_testwerk.py --docs             # lädt sie hoch und verknüpft L1-UR und PM1-S6
+```
+
+Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signalweg, Befundkarte
+und Fehlersuche funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
+prüfen jeden Verweis gegen den Plan und lassen alle Parser über die Dateien laufen.
+
 ## Werk: Standortplan, Halle, Maschinen, Schaltschrank
 
 Reiter **Werk** oeffnet den **Standortplan** (`/werk`): alle Hallen als Grundriss-Bloecke mit Art
