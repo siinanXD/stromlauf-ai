@@ -115,6 +115,44 @@ freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätz
 Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
 Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
 
+## MCP-Server (Claude Desktop, Claude Code)
+
+Stromlauf stellt seine Funktionen als MCP-Server bereit: Werk, Maschinen, Kennzeichen,
+Dokumentensuche, Signalweg und Vorkalkulation. Nur lesen, auf Stromlauf-Seite kein KI-Aufruf; das
+Sprachmodell ist der MCP-Client (Claude Desktop / Claude Code mit dem eigenen Abo, kein API-Guthaben).
+Voraussetzung: Backend läuft (Port 8010).
+
+| Werkzeug | Zweck |
+|---|---|
+| `site_overview`, `hall_details`, `machine_details` | Werk, Hallen, Maschinen mit Kennzahlen, Fehlerliste, Fehlersuchen |
+| `search_tags`, `find_references` | Wo kommt -K1 / -X3:1 / E0.0 vor, alle Fundstellen |
+| `search_documents` | Semantische oder wörtliche Suche in der Doku |
+| `signal_path` | Quellen und Folgen eines Kennzeichens (Klemmenplan, AWL) |
+| `list_articles`, `calculate_order` | Vorkalkulation: Termin, Zeitplan, Material, Kosten |
+
+Claude Code (Pfade absolut, dann egal aus welchem Ordner gestartet):
+
+```bash
+claude mcp add stromlauf -- C:/dev/Repositories/stromlauf-ai/backend/.venv/Scripts/python.exe C:/dev/Repositories/stromlauf-ai/scripts/mcp_server.py
+```
+
+Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen; Schrägstriche `/` gehen unter Windows):
+
+```json
+{
+  "mcpServers": {
+    "stromlauf": {
+      "command": "C:/dev/Repositories/stromlauf-ai/backend/.venv/Scripts/python.exe",
+      "args": ["C:/dev/Repositories/stromlauf-ai/scripts/mcp_server.py"],
+      "env": { "STROMLAUF_API": "http://127.0.0.1:8010" }
+    }
+  }
+}
+```
+
+Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python scripts/mcp_server.py --http` →
+`http://127.0.0.1:8765/mcp`. Code: `backend/stromlauf_mcp/`, Suche über `GET /api/search`.
+
 ## Chat-Antworten
 
 Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,

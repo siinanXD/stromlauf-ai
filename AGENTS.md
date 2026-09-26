@@ -51,4 +51,6 @@ Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom al
 und muss neu erstellt werden.
 
 GitHub-Remote: `siinanXD/stromlauf-ai` (privat, seit 2026-09-25). Beispielanlage: `examples/foerderband/`, Laden mit `python scripts/load_example.py`.
+MCP-Server: `backend/stromlauf_mcp/` (nur httpx + mcp 2.x, importiert nichts aus `app`), Start
+`backend/.venv/Scripts/python scripts/mcp_server.py`; Werkzeuge nur lesend, Tests mit httpx.MockTransport.
 Testwerk Tissue (4 Hallen, 30 Maschinen): `examples/testwerk/testwerk.json`, Laden mit `python scripts/load_testwerk.py [--refresh]`.

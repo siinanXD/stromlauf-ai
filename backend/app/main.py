@@ -15,6 +15,7 @@ from app.api import (
     onboarding,
     planning,
     plant,
+    search,
     signal,
     site,
     sources,
@@ -60,6 +61,7 @@ app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
 app.include_router(site.router)
 app.include_router(planning.router)
+app.include_router(search.router)
 
 
 @app.get("/api/health")
