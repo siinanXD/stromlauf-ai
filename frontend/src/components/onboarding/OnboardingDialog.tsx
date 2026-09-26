@@ -2,7 +2,7 @@
 
 import { FileStack } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,28 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
   const [type, setType] = useState<MachineType>("other");
   const [chosen, setChosen] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
+  const latest = useRef("");
 
   useEffect(() => {
     if (open) api.listSources().then(setSources).catch(() => setSources([]));
   }, [open]);
 
+  function openDialog() {
+    // Jedes Oeffnen beginnt leer, kein Vorschlag vom letzten Mal
+    latest.current = "";
+    setSourceId("");
+    setProposal(null);
+    setOpen(true);
+  }
+
   async function load(id: string) {
+    latest.current = id;
     setSourceId(id);
     setProposal(null);
     if (!id) return;
     try {
       const result = await onboarding.proposal(id);
+      if (latest.current !== id) return; // spaete Antwort einer frueher gewaehlten Quelle
       setProposal(result);
       setName(result.name);
       setType(result.machine_type);
@@ -66,7 +77,7 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
 
   return (
     <>
-      <Button size="sm" variant="outline" className="border-line" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="outline" className="border-line" onClick={openDialog}>
         <FileStack className="size-3.5" />
         Aus Dokumentation anlegen
       </Button>

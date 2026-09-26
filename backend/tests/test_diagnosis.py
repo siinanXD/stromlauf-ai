@@ -44,3 +44,24 @@ def test_step_prefers_tag_with_reference_and_counts_terminals_as_mentioned():
     )
     assert steps[0]["tag"] == "-X4:U" and steps[0]["ref"] == "/3.5"
     assert [s["text"] for s in steps[1:]] == ["-K1 pruefen"]
+
+
+def test_apply_step_changes_only_that_step():
+    from app.ingestion.diagnosis import apply_step
+
+    steps = build_steps("", ["-K1", "-K2"], {})
+    changed = apply_step(steps, 1, {"status": "nok", "note": "Spule defekt"})
+    assert changed[0] == steps[0] and changed[1]["status"] == "nok" and changed[1]["note"] == "Spule defekt"
+    assert steps[1]["status"] == "open"  # Eingabe unveraendert
+
+
+def test_apply_step_rejects_bad_index_and_status():
+    import pytest
+
+    from app.ingestion.diagnosis import apply_step
+
+    steps = build_steps("", ["-K1"], {})
+    with pytest.raises(ValueError):
+        apply_step(steps, 5, {"status": "ok"})
+    with pytest.raises(ValueError):
+        apply_step(steps, 0, {"status": "kaputt"})

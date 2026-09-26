@@ -72,3 +72,20 @@ def test_internal_variables_get_their_declaration_comment():
 def test_every_bom_device_is_a_node_with_ref():
     graph = fb01_graph()
     assert graph.nodes["-Q1"].ref == "/2.2" and graph.nodes["-T1"].label.startswith("Netzteil")
+
+
+def test_terminal_strips_x10_and_up_are_not_treated_as_supply():
+    rows = [["-X10", "-X10:1", "-A1.1:1 (E0.0)", "-S1:13", "Start", "/5.3"]]
+    path = signal_path(build_graph(rows, [], [], ""), "-S1")
+    assert path is not None and "-X10:1" in {n["id"] for n in path["nodes"]}
+
+
+def test_broken_files_do_not_raise(tmp_path):
+    from app.api.signal import _graph
+
+    bad_xlsx = tmp_path / "stueckliste.xlsx"
+    bad_xlsx.write_bytes(b"kein zip")
+    bad_csv = tmp_path / "klemmen.csv"
+    bad_csv.write_text('Klemme;"' + "x" * 200_000 + "\n", encoding="utf-8")
+    graph = _graph((("bom", str(bad_xlsx), 0.0), ("terminal_plan", str(bad_csv), 0.0)))
+    assert graph.nodes == {}

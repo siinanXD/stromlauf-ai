@@ -88,6 +88,7 @@ export default function MachinePage() {
     if (urlTag) {
       const hit = layout?.parts.find((p) => p.tag.toUpperCase() === urlTag.toUpperCase());
       setHighlightTag(urlTag);
+      setSignalTag(urlTag);
       if (urlTab === "signalweg") setTab("signalweg");
       else if (hit) {
         setSelectedId(hit.id);
@@ -265,6 +266,7 @@ export default function MachinePage() {
         <TabsContent value="fehler" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:px-6">
           {activeDiagnosis && (
             <DiagnosisRunner
+              key={activeDiagnosis.id}
               diagnosis={activeDiagnosis}
               schematic={schematic}
               onChanged={setActiveDiagnosis}

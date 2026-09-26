@@ -27,11 +27,12 @@ def _cells(line: str) -> list[str]:
 
 
 def _column(header: list[str], names: tuple[str, ...]) -> int | None:
-    for index, cell in enumerate(header):
-        lowered = cell.lower()
-        if lowered in names or any(lowered.startswith(name) for name in names):
-            return index
-    return None
+    """Erst exakter Spaltenname, dann Praefix ("Moegliche Ursache" -> ursache)."""
+    lowered = [cell.lower() for cell in header]
+    exact = next((i for i, cell in enumerate(lowered) if cell and cell in names), None)
+    if exact is not None:
+        return exact
+    return next((i for i, cell in enumerate(lowered) if cell and any(cell.startswith(n) for n in names)), None)
 
 
 def _cell(row: list[str], column: int | None) -> str:
@@ -65,7 +66,9 @@ def fault_rows_from_markdown(markdown: str, doc_label: str) -> list[dict]:
             index += 1
             continue
         header = _cells(line)
-        symptom, cause, fix, code = (_column(header, names) for names in (SYMPTOM, CAUSE, FIX, CODE))
+        code = _column(header, CODE)
+        rest = [cell if i != code else "" for i, cell in enumerate(header)]  # Code-Spalte ist kein Symptom
+        symptom, cause, fix = (_column(rest, names) for names in (SYMPTOM, CAUSE, FIX))
         index += 2
         rows = []
         while index < len(lines) and lines[index].strip().startswith("|"):

@@ -80,7 +80,7 @@ def _add_terminal_rows(graph: Graph, rows: list[list[str]], labels: dict[str, tu
         if len(row) < 6 or not row[1].startswith("-X") or ":" not in row[1]:
             continue
         _strip, terminal, intern, extern, function, ref = (cell.strip() for cell in row[:6])
-        if any(word in function.lower() for word in SUPPLY_WORDS) or terminal.startswith(("-X1", "-X2")):
+        if any(word in function.lower() for word in SUPPLY_WORDS) or re.match(r"-X[12]:", terminal):
             continue  # Versorgung/Sammelschienen verbinden alles mit allem
         term = graph.node(normalize_tag(terminal), "terminal", function, ref)
         intern_nodes = [graph.node(a, "address") for a in _addresses_in(intern)] or [

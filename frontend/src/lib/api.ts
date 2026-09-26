@@ -499,6 +499,8 @@ export const diagnoses = {
   list: (machineId: string) => request<Diagnosis[]>(`/api/machines/${machineId}/diagnoses`),
   start: (machineId: string, faultId: string | null, title = "") =>
     request<Diagnosis>(`/api/machines/${machineId}/diagnoses`, json({ fault_id: faultId, title })),
+  updateStep: (id: string, index: number, change: { status?: StepStatus; note?: string }) =>
+    request<Diagnosis>(`/api/diagnoses/${id}/steps/${index}`, json(change, "PATCH")),
   update: (id: string, body: { steps?: DiagnosisStep[]; finding?: string }) =>
     request<Diagnosis>(`/api/diagnoses/${id}`, json(body, "PATCH")),
   finish: (id: string, body: { outcome: "resolved" | "unresolved"; finding: string; add_to_faults: boolean }) =>

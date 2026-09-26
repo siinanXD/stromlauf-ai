@@ -50,6 +50,20 @@ def build_steps(fix: str, tags: list[str], refs: dict[str, str]) -> list[dict]:
     return steps or [_step("Befund aufnehmen", "", refs)]
 
 
+STATUSES = {"open", "ok", "nok", "skip"}
+
+
+def apply_step(steps: list[dict], index: int, change: dict) -> list[dict]:
+    """Neue Schrittliste mit geaendertem Status/Notiz eines Schritts (Server fuehrt zusammen)."""
+    if not 0 <= index < len(steps):
+        raise ValueError(f"Schritt {index + 1} gibt es nicht")
+    if "status" in change and change["status"] not in STATUSES:
+        raise ValueError(f"Status muss eins sein von {sorted(STATUSES)}")
+    updated = [dict(step) for step in steps]
+    updated[index].update({k: v for k, v in change.items() if k in {"status", "note"} and v is not None})
+    return updated
+
+
 def append_finding(text: str, finding: str, day: date) -> str:
     line = f"[{day:%d.%m.%Y}] {finding.strip()}"
     return f"{text.rstrip()}\n{line}" if text.strip() else line

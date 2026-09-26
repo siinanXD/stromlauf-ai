@@ -9,10 +9,16 @@ from sqlalchemy.orm import Session
 from app.api.plant import _get
 from app.api.signal import graph_for_source
 from app.db import get_session
-from app.ingestion.diagnosis import append_finding, build_steps
+from app.ingestion.diagnosis import append_finding, apply_step, build_steps
 from app.ingestion.tags import TagType, extract_tags
 from app.models import DiagnosisSession, FaultEntry, Machine
-from app.schemas import DiagnosisFinish, DiagnosisOut, DiagnosisStart, DiagnosisUpdate
+from app.schemas import (
+    DiagnosisFinish,
+    DiagnosisOut,
+    DiagnosisStart,
+    DiagnosisStepChange,
+    DiagnosisUpdate,
+)
 
 router = APIRouter(prefix="/api", tags=["diagnosis"])
 
@@ -60,9 +66,25 @@ def update_diagnosis(diagnosis_id: str, body: DiagnosisUpdate, session: Session 
     return diagnosis
 
 
+@router.patch("/diagnoses/{diagnosis_id}/steps/{index}", response_model=DiagnosisOut)
+def update_step(diagnosis_id: str, index: int, body: DiagnosisStepChange, session: Session = Depends(get_session)):
+    """Einen Schritt aendern; der Server fuehrt zusammen, schnelle Klicks ueberschreiben sich nicht."""
+    diagnosis = session.get(DiagnosisSession, diagnosis_id, with_for_update=True)
+    if diagnosis is None:
+        raise HTTPException(404, "Fehlersuche nicht gefunden")
+    try:
+        diagnosis.steps = apply_step(list(diagnosis.steps), index, body.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    session.commit()
+    return diagnosis
+
+
 @router.post("/diagnoses/{diagnosis_id}/finish", response_model=DiagnosisOut)
 def finish_diagnosis(diagnosis_id: str, body: DiagnosisFinish, session: Session = Depends(get_session)):
     diagnosis = _get(session, DiagnosisSession, diagnosis_id, "Fehlersuche")
+    if diagnosis.finished_at is not None:
+        raise HTTPException(409, "Fehlersuche ist bereits abgeschlossen")
     diagnosis.outcome = body.outcome
     diagnosis.finding = body.finding.strip()
     diagnosis.finished_at = datetime.now(timezone.utc)

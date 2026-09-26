@@ -33,8 +33,11 @@ def _terminal_rows(path: Path) -> list[list[str]]:
 
 
 def _bom_rows(path: Path) -> list[tuple[str, str, str]]:
-    sheet = openpyxl.load_workbook(path, read_only=True, data_only=True).active
-    rows = [[str(c).strip() if c is not None else "" for c in row] for row in sheet.iter_rows(values_only=True)]
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        rows = [[str(c).strip() if c is not None else "" for c in row] for row in workbook.active.iter_rows(values_only=True)]
+    finally:
+        workbook.close()
     header_at = next((i for i, row in enumerate(rows) if any(c.upper() == "BMK" for c in row)), None)
     if header_at is None:
         return []
@@ -68,8 +71,8 @@ def _graph(files: tuple[tuple[str, str, float], ...]) -> Graph:
                 symbols += parse_symbol_table(read_text(path))
             elif doc_type == "plc_program" or suffix == ".awl":
                 awl.append(read_text(path))
-        except (OSError, ValueError, KeyError):
-            continue  # unlesbare Datei: Graph ohne sie
+        except Exception:  # noqa: BLE001 - kaputte/fremde Datei (BadZipFile, csv.Error ...): Graph ohne sie
+            continue
     return build_graph(terminal_rows, bom_rows, symbols, "\n".join(awl))
 
 

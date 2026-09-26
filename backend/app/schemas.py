@@ -358,6 +358,11 @@ class DiagnosisStep(BaseModel):
     note: str = ""
 
 
+class DiagnosisStepChange(BaseModel):
+    status: str | None = Field(default=None, pattern="^(open|ok|nok|skip)$")
+    note: str | None = None
+
+
 class DiagnosisStart(BaseModel):
     fault_id: str | None = None
     title: str = ""

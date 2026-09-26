@@ -31,3 +31,9 @@ def test_guess_machine_from_bom_title():
     assert guess_machine(["Stueckliste Foerderband FB-01", "Foerderband FB-01"]) == ("Foerderband FB-01", "conveyor")
     assert guess_machine(["Roboterzelle R3"]) == ("Roboterzelle R3", "robot")
     assert guess_machine(["Anlage 7"]) == ("Anlage 7", "other")
+
+
+def test_code_column_is_not_taken_as_symptom():
+    markdown = "## Fehler\n\n| Fehlercode | Störung | Ursache | Abhilfe |\n| --- | --- | --- | --- |\n| F01 | Pumpe steht | -F3 aus | -F3 einschalten |\n"
+    [fault] = fault_rows_from_markdown(markdown, "Handbuch")
+    assert fault["code"] == "F01" and fault["symptom"] == "Pumpe steht"

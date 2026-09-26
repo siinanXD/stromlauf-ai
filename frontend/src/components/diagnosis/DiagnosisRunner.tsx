@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Minus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CitationChip } from "@/components/chat/CitationChip";
@@ -31,20 +31,22 @@ export function DiagnosisRunner({
   onClose: () => void;
   onOpen: (target: PageTarget) => void;
 }) {
+  // Schritte lokal fuehren (sofort sichtbar); der Server speichert je Schritt und fuehrt zusammen.
+  // Antworten aendern den lokalen Stand nicht, damit langsame Antworten keine neueren Klicks ueberschreiben.
+  const [steps, setSteps] = useState<DiagnosisStep[]>(diagnosis.steps);
   const [finding, setFinding] = useState(diagnosis.finding);
   const [addToFaults, setAddToFaults] = useState(true);
   const [saving, setSaving] = useState(false);
-  const done = diagnosis.steps.filter((s) => s.status !== "open").length;
-  const firstNok = diagnosis.steps.find((s) => s.status === "nok");
+  const closed = useRef(false);
+  useEffect(() => () => void (closed.current = true), []);
+  const done = steps.filter((s) => s.status !== "open").length;
+  const firstNok = steps.find((s) => s.status === "nok");
 
-  async function setStep(index: number, change: Partial<DiagnosisStep>) {
-    const steps = diagnosis.steps.map((step, i) => (i === index ? { ...step, ...change } : step));
-    onChanged({ ...diagnosis, steps }); // sofort zeigen, dann speichern
-    try {
-      onChanged(await diagnoses.update(diagnosis.id, { steps }));
-    } catch (err) {
-      toast.error(`Speichern fehlgeschlagen: ${(err as Error).message}`);
-    }
+  function setStep(index: number, change: Pick<Partial<DiagnosisStep>, "status" | "note">) {
+    setSteps((current) => current.map((step, i) => (i === index ? { ...step, ...change } : step)));
+    diagnoses.updateStep(diagnosis.id, index, change).catch((err: Error) => {
+      if (!closed.current) toast.error(`Schritt ${index + 1} nicht gespeichert: ${err.message}`);
+    });
   }
 
   async function finish(outcome: "resolved" | "unresolved") {
@@ -52,6 +54,7 @@ export function DiagnosisRunner({
     try {
       const text = finding.trim() || (firstNok ? `${firstNok.text}${firstNok.note ? `: ${firstNok.note}` : ""}` : "");
       onChanged(await diagnoses.finish(diagnosis.id, { outcome, finding: text, add_to_faults: addToFaults && !!text }));
+      closed.current = true;
       toast.success(outcome === "resolved" ? "Fehlersuche abgeschlossen, Befund gespeichert" : "Als nicht behoben gespeichert");
       onClose();
     } catch (err) {
@@ -67,7 +70,7 @@ export function DiagnosisRunner({
         <span className="font-mono text-xs font-semibold tracking-[0.06em]">FEHLERSUCHE</span>
         <span className="min-w-0 flex-1 truncate text-[13px]">{diagnosis.title}</span>
         <span className="font-mono text-xs text-nav-foreground">
-          {done}/{diagnosis.steps.length}
+          {done}/{steps.length}
         </span>
         <button onClick={onClose} aria-label="Schließen" className="hover:text-white/70">
           <X className="size-4" />
@@ -75,7 +78,7 @@ export function DiagnosisRunner({
       </div>
 
       <ol className="divide-y divide-border">
-        {diagnosis.steps.map((step, index) => (
+        {steps.map((step, index) => (
           <li key={index} className={cn("px-4 py-2.5", step.status === "nok" && "bg-danger/5")}>
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-sm font-semibold text-primary">{index + 1}</span>

@@ -56,16 +56,21 @@ def _markdown_of(session: Session, document: Document) -> str:
     path = Path(document.storage_path)
     if path.suffix.lower() in TEXT_SUFFIXES and path.exists():
         return read_text(path)
-    chunks = session.scalars(select(Chunk).where(Chunk.document_id == document.id).order_by(Chunk.id)).all()
+    chunks = session.scalars(select(Chunk).where(Chunk.document_id == document.id)).all()
+    # Reihenfolge wie im Dokument: Seite, dann Ablagefolge (meta.seq, seit 2026-09 gespeichert)
+    chunks = sorted(chunks, key=lambda c: (c.page or 0, int((c.meta or {}).get("seq", 0)), c.id))
     return "\n\n".join(f"## {c.section}\n{c.content}" if c.section else c.content for c in chunks)
 
 
 def _bom_title(path: Path) -> str:
     try:
-        sheet = openpyxl.load_workbook(path, read_only=True, data_only=True).active
-        first = next(sheet.iter_rows(values_only=True), ())
+        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        try:
+            first = next(workbook.active.iter_rows(values_only=True), ())
+        finally:
+            workbook.close()
         return next((str(c).strip() for c in first if c), "")
-    except (OSError, ValueError, KeyError):
+    except Exception:  # noqa: BLE001 - kaputte Datei: kein Titel
         return ""
 
 
@@ -75,7 +80,12 @@ def onboarding_proposal(source_id: str, session: Session = Depends(get_session))
     documents = session.scalars(select(Document).where(Document.source_id == source.id).order_by(Document.filename)).all()
     boms = [d for d in documents if d.doc_type == "bom" and Path(d.storage_path).suffix.lower() in {".xlsx", ".xlsm"}]
     bom_title = _bom_title(Path(boms[0].storage_path)) if boms else ""
-    devices = sum(len(_bom_rows(Path(d.storage_path))) for d in boms if Path(d.storage_path).exists())
+    devices = 0
+    for bom in boms:
+        try:
+            devices += len(_bom_rows(Path(bom.storage_path)))
+        except Exception:  # noqa: BLE001 - kaputte Stueckliste: nicht zaehlen
+            continue
     name, machine_type = guess_machine([bom_title, source.name])
 
     faults: list[dict] = []
