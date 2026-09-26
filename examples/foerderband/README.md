@@ -34,7 +34,7 @@ Die Antworten stehen verteilt ueber mehrere Dokumente, der Agent muss sie zusamm
 2. **Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?**
    Betriebsanleitung Kap. 6 (Blockade) + FB10 Netzwerk 5 (Timer T5, S5T#20S).
 3. **Welche Klemmen muss ich pruefen, wenn der Motor brummt, aber nicht dreht?**
-   Betriebsanleitung + Klemmenplan -X4:U/V/W + Blatt /3.8.
+   Betriebsanleitung + Klemmenplan -X4:U/V/W + Blatt /3.5.
 4. **Wie ist -K1 gegen -K2 verriegelt?**
    FB10 Netzwerk 2 und 3 (Software) + Stromlaufplan Blatt 6 (Hilfskontakte).
 5. **Welchen Typ hat -F2 und auf welchen Strom ist er eingestellt?**

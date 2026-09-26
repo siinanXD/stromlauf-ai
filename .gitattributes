@@ -1,0 +1,5 @@
+# Binaerdateien nie umwandeln (core.autocrlf=true wuerde PDF-Offsets zerstoeren)
+*.pdf binary
+*.xlsx binary
+*.png binary
+*.jpg binary
