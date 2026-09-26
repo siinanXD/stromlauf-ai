@@ -99,13 +99,19 @@ export function SiteCanvas({
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, node) => onSelect(node.id)}
         onPaneClick={() => onSelect(null)}
-        onNodeDragStop={(_, node) =>
-          onRect(node.id, { x: node.position.x, y: node.position.y, w: node.width ?? node.data.hall.w, h: node.height ?? node.data.hall.h })
-        }
+        onNodeDragStop={(_, grabbed, dragged) => {
+          dragged.forEach((node) =>
+            onRect(node.id, { x: node.position.x, y: node.position.y, w: node.width ?? node.data.hall.w, h: node.height ?? node.data.hall.h }),
+          );
+          // Auswahl erst nach dem Loslassen: ein Panelwechsel waehrend des Ziehens verschiebt die Flaeche
+          onSelect(grabbed.id);
+        }}
         onConnect={connect}
         onEdgesDelete={(deleted) => onFlowsChanged(site.flows.filter((f) => !deleted.some((e) => e.source === f.from_hall_id && e.target === f.to_hall_id)))}
         onBeforeDelete={async ({ nodes: doomed }) => doomed.length === 0}
         deleteKeyCode={["Delete", "Backspace"]}
+        selectionKeyCode={null}
+        multiSelectionKeyCode={null}
         snapToGrid
         snapGrid={[GRID, GRID]}
         connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2, strokeDasharray: "6 4" }}

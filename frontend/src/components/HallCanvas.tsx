@@ -130,11 +130,19 @@ export function HallCanvas({
         onEdgesChange={onEdgesChange}
         onNodeClick={(_, node) => node.type === "machine" && onSelect(node.id)}
         onPaneClick={() => onSelect(null)}
-        onNodeDragStop={(_, node) => onMoved(node.id, Math.max(0, node.position.x), Math.max(0, node.position.y))}
+        onNodeDragStop={(_, grabbed, dragged) => {
+          dragged
+            .filter((node) => node.type === "machine")
+            .forEach((node) => onMoved(node.id, Math.max(0, node.position.x), Math.max(0, node.position.y)));
+          // Auswahl erst nach dem Loslassen: ein Panelwechsel waehrend des Ziehens verschiebt die Flaeche
+          if (grabbed.type === "machine") onSelect(grabbed.id);
+        }}
         onConnect={connect}
         onEdgesDelete={(deleted) => onFlowsChanged(flows.filter((f) => !deleted.some((e) => e.source === f.from_machine_id && e.target === f.to_machine_id)))}
         onBeforeDelete={async ({ nodes: doomed }) => doomed.length === 0}
         deleteKeyCode={["Delete", "Backspace"]}
+        selectionKeyCode={null}
+        multiSelectionKeyCode={null}
         snapToGrid
         snapGrid={[GRID, GRID]}
         connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2, strokeDasharray: "6 4" }}

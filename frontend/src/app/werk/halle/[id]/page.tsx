@@ -100,6 +100,12 @@ export default function HallPage() {
     await loadHall();
   }
 
+  // Position sofort in den Seitenzustand, sonst setzt der naechste Neuaufbau (z. B. Auswahl) die Kachel zurueck
+  const moveMachine = useCallback((machineId: string, x: number, y: number) => {
+    setHall((current) => current && { ...current, machines: current.machines.map((m) => (m.id === machineId ? { ...m, pos_x: x, pos_y: y } : m)) });
+    plant.updateMachine(machineId, { pos_x: x, pos_y: y }).catch((err) => setError(err.message));
+  }, []);
+
   async function saveFlows(flows: Flow[]) {
     if (!hall) return;
     setHall({ ...hall, flows });
@@ -160,7 +166,7 @@ export default function HallPage() {
                 flows={hall.flows}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
-                onMoved={(machineId, x, y) => plant.updateMachine(machineId, { pos_x: x, pos_y: y }).catch((err) => setError(err.message))}
+                onMoved={moveMachine}
                 onFlowsChanged={saveFlows}
               />
             </div>
