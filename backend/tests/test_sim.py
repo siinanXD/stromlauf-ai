@@ -136,3 +136,9 @@ def test_article_without_routing_warns_and_still_ships():
 def test_same_input_same_result():
     orders = [order("A1", [SimLine(article(), 840)]), order("A2", [SimLine(article("KR", "L2"), 480)])]
     assert run(orders) == run(orders)
+
+
+def test_office_resources_are_listed_in_process_order():
+    result = run([order("A1", [SimLine(article(), 100, "pallet")])])
+    keys = [r["key"] for r in result["resources"] if r["kind"] == "office"]
+    assert keys == ["office:ks", "office:fin", "office:av", "office:gf"]

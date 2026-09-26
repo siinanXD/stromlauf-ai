@@ -13,6 +13,7 @@ ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("halls", "site_w", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
     ("halls", "site_h", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
     ("machines", "line", "VARCHAR(120) NOT NULL DEFAULT ''"),
+    ("articles", "price", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
 ]
 
 

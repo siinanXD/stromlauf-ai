@@ -316,7 +316,15 @@ def _result(records, resources, points, articles, settings, start_time, warnings
     span = (end_time - start_time).total_seconds() / 60 if start_time and end_time else 0
     with_due = [o for o in orders if o["on_time"] is not None]
     shipped = [o for o in orders if o["shipped_at"]]
-    order_resources = sorted(resources.values(), key=lambda r: ({"office": 0, "paper": 1, "line": 2, "dock": 3}[r.kind], r.key))
+    office_order = [f"office:{step.key}" for step in settings.office_steps]
+    order_resources = sorted(
+        resources.values(),
+        key=lambda r: (
+            {"office": 0, "paper": 1, "line": 2, "dock": 3}[r.kind],
+            office_order.index(r.key) if r.key in office_order else 0,
+            r.key,
+        ),
+    )
     return {
         "start": iso(start_time) if start_time else None,
         "end": iso(end_time) if end_time else None,

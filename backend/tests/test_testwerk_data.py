@@ -124,3 +124,21 @@ def test_settings_for_calculation(werk):
     settings = werk["settings"]["calc"]
     assert settings["truck_capacity"] == 33 and settings["docks"] == 8
     assert [s["key"] for s in settings["office_steps"]] == ["ks", "fin", "av", "gf"]
+
+
+# --- Leitstand (Teil 3) ------------------------------------------------------------------------
+
+
+def test_orders_customers_stock_and_prices(werk):
+    names = {c["name"] for c in werk["customers"]}
+    codes = {a["code"] for a in werk["articles"]}
+    assert len(names) == 6 and all(c["credit_limit"] > 0 for c in werk["customers"])
+    assert len(werk["orders"]) == 14 and len({o["number"] for o in werk["orders"]}) == 14
+    for order in werk["orders"]:
+        assert order["customer"] in names
+        assert "2026-09-28" <= order["received_at"][:10] <= "2026-10-02"
+        assert order["lines"] and all(line["article"] in codes and line["quantity"] > 0 for line in order["lines"])
+    assert len(werk["stock"]) == 5 and all(s["article"] in codes and s["units"] > 0 for s in werk["stock"])
+    assert all(a["price"] > 0 for a in werk["articles"])
+    calc = werk["settings"]["calc"]
+    assert all(step["workers"] >= 1 for step in calc["office_steps"]) and calc["credit_hold_min"] > 0

@@ -13,6 +13,7 @@ from app.api import (
     facts,
     layout,
     onboarding,
+    orders,
     planning,
     plant,
     search,
@@ -62,6 +63,7 @@ app.include_router(onboarding.router)
 app.include_router(site.router)
 app.include_router(planning.router)
 app.include_router(search.router)
+app.include_router(orders.router)
 
 
 @app.get("/api/health")

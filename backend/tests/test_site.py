@@ -24,6 +24,7 @@ def test_upgrade_statements_add_each_column_idempotently():
         ("halls", "site_w"),
         ("halls", "site_h"),
         ("machines", "line"),
+        ("articles", "price"),
     ]
 
 
