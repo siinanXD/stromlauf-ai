@@ -77,6 +77,8 @@ def wait_for(client: httpx.Client, document_ids: list[str], timeout_s: int = 180
     return not pending
 
 
+LAYOUT_JSON = EXAMPLE_DIR / "08_Aufstellungsplan_FB-01.json"
+LAYOUT_PNG = EXAMPLE_DIR / "08_Aufstellungsplan_FB-01.png"
 HALL_NAME = "Halle 1 (Beispiel)"
 MACHINE_NAME = "Foerderband FB-01"
 FAULTS = [
@@ -137,11 +139,53 @@ def setup_plant(client: httpx.Client, source_id: str) -> None:
             client.post(f"/api/cabinets/{cabinet['id']}/hotspots", json={**spot, "confirmed": True})
         print("Schaltschrank-Aufbauplan mit Hotspots angelegt")
 
+    setup_layout(client, machine["id"])
+
+
+def setup_layout(client: httpx.Client, machine_id: str) -> dict:
+    """Draufsicht aus dem Soll-Layout anlegen; vorhandene Teile werden ersetzt (idempotent)."""
+    data = json.loads(LAYOUT_JSON.read_text(encoding="utf-8"))
+    layout = client.put(
+        f"/api/machines/{machine_id}/layout",
+        json={k: data[k] for k in ("width_mm", "depth_mm", "scale_note")},
+    ).json()
+    for part in layout["parts"]:
+        client.delete(f"/api/layout-parts/{part['id']}")
+    for part in data["parts"]:
+        client.post(f"/api/layouts/{layout['id']}/parts", json={**part, "confirmed": True}).raise_for_status()
+    if LAYOUT_PNG.exists():
+        with LAYOUT_PNG.open("rb") as f:
+            client.post(f"/api/machines/{machine_id}/layout/image", files={"file": (LAYOUT_PNG.name, f, "image/png")})
+    print(f"Draufsicht angelegt: {len(data['parts'])} Teile")
+    return layout
+
+
+def compare_layout_vision(client: httpx.Client, layout_id: str) -> None:
+    """Vision gegen das Soll pruefen: welche BMK wurden gefunden (kostet API-Tokens)."""
+    expected = {p["tag"] for p in json.loads(LAYOUT_JSON.read_text(encoding="utf-8"))["parts"] if p["tag"]}
+    result = client.post(f"/api/layouts/{layout_id}/detect", timeout=300)
+    result.raise_for_status()
+    found = {p["tag"] for p in result.json()["parts"] if p["origin"] == "vision" and p["tag"]}
+    print(f"Vision: {len(found & expected)}/{len(expected)} Soll-BMK gefunden; fehlend: {sorted(expected - found)}; "
+          f"zusaetzlich: {sorted(found - expected)}")
+
+
+def maybe_compare(client: httpx.Client, enabled: bool) -> None:
+    if not enabled:
+        return
+    for hall in client.get("/api/halls").json():
+        for machine in client.get(f"/api/halls/{hall['id']}").json()["machines"]:
+            if machine["name"] == MACHINE_NAME:
+                compare_layout_vision(client, client.get(f"/api/machines/{machine['id']}/layout").json()["id"])
+                return
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--api", default="http://localhost:8010", help="Backend-URL")
     parser.add_argument("--vision", action="store_true", help="Vision-Analyse des PDFs (kostet API-Tokens)")
+    parser.add_argument("--layout-vision", action="store_true",
+                        help="Draufsicht zusaetzlich per Vision erkennen und mit dem Soll vergleichen (kostet API-Tokens)")
     args = parser.parse_args()
 
     missing = [name for name, _ in FILES if not (EXAMPLE_DIR / name).exists()]
@@ -168,11 +212,13 @@ def main() -> int:
         if not ids:
             print("Alle Dokumente vorhanden.")
             setup_plant(client, source["id"])
+            maybe_compare(client, args.layout_vision)
             return 0
         print("Warte auf Ingestion (erster Lauf laedt Modelle, das dauert einige Minuten) ...")
         ok = wait_for(client, ids)
         print("Fertig." if ok else "Zeitueberschreitung, Status im Frontend pruefen.")
         setup_plant(client, source["id"])
+        maybe_compare(client, args.layout_vision)
         print(f"Frontend: http://localhost:3100  ->  Quelle \"{SOURCE_NAME}\", Werk -> Halle 1")
         return 0 if ok else 1
 
