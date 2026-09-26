@@ -137,7 +137,7 @@ def paper_kg_per_unit(article: Article) -> float:
 
 def _units(position: Position) -> int:
     if position.quantity <= 0:
-        raise ValueError(f"Menge fuer {position.article.name} muss groesser als 0 sein")
+        raise ValueError(f"Menge für {position.article.name} muss größer als 0 sein")
     if position.unit == "pallet":
         return math.ceil(position.quantity * position.article.units_per_pallet)
     if position.unit == "unit":
