@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import date, datetime
 
 import pytest
@@ -183,3 +184,71 @@ def test_article_without_routing_warns_instead_of_failing():
 def test_quantity_must_be_positive():
     with pytest.raises(ValueError):
         run([Position(tp(), 0)])
+
+
+def test_parse_number_only_strips_approx_prefix():
+    assert parse_number(".75") is None
+    assert parse_number("a5") is None
+    assert parse_number("ca. 5") == 5
+
+
+def test_pallet_quantity_is_not_rounded_up_by_float_noise():
+    article = kr()
+    article.units_per_pallet = 60
+    result = run([Position(article, 8.3, "pallet")])
+    assert result["positions"][0]["units"] == 498
+
+
+def test_warnings_are_not_repeated():
+    result = run([Position(tp(routing=[]), 84), Position(tp(routing=[]), 84)])
+    assert len(result["warnings"]) == len(set(result["warnings"]))
+
+
+def test_too_large_quantity_is_rejected():
+    with pytest.raises(ValueError):
+        run([Position(tp(), 1e11)])
+
+
+def test_step_of_deleted_machine_keeps_its_rate_and_warns():
+    article = tp([step("", "L1", 35, setup=20)])
+    article.routing[0].machine_name = "gelöschte Maschine"
+    result = run([Position(article, 840)])
+    assert station(result, "line:0:0")["work_minutes"] == pytest.approx(20 + 840 / 35)
+    assert any("gelöscht" in w for w in result["warnings"])
+
+
+def test_recipe_components_are_counted_once_per_use():
+    materials = {
+        **MATERIALS,
+        "B": Material("B", "B", "kg", 1, "x", Maker("m", "M", 100, 10), [BomLine("C", 2)]),
+        "C": Material("C", "C", "kg", 1, "x"),
+        "A": Material("A", "A", "kg", 1, "x", Maker("m", "M", 100, 10), [BomLine("B", 1)]),
+    }
+    article = tp()
+    article.bom = [BomLine("A", 1), BomLine("B", 1)]
+    need = {m["code"]: m["qty"] for m in run([Position(article, 10)], materials=materials)["materials"]}
+    assert need["B"] == 20  # 10 direkt + 10 aus A
+    assert need["C"] == 40  # 2 je B
+
+
+def test_loading_round_does_not_straddle_the_weekend():
+    no_office = dataclasses.replace(SETTINGS, office_steps=[])
+    article = tp([step("L1-UR", "L1", 10_000)])
+    result = calculate(datetime(2026, 9, 25, 21, 40), None, [Position(article, 84)], MATERIALS, no_office)
+    ship = station(result, "ship")
+    assert station(result, "line:0:0")["end"] < "2026-09-25T22:00"
+    assert ship["start"] == "2026-09-28T06:00"
+    assert ship["end"] == "2026-09-28T06:45"
+
+
+def test_settings_reject_zero_trucks_and_closed_calendars():
+    from app.werk.masterdata import settings_from_json
+
+    base = {
+        "calendars": {"office": OFFICE, "production": "24/7", "shipping": SHIPPING},
+        "office_steps": [], "truck_capacity": 33, "load_min": 45, "docks": 8,
+    }
+    with pytest.raises(ValueError):
+        settings_from_json({**base, "docks": 0})
+    with pytest.raises(ValueError):
+        settings_from_json({**base, "calendars": {**base["calendars"], "office": {"days": [], "from": "07:00", "to": "16:00"}}})

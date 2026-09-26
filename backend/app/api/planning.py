@@ -24,9 +24,12 @@ class BomOut(BaseModel):
     per: str
 
 
+DELETED = "gelöschte Maschine"
+
+
 class RoutingOut(BaseModel):
     seq: int
-    machine_id: str
+    machine_id: str | None
     machine_name: str
     machine_line: str
     rate: float
@@ -152,8 +155,9 @@ def _calc_article(article: models.Article) -> calc.Article:
         article.waste_pct, article.line,
         [
             calc.Step(
-                s.machine_id, s.machine.name, s.machine.line, s.rate, s.rate_unit, s.setup_min, s.coupled,
-                _hourly(s.machine), s.basis,
+                s.machine_id or "", s.machine.name if s.machine else DELETED,
+                s.machine.line if s.machine else article.line, s.rate, s.rate_unit, s.setup_min, s.coupled,
+                _hourly(s.machine) if s.machine else None, s.basis,
             )
             for s in article.routing
         ],
@@ -213,9 +217,10 @@ def list_articles(session: Session = Depends(get_session)):
             paper_kg_per_unit=calc.paper_kg_per_unit(base),
             routing=[
                 RoutingOut(
-                    seq=s.seq, machine_id=s.machine_id, machine_name=s.machine.name, machine_line=s.machine.line,
-                    rate=s.rate, rate_unit=s.rate_unit, setup_min=s.setup_min, coupled=s.coupled, basis=s.basis,
-                    hourly_rate=_hourly(s.machine),
+                    seq=s.seq, machine_id=s.machine_id, machine_name=s.machine.name if s.machine else DELETED,
+                    machine_line=s.machine.line if s.machine else article.line, rate=s.rate,
+                    rate_unit=s.rate_unit, setup_min=s.setup_min, coupled=s.coupled, basis=s.basis,
+                    hourly_rate=_hourly(s.machine) if s.machine else None,
                 )
                 for s in article.routing
             ],
@@ -243,28 +248,31 @@ def plant_settings(session: Session = Depends(get_session)) -> dict[str, dict]:
 
 @router.put("/master-data")
 def replace_master_data(body: MasterDataIn, session: Session = Depends(get_session)) -> dict:
-    """Stammdaten mit gleichem Code ersetzen (andere bleiben); Parameter je Schluessel ueberschreiben."""
+    """Stammdaten nach Code aktualisieren oder anlegen; IDs bleiben, andere Datensaetze bleiben unberuehrt.
+
+    Stueckliste und Arbeitsplan eines uebergebenen Datensatzes werden ersetzt; Parameter je Schluessel.
+    """
     for key, value in body.settings.items():
         if key == SETTINGS_KEY:
             try:
                 masterdata.settings_from_json(value)
             except (KeyError, TypeError, ValueError) as err:
-                raise HTTPException(400, f"Parameter 'calc' unvollstaendig: {err}") from err
+                raise HTTPException(400, f"Parameter 'calc' unbrauchbar: {err}") from err
     machine_ids = set(session.scalars(select(models.Machine.id)).all())
-    codes = {m.code for m in body.materials}
-    for article in session.scalars(select(models.Article).where(models.Article.code.in_([a.code for a in body.articles]))):
-        session.delete(article)
-    for material in session.scalars(select(models.Material).where(models.Material.code.in_(codes))):
-        session.delete(material)
-    session.flush()
 
     by_code = {m.code: m for m in session.scalars(select(models.Material))}
     for item in body.materials:
         if item.made_on_machine_id and item.made_on_machine_id not in machine_ids:
             raise HTTPException(400, f"Material {item.code}: Maschine nicht gefunden")
-        material = models.Material(**item.model_dump(exclude={"bom"}))
-        session.add(material)
-        by_code[item.code] = material
+        fields = item.model_dump(exclude={"bom"})
+        material = by_code.get(item.code)
+        if material is None:
+            material = models.Material(**fields)
+            session.add(material)
+            by_code[item.code] = material
+        else:
+            for key, value in fields.items():
+                setattr(material, key, value)
     session.flush()
 
     def lines(items: list[BomIn], owner: str) -> list[models.BomLine]:
@@ -279,16 +287,24 @@ def replace_master_data(body: MasterDataIn, session: Session = Depends(get_sessi
 
     for item in body.materials:
         by_code[item.code].bom = lines(item.bom, f"Material {item.code}")
+
+    articles = {a.code: a for a in session.scalars(select(models.Article))}
     for item in body.articles:
         for step in item.routing:
             if step.machine_id not in machine_ids:
                 raise HTTPException(400, f"Artikel {item.code}: Maschine {step.machine_id} nicht gefunden")
             if step.rate_unit not in {"unit_min", "pallet_h"}:
                 raise HTTPException(400, f"Artikel {item.code}: rate_unit muss unit_min oder pallet_h sein")
-        article = models.Article(**item.model_dump(exclude={"routing", "bom"}))
+        fields = item.model_dump(exclude={"routing", "bom"})
+        article = articles.get(item.code)
+        if article is None:
+            article = models.Article(**fields)
+            session.add(article)
+        else:
+            for key, value in fields.items():
+                setattr(article, key, value)
         article.routing = [models.RoutingStep(seq=i, **step.model_dump()) for i, step in enumerate(item.routing)]
         article.bom = lines(item.bom, f"Artikel {item.code}")
-        session.add(article)
     for key, value in body.settings.items():
         session.merge(models.PlantSetting(key=key, value=value))
     session.commit()

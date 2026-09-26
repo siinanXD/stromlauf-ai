@@ -1,6 +1,6 @@
 from datetime import datetime as dt
 
-from app.werk.calendar import add_work, closed_spans, next_open
+from app.werk.calendar import add_work, closed_spans, next_block, next_open
 
 OFFICE = {"days": [0, 1, 2, 3, 4], "from": "07:00", "to": "16:00"}
 
@@ -38,3 +38,10 @@ def test_closed_spans_cover_night_and_weekend():
     spans = closed_spans(dt(2026, 9, 25, 12, 0), dt(2026, 9, 28, 12, 0), OFFICE)
     assert spans == [(dt(2026, 9, 25, 16, 0), dt(2026, 9, 28, 7, 0))]
     assert closed_spans(dt(2026, 9, 25, 12, 0), dt(2026, 9, 28, 12, 0), "24/7") == []
+
+
+def test_next_block_moves_a_block_that_does_not_fit_before_closing():
+    shipping = {"days": [0, 1, 2, 3, 4], "from": "06:00", "to": "22:00"}
+    assert next_block(dt(2026, 9, 25, 21, 50), 45, shipping) == dt(2026, 9, 28, 6, 0)
+    assert next_block(dt(2026, 9, 25, 21, 0), 45, shipping) == dt(2026, 9, 25, 21, 0)
+    assert next_block(dt(2026, 9, 25, 21, 0), 45, "24/7") == dt(2026, 9, 25, 21, 0)

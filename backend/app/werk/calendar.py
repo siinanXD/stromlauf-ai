@@ -46,6 +46,26 @@ def add_work(t: datetime, minutes: float, window: Window) -> datetime:
         current = next_open(end, window)
 
 
+def next_block(t: datetime, minutes: float, window: Window) -> datetime:
+    """Fruehester Start ab t, an dem `minutes` am Stueck in ein offenes Fenster passen.
+
+    Laenger als ein Tagesfenster: dann wie next_open (die Arbeit wird geteilt).
+    """
+    start = next_open(t, window)
+    if window == ALWAYS:
+        return start
+    block = timedelta(minutes=minutes)
+    for _ in range(400):
+        _, end = _bounds(start.date(), window)
+        if start + block <= end:
+            return start
+        following = next_open(end, window)
+        if block > _bounds(following.date(), window)[1] - following:
+            return next_open(t, window)
+        start = following
+    return next_open(t, window)
+
+
 def closed_spans(start: datetime, end: datetime, window: Window) -> list[tuple[datetime, datetime]]:
     """Geschlossene Zeitraeume innerhalb [start, end] (fuer die Schraffur im Zeitplan)."""
     if window == ALWAYS or end <= start:

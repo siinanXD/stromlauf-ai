@@ -462,14 +462,15 @@ class RoutingStep(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), index=True)
     seq: Mapped[int] = mapped_column(Integer, default=0)
-    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"))
+    # SET NULL: wird die Maschine geloescht, bleibt der Schritt (mit Leistung) und die Kalkulation warnt
+    machine_id: Mapped[str | None] = mapped_column(ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
     rate: Mapped[float] = mapped_column(Float)
     rate_unit: Mapped[str] = mapped_column(String(12), default="unit_min")  # unit_min | pallet_h
     setup_min: Mapped[float] = mapped_column(Float, default=0.0)
     coupled: Mapped[bool] = mapped_column(Boolean, default=True)
     basis: Mapped[str] = mapped_column(Text, default="")
 
-    machine: Mapped[Machine] = relationship()
+    machine: Mapped[Machine | None] = relationship()
 
 
 class PlantSetting(Base):

@@ -11,9 +11,10 @@ import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from app.werk.calendar import ALWAYS, Window, add_work, closed_spans, next_open
+from app.werk.calendar import ALWAYS, Window, add_work, closed_spans, next_block, next_open
 
 PAPER = "ROHPAPIER"
+MAX_UNITS = 10_000_000  # je Position; darueber Termine in Jahrzehnten und riesige Zeitplaene
 
 
 @dataclass
@@ -108,7 +109,7 @@ class Position:
 
 def parse_number(text: str) -> float | None:
     """Deutsche Zahl aus einer Kennzahl: '1.500' -> 1500, '2,8' -> 2.8, '~30.000' -> 30000; sonst None."""
-    cleaned = str(text).strip().lstrip("~≈ca. ").strip()
+    cleaned = re.sub(r"^(~|≈|ca\.?)\s*", "", str(text).strip())
     if not re.fullmatch(r"\d{1,3}(\.\d{3})*(,\d+)?|\d+(,\d+)?", cleaned):
         return None
     return float(cleaned.replace(".", "").replace(",", "."))
@@ -144,10 +145,14 @@ def _units(position: Position) -> int:
     if position.quantity <= 0:
         raise ValueError(f"Menge für {position.article.name} muss größer als 0 sein")
     if position.unit == "pallet":
-        return math.ceil(position.quantity * position.article.units_per_pallet)
-    if position.unit == "unit":
-        return math.ceil(position.quantity)
-    raise ValueError(f"Einheit muss 'unit' oder 'pallet' sein, nicht {position.unit!r}")
+        units = math.ceil(round(position.quantity * position.article.units_per_pallet, 6))
+    elif position.unit == "unit":
+        units = math.ceil(round(position.quantity, 6))
+    else:
+        raise ValueError(f"Einheit muss 'unit' oder 'pallet' sein, nicht {position.unit!r}")
+    if units > MAX_UNITS:
+        raise ValueError(f"Menge für {position.article.name} ist zu groß (höchstens {de(MAX_UNITS)} Einheiten)")
+    return units
 
 
 def _units_per_min(step: Step, units_per_pallet: int) -> float:
@@ -170,8 +175,11 @@ def _groups(routing: list[Step]) -> list[list[Step]]:
 def _explode(position_units: int, pallets: int, article: Article, materials: dict[str, Material]) -> dict:
     """Bedarf einer Position: {code: {qty, basis, level, parent}} inkl. Rezepturen der Eigenfertigung."""
     need: dict[str, dict] = {}
+    direct: list[tuple[str, float]] = []
 
     def add(code: str, qty: float, basis: str, level: int, parent: str | None) -> None:
+        if level == 0:
+            direct.append((code, qty))
         entry = need.setdefault(code, {"qty": 0.0, "basis": [], "level": level, "parent": parent})
         entry["qty"] += qty
         entry["basis"].append(basis)
@@ -194,8 +202,9 @@ def _explode(position_units: int, pallets: int, article: Article, materials: dic
             add(line.material_code, qty * line.qty, f"{short(line.qty)} je {material.unit} {material.name}", depth + 1, code)
             expand(line.material_code, qty * line.qty, depth + 1)
 
-    for code, entry in list(need.items()):
-        expand(code, entry["qty"], 0)
+    # Jede direkte Verwendung einzeln aufloesen (nicht die schon aufsummierte Menge, sonst doppelt)
+    for code, qty in list(direct):
+        expand(code, qty, 0)
     return need
 
 
@@ -300,7 +309,12 @@ def calculate(
                 bottleneck=bottleneck.machine_name, machines=[s.machine_name for s in group], position=index,
             )
             for s in group:
-                if s.hourly_rate is None:
+                if not s.machine_id:
+                    warnings.append(
+                        f"Arbeitsplan {article.name}: Maschine eines Schritts wurde gelöscht; "
+                        "Leistung aus dem Arbeitsplan übernommen, ohne Maschinenkosten"
+                    )
+                elif s.hourly_rate is None:
                     missing_rates.add(s.machine_name)
                 else:
                     cost += minutes / 60 * s.hourly_rate
@@ -314,9 +328,15 @@ def calculate(
     trucks = math.ceil(total_pallets / settings.truck_capacity)
     rounds = math.ceil(trucks / settings.docks)
     load_minutes = rounds * settings.load_min
-    after = max(ends)
-    ship_start = next_open(after, settings.shipping)
-    ready_at = add_work(after, load_minutes, settings.shipping)
+    # Jede Laderunde am Stueck: passt sie nicht mehr vor Versandschluss, beginnt sie am naechsten Morgen
+    t = max(ends)
+    ship_start = None
+    for _ in range(rounds):
+        begin = next_block(t, settings.load_min, settings.shipping)
+        ship_start = ship_start or begin
+        t = add_work(begin, settings.load_min, settings.shipping)
+    ready_at = t
+    ship_start = ship_start or next_open(ready_at, settings.shipping)
     station(
         "ship", "Verladung", "Versand", ship_start, ready_at, load_minutes, "shipping",
         f"{de(total_pallets)} Paletten ÷ {settings.truck_capacity} = {trucks} LKW; "
@@ -416,7 +436,7 @@ def calculate(
         ],
         "materials": material_rows,
         "costs": {"positions": cost_rows, "total": totals, "office_minutes": office_minutes, "trucks": trucks},
-        "warnings": warnings,
+        "warnings": list(dict.fromkeys(warnings)),
     }
 
 

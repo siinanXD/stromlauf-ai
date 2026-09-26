@@ -1,6 +1,9 @@
 """Stammdaten fuer die Vorkalkulation aus JSON (Testwerk-Datei, plant_settings) in Rechenkern-Objekte."""
 
+from datetime import time
+
 from app.werk import calc
+from app.werk.calendar import ALWAYS
 
 HOURLY_LABEL = "Maschinenstundensatz"
 
@@ -14,7 +17,19 @@ def hourly_rate(specs: list[dict]) -> float | None:
 
 
 def settings_from_json(value: dict) -> calc.Settings:
+    """Parameter pruefen und umwandeln; ValueError mit Klartext bei unbrauchbaren Werten."""
     calendars = value["calendars"]
+    for name in ("office", "production", "shipping"):
+        window = calendars[name]
+        if window == ALWAYS:
+            continue
+        if not window.get("days"):
+            raise ValueError(f"Kalender {name}: keine Arbeitstage")
+        if time.fromisoformat(window["from"]) >= time.fromisoformat(window["to"]):
+            raise ValueError(f"Kalender {name}: 'from' muss vor 'to' liegen")
+    for key in ("truck_capacity", "docks", "load_min"):
+        if not float(value[key]) > 0:
+            raise ValueError(f"Parameter {key} muss größer als 0 sein")
     return calc.Settings(
         office=calendars["office"],
         production=calendars["production"],
