@@ -505,3 +505,22 @@ export const diagnoses = {
     request<Diagnosis>(`/api/diagnoses/${id}/finish`, json(body)),
   remove: (id: string) => request<void>(`/api/diagnoses/${id}`, { method: "DELETE" }),
 };
+
+// --- Onboarding aus der Doku -----------------------------------------------------------------
+
+export interface OnboardingProposal {
+  source_id: string;
+  source_name: string;
+  name: string;
+  machine_type: MachineType;
+  devices: number;
+  documents: { filename: string; doc_type: DocType }[];
+  faults: FaultInput[];
+  hints: string[];
+}
+
+export const onboarding = {
+  proposal: (sourceId: string) => request<OnboardingProposal>(`/api/sources/${sourceId}/onboarding`),
+  create: (hallId: string, body: { source_id: string; name: string; machine_type: MachineType; faults: FaultInput[] }) =>
+    request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
+};

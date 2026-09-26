@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { HallCanvas } from "@/components/HallCanvas";
+import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import {
   api,
   MACHINE_TYPE_LABELS,
@@ -173,7 +174,10 @@ export default function WerkPage() {
                 <div className="flex items-center gap-3 border-b border-border px-4 py-2">
                   <h1 className="truncate font-mono text-lg font-semibold uppercase">{current.name}</h1>
                   <span className="text-sm text-muted-foreground">{current.machines.length} Maschinen</span>
-                  <button onClick={deleteHall} className="ml-auto text-sm text-muted-foreground hover:text-danger">
+                  <span className="ml-auto">
+                    <OnboardingDialog hallId={current.id} onCreated={() => loadHall(current.id)} />
+                  </span>
+                  <button onClick={deleteHall} className="text-sm text-muted-foreground hover:text-danger">
                     Halle löschen
                   </button>
                 </div>
