@@ -143,6 +143,38 @@ def compare(summary: dict, baseline: dict) -> list[tuple[str, object, object, fl
     return rows
 
 
+# --- Retrieval-Antworten abflachen ------------------------------------------------------------------
+
+
+def _unique(names: Iterable[str | None]) -> list[str]:
+    seen: list[str] = []
+    for name in names:
+        if name and name not in seen:
+            seen.append(name)
+    return seen
+
+
+def flatten(mode: str, payload: object) -> tuple[str, list[str]]:
+    """Endpunkt-Antwort als Text plus zitierte Dateinamen, damit dieselben Regeln wie fuer den Agenten gelten."""
+    if payload is None:
+        return "", []
+    if mode in {"tag", "semantic", "keyword"}:
+        return payload["text"], _unique(r.get("filename") for r in payload.get("refs", []))
+    if mode == "fact":
+        lines = [payload.get("title") or "", payload.get("bom_line") or ""]
+        lines += [f"{row['label']}: " + ", ".join(v["text"] for v in row["values"]) for row in payload.get("rows", [])]
+        files = _unique(v.get("filename") for row in payload.get("rows", []) for v in row["values"])
+        return "\n".join(line for line in lines if line), files
+    if mode == "signal":
+        lines = []
+        for node in payload.get("nodes", []):
+            lines.append(f"{node['id']} | {node.get('label', '')} | {node.get('ref', '')}")
+            if node.get("detail"):
+                lines.append(node["detail"])
+        return "\n".join(lines), []
+    return json.dumps(payload, ensure_ascii=False), []
+
+
 # --- Ausgabe ------------------------------------------------------------------------------------
 
 

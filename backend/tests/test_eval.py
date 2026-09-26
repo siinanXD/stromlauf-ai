@@ -119,3 +119,49 @@ def test_questions_file_is_valid():
     rows = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     assert len(rows) >= 24
     assert evallib.load_questions(ROOT / "eval" / "questions.jsonl", only="festo")
+
+
+# --- Task 2: Retrieval-Schicht ------------------------------------------------------------------
+
+
+def test_flatten_search_uses_text_and_ref_filenames():
+    refs = [{"filename": "a.pdf"}, {"filename": "a.pdf"}, {"filename": "b.csv"}]
+    text, files = evallib.flatten("tag", {"text": "Fundstellen", "refs": refs})
+    assert text == "Fundstellen" and files == ["a.pdf", "b.csv"]
+
+
+def test_flatten_fact_card_lines_and_files():
+    card = {"tag": "-M1", "title": "Motor", "bom_line": "-M1 | Motor", "rows": [
+        {"label": "Klemmen", "values": [{"text": "-X4:U", "ref": "-X4:U", "filename": "03.csv"},
+                                        {"text": "-X4:V", "ref": "", "filename": "03.csv"}]}]}
+    text, files = evallib.flatten("fact", card)
+    assert "Klemmen: -X4:U, -X4:V" in text and "Motor" in text and files == ["03.csv"]
+
+
+def test_flatten_signal_lists_nodes():
+    path = {"start": "-S1", "edges": [],
+            "nodes": [{"id": "FB 10/NW1", "label": "Selbsthaltung", "ref": "FB 10 NW 1", "detail": "U #Start"}]}
+    text, files = evallib.flatten("signal", path)
+    assert "FB 10/NW1 | Selbsthaltung | FB 10 NW 1" in text and "U #Start" in text and files == []
+
+
+def test_flatten_calc_and_site_dump_json():
+    assert '"pallets": 160' in evallib.flatten("calc", {"summary": {"pallets": 160}})[0]
+    assert evallib.flatten("site", None) == ("", [])
+    assert '"docks": 8' in evallib.flatten("site", {"name": "Lager", "docks": 8})[0]
+
+
+def test_flatten_site_unknown_hall():
+    rr = _load("run_retrieval")
+    assert rr.find_hall({"halls": [{"name": "Verarbeitung"}]}, "Lager") is None
+    assert rr.find_hall({"halls": [{"name": "Lager & Versand"}]}, "lager")["name"] == "Lager & Versand"
+
+
+def test_run_retrieval_unknown_article():
+    rr = _load("run_retrieval")
+    with pytest.raises(ValueError, match="XX-1"):
+        rr.calc_body({"positions": [{"article": "XX-1", "quantity": 1, "unit": "unit"}]}, {"TP-1": "id1"})
+    body = rr.calc_body({"received_at": "2026-09-28T07:00",
+                         "positions": [{"article": "TP-1", "quantity": 2, "unit": "pallet"}]}, {"TP-1": "id1"})
+    assert body["positions"] == [{"article_id": "id1", "quantity": 2, "unit": "pallet"}]
+    assert body["received_at"] == "2026-09-28T07:00"
