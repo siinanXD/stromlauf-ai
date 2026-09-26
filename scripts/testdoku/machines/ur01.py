@@ -99,7 +99,7 @@ DEVICES = [
     Device("-A1.3", "Digitalausgabe 16 x 24 V DC / 0,5 A (A4.0 bis A5.7)", "DO-Baugruppe 16 DO"),
     Device("-X1", "Klemmleiste Netzeinspeisung", "Reihenklemme 50 mm2", 5),
     Device("-X2", "Klemmleiste 24 V Steuerspannung", "Reihenklemme 2,5 mm2", 8),
-    Device("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster, Umrichter-Signale)", "Reihenklemme 2,5 mm2", 38),
+    Device("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster, Umrichter-Signale, Sicherheitskreise)", "Reihenklemme 2,5 mm2"),
 ] + [Device(d.strip, f"Klemmleiste Motorabgang {d.motor}", "Reihenklemme 6 mm2" if d.kw > 5 else "Reihenklemme 2,5 mm2", 4) for d in DRIVES]
 
 NETWORKS = """NETWORK
@@ -195,7 +195,7 @@ TITLE =Huelsenzufuhr -K3
       =     #K3_Huelse;
 NETWORK
 TITLE =Logabschub -K4
-//Fertigen Log ausschieben (3 s), Hand-Taster -S9 moeglich; Endschalter -B7 beendet.
+//Fertigen Log ausschieben: -K4 zieht 3 s nach Log fertig an (Saege raeumt), Hand-Taster -S9 moeglich; Endschalter -B7 beendet.
       U(    ;
       O     #Log_Fertig;
       O     #Abschub_Hand;
@@ -251,14 +251,14 @@ TITLE =Merker fuer die Visualisierung
 FAULTS = [
     Fault("-H2 leuchtet, Hupe -H4, Anlage steht", "Bahnriss an Abwickler 1 oder 2 (E0.6 / E0.7 = 1, FB20 Netzwerk 2)", "Bahn an -B1 bzw. -B2 pruefen, Bahn neu einfaedeln. Sensor auf Verschmutzung und Abstand pruefen (Blatt {ref:-B1}). Mit -S6 quittieren."),
     Fault("-H2 leuchtet, ein Umrichter meldet Fehler", "Umrichter -U1 bis -U5 nicht bereit (E2.0 bis E2.4 = 0, FB20 Netzwerk 3)", "Fehlernummer am Umrichter lesen (Blatt {ref:-U1} ff.). Ueberstrom: Antrieb mechanisch pruefen. Nach Beheben Umrichter quittieren, dann -S6."),
-    Fault("Start ohne Wirkung, -H1 aus, -H2 aus", "Not-Halt nicht entriegelt oder Sicherheitsrelais -K1 ohne Freigabe (E1.2 = 0)", "-S1, -S2 und -S3 entriegeln. Beide Kanaele 11/12 und 21/22 pruefen (Blatt {ref:-K1}). An Klemme -X3:11 muessen 24 V anliegen."),
-    Fault("Start ohne Wirkung, Schutztuer geschlossen", "Schutztuerschalter -S10 bis -S13 nicht betaetigt oder -K2 ohne Freigabe (E1.3 = 0)", "Tuerschalter und Betaetiger pruefen (Blatt {ref:-K2}). Klemme -X3:12 messen. Betaetiger auf Verschleiss pruefen."),
-    Fault("Start ohne Wirkung, E1.2 und E1.3 = 1", "Stop-Kreis unterbrochen (E0.1 = 0) oder Stoerung nicht quittiert", "Leitung -W1 Ader zu -S5:11/12 pruefen, Klemme -X3:2. -H2 beobachten, mit -S6 quittieren."),
+    Fault("Start ohne Wirkung, -H1 aus, -H2 aus", "Not-Halt nicht entriegelt oder Sicherheitsrelais -K1 ohne Freigabe (E1.2 = 0)", "-S1, -S2 und -S3 entriegeln. Beide Kanaele 11/12 und 21/22 pruefen (Blatt {ref:-K1}). An Klemme {term:E1.2} muessen 24 V anliegen."),
+    Fault("Start ohne Wirkung, Schutztuer geschlossen", "Schutztuerschalter -S10 bis -S13 nicht betaetigt oder -K2 ohne Freigabe (E1.3 = 0)", "Tuerschalter und Betaetiger pruefen (Blatt {ref:-K2}). Klemme {term:E1.3} messen. Betaetiger auf Verschleiss pruefen."),
+    Fault("Start ohne Wirkung, E1.2 und E1.3 = 1", "Stop-Kreis unterbrochen (E0.1 = 0) oder Stoerung nicht quittiert", "Leitung -W1 Ader zu -S5:11/12 pruefen und Klemme {term:E0.1} messen; danach -H2 beobachten und mit -S6 quittieren."),
     Fault("Huelsenzufuhr laeuft nicht, -H3 gelb", "Huelsenmagazin leer (-B5, E1.4 = 1)", "Magazin fuellen. Sensor -B5 pruefen (Blatt {ref:-B5})."),
     Fault("Huelsenzufuhr laeuft nicht, -H3 aus", "Motorschutz -F7 ausgeloest (E2.5 = 0) oder Huelse bereits eingelegt (-B8)", "-F7 pruefen, Motorstrom -M6 messen (Nennstrom 1,9 A, Einstellung 2,0 A; Blatt {ref:-F7}). Lichtschranke -B8 pruefen."),
-    Fault("Log wird nicht ausgeschoben", "Motorschutz -F8 ausgeloest (E2.6 = 0) oder Endschalter -B7 haengt (E1.6 = 1)", "-F8 pruefen (Blatt {ref:-F8}), Schuetz -K4 auf Ansteuerung A4.6 pruefen (Klemme -X3:32). Endschalter -B7 und Rollenhebel pruefen."),
+    Fault("Log wird nicht ausgeschoben", "Motorschutz -F8 ausgeloest (E2.6 = 0) oder Endschalter -B7 haengt (E1.6 = 1)", "-F8 pruefen (Blatt {ref:-F8}), Schuetz -K4 auf Ansteuerung A4.6 pruefen (Klemme {term:A4.6}). Endschalter -B7 und Rollenhebel pruefen."),
     Fault("Abwickler 1 stoppt, Anlage laeuft weiter", "Restdurchmesser Mutterrolle 1 erreicht (-B3, E1.0 = 1), Rollenwechsel angefordert (M10.1)", "Mutterrolle wechseln. Steht die Rolle nicht am Ende: Sensor -B3 Abstand pruefen (Blatt {ref:-B3})."),
-    Fault("Logzahl MW100 zaehlt nicht", "Lichtschranke -B6 defekt, verschmutzt oder Versorgung fehlt", "24 V an -X3:24, 0 V an -X3:25 pruefen. Schaltausgang BK an -X3:14 (E1.5) beobachten (Blatt {ref:-B6})."),
+    Fault("Logzahl MW100 zaehlt nicht", "Lichtschranke -B6 defekt, verschmutzt oder Versorgung fehlt", "24 V an {supply24}, 0 V an {supply0} pruefen. Schaltausgang BK an {term:E1.5} (E1.5) beobachten (Blatt {ref:-B6})."),
     Fault("Praegewerk oder Perforation laufen im Tippbetrieb nicht", "Wahlschalter -S7 nicht auf Tippen (E0.3 = 0) oder Schutztuer offen", "-S7 auf Tippen stellen, Start -S4 gedrueckt halten, Tueren schliessen (FB20 Netzwerk 8)."),
     Fault("Motor brummt, dreht nicht (Huelsenzufuhr oder Logabschub)", "Phase fehlt am Motorabgang", "Spannung an -X9:U/V/W bzw. -X10:U/V/W pruefen, Motorleitung und Klemmen -M6 / -M7 (Blatt {ref:-M6})."),
 ]
@@ -268,7 +268,7 @@ MANUAL = {
         "Der Umroller UR-01 wickelt Tissue von zwei Mutterrollen (Abwickler -M1, -M2) zu Logs auf Huelsen. "
         "Die Bahn wird gepraegt (-M3), perforiert (-M4) und vom Wickler (-M5, Leitantrieb, 200 m/min) aufgewickelt. "
         "Die Huelsenzufuhr (-M6) legt Huelsen aus dem Magazin ein, der Logabschub (-M7) schiebt fertige Logs zur Saege. "
-        "Alle Antriebe sitzen im Feld {ref:-M5}. Zulaessige Bahnbreite 2,8 m, Logdurchmesser 90 bis 130 mm."
+        "Alle Antriebe sitzen im Feld +FE1 (Antriebsblaetter ab {ref:-M1}). Zulaessige Bahnbreite 2,8 m, Logdurchmesser 90 bis 130 mm."
     ),
     "bedienelemente": [
         ("Taster gruen", "-S4", "Start, setzt die Freigabe (E0.0, FB20 Netzwerk 1)"),

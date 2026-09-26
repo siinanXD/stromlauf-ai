@@ -23,8 +23,8 @@ from app.ingestion.tags import TagType, extract_tags
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 SETS = {
-    "UR-01": {"dir": "umroller", "start": "-S4", "target": "-U5", "machine_type": "main"},
-    "PM1-AR": {"dir": "aufrollung", "start": "-S5", "target": "-U1", "machine_type": "main"},
+    "UR-01": {"dir": "umroller", "start": "-S4", "safety": "-S12", "target": "-U5", "machine_type": "main"},
+    "PM1-AR": {"dir": "aufrollung", "start": "-S5", "safety": "-S4", "target": "-U1", "machine_type": "main"},
 }
 REF = re.compile(r"^/(\d+)\.(\d+)$")
 
@@ -162,3 +162,58 @@ def test_terminal_plan_and_bom_only_name_known_devices(code):
                 if tag.tag_type == TagType.DEVICE and not re.fullmatch(r"-A\d+(\.\d+)?", tag.tag):
                     assert tag.tag in bom_tags, f"{code}: {tag.tag} im Klemmenplan, aber nicht in der Stueckliste"
     assert program_tags <= bom_tags | {"-A1"}, f"{code}: {sorted(program_tags - bom_tags)}"
+
+
+# --- Befunde aus dem Abschluss-Review ---------------------------------------------------------
+
+
+def _graph(code):
+    files = _files(code)
+    return build_graph(_terminal_rows(files["csv"]), _bom_rows(files["bom"]), parse_symbol_table(read_text(files["sdf"])), read_text(files["awl"]))
+
+
+@pytest.mark.parametrize("code", list(SETS))
+def test_safety_device_reaches_the_target_drive(code):
+    """Reissleine/Schutztuer -> Sicherheitsrelais -> E-Eingang -> Freigabe -> Umrichter."""
+    path = signal_path(_graph(code), SETS[code]["safety"])
+    assert path is not None
+    ids = {n["id"] for n in path["nodes"]}
+    assert SETS[code]["target"] in ids, f"{code}: {SETS[code]['safety']} -> {sorted(ids)[:20]}"
+
+
+ADDRESS = re.compile(r"([EA]\d+\.\d)")
+TERMINAL = re.compile(r"-X3:\d+")
+
+
+@pytest.mark.parametrize("code", list(SETS))
+def test_fault_texts_name_the_terminal_of_the_mentioned_address(code):
+    """Jede -X3-Klemme in einer Fehlerzeile gehoert zu einer Adresse, die dieselbe Zeile nennt (oder ist Versorgung)."""
+    files = _files(code)
+    with files["csv"].open(encoding="utf-8-sig") as handle:
+        rows = [row for row in csv.reader(handle, delimiter=";") if len(row) >= 6 and row[1].startswith("-X3:")]
+    address_of = {row[1]: m.group(1) for row in rows if (m := ADDRESS.search(row[2]))}
+    known = {row[1] for row in rows}
+    for fault in fault_rows_from_markdown(read_text(files["md"]), "Betriebsanleitung"):
+        text = " ".join((fault["symptom"], fault["cause"], fault["fix"]))
+        addresses = set(ADDRESS.findall(text))
+        for terminal in set(TERMINAL.findall(text)):
+            assert terminal in known, f"{code}: {terminal} gibt es nicht ({fault['symptom']!r})"
+            if terminal in address_of:
+                assert address_of[terminal] in addresses, f"{code}: {fault['symptom']!r} nennt {terminal}, das ist {address_of[terminal]}"
+
+
+def test_continuation_sheet_keeps_channel_numbers():
+    pdf = pdfium.PdfDocument(str(_files("UR-01")["pdf"]))
+    try:
+        texts = [pdf[i].get_textpage().get_text_range() for i in range(len(pdf))]
+    finally:
+        pdf.close()
+    page = next(t for t in texts if "E1.4 bis E1.7" in t and "DI 16 x 24 V DC" in t)  # nicht das Inhaltsverzeichnis
+    assert re.search(r"13\s*E1\.4", page), "Fortsetzungsblatt muss bei Kanal 13 weiterzaehlen"
+    assert "-A1.1" in page
+
+
+@pytest.mark.parametrize("code", list(SETS))
+def test_no_tag_ends_with_a_period(code):
+    faults = fault_rows_from_markdown(read_text(_files(code)["md"]), "Betriebsanleitung")
+    assert not [t for f in faults for t in f["tags"] if t.endswith(".")]

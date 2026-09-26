@@ -6,7 +6,7 @@ SPS-Programm PM1-AR (AWL, FB30/DB30/OB1), Symboltabelle PM1-AR.
 
 ## 1. Bestimmungsgemaesse Verwendung
 
-Die Aufrollung PM1-AR wickelt die Tissuebahn der Papiermaschine PM1 (2,8 m breit, bis 2.200 m/min) auf Tambours. Die Tragtrommel (-M1, Leitantrieb) treibt den Tambour, der Tambourantrieb (-M2) beschleunigt den Leertambour vor dem Wechsel. Die Wechselarme werden hydraulisch bewegt (Pumpe -M3, Ventile -Y1 bis -Y3), die Lager werden von der Oelumlaufpumpe -M4 versorgt. Der Tambourwechsel laeuft als Schrittkette in FB30 (M30.0 bis M30.3). Alle Antriebe sitzen im Feld /3.2.
+Die Aufrollung PM1-AR wickelt die Tissuebahn der Papiermaschine PM1 (2,8 m breit, bis 2.200 m/min) auf Tambours. Die Tragtrommel (-M1, Leitantrieb) treibt den Tambour, der Tambourantrieb (-M2) beschleunigt den Leertambour vor dem Wechsel. Die Wechselarme werden hydraulisch bewegt (Pumpe -M3, Ventile -Y1 bis -Y3), die Lager werden von der Oelumlaufpumpe -M4 versorgt. Der Tambourwechsel laeuft als Schrittkette in FB30 (M30.0 bis M30.3). Alle Antriebe sitzen im Feld +FE6 (Antriebsblaetter ab /3.2).
 
 ## 2. Antriebe
 
@@ -91,9 +91,9 @@ Stop -S6 druecken: die Freigabe faellt ab, die Umrichter-Freigaben A4.0 und A4.1
 | Stoerung 10 s nach dem Einschalten, Oelpumpe laeuft | Oelstand zu niedrig (-B4, E1.0 = 0) oder Oel zu heiss (-B8, E2.2 = 0), FB30 Netzwerk 3 | Oelstand am Schauglas pruefen, Oel nachfuellen. Schwimmerschalter -B4 und Thermostat -B8 pruefen (Blatt /7.6). Oelkuehler pruefen. |
 | Stoerung 5 s nach Start, Hydraulikpumpe laeuft | Hydraulikdruck 150 bar nicht erreicht (-B3, E0.7 = 0), FB30 Netzwerk 5 | Druck am Manometer pruefen. Druckbegrenzungsventil und Pumpe -M3 pruefen. Druckschalter -B3 pruefen (Blatt /7.5). |
 | Hydraulikpumpe laeuft nicht | Motorschutz -F4 ausgeloest (E2.0 = 0) | -F4 pruefen, Motorstrom -M3 messen (Nennstrom 22 A, Einstellung 23 A; Blatt /4.2). Schuetz -K3 auf Ansteuerung A4.2 pruefen. |
-| Tambourwechsel startet nicht, -H3 leuchtet | Wechselarm nicht in Grundstellung (-B6, E1.2 = 0) oder Schutztuer offen | Arm mit -S8 in Grundstellung fahren. Naeherungsschalter -B6 pruefen (Blatt /7.6). Schrittkette M30.0 bis M30.3 in FB30 beobachten. |
-| Wechselarm faehrt nicht aus (Schritt 2) | Magnetventil -Y1 ohne Ansteuerung (A4.4) oder Hydraulikdruck fehlt | Spannung an Klemme -X3:24 pruefen (Blatt /10.5). Ventil -Y1 auf Verschmutzung pruefen. Druck -B3 pruefen. |
-| Trennmesser schneidet nicht (Schritt 3) | Magnetventil -Y3 ohne Ansteuerung (A4.6) oder Messer stumpf | Spannung an Klemme -X3:26 pruefen (Blatt /10.5). Messer pruefen. Endlage -B5 muss E1.1 = 1 melden. |
+| Tambourwechsel startet nicht, -H3 leuchtet | Wechselarm nicht in Grundstellung (-B6, E1.2 = 0) oder Schutztuer offen | Arm mit der Hydraulik-Handsteuerung am Ventilblock in Grundstellung bringen. Naeherungsschalter -B6 pruefen (Blatt /7.6). Schrittkette M30.0 bis M30.3 in FB30 beobachten. |
+| Wechselarm faehrt nicht aus (Schritt 2) | Magnetventil -Y1 ohne Ansteuerung (A4.4) oder Hydraulikdruck fehlt | Spannung an Klemme -X3:26 pruefen (Blatt /10.5). Ventil -Y1 auf Verschmutzung pruefen. Druck -B3 pruefen. |
+| Trennmesser schneidet nicht (Schritt 3) | Magnetventil -Y3 ohne Ansteuerung (A4.6) oder Messer stumpf | Spannung an Klemme -X3:28 pruefen (Blatt /10.5). Messer pruefen. Endlage -B5 muss E1.1 = 1 melden. |
 | Tambourantrieb -M2 laeuft nicht mit | Leertambour nicht erkannt (-B7, E1.3 = 0) oder -U2 nicht bereit | Lichtschranke -B7 pruefen (Blatt /7.5). Umrichter -U2 Fehlernummer lesen, -F3 pruefen. |
 | Tambourzahl MW102 zaehlt nicht | Naeherungsschalter -B6 Grundstellung ohne Flanke | 24 V an -X3:20, 0 V an -X3:21 pruefen. Schaltausgang -B6 an -X3:11 (E1.2) beobachten (Blatt /7.6). |
 

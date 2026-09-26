@@ -6,11 +6,10 @@ Digitalausgaenge, Klemmenplan. Jede gezeichnete Beschriftung registriert ihre Ke
 
 from pathlib import Path
 
+from model import TAG, Machine, Refs, Signal
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas
-
-from model import TAG, Machine, Refs, Signal
 
 W, H = landscape(A4)
 MARGIN = 28
@@ -19,7 +18,8 @@ FRAME_BOTTOM = MARGIN + 60
 COLS = 8
 COL_W = (W - 2 * MARGIN) / COLS
 DI_PER_PAGE = 12
-DO_PER_PAGE = 12
+DO_PER_PAGE = 11  # mehr passt nicht neben die Baugruppe
+MAX_SAFETY_DEVICES = 5  # sonst kreuzt das Relais die 0-V-Schiene
 DRIVES_PER_PAGE = 2
 DRIVE_COLUMNS = (2, 6)
 TERMINAL_ROWS_PER_PAGE = 26
@@ -121,10 +121,12 @@ class Sheet:
         if label:
             self.text(x + 12, y - 12, label, 6)
 
-    def terminal(self, x, y, label, primary=True) -> None:
+    def terminal(self, x, y, label, primary=True, align="l") -> None:
         self.c.circle(x, y, 3.2)
-        if label:
-            self.text(x + 6, y - 2, label, 7, primary=primary)
+        if label and align == "r":
+            self.text(x - 6, y + 3, label, 7, primary=primary, align="r")
+        elif label:
+            self.text(x + 6, y + 3, label, 7, primary=primary)  # ueber dem Draht, nicht durchgestrichen
 
     def motor(self, x, y, bmk, label, extra="") -> None:
         self.c.circle(x, y, 22)
@@ -214,12 +216,12 @@ def page_drives(s: Sheet, drives) -> None:
             s.wire(x + dx, yK - 25, x + dx, yX + 4)
         extra = f"{drive.kw:g} kW, PROFIBUS DP Adr. {drive.bus_address}, STO" if drive.kind == "vfd" else "Leistungsschuetz, Spule 24 V DC"
         s.device(x, yK, drive.switch, drive.switch_name, w=46, h=50, extra=extra)
-        for dx in (-12, 0, 12):
+        for dx in (-8, 0, 8):
             s.terminal(x + dx, yX, "", primary=False)
         s.text(x - 30, yX - 12, f"{drive.strip}:U {drive.strip}:V {drive.strip}:W", 7, primary=True)
-        s.terminal(x + 26, yX, "", primary=False)
+        s.terminal(x + 22, yX, "", primary=False)
         s.text(x + 14, yX + 8, f"{drive.strip}:PE", 6, primary=True)
-        for dx in (-12, 0, 12):
+        for dx in (-8, 0, 8):
             s.wire(x + dx, yX - 4, x + dx, yM + 22)
         s.motor(x, yM, drive.motor, drive.name, f"{drive.kw:g} kW  400 V  {drive.amps:g} A  {drive.rpm} 1/min")
     s.text(col_x(1) - 30, H - 470, "Umrichter: Sollwert und Istwert ueber PROFIBUS DP von der SPS -A1; Freigabe ueber Digitalausgang, Bereitmeldung ueber Digitaleingang (siehe DI/DO-Blaetter).", 7)
@@ -231,9 +233,14 @@ def page_safety(s: Sheet, circuits) -> None:
     s.rail(y24, f"+24 V DC von {m.supply_strips[1]}:3 (Blatt 2)", x1=col_x(1) - 30, x2=col_x(8) + 30)
     s.rail(y0, f"0 V DC von {m.supply_strips[1]}:4 (Blatt 2)", x1=col_x(1) - 30, x2=col_x(8) + 30)
     for circuit, base in zip(circuits, (2, 5), strict=False):
+        assert len(circuit.devices) <= MAX_SAFETY_DEVICES, f"{circuit.relay}: hoechstens {MAX_SAFETY_DEVICES} Geraete je Kreis"
         x1, x2 = col_x(base) - 15, col_x(base) + 15
         y = H - 150
         top = y
+        # Klemmen der Reihenschaltung: Beginn zwischen Schiene und erstem Kontakt, Ende vor dem Relais
+        t = m.safety_terminals
+        s.terminal(x1, top + 30, t[(circuit.relay, 1, "start")], align="r")
+        s.terminal(x2, top + 30, t[(circuit.relay, 2, "start")])
         for bmk, pins1, pins2 in circuit.devices:
             s.wire(x1, y + 18 if y == top else y + 22, x1, y + 18)
             s.wire(x2, y + 18 if y == top else y + 22, x2, y + 18)
@@ -243,6 +250,8 @@ def page_safety(s: Sheet, circuits) -> None:
         s.wire(x1, y24, x1, top + 18)
         s.wire(x2, y24, x2, top + 18)
         yK = y - 30
+        s.terminal(x1, y + 9, t[(circuit.relay, 1, "end")], align="r")
+        s.terminal(x2, y + 9, t[(circuit.relay, 2, "end")])
         s.device(col_x(base), yK, circuit.relay, circuit.name, w=70, h=50, extra="S11 S12 S21 S22 / 13-14 23-24")
         s.wire(x1, y + 22, x1, yK + 25)
         s.wire(x2, y + 22, x2, yK + 25)
@@ -284,7 +293,7 @@ def page_commands(s: Sheet, commands: list[Signal]) -> None:
     s.text(col_x(1) - 30, H - 320, f"Bedienpult {m.loc_field}: Taster und Wahlschalter, Leitung -W1 zum Schaltschrank {m.loc_cabinet}, Klemmleiste {m.field_strip}.", 8)
 
 
-def page_inputs(s: Sheet, signals: list[Signal], card: str, first: bool) -> None:
+def page_inputs(s: Sheet, signals: list[Signal], card: str, first: bool, offset: int = 0) -> None:
     m = s.m
     addr_from, addr_to = signals[0].address, signals[-1].address
     s.text(col_x(1) - 30, H - 80, f"SPS -A1, Digitaleingabe {card}, 16 x DC 24 V, Kanaele {addr_from} bis {addr_to}. Versorgung L+ von {m.supply_strips[1]}:5, M von {m.supply_strips[1]}:6.", 8)
@@ -292,9 +301,11 @@ def page_inputs(s: Sheet, signals: list[Signal], card: str, first: bool) -> None
     s.c.rect(xcard - 45, H - 440, 90, 330)
     s.text(xcard, H - 128, card, 10, bold=True, align="c")
     s.text(xcard, H - 140, "DI 16 x 24 V DC", 7, align="c")
+    if first:  # CPU einmal als Symbol, damit -A1 einen Blattverweis hat
+        s.device(col_x(1) - 10, H - 160, "-A1", "SPS CPU", w=30, h=40, extra="DP")
     for i, signal in enumerate(signals):
         y = H - 165 - i * 24
-        s.text(xcard - 40, y - 2, str(i + 1), 7)
+        s.text(xcard - 40, y - 2, str(offset + i + 1), 7)
         s.text(xcard - 25, y - 2, signal.address, 9, bold=True)
         s.wire(xcard + 45, y, col_x(3) - 4, y)
         s.terminal(col_x(3), y, signal.terminal)
@@ -308,7 +319,7 @@ def page_inputs(s: Sheet, signals: list[Signal], card: str, first: bool) -> None
         s.text(col_x(3) - 10, H - 472, f"Programm: OB1 ruft FB{m.fb_number} \"{m.fb_title}\" mit Instanz DB{m.db_number}. Symbole siehe Symboltabelle {m.code}.", 8)
 
 
-def page_outputs(s: Sheet, signals: list[Signal], card: str, first: bool) -> None:
+def page_outputs(s: Sheet, signals: list[Signal], card: str, first: bool, offset: int = 0) -> None:
     m = s.m
     s.text(col_x(1) - 30, H - 80, f"SPS -A1, Digitalausgabe {card}, 16 x DC 24 V / 0,5 A, Kanaele {signals[0].address} bis {signals[-1].address}. Spulenversorgung ueber Freigabe der Sicherheitsrelais.", 8)
     xcard = col_x(2)
@@ -317,7 +328,7 @@ def page_outputs(s: Sheet, signals: list[Signal], card: str, first: bool) -> Non
     s.text(xcard, H - 140, "DO 16 x 24 V DC", 7, align="c")
     for i, signal in enumerate(signals):
         y = H - 170 - i * 26
-        s.text(xcard - 40, y - 2, str(i + 1), 7)
+        s.text(xcard - 40, y - 2, str(offset + i + 1), 7)
         s.text(xcard - 25, y - 2, signal.address, 9, bold=True)
         s.wire(xcard + 45, y, col_x(3) - 4, y)
         s.terminal(col_x(3), y, signal.terminal)
@@ -375,7 +386,7 @@ def plan_pages(m: Machine) -> list[tuple[str, str, object]]:
         card_signals = m.inputs[card_index : card_index + 16]
         for i in range(0, len(card_signals), DI_PER_PAGE):
             chunk = card_signals[i : i + DI_PER_PAGE]
-            pages.append((f"SPS -A1 Digitaleingaenge {card} ({chunk[0].address} bis {chunk[-1].address})", "inputs", (chunk, card, first)))
+            pages.append((f"SPS -A1 Digitaleingaenge {card} ({chunk[0].address} bis {chunk[-1].address})", "inputs", (chunk, card, first, i)))
             first = False
     do_cards = 1 + (len(m.inputs) - 1) // 16
     first = True
@@ -384,7 +395,7 @@ def plan_pages(m: Machine) -> list[tuple[str, str, object]]:
         card_signals = m.outputs[card_index : card_index + 16]
         for i in range(0, len(card_signals), DO_PER_PAGE):
             chunk = card_signals[i : i + DO_PER_PAGE]
-            pages.append((f"SPS -A1 Digitalausgaenge {card} ({chunk[0].address} bis {chunk[-1].address})", "outputs", (chunk, card, first)))
+            pages.append((f"SPS -A1 Digitalausgaenge {card} ({chunk[0].address} bis {chunk[-1].address})", "outputs", (chunk, card, first, i)))
             first = False
     return pages
 

@@ -92,7 +92,7 @@ DEVICES = [
     Device("-A1.3", "Digitalausgabe 16 x 24 V DC / 0,5 A (A4.0 bis A5.7)", "DO-Baugruppe 16 DO"),
     Device("-X1", "Klemmleiste Netzeinspeisung", "Reihenklemme 95 mm2", 5),
     Device("-X2", "Klemmleiste 24 V Steuerspannung", "Reihenklemme 2,5 mm2", 8),
-    Device("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster, Ventile, Umrichter-Signale)", "Reihenklemme 2,5 mm2", 34),
+    Device("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster, Ventile, Umrichter-Signale, Sicherheitskreise)", "Reihenklemme 2,5 mm2"),
 ] + [Device(d.strip, f"Klemmleiste Motorabgang {d.motor}", "Reihenklemme 50 mm2" if d.kw > 50 else "Reihenklemme 16 mm2" if d.kw > 20 else "Reihenklemme 6 mm2", 4) for d in DRIVES]
 
 NETWORKS = """NETWORK
@@ -264,16 +264,16 @@ TITLE =Merker fuer die Visualisierung
 FAULTS = [
     Fault("-H2 leuchtet, Hupe -H4, Aufrollung steht", "Bahnriss vor der Tragtrommel (-B2, E0.6 = 1, FB30 Netzwerk 6)", "Bahn neu einfuehren. Sensor -B2 auf Verschmutzung und Abstand pruefen (Blatt {ref:-B2}). Mit -S7 quittieren."),
     Fault("-H2 leuchtet, Tragtrommel laeuft nicht an", "Umrichter -U1 nicht bereit (E1.6 = 0, FB30 Netzwerk 7)", "Fehlernummer an -U1 lesen (Blatt {ref:-U1}). Leistungsschalter -F2 pruefen. Nach Beheben Umrichter quittieren, dann -S7."),
-    Fault("Start ohne Wirkung, -H1 aus, -H2 aus", "Not-Halt oder Reissleine nicht entriegelt, -K1 ohne Freigabe (E1.4 = 0)", "-S1, -S2, -S3 und Reissleine -S4 entriegeln. Beide Kanaele pruefen (Blatt {ref:-K1}). An Klemme -X3:13 muessen 24 V anliegen."),
-    Fault("Start ohne Wirkung, Schutztuer geschlossen", "Schutztuerschalter -S10 / -S11 nicht betaetigt oder -K2 ohne Freigabe (E1.5 = 0)", "Tuerschalter und Betaetiger pruefen (Blatt {ref:-K2}). Klemme -X3:14 messen."),
+    Fault("Start ohne Wirkung, -H1 aus, -H2 aus", "Not-Halt oder Reissleine nicht entriegelt, -K1 ohne Freigabe (E1.4 = 0)", "-S1, -S2, -S3 und Reissleine -S4 entriegeln. Beide Kanaele pruefen (Blatt {ref:-K1}). An Klemme {term:E1.4} muessen 24 V anliegen."),
+    Fault("Start ohne Wirkung, Schutztuer geschlossen", "Schutztuerschalter -S10 / -S11 nicht betaetigt oder -K2 ohne Freigabe (E1.5 = 0)", "Tuerschalter und Betaetiger pruefen (Blatt {ref:-K2}). Klemme {term:E1.5} messen."),
     Fault("Stoerung 10 s nach dem Einschalten, Oelpumpe laeuft", "Oelstand zu niedrig (-B4, E1.0 = 0) oder Oel zu heiss (-B8, E2.2 = 0), FB30 Netzwerk 3", "Oelstand am Schauglas pruefen, Oel nachfuellen. Schwimmerschalter -B4 und Thermostat -B8 pruefen (Blatt {ref:-B4}). Oelkuehler pruefen."),
     Fault("Stoerung 5 s nach Start, Hydraulikpumpe laeuft", "Hydraulikdruck 150 bar nicht erreicht (-B3, E0.7 = 0), FB30 Netzwerk 5", "Druck am Manometer pruefen. Druckbegrenzungsventil und Pumpe -M3 pruefen. Druckschalter -B3 pruefen (Blatt {ref:-B3})."),
     Fault("Hydraulikpumpe laeuft nicht", "Motorschutz -F4 ausgeloest (E2.0 = 0)", "-F4 pruefen, Motorstrom -M3 messen (Nennstrom 22 A, Einstellung 23 A; Blatt {ref:-F4}). Schuetz -K3 auf Ansteuerung A4.2 pruefen."),
-    Fault("Tambourwechsel startet nicht, -H3 leuchtet", "Wechselarm nicht in Grundstellung (-B6, E1.2 = 0) oder Schutztuer offen", "Arm mit -S8 in Grundstellung fahren. Naeherungsschalter -B6 pruefen (Blatt {ref:-B6}). Schrittkette M30.0 bis M30.3 in FB30 beobachten."),
-    Fault("Wechselarm faehrt nicht aus (Schritt 2)", "Magnetventil -Y1 ohne Ansteuerung (A4.4) oder Hydraulikdruck fehlt", "Spannung an Klemme -X3:24 pruefen (Blatt {ref:-Y1}). Ventil -Y1 auf Verschmutzung pruefen. Druck -B3 pruefen."),
-    Fault("Trennmesser schneidet nicht (Schritt 3)", "Magnetventil -Y3 ohne Ansteuerung (A4.6) oder Messer stumpf", "Spannung an Klemme -X3:26 pruefen (Blatt {ref:-Y3}). Messer pruefen. Endlage -B5 muss E1.1 = 1 melden."),
+    Fault("Tambourwechsel startet nicht, -H3 leuchtet", "Wechselarm nicht in Grundstellung (-B6, E1.2 = 0) oder Schutztuer offen", "Arm mit der Hydraulik-Handsteuerung am Ventilblock in Grundstellung bringen. Naeherungsschalter -B6 pruefen (Blatt {ref:-B6}). Schrittkette M30.0 bis M30.3 in FB30 beobachten."),
+    Fault("Wechselarm faehrt nicht aus (Schritt 2)", "Magnetventil -Y1 ohne Ansteuerung (A4.4) oder Hydraulikdruck fehlt", "Spannung an Klemme {term:A4.4} pruefen (Blatt {ref:-Y1}). Ventil -Y1 auf Verschmutzung pruefen. Druck -B3 pruefen."),
+    Fault("Trennmesser schneidet nicht (Schritt 3)", "Magnetventil -Y3 ohne Ansteuerung (A4.6) oder Messer stumpf", "Spannung an Klemme {term:A4.6} pruefen (Blatt {ref:-Y3}). Messer pruefen. Endlage -B5 muss E1.1 = 1 melden."),
     Fault("Tambourantrieb -M2 laeuft nicht mit", "Leertambour nicht erkannt (-B7, E1.3 = 0) oder -U2 nicht bereit", "Lichtschranke -B7 pruefen (Blatt {ref:-B7}). Umrichter -U2 Fehlernummer lesen, -F3 pruefen."),
-    Fault("Tambourzahl MW102 zaehlt nicht", "Naeherungsschalter -B6 Grundstellung ohne Flanke", "24 V an -X3:20, 0 V an -X3:21 pruefen. Schaltausgang -B6 an -X3:11 (E1.2) beobachten (Blatt {ref:-B6})."),
+    Fault("Tambourzahl MW102 zaehlt nicht", "Naeherungsschalter -B6 Grundstellung ohne Flanke", "24 V an {supply24}, 0 V an {supply0} pruefen. Schaltausgang -B6 an {term:E1.2} (E1.2) beobachten (Blatt {ref:-B6})."),
 ]
 
 MANUAL = {
@@ -281,7 +281,7 @@ MANUAL = {
         "Die Aufrollung PM1-AR wickelt die Tissuebahn der Papiermaschine PM1 (2,8 m breit, bis 2.200 m/min) auf Tambours. "
         "Die Tragtrommel (-M1, Leitantrieb) treibt den Tambour, der Tambourantrieb (-M2) beschleunigt den Leertambour vor dem Wechsel. "
         "Die Wechselarme werden hydraulisch bewegt (Pumpe -M3, Ventile -Y1 bis -Y3), die Lager werden von der Oelumlaufpumpe -M4 versorgt. "
-        "Der Tambourwechsel laeuft als Schrittkette in FB30 (M30.0 bis M30.3). Alle Antriebe sitzen im Feld {ref:-M1}."
+        "Der Tambourwechsel laeuft als Schrittkette in FB30 (M30.0 bis M30.3). Alle Antriebe sitzen im Feld +FE6 (Antriebsblaetter ab {ref:-M1})."
     ),
     "bedienelemente": [
         ("Taster gruen", "-S5", "Start, setzt die Freigabe (E0.0, FB30 Netzwerk 1)"),

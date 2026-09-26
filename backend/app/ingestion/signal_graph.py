@@ -17,6 +17,8 @@ ADDRESS = re.compile(r"(?<![\w.\-])([EAM])\s*(\d{1,4})\s*\.\s*([0-7])(?![\d])", 
 WORD = re.compile(r"(?<![\w.\-])(MW|MB|MD|EW|AW|EB|AB)\s*(\d{1,4})(?![\d.])", re.I)
 TIMER = re.compile(r"^(T|Z)\s*(\d{1,4})$", re.I)
 SUPPLY_WORDS = ("0 v", "+24", "24 v", "schutzleiter", "netz", "versorgung")
+# Eingangsklemmen S12/S22 eines Sicherheitsrelais: das Feldgeraet (Not-Halt, Schutztuer) speist das Relais
+SAFETY_INPUT = re.compile(r"-K\d+:S[12]2\b")
 READ_OPS = {"U", "UN", "O", "ON", "X", "XN", "L", "FP", "FN"}
 WRITE_OPS = {"=", "S", "R", "T", "SE", "SI", "SV", "SA", "SS", "ZV", "ZR"}
 MAX_DEPTH = 12
@@ -87,7 +89,7 @@ def _add_terminal_rows(graph: Graph, rows: list[list[str]], labels: dict[str, tu
             graph.node(d, "device", *labels.get(d, ("", ""))) for d in _devices_in(intern)
         ]
         extern_nodes = [graph.node(d, "device", *labels.get(d, ("", ""))) for d in _devices_in(extern)]
-        inputs = any(n.startswith("E") for n in intern_nodes)
+        inputs = any(n.startswith("E") for n in intern_nodes) or bool(SAFETY_INPUT.search(intern))
         sources, targets = (extern_nodes, intern_nodes) if inputs else (intern_nodes, extern_nodes)
         for source in sources:
             graph.edge(source, term)

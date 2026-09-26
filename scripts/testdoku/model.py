@@ -6,7 +6,7 @@ die uebrigen Dokumente uebernommen; im Text stehen Platzhalter wie `{ref:-F2}`.
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 TAG = re.compile(r"-[A-Z]{1,2}\d+(?:\.\d+)?(?::[A-Za-z0-9]+)?")
 
@@ -111,7 +111,27 @@ class Machine:
             signal.terminal = f"{self.field_strip}:{n}"
         self.coil_return = f"{self.field_strip}:{n + 1}"
         self.lamp_return = f"{self.field_strip}:{n + 2}"
-        self.field_terminal_count = n + 2
+        n += 2
+        # Sicherheitskreise: je Kanal Beginn (S11/S21) und Ende (S12/S22) der Reihenschaltung
+        self.safety_terminals: dict[tuple[str, int, str], str] = {}
+        for circuit in self.safety:
+            for channel in (1, 2):
+                for end in ("start", "end"):
+                    n += 1
+                    self.safety_terminals[(circuit.relay, channel, end)] = f"{self.field_strip}:{n}"
+        self.field_terminal_count = n
+        strip = self.device(self.field_strip)
+        if strip is not None:
+            strip.qty = n
+
+    def terminal_of(self, address: str) -> str:
+        return next((s.terminal for s in self.inputs + self.outputs if s.address == address), "")
+
+    def fill(self, refs: "Refs", text: str) -> str:
+        """{ref:-F2} -> Blattverweis, {term:E0.1} -> Klemme des Signals, {supply24}/{supply0} -> Sensorversorgung."""
+        text = re.sub(r"\{term:([^}]+)\}", lambda m: self.terminal_of(m.group(1)) or m.group(0), text)
+        text = text.replace("{supply24}", self.sensor_supply[0]).replace("{supply0}", self.sensor_supply[1])
+        return refs.fill(text)
 
     @property
     def sensors(self) -> list[Signal]:

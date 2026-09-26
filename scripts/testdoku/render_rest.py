@@ -3,10 +3,9 @@
 import csv
 from pathlib import Path
 
+from model import Machine, Refs
 from openpyxl import Workbook
 from openpyxl.styles import Font
-
-from model import Machine, Refs
 
 
 def terminal_rows(m: Machine, refs: Refs, probe: bool = False) -> list[tuple[str, str, str, str, str]]:
@@ -46,13 +45,22 @@ def terminal_rows(m: Machine, refs: Refs, probe: bool = False) -> list[tuple[str
         (f"{x1}:PE", "PE-Schiene", "Netz PE", "Schutzleiter", ref(f"{x1}:PE")),
         (f"{x2}:1", "-T1:+", f"{a}", "+24 V Sensoren", ref(f"{x2}:1")),
         (f"{x2}:2", "-T1:-", f"{b}, {m.coil_return}, {m.lamp_return}", "0 V", ref(f"{x2}:2")),
-        (f"{x2}:3", "-T1:+", ", ".join(f"{c.devices[0][0]}:{c.devices[0][1].split('/')[0]}" for c in m.safety), "+24 V Sicherheitskreise", ref(f"{x2}:3")),
+        (f"{x2}:3", "-T1:+", ", ".join(f"{c.relay}:A1" for c in m.safety), "+24 V Sicherheitskreise", ref(f"{x2}:3")),
         (f"{x2}:4", "-T1:-", ", ".join(f"{c.relay}:A2" for c in m.safety), "0 V Sicherheitskreise", ref(f"{x2}:4")),
         (f"{x2}:5", "-T1:+", "-A1:L+, " + ", ".join(f"{d.switch}:24V" for d in m.drives if d.kind == "vfd"), "+24 V SPS und Umrichter", ref(f"{x2}:5")),
         (f"{x2}:6", "-T1:-", "-A1:M", "0 V SPS und Umrichter", ref(f"{x2}:6")),
     ]
     for circuit in m.safety:
         rows.append((circuit.release_terminal, f"{circuit.relay}:14", circuit.release_text[:40], "+24 V freigegeben", ref(circuit.release_terminal)))
+        chain = ", ".join(bmk for bmk, _, _ in circuit.devices)
+        for channel in (1, 2):
+            first, last = circuit.devices[0], circuit.devices[-1]
+            pins_first = first[channel].split("/")
+            pins_last = last[channel].split("/")
+            start = m.safety_terminals[(circuit.relay, channel, "start")]
+            end = m.safety_terminals[(circuit.relay, channel, "end")]
+            rows.append((start, f"{circuit.relay}:S{channel}1", f"{first[0]}:{pins_first[0]}", f"{circuit.name[:22]} Kanal {channel} Beginn", ref(start)))
+            rows.append((end, f"{circuit.relay}:S{channel}2", f"{last[0]}:{pins_last[1]} (Reihe: {chain})", f"{circuit.name[:22]} Kanal {channel} Ende", ref(end)))
     return rows
 
 
@@ -140,11 +148,12 @@ def symbole(m: Machine, out: Path) -> None:
 
 def anleitung(m: Machine, refs: Refs, out: Path) -> None:
     man = m.manual
+    fill = lambda text: m.fill(refs, text)  # noqa: E731 - kurze lokale Hilfe
     io_rows = "\n".join(f"| {s.address} | {s.symbol} | {s.comment} | {s.device} | {s.terminal} |" for s in m.inputs + m.outputs)
-    controls = "\n".join(f"| {e} | {b} | {refs.fill(f)} |" for e, b, f in man["bedienelemente"])
-    steps = "\n".join(f"{i + 1}. {refs.fill(step)}" for i, step in enumerate(man["einschalten"]))
-    faults = "\n".join(f"| {refs.fill(f.symptom)} | {refs.fill(f.cause)} | {refs.fill(f.check)} |" for f in m.faults)
-    maintenance = "\n".join(f"- {refs.fill(line)}" for line in man["wartung"])
+    controls = "\n".join(f"| {e} | {b} | {fill(f)} |" for e, b, f in man["bedienelemente"])
+    steps = "\n".join(f"{i + 1}. {fill(step)}" for i, step in enumerate(man["einschalten"]))
+    faults = "\n".join(f"| {fill(f.symptom)} | {fill(f.cause)} | {fill(f.check)} |" for f in m.faults)
+    maintenance = "\n".join(f"- {fill(line)}" for line in man["wartung"])
     drives = "\n".join(
         f"| {d.motor} | {d.name} | {d.kw:g} kW, {d.amps:g} A, {d.rpm} 1/min | {d.switch} ({'Umrichter' if d.kind == 'vfd' else 'Schuetz'}) | {d.breaker} | {refs.get(d.motor)} |"
         for d in m.drives
@@ -157,7 +166,7 @@ SPS-Programm {m.code} (AWL, FB{m.fb_number}/DB{m.db_number}/OB1), Symboltabelle 
 
 ## 1. Bestimmungsgemaesse Verwendung
 
-{refs.fill(man["verwendung"])}
+{fill(man["verwendung"])}
 
 ## 2. Antriebe
 
@@ -177,7 +186,7 @@ SPS-Programm {m.code} (AWL, FB{m.fb_number}/DB{m.db_number}/OB1), Symboltabelle 
 
 ## 5. Ausschalten und Not-Halt
 
-{refs.fill(man["ausschalten"])}
+{fill(man["ausschalten"])}
 
 ## 6. SPS-Belegung
 

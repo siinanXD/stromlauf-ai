@@ -72,9 +72,17 @@ Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
 -X1;-X1:PE;PE-Schiene;Netz PE;Schutzleiter;/2.1
 -X2;-X2:1;-T1:+;-X3:24;+24 V Sensoren;/2.5
 -X2;-X2:2;-T1:-;-X3:25, -X3:37, -X3:38;0 V;/2.5
--X2;-X2:3;-T1:+;-S1:11, -S10:11;+24 V Sicherheitskreise;/2.6
+-X2;-X2:3;-T1:+;-K1:A1, -K2:A1;+24 V Sicherheitskreise;/2.6
 -X2;-X2:4;-T1:-;-K1:A2, -K2:A2;0 V Sicherheitskreise;/2.6
 -X2;-X2:5;-T1:+;-A1:L+, -U1:24V, -U2:24V, -U3:24V, -U4:24V, -U5:24V;+24 V SPS und Umrichter;/2.7
 -X2;-X2:6;-T1:-;-A1:M;0 V SPS und Umrichter;/2.7
 -X2;-X2:3a;-K1:14;STO -U1..-U5, Spulen -K3/-K4;+24 V freigegeben;/7.3
+-X3;-X3:39;-K1:S11;-S1:11;Sicherheitsrelais Not- Kanal 1 Beginn;/7.2
+-X3;-X3:40;-K1:S12;-S3:12 (Reihe: -S1, -S2, -S3);Sicherheitsrelais Not- Kanal 1 Ende;/7.2
+-X3;-X3:41;-K1:S21;-S1:21;Sicherheitsrelais Not- Kanal 2 Beginn;/7.2
+-X3;-X3:42;-K1:S22;-S3:22 (Reihe: -S1, -S2, -S3);Sicherheitsrelais Not- Kanal 2 Ende;/7.2
 -X2;-X2:3b;-K2:14;Freigabe -U3/-U4 Tippbetrieb;+24 V freigegeben;/7.6
+-X3;-X3:43;-K2:S11;-S10:11;Sicherheitsrelais Schu Kanal 1 Beginn;/7.5
+-X3;-X3:44;-K2:S12;-S13:12 (Reihe: -S10, -S11, -S12, -S13);Sicherheitsrelais Schu Kanal 1 Ende;/7.5
+-X3;-X3:45;-K2:S21;-S10:21;Sicherheitsrelais Schu Kanal 2 Beginn;/7.5
+-X3;-X3:46;-K2:S22;-S13:22 (Reihe: -S10, -S11, -S12, -S13);Sicherheitsrelais Schu Kanal 2 Ende;/7.5

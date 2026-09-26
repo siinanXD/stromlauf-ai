@@ -65,3 +65,8 @@ def test_new_faults_skips_known_symptoms():
     existing = [{"symptom": "Band steht"}]
     proposed = [{"symptom": "band steht "}, {"symptom": "-H2 leuchtet"}]
     assert loader.new_faults(existing, proposed) == [{"symptom": "-H2 leuchtet"}]
+
+
+def test_stale_faults_are_the_ones_imported_from_the_manual():
+    faults = [{"id": "1", "doc_ref": "Betriebsanleitung Kap. 7"}, {"id": "2", "doc_ref": "Stromlaufplan Blatt 4"}, {"id": "3", "doc_ref": ""}]
+    assert [f["id"] for f in loader.stale_faults(faults)] == ["1"]

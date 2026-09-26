@@ -161,13 +161,22 @@ def new_faults(existing: list[dict], proposed: list[dict]) -> list[dict]:
     return [f for f in proposed if f["symptom"].strip().casefold() not in known]
 
 
+def stale_faults(faults: list[dict]) -> list[dict]:
+    """Fehler, die aus der Betriebsanleitung importiert wurden (werden bei --refresh ersetzt)."""
+    return [f for f in faults if str(f.get("doc_ref", "")).startswith("Betriebsanleitung")]
+
+
 def load_docs(client: httpx.Client, refresh: bool) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from load_example import upload, wait_for  # noqa: PLC0415 - gleiche Upload-Helfer wie FB-01
+    from load_example import upload, wait_for  # gleiche Upload-Helfer wie FB-01
 
     site = call(client, "GET", "/api/site")
     for doc_set in DOC_SETS:
         folder = ROOT / "examples" / doc_set["folder"]
+        machine = machine_for(site, doc_set["machine"])
+        if machine is None:
+            print(f"Hinweis: keine eindeutige Maschine '{doc_set['machine']}' im Werk, {doc_set['source']} uebersprungen. Testwerk zuerst laden.")
+            continue
         sources = [s for s in call(client, "GET", "/api/sources") if s["name"] == doc_set["source"]]
         if sources and refresh:
             call(client, "DELETE", f"/api/sources/{sources[0]['id']}")
@@ -186,11 +195,14 @@ def load_docs(client: httpx.Client, refresh: bool) -> None:
             print(f"{doc_set['source']}: {len(uploaded)} Dateien hochgeladen, warte auf die Verarbeitung ...")
             if not wait_for(client, uploaded):
                 sys.exit(f"{doc_set['source']}: Verarbeitung nicht abgeschlossen")
-        machine = machine_for(site, doc_set["machine"])
-        if machine is None:
-            print(f"Hinweis: keine eindeutige Maschine '{doc_set['machine']}' im Werk, Quelle nicht verknuepft. Testwerk zuerst laden.")
-            continue
+        failed = [d["filename"] for d in call(client, "GET", f"/api/sources/{source['id']}/documents") if d["status"] == "failed"]
+        if failed:
+            print(f"Warnung: {doc_set['source']}: Verarbeitung fehlgeschlagen fuer {failed} (Details im Backend-Log; --refresh laedt neu)")
         detail = call(client, "GET", f"/api/machines/{machine['id']}")
+        if refresh:
+            for fault in stale_faults(detail["faults"]):
+                call(client, "DELETE", f"/api/faults/{fault['id']}")
+            detail["faults"] = [f for f in detail["faults"] if f not in stale_faults(detail["faults"])]
         if detail.get("source_id") != source["id"]:
             call(client, "PATCH", f"/api/machines/{machine['id']}", {"source_id": source["id"]})
         proposal = call(client, "GET", f"/api/sources/{source['id']}/onboarding")

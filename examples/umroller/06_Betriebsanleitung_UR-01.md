@@ -6,7 +6,7 @@ SPS-Programm UR-01 (AWL, FB20/DB20/OB1), Symboltabelle UR-01.
 
 ## 1. Bestimmungsgemaesse Verwendung
 
-Der Umroller UR-01 wickelt Tissue von zwei Mutterrollen (Abwickler -M1, -M2) zu Logs auf Huelsen. Die Bahn wird gepraegt (-M3), perforiert (-M4) und vom Wickler (-M5, Leitantrieb, 200 m/min) aufgewickelt. Die Huelsenzufuhr (-M6) legt Huelsen aus dem Magazin ein, der Logabschub (-M7) schiebt fertige Logs zur Saege. Alle Antriebe sitzen im Feld /5.2. Zulaessige Bahnbreite 2,8 m, Logdurchmesser 90 bis 130 mm.
+Der Umroller UR-01 wickelt Tissue von zwei Mutterrollen (Abwickler -M1, -M2) zu Logs auf Huelsen. Die Bahn wird gepraegt (-M3), perforiert (-M4) und vom Wickler (-M5, Leitantrieb, 200 m/min) aufgewickelt. Die Huelsenzufuhr (-M6) legt Huelsen aus dem Magazin ein, der Logabschub (-M7) schiebt fertige Logs zur Saege. Alle Antriebe sitzen im Feld +FE1 (Antriebsblaetter ab /3.2). Zulaessige Bahnbreite 2,8 m, Logdurchmesser 90 bis 130 mm.
 
 ## 2. Antriebe
 
@@ -95,7 +95,7 @@ Stop -S5 druecken: die Freigabe faellt ab, alle Umrichter-Freigaben (A4.0 bis A4
 | -H2 leuchtet, ein Umrichter meldet Fehler | Umrichter -U1 bis -U5 nicht bereit (E2.0 bis E2.4 = 0, FB20 Netzwerk 3) | Fehlernummer am Umrichter lesen (Blatt /3.2 ff.). Ueberstrom: Antrieb mechanisch pruefen. Nach Beheben Umrichter quittieren, dann -S6. |
 | Start ohne Wirkung, -H1 aus, -H2 aus | Not-Halt nicht entriegelt oder Sicherheitsrelais -K1 ohne Freigabe (E1.2 = 0) | -S1, -S2 und -S3 entriegeln. Beide Kanaele 11/12 und 21/22 pruefen (Blatt /7.1). An Klemme -X3:11 muessen 24 V anliegen. |
 | Start ohne Wirkung, Schutztuer geschlossen | Schutztuerschalter -S10 bis -S13 nicht betaetigt oder -K2 ohne Freigabe (E1.3 = 0) | Tuerschalter und Betaetiger pruefen (Blatt /7.4). Klemme -X3:12 messen. Betaetiger auf Verschleiss pruefen. |
-| Start ohne Wirkung, E1.2 und E1.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) oder Stoerung nicht quittiert | Leitung -W1 Ader zu -S5:11/12 pruefen, Klemme -X3:2. -H2 beobachten, mit -S6 quittieren. |
+| Start ohne Wirkung, E1.2 und E1.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) oder Stoerung nicht quittiert | Leitung -W1 Ader zu -S5:11/12 pruefen und Klemme -X3:2 messen; danach -H2 beobachten und mit -S6 quittieren. |
 | Huelsenzufuhr laeuft nicht, -H3 gelb | Huelsenmagazin leer (-B5, E1.4 = 1) | Magazin fuellen. Sensor -B5 pruefen (Blatt /10.6). |
 | Huelsenzufuhr laeuft nicht, -H3 aus | Motorschutz -F7 ausgeloest (E2.5 = 0) oder Huelse bereits eingelegt (-B8) | -F7 pruefen, Motorstrom -M6 messen (Nennstrom 1,9 A, Einstellung 2,0 A; Blatt /5.6). Lichtschranke -B8 pruefen. |
 | Log wird nicht ausgeschoben | Motorschutz -F8 ausgeloest (E2.6 = 0) oder Endschalter -B7 haengt (E1.6 = 1) | -F8 pruefen (Blatt /6.2), Schuetz -K4 auf Ansteuerung A4.6 pruefen (Klemme -X3:32). Endschalter -B7 und Rollenhebel pruefen. |

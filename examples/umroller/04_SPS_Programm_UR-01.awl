@@ -147,7 +147,7 @@ TITLE =Huelsenzufuhr -K3
       =     #K3_Huelse;
 NETWORK
 TITLE =Logabschub -K4
-//Fertigen Log ausschieben (3 s), Hand-Taster -S9 moeglich; Endschalter -B7 beendet.
+//Fertigen Log ausschieben: -K4 zieht 3 s nach Log fertig an (Saege raeumt), Hand-Taster -S9 moeglich; Endschalter -B7 beendet.
       U(    ;
       O     #Log_Fertig;
       O     #Abschub_Hand;
