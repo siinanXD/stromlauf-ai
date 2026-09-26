@@ -84,12 +84,12 @@ Stop -S6 druecken: die Freigabe faellt ab, die Umrichter-Freigaben A4.0 und A4.1
 
 | Symptom | Moegliche Ursache | Pruefung |
 | --- | --- | --- |
-| -H2 leuchtet, Hupe -H4, Aufrollung steht | Bahnriss vor der Tragtrommel (-B2, E0.6 = 1, FB30 Netzwerk 6) | Bahn neu einfuehren. Sensor -B2 auf Verschmutzung und Abstand pruefen (Klemme /7.6). Mit -S7 quittieren. |
+| -H2 leuchtet, Hupe -H4, Aufrollung steht | Bahnriss vor der Tragtrommel (-B2, E0.6 = 1, FB30 Netzwerk 6) | Bahn neu einfuehren. Sensor -B2 auf Verschmutzung und Abstand pruefen (Blatt /7.6). Mit -S7 quittieren. |
 | -H2 leuchtet, Tragtrommel laeuft nicht an | Umrichter -U1 nicht bereit (E1.6 = 0, FB30 Netzwerk 7) | Fehlernummer an -U1 lesen (Blatt /3.2). Leistungsschalter -F2 pruefen. Nach Beheben Umrichter quittieren, dann -S7. |
 | Start ohne Wirkung, -H1 aus, -H2 aus | Not-Halt oder Reissleine nicht entriegelt, -K1 ohne Freigabe (E1.4 = 0) | -S1, -S2, -S3 und Reissleine -S4 entriegeln. Beide Kanaele pruefen (Blatt /5.1). An Klemme -X3:13 muessen 24 V anliegen. |
 | Start ohne Wirkung, Schutztuer geschlossen | Schutztuerschalter -S10 / -S11 nicht betaetigt oder -K2 ohne Freigabe (E1.5 = 0) | Tuerschalter und Betaetiger pruefen (Blatt /5.4). Klemme -X3:14 messen. |
 | Stoerung 10 s nach dem Einschalten, Oelpumpe laeuft | Oelstand zu niedrig (-B4, E1.0 = 0) oder Oel zu heiss (-B8, E2.2 = 0), FB30 Netzwerk 3 | Oelstand am Schauglas pruefen, Oel nachfuellen. Schwimmerschalter -B4 und Thermostat -B8 pruefen (Blatt /7.6). Oelkuehler pruefen. |
-| Stoerung 5 s nach Start, Hydraulikpumpe laeuft | Hydraulikdruck 150 bar nicht erreicht (-B3, E0.7 = 0), FB30 Netzwerk 5 | Druck am Manometer pruefen. Druckbegrenzungsventil und Pumpe -M3 pruefen. Druckschalter -B3 pruefen (Klemme /7.5). |
+| Stoerung 5 s nach Start, Hydraulikpumpe laeuft | Hydraulikdruck 150 bar nicht erreicht (-B3, E0.7 = 0), FB30 Netzwerk 5 | Druck am Manometer pruefen. Druckbegrenzungsventil und Pumpe -M3 pruefen. Druckschalter -B3 pruefen (Blatt /7.5). |
 | Hydraulikpumpe laeuft nicht | Motorschutz -F4 ausgeloest (E2.0 = 0) | -F4 pruefen, Motorstrom -M3 messen (Nennstrom 22 A, Einstellung 23 A; Blatt /4.2). Schuetz -K3 auf Ansteuerung A4.2 pruefen. |
 | Tambourwechsel startet nicht, -H3 leuchtet | Wechselarm nicht in Grundstellung (-B6, E1.2 = 0) oder Schutztuer offen | Arm mit -S8 in Grundstellung fahren. Naeherungsschalter -B6 pruefen (Blatt /7.6). Schrittkette M30.0 bis M30.3 in FB30 beobachten. |
 | Wechselarm faehrt nicht aus (Schritt 2) | Magnetventil -Y1 ohne Ansteuerung (A4.4) oder Hydraulikdruck fehlt | Spannung an Klemme -X3:24 pruefen (Blatt /10.5). Ventil -Y1 auf Verschmutzung pruefen. Druck -B3 pruefen. |

@@ -91,12 +91,12 @@ Stop -S5 druecken: die Freigabe faellt ab, alle Umrichter-Freigaben (A4.0 bis A4
 
 | Symptom | Moegliche Ursache | Pruefung |
 | --- | --- | --- |
-| -H2 leuchtet, Hupe -H4, Anlage steht | Bahnriss an Abwickler 1 oder 2 (E0.6 / E0.7 = 1, FB20 Netzwerk 2) | Bahn an -B1 bzw. -B2 pruefen, Bahn neu einfaedeln. Sensor auf Verschmutzung und Abstand pruefen (Klemme /9.6). Mit -S6 quittieren. |
+| -H2 leuchtet, Hupe -H4, Anlage steht | Bahnriss an Abwickler 1 oder 2 (E0.6 / E0.7 = 1, FB20 Netzwerk 2) | Bahn an -B1 bzw. -B2 pruefen, Bahn neu einfaedeln. Sensor auf Verschmutzung und Abstand pruefen (Blatt /9.6). Mit -S6 quittieren. |
 | -H2 leuchtet, ein Umrichter meldet Fehler | Umrichter -U1 bis -U5 nicht bereit (E2.0 bis E2.4 = 0, FB20 Netzwerk 3) | Fehlernummer am Umrichter lesen (Blatt /3.2 ff.). Ueberstrom: Antrieb mechanisch pruefen. Nach Beheben Umrichter quittieren, dann -S6. |
 | Start ohne Wirkung, -H1 aus, -H2 aus | Not-Halt nicht entriegelt oder Sicherheitsrelais -K1 ohne Freigabe (E1.2 = 0) | -S1, -S2 und -S3 entriegeln. Beide Kanaele 11/12 und 21/22 pruefen (Blatt /7.1). An Klemme -X3:11 muessen 24 V anliegen. |
 | Start ohne Wirkung, Schutztuer geschlossen | Schutztuerschalter -S10 bis -S13 nicht betaetigt oder -K2 ohne Freigabe (E1.3 = 0) | Tuerschalter und Betaetiger pruefen (Blatt /7.4). Klemme -X3:12 messen. Betaetiger auf Verschleiss pruefen. |
 | Start ohne Wirkung, E1.2 und E1.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) oder Stoerung nicht quittiert | Leitung -W1 Ader zu -S5:11/12 pruefen, Klemme -X3:2. -H2 beobachten, mit -S6 quittieren. |
-| Huelsenzufuhr laeuft nicht, -H3 gelb | Huelsenmagazin leer (-B5, E1.4 = 1) | Magazin fuellen. Sensor -B5 pruefen (Klemme /10.6). |
+| Huelsenzufuhr laeuft nicht, -H3 gelb | Huelsenmagazin leer (-B5, E1.4 = 1) | Magazin fuellen. Sensor -B5 pruefen (Blatt /10.6). |
 | Huelsenzufuhr laeuft nicht, -H3 aus | Motorschutz -F7 ausgeloest (E2.5 = 0) oder Huelse bereits eingelegt (-B8) | -F7 pruefen, Motorstrom -M6 messen (Nennstrom 1,9 A, Einstellung 2,0 A; Blatt /5.6). Lichtschranke -B8 pruefen. |
 | Log wird nicht ausgeschoben | Motorschutz -F8 ausgeloest (E2.6 = 0) oder Endschalter -B7 haengt (E1.6 = 1) | -F8 pruefen (Blatt /6.2), Schuetz -K4 auf Ansteuerung A4.6 pruefen (Klemme -X3:32). Endschalter -B7 und Rollenhebel pruefen. |
 | Abwickler 1 stoppt, Anlage laeuft weiter | Restdurchmesser Mutterrolle 1 erreicht (-B3, E1.0 = 1), Rollenwechsel angefordert (M10.1) | Mutterrolle wechseln. Steht die Rolle nicht am Ende: Sensor -B3 Abstand pruefen (Blatt /9.5). |
