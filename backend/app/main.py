@@ -7,7 +7,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from sqlalchemy import update
 
 from app.agent.graph import build_graph
-from app.api import chat, diagnosis, facts, layout, onboarding, plant, signal, sources
+from app.api import chat, diagnosis, facts, layout, onboarding, plant, signal, site, sources
 from app.config import get_settings
 from app.db import init_db, session_scope
 from app.models import DocStatus, Document
@@ -47,6 +47,7 @@ app.include_router(facts.router)
 app.include_router(signal.router)
 app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
+app.include_router(site.router)
 
 
 @app.get("/api/health")

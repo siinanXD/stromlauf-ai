@@ -74,11 +74,17 @@ class ChatRequest(BaseModel):
 class HallCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = ""
+    kind: str = "generic"
 
 
 class HallUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
+    kind: str | None = None
+    site_x: float | None = None
+    site_y: float | None = None
+    site_w: float | None = Field(default=None, ge=0)
+    site_h: float | None = Field(default=None, ge=0)
 
 
 class FlowIn(BaseModel):
@@ -100,6 +106,7 @@ class MachineCreate(BaseModel):
     source_id: str | None = None
     pos_x: float = 0.0
     pos_y: float = 0.0
+    line: str = Field(default="", max_length=120)
 
 
 class MachineUpdate(BaseModel):
@@ -111,6 +118,7 @@ class MachineUpdate(BaseModel):
     pos_x: float | None = None
     pos_y: float | None = None
     order_index: int | None = None
+    line: str | None = Field(default=None, max_length=120)
 
 
 class MachineOut(BaseModel):
@@ -130,6 +138,9 @@ class MachineOut(BaseModel):
     fault_count: int = 0
     cabinet_count: int = 0
     document_count: int = 0
+    line: str = ""
+    key_figure: str = ""  # erste Kennzahl, z. B. "2.200 m/min"
+    hall_name: str = ""
 
 
 class HallOut(BaseModel):
@@ -140,6 +151,11 @@ class HallOut(BaseModel):
     description: str
     created_at: datetime
     machine_count: int = 0
+    kind: str = "generic"
+    site_x: float = 0.0
+    site_y: float = 0.0
+    site_w: float = 0.0
+    site_h: float = 0.0
 
 
 class HallDetail(HallOut):
@@ -391,3 +407,63 @@ class DiagnosisOut(BaseModel):
     finding: str
     started_at: datetime
     finished_at: datetime | None
+
+
+# --- Standortplan und Kennzahlen -------------------------------------------------------------
+
+
+class SpecIn(BaseModel):
+    label: str = Field(default="", max_length=200)
+    value: str = ""
+    unit: str = Field(default="", max_length=60)
+    source: str = ""
+
+
+class SpecOut(SpecIn):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    position: int
+
+
+class SiteFlowIn(BaseModel):
+    from_hall_id: str
+    to_hall_id: str
+    label: str = Field(default="", max_length=120)
+
+
+class SiteFlowOut(SiteFlowIn):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+
+
+class SiteMachine(BaseModel):
+    id: str
+    name: str
+    machine_type: str
+    pos_x: float
+    pos_y: float
+    line: str
+
+
+class SiteHall(BaseModel):
+    id: str
+    name: str
+    kind: str
+    description: str
+    x: float
+    y: float
+    w: float
+    h: float
+    machine_count: int
+    fault_count: int  # Eintraege der Fehlerlisten (Katalog)
+    open_diagnoses: int  # laufende Fehlersuchen: der einzige rote Wert im Plan
+    lines: list[str]
+    docks: int
+    machines: list[SiteMachine]
+
+
+class SiteOut(BaseModel):
+    halls: list[SiteHall]
+    flows: list[SiteFlowOut]
