@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { borderPoint, laneBoxes, miniPlan, TILE } from "./site";
+import { borderPoint, hallTitle, laneBoxes, miniPlan, sourceLink, TILE } from "./site";
 
 const machine = (id: string, line: string, pos_x: number, pos_y: number) => ({
   id,
@@ -68,5 +68,29 @@ describe("borderPoint", () => {
   });
   it("bleibt in der Mitte, wenn beide Mittelpunkte gleich sind", () => {
     expect(borderPoint(box, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("sourceLink", () => {
+  it("macht aus einer URL einen Link mit Hostnamen", () => {
+    expect(sourceLink("https://www.valmet.com/tissue/x")).toEqual({ href: "https://www.valmet.com/tissue/x", host: "valmet.com" });
+  });
+  it("laesst Text und kaputte URLs als Text stehen", () => {
+    expect(sourceLink("Richtwert (keine Herstellerangabe)")).toBeNull();
+    expect(sourceLink("https://")).toBeNull();
+    expect(sourceLink("https://foo bar")).toBeNull();
+  });
+});
+
+describe("hallTitle", () => {
+  it("setzt die Art vor den Namen", () => {
+    expect(hallTitle({ kind: "base", name: "Papiermaschine PM1" })).toBe("Grundstoff · Papiermaschine PM1");
+  });
+  it("wiederholt die Art nicht, wenn der Name schon damit beginnt", () => {
+    expect(hallTitle({ kind: "production", name: "Verarbeitung" })).toBe("Verarbeitung");
+    expect(hallTitle({ kind: "warehouse", name: "Lager & Versand" })).toBe("Lager & Versand");
+  });
+  it("zeigt bei allgemeiner Halle nur den Namen", () => {
+    expect(hallTitle({ kind: "generic", name: "Halle 1" })).toBe("Halle 1");
   });
 });

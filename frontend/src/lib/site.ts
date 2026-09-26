@@ -1,6 +1,6 @@
 /** Geometrie fuer Standortplan und Hallen-Baukasten: Linienbaender und verkleinertes Hallenlayout. */
 
-import type { SiteMachine } from "./api";
+import { HALL_KIND_LABELS, type HallKind, type SiteMachine } from "./api";
 
 /** Groesse einer Maschinenkachel im Hallen-Baukasten (px). */
 export const TILE = { w: 184, h: 96 };
@@ -74,4 +74,23 @@ export function borderPoint(box: Rect, toward: { x: number; y: number }): { x: n
   if (dx === 0 && dy === 0) return { x: box.x, y: box.y };
   const scale = Math.min(dx === 0 ? Infinity : box.w / 2 / Math.abs(dx), dy === 0 ? Infinity : box.h / 2 / Math.abs(dy));
   return { x: box.x + dx * scale, y: box.y + dy * scale };
+}
+
+/** Quelle einer Kennzahl als Link (nur gueltige http(s)-URL), sonst null fuer Klartext wie "Richtwert". */
+export function sourceLink(source: string): { href: string; host: string } | null {
+  if (!/^https?:\/\//.test(source)) return null;
+  try {
+    const url = new URL(source);
+    if (!url.hostname) return null;
+    return { href: source, host: url.hostname.replace(/^www\./, "") };
+  } catch {
+    return null;
+  }
+}
+
+/** Kopfzeile eines Hallenblocks: "Art · Name", ohne doppelte Art und ohne Art bei allgemeiner Halle. */
+export function hallTitle(hall: { kind: HallKind; name: string }): string {
+  if (hall.kind === "generic") return hall.name;
+  const kind = HALL_KIND_LABELS[hall.kind];
+  return hall.name.toLowerCase().startsWith(kind.toLowerCase()) ? hall.name : `${kind} · ${hall.name}`;
 }

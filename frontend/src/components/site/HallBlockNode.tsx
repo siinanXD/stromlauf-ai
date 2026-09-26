@@ -4,7 +4,7 @@ import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflo
 import { useMemo } from "react";
 
 import { HALL_KIND_LABELS, type SiteHall } from "@/lib/api";
-import { miniPlan, type Rect } from "@/lib/site";
+import { hallTitle, miniPlan, type Rect } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export const HEADER_H = 22;
@@ -42,7 +42,9 @@ export function HallBlockNode({ data, selected, width, height }: NodeProps<HallB
       <Handle type="target" position={Position.Left} className={HANDLE} />
 
       <div className="flex items-center gap-2 bg-nav px-2 text-white" style={{ height: HEADER_H }}>
-        <span className="truncate font-mono text-[12px] font-semibold uppercase tracking-[0.04em]">{hall.name}</span>
+        <span className="truncate font-mono text-[12px] font-semibold uppercase tracking-[0.04em]" title={hall.name}>
+          {hallTitle(hall)}
+        </span>
         {hall.open_diagnoses > 0 && (
           <span title="Laufende Fehlersuchen" className="ml-auto shrink-0 bg-danger px-1.5 font-mono text-[11px] leading-4">
             {hall.open_diagnoses}
