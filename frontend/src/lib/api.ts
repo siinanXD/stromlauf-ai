@@ -411,3 +411,39 @@ export const layout = {
 
 export const searchTags = (q: string) =>
   request<TagSearchHit[]>(`/api/tags/search?q=${encodeURIComponent(q)}`);
+
+// --- Chat: Belege anspringen, Befundkarte --------------------------------------------------------
+
+export interface LocateResult {
+  page: number;
+  column: number | null;
+  box: { x0: number; y0: number; x1: number; y1: number } | null;
+}
+
+export interface FactValue {
+  text: string;
+  ref: string;
+  document_id: string | null;
+  filename: string | null;
+  page: number | null;
+}
+
+export interface FactCardData {
+  tag: string;
+  title: string | null;
+  bom_line: string | null;
+  rows: { label: string; values: FactValue[] }[];
+}
+
+export const locate = (documentId: string, ref: string) =>
+  request<LocateResult>(`/api/documents/${documentId}/locate?ref=${encodeURIComponent(ref)}`);
+
+/** null, wenn der Index zu dem Kennzeichen nichts hat (404). */
+export async function factCard(tag: string, sourceIds: string[]): Promise<FactCardData | null> {
+  const params = new URLSearchParams({ tag });
+  sourceIds.forEach((id) => params.append("source_ids", id));
+  const response = await fetch(`${API_URL}/api/facts?${params}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.json();
+}
