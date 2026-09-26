@@ -49,6 +49,8 @@ export function floorNode(layout: Layout): FloorNode {
     draggable: false,
     selectable: false,
     deletable: false,
+    // React Flow faengt sonst jeden Klick auf der Grundflaeche ab (onNodeClick) -> Zeichnen/Abwaehlen ginge nicht
+    style: { pointerEvents: "none" },
     zIndex: 0,
   };
 }

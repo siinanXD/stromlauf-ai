@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size
-from app.ingestion.tags import normalize_tag, search_key
+from app.ingestion.tags import normalize_tag, search_prefixes
 from app.models import (
     CabinetHotspot,
     CabinetImage,
@@ -421,13 +421,13 @@ def lookup_tag(machine_id: str, tag: str, session: Session = Depends(get_session
 
 @router.get("/tags/search", response_model=list[TagSearchHit])
 def search_tags(q: str = "", session: Session = Depends(get_session)):
-    key = search_key(q)
-    if key is None:
+    prefixes = search_prefixes(q)
+    if not prefixes:
         return []
-    pattern = key.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_") + "%"
+    escaped = [p.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_") + "%" for p in prefixes]
     rows = session.execute(
         select(TagOccurrence.tag, TagOccurrence.tag_type, func.count())
-        .where(TagOccurrence.tag.like(pattern, escape="\\"))
+        .where(or_(*(TagOccurrence.tag.like(pattern, escape="\\") for pattern in escaped)))
         .group_by(TagOccurrence.tag, TagOccurrence.tag_type)
         .order_by(func.length(TagOccurrence.tag), TagOccurrence.tag)
         .limit(30)

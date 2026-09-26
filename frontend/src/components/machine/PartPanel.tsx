@@ -166,7 +166,7 @@ export function PartPanel({
               )}
             </div>
 
-            <div key={part.id} className="mt-3 grid grid-cols-[96px_1fr] items-center gap-x-3 gap-y-1.5 text-[13px]">
+            <div key={`${part.id}-${part.tag}-${part.label}-${part.rotation_deg}`} className="mt-3 grid grid-cols-[96px_1fr] items-center gap-x-3 gap-y-1.5 text-[13px]">
               <span className="text-muted-foreground">BMK</span>
               <input
                 defaultValue={part.tag}

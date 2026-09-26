@@ -64,6 +64,18 @@ def search_key(query: str) -> str | None:
     return key if re.search(r"[A-Z0-9]", key) else None
 
 
+def search_prefixes(query: str) -> list[str]:
+    """Praefixe fuer die Suche beim Tippen: normalisiert, roh und mit Minus ("e0" -> E0, -E0)."""
+    key = search_key(query)
+    if key is None:
+        return []
+    compact = re.sub(r"\s+", "", query.upper())
+    candidates = [key, compact]
+    if compact[:1] not in "-=+%":
+        candidates.append("-" + compact)
+    return list(dict.fromkeys(c for c in candidates if re.search(r"[A-Z0-9]", c)))
+
+
 def _snippet(text: str, start: int, end: int, width: int = 80) -> str:
     left = max(0, start - width)
     right = min(len(text), end + width)

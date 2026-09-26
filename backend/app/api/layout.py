@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.api.plant import _get, _store_image
 from app.db import get_session
 from app.ingestion.cabinet_vision import load_png
-from app.ingestion.layout_geometry import LAYOUT_KINDS, SHAPES, clamp_part, to_parts
+from app.ingestion.layout_geometry import LAYOUT_KINDS, SHAPES, clamp_part, drop_known_tags, to_parts
 from app.ingestion.layout_vision import detect_layout
 from app.ingestion.vision import render_page_png
 from app.ingestion.tags import normalize_tag
@@ -190,7 +190,8 @@ def detect_layout_parts(layout_id: str, session: Session = Depends(get_session))
     for old in list(layout.parts):
         if old.origin == "vision" and not old.confirmed:
             session.delete(old)
-    for data in to_parts(result["items"], layout.width_mm, layout.depth_mm):
+    confirmed_tags = {p.tag for p in layout.parts if p.confirmed and p.tag}
+    for data in drop_known_tags(to_parts(result["items"], layout.width_mm, layout.depth_mm), confirmed_tags):
         session.add(LayoutPart(layout_id=layout.id, origin="vision", confirmed=False, **data))
     session.commit()
     session.refresh(layout)

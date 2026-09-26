@@ -1,6 +1,5 @@
 "use client";
 
-import { ScanSearch } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ import { FaultTable } from "@/components/machine/FaultTable";
 import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
 import { PartPanel } from "@/components/machine/PartPanel";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   api,
@@ -190,13 +188,9 @@ export default function MachinePage() {
                   selectedId={selectedId}
                   onSelect={(part) => setSelectedId(part?.id ?? null)}
                   onChanged={loadLayout}
+                  onDetect={canDetect ? detect : undefined}
+                  detecting={detecting}
                 />
-                {canDetect && (
-                  <Button size="sm" variant="outline" className="absolute right-3 top-14 z-10 bg-card" disabled={detecting} onClick={detect}>
-                    <ScanSearch className="size-3.5" />
-                    {detecting ? "Erkenne …" : "Vorschläge erkennen"}
-                  </Button>
-                )}
               </div>
               <PartPanel
                 machine={machine}

@@ -60,3 +60,10 @@ def test_parse_vision_json_without_json_raises():
 
     with pytest.raises(ValueError):
         parse_vision_json("kein json")
+
+
+def test_drop_known_tags_skips_confirmed_duplicates():
+    from app.ingestion.layout_geometry import drop_known_tags
+
+    parts = [{"tag": "-M1"}, {"tag": "-B1"}, {"tag": ""}]
+    assert drop_known_tags(parts, {"-M1"}) == [{"tag": "-B1"}, {"tag": ""}]

@@ -67,3 +67,8 @@ def to_parts(items: list[dict], width_mm: float, depth_mm: float) -> list[dict]:
             }
         )
     return parts
+
+
+def drop_known_tags(parts: list[dict], known: set[str]) -> list[dict]:
+    """Vorschlaege fuer BMK weglassen, die in der Draufsicht schon bestaetigt sind."""
+    return [p for p in parts if not p["tag"] or p["tag"] not in known]

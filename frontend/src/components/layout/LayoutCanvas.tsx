@@ -14,7 +14,7 @@ import {
   type NodeTypes,
   type OnBeforeDelete,
 } from "@xyflow/react";
-import { Circle, Download, ImageIcon, MousePointer2, Square } from "lucide-react";
+import { Circle, Download, ImageIcon, MousePointer2, ScanSearch, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -44,6 +44,9 @@ const NODE_TYPES: NodeTypes = { part: PartNode, floor: FloorNodeView };
 
 export interface LayoutCanvasProps {
   layout: Layout;
+  /** Vision-Erkennung starten (nur wenn eine Skizze hinterlegt ist). */
+  onDetect?: () => void;
+  detecting?: boolean;
   machineName: string;
   selectedId: string | null;
   onSelect: (part: LayoutPart | null) => void;
@@ -58,7 +61,7 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
   );
 }
 
-function Canvas({ layout, machineName, selectedId, onSelect, onChanged }: LayoutCanvasProps) {
+function Canvas({ layout, machineName, selectedId, onSelect, onChanged, onDetect, detecting }: LayoutCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [tool, setTool] = useState<Tool>("select");
   const [showSketch, setShowSketch] = useState(false);
@@ -149,10 +152,11 @@ function Canvas({ layout, machineName, selectedId, onSelect, onChanged }: Layout
         onNodesChange={onNodesChange}
         onNodeClick={(_, node) => node.type === "part" && onSelect(node.data.part)}
         onPaneClick={(event) => (tool === "select" ? onSelect(null) : addPart(event))}
-        onNodeDragStop={(_, node) => {
-          if (node.id === FLOOR_ID) return;
-          layoutApi
-            .updatePart(node.id, nodeToPatch(node))
+        onNodeDragStart={(_, node) => node.type === "part" && onSelect(node.data.part)}
+        onNodeDragStop={(_, _node, dragged) => {
+          // Mehrfachauswahl bewegt alle markierten Teile gemeinsam: alle speichern
+          const parts = dragged.filter((n) => n.id !== FLOOR_ID);
+          Promise.all(parts.map((n) => layoutApi.updatePart(n.id, nodeToPatch(n))))
             .catch((err: Error) => toast.error(`Speichern fehlgeschlagen: ${err.message}`))
             .finally(onChanged);
         }}
@@ -169,7 +173,7 @@ function Canvas({ layout, machineName, selectedId, onSelect, onChanged }: Layout
         <Background id="major" variant={BackgroundVariant.Lines} gap={gapMajor} color="#cdd5df" lineWidth={1} />
         <Controls showInteractive={false} className="!rounded-none !shadow-none [&_button]:!border-border [&_button]:!bg-card" />
 
-        <Panel position="top-left" className="!m-3 flex gap-1.5">
+        <Panel position="top-left" className="!m-3 flex max-w-[calc(100%-14rem)] flex-wrap gap-1.5">
           {(
             [
               ["select", "Auswahl", MousePointer2],
@@ -202,14 +206,22 @@ function Canvas({ layout, machineName, selectedId, onSelect, onChanged }: Layout
           </Button>
         </Panel>
 
-        {proposals.length > 0 && (
-          <Panel position="top-right" className="!m-3">
-            <Button size="sm" variant="outline" className="border-primary bg-card text-primary" onClick={() => setReviewOpen((v) => !v)}>
-              <span className="size-1.5 rounded-full bg-primary" />
-              {proposals.length} Vorschläge prüfen
-            </Button>
+        {(proposals.length > 0 || onDetect) && (
+          <Panel position="top-right" className="!m-3 flex flex-col items-end gap-1.5">
+            {onDetect && !reviewOpen && (
+              <Button size="sm" variant="outline" className="bg-card" disabled={detecting} onClick={onDetect}>
+                <ScanSearch className="size-3.5" />
+                {detecting ? "Erkenne …" : "Vorschläge erkennen"}
+              </Button>
+            )}
+            {proposals.length > 0 && (
+              <Button size="sm" variant="outline" className="border-primary bg-card text-primary" onClick={() => setReviewOpen((v) => !v)}>
+                <span className="size-1.5 rounded-full bg-primary" />
+                {proposals.length} Vorschläge prüfen
+              </Button>
+            )}
             {reviewOpen && (
-              <div className="mt-1.5 w-80 border border-line bg-card text-sm">
+              <div className="w-80 border border-line bg-card text-sm">
                 <ul className="max-h-72 overflow-y-auto">
                   {proposals.map((p) => (
                     <li key={p.id} className="flex items-center gap-2 border-b border-border px-3 py-1.5">

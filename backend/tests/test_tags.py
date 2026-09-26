@@ -71,3 +71,13 @@ def test_search_key_rejects_empty():
 
     assert search_key("") is None
     assert search_key("  - ") is None
+
+
+def test_search_prefixes_cover_partial_input():
+    from app.ingestion.tags import search_prefixes
+
+    assert "E0" in search_prefixes("e0")
+    assert "M10" in search_prefixes("M10")
+    assert "-K" in search_prefixes("k")
+    assert "-K1" in search_prefixes("k1")
+    assert search_prefixes("  - ") == []
