@@ -10,7 +10,7 @@ import { newPosition, OrderForm, type OrderDraft } from "@/components/planning/O
 import { Schedule } from "@/components/planning/Schedule";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { planning, type ArticleInfo, type CalcResult } from "@/lib/api";
-import { minutesText, num, whenText } from "@/lib/format";
+import { minutesText, num, parseAmount, whenText } from "@/lib/format";
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
@@ -53,14 +53,14 @@ export default function PlanningPage() {
 
   // Neu rechnen bei jeder Aenderung; nur die letzte Antwort zaehlt
   useEffect(() => {
-    if (!draft || draft.positions.some((p) => !p.article_id || !(Number(p.quantity) > 0))) return;
+    if (!draft || draft.positions.some((p) => !p.article_id || !((parseAmount(p.quantity) ?? 0) > 0))) return;
     const id = ++latest.current;
     const timer = setTimeout(() => {
       planning
         .calc({
           received_at: draft.received_at,
           due_date: draft.due_date || null,
-          positions: draft.positions.map((p) => ({ article_id: p.article_id, quantity: Number(p.quantity), unit: p.unit })),
+          positions: draft.positions.map((p) => ({ article_id: p.article_id, quantity: parseAmount(p.quantity) ?? 0, unit: p.unit })),
         })
         .then((calc) => {
           if (latest.current !== id) return;
@@ -73,7 +73,8 @@ export default function PlanningPage() {
   }, [draft]);
 
   const s = result?.summary;
-  const incomplete = !!draft?.positions.some((p) => !p.article_id || !(Number(p.quantity) > 0));
+  const incomplete = !!draft?.positions.some((p) => !p.article_id || !((parseAmount(p.quantity) ?? 0) > 0));
+  const stale = incomplete || !!error;
   return (
     <AppShell breadcrumb={[{ label: "Planung" }]}>
       <Tabs defaultValue="kalkulation" className="flex h-full flex-col gap-0">
@@ -89,6 +90,7 @@ export default function PlanningPage() {
           </TabsList>
         </div>
 
+        {error && !draft && <p className="m-4 border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
         {articles && articles.length === 0 && (
           <p className="m-6 max-w-xl text-sm text-muted-foreground">
             Noch keine Stammdaten (Artikel, Arbeitspläne, Materialien). Testwerk laden:{" "}
@@ -111,7 +113,7 @@ export default function PlanningPage() {
                   </p>
                 )}
                 {result && s && (
-                  <div className={incomplete ? "space-y-5 opacity-50" : "space-y-5"}>
+                  <div className={stale ? "space-y-5 opacity-50" : "space-y-5"}>
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Verladebereit</span>
                       <span className="font-mono text-2xl font-semibold uppercase">{whenText(result.ready_at)}</span>
@@ -129,12 +131,13 @@ export default function PlanningPage() {
                       <span className="text-[13px] text-muted-foreground">Durchlauf {minutesText(s.lead_minutes)}</span>
                     </div>
 
-                    <dl className="grid grid-cols-2 gap-3 border-y border-line py-2.5 font-mono sm:grid-cols-5">
+                    <dl className="grid grid-cols-2 gap-3 border-y border-line py-2.5 font-mono sm:grid-cols-3 xl:grid-cols-6">
                       {[
                         [num(s.units), "Einheiten"],
                         [num(s.pallets), "Paletten"],
                         [num(s.trucks), "LKW"],
                         [`${num(s.paper_t, 1)} t`, "Rohpapier"],
+                        [minutesText(s.line_minutes), "Linienzeit"],
                         [s.bottleneck?.split(" ")[0] ?? "–", "Engpass"],
                       ].map(([value, label]) => (
                         <div key={label}>
@@ -160,7 +163,11 @@ export default function PlanningPage() {
                       </p>
                     </Section>
 
-                    <Section title="Herleitung">
+                    <details className="group space-y-2">
+                      <summary className="cursor-pointer list-none font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground hover:text-foreground">
+                        <span className="mr-1 inline-block transition-transform group-open:rotate-90">›</span>
+                        Herleitung · {result.stations.length} Schritte
+                      </summary>
                       <ol className="divide-y divide-border border border-line bg-card text-[13px]">
                         {result.stations.map((station) => (
                           <li key={station.key} className="grid gap-x-3 px-3 py-1.5 sm:grid-cols-[180px_270px_1fr]">
@@ -172,7 +179,7 @@ export default function PlanningPage() {
                           </li>
                         ))}
                       </ol>
-                    </Section>
+                    </details>
 
                     <Section title="Materialbedarf">
                       <MaterialTable materials={result.materials} />

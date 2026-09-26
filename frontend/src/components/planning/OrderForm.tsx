@@ -3,7 +3,7 @@
 import { Plus, X } from "lucide-react";
 
 import type { ArticleInfo, QuantityUnit } from "@/lib/api";
-import { plural } from "@/lib/format";
+import { parseAmount, plural } from "@/lib/format";
 
 export interface DraftPosition {
   key: string;
@@ -63,7 +63,7 @@ export function OrderForm({ articles, draft, onChange }: { articles: ArticleInfo
       <ul className="space-y-2">
         {draft.positions.map((position, index) => {
           const article = articles.find((a) => a.id === position.article_id);
-          const missing = !(Number(position.quantity) > 0);
+          const missing = !((parseAmount(position.quantity) ?? 0) > 0);
           return (
             <li key={position.key} className="space-y-1.5 border border-border bg-secondary/60 p-2">
               <div className="flex items-center gap-1.5">
@@ -102,7 +102,7 @@ export function OrderForm({ articles, draft, onChange }: { articles: ArticleInfo
                   aria-label={`Menge Position ${index + 1}`}
                   inputMode="decimal"
                   value={position.quantity}
-                  onChange={(e) => setPosition(position.key, { quantity: e.target.value.replace(",", ".") })}
+                  onChange={(e) => setPosition(position.key, { quantity: e.target.value })}
                   className={`${FIELD} font-mono ${missing ? "border-foreground" : ""}`}
                 />
                 <select

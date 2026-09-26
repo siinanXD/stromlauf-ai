@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { eur, minutesText, num, qtyText, whenText } from "./format";
+import { eur, minutesText, num, parseAmount, qtyText, whenText } from "./format";
 
 describe("format", () => {
   it("formatiert Zahlen deutsch", () => {
@@ -27,5 +27,16 @@ describe("format", () => {
     expect(minutesText(45)).toBe("45 min");
     expect(minutesText(305.7)).toBe("5 h 06 min");
     expect(minutesText(4416.8)).toBe("3 d 1 h");
+  });
+
+  it("liest Mengen deutsch: Punkt als Tausender, Komma als Dezimal", () => {
+    expect(parseAmount("10.000")).toBe(10000);
+    expect(parseAmount("1.000.000")).toBe(1000000);
+    expect(parseAmount("10000")).toBe(10000);
+    expect(parseAmount("2,5")).toBe(2.5);
+    expect(parseAmount("1.250,5")).toBe(1250.5);
+    expect(parseAmount("2.5")).toBe(2.5);
+    expect(parseAmount("")).toBeNull();
+    expect(parseAmount("zehn")).toBeNull();
   });
 });

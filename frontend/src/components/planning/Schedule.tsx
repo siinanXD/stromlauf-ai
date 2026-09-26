@@ -48,6 +48,8 @@ export function Schedule({ result }: { result: CalcResult }) {
   const height = TOP + rows.length * ROW_H + 6;
   const ready = X(result.ready_at);
   const bottleneck = result.summary.bottleneck;
+  const [clock] = useState(() => Date.now());
+  const now = clock >= axis.start && clock <= axis.end ? labelW + axis.x(clock) : null;
 
   return (
     <div ref={ref} className="w-full overflow-x-auto">
@@ -104,7 +106,7 @@ export function Schedule({ result }: { result: CalcResult }) {
                       y={y + (ROW_H - BAR_H) / 2}
                       width={w}
                       height={BAR_H}
-                      fill={station.group === "Rohpapier" && station.position ? "var(--muted-foreground)" : "var(--primary)"}
+                      fill={station.group === "Rohpapier" && (station.position ?? 0) % 2 === 1 ? "var(--muted-foreground)" : "var(--primary)"}
                       stroke={isBottleneck ? "var(--line)" : "none"}
                       strokeWidth={1.5}
                     >
@@ -129,7 +131,16 @@ export function Schedule({ result }: { result: CalcResult }) {
           );
         })}
 
-        <line x1={ready} x2={ready} y1={TOP - 6} y2={height} stroke="var(--ok)" strokeWidth={1.5} strokeDasharray="3 2" />
+        {now !== null && <line x1={now} x2={now} y1={TOP - 6} y2={height} stroke="var(--muted-foreground)" strokeDasharray="1 3" />}
+        <line
+          x1={ready}
+          x2={ready}
+          y1={TOP - 6}
+          y2={height}
+          stroke={result.meets_due === false ? "var(--foreground)" : "var(--ok)"}
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+        />
       </svg>
     </div>
   );

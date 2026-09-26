@@ -26,3 +26,15 @@ export function minutesText(minutes: number): string {
 
 const PLURAL: Record<string, string> = { Paket: "Pakete", Box: "Boxen", Karton: "Kartons", Rolle: "Rollen" };
 export const plural = (unitName: string) => PLURAL[unitName] ?? unitName;
+
+/** Menge wie getippt: "10.000" = 10000 (Punkt als Tausender), "2,5" = 2,5, "2.5" = 2,5; sonst null. */
+export function parseAmount(text: string): number | null {
+  const t = text.replace(/\s/g, "");
+  let normalized: string;
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) normalized = t.replace(/\./g, "").replace(",", ".");
+  else if (/^\d+(,\d+)?$/.test(t)) normalized = t.replace(",", ".");
+  else if (/^\d+(\.\d+)?$/.test(t)) normalized = t;
+  else return null;
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+}
