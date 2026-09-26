@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { laneBoxes, miniPlan, TILE } from "./site";
+import { borderPoint, laneBoxes, miniPlan, TILE } from "./site";
 
 const machine = (id: string, line: string, pos_x: number, pos_y: number) => ({
   id,
@@ -50,7 +50,23 @@ describe("miniPlan", () => {
     expect(plan.lanes.map((l) => l.line)).toEqual(["L1", "L2"]);
   });
 
-  it("vergroessert eine einzelne Maschine hoechstens auf 35 %", () => {
-    expect(miniPlan([machine("a", "", 0, 0)], { w: 2000, h: 2000 }).scale).toBe(0.35);
+  it("vergroessert eine einzelne Maschine hoechstens auf 60 %", () => {
+    expect(miniPlan([machine("a", "", 0, 0)], { w: 2000, h: 2000 }).scale).toBe(0.6);
+  });
+});
+
+describe("borderPoint", () => {
+  const box = { x: 0, y: 0, w: 100, h: 50 };
+  it("trifft die Seitenwand bei waagrechter Richtung", () => {
+    expect(borderPoint(box, { x: 200, y: 0 })).toEqual({ x: 50, y: 0 });
+  });
+  it("trifft Boden oder Decke bei senkrechter Richtung", () => {
+    expect(borderPoint(box, { x: 0, y: -300 })).toEqual({ x: 0, y: -25 });
+  });
+  it("trifft bei schraeger Richtung die naehere Kante", () => {
+    expect(borderPoint(box, { x: 100, y: 100 })).toEqual({ x: 25, y: 25 });
+  });
+  it("bleibt in der Mitte, wenn beide Mittelpunkte gleich sind", () => {
+    expect(borderPoint(box, { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
   });
 });

@@ -5,7 +5,7 @@ import type { SiteMachine } from "./api";
 /** Groesse einer Maschinenkachel im Hallen-Baukasten (px). */
 export const TILE = { w: 184, h: 96 };
 /** Groesster Massstab im Mini-Plan, damit eine einzelne Maschine nicht die ganze Halle fuellt. */
-export const MAX_MINI_SCALE = 0.35;
+export const MAX_MINI_SCALE = 0.6;
 
 export interface Rect {
   x: number;
@@ -62,4 +62,16 @@ export function miniPlan(machines: SiteMachine[], size: { w: number; h: number }
     tiles: machines.map((m): MiniTile => ({ id: m.id, line: m.line, ...place({ x: m.pos_x, y: m.pos_y, ...TILE }) })),
     lanes: lanes.map((lane): Lane => ({ line: lane.line, ...place(lane) })),
   };
+}
+
+/**
+ * Punkt auf dem Rand eines Blocks (Mittelpunkt x/y, Groesse w/h) in Richtung eines Zielpunkts.
+ * Fuer Pfeile zwischen Hallen, die immer die naechste Wand treffen statt fester Griffe.
+ */
+export function borderPoint(box: Rect, toward: { x: number; y: number }): { x: number; y: number } {
+  const dx = toward.x - box.x;
+  const dy = toward.y - box.y;
+  if (dx === 0 && dy === 0) return { x: box.x, y: box.y };
+  const scale = Math.min(dx === 0 ? Infinity : box.w / 2 / Math.abs(dx), dy === 0 ? Infinity : box.h / 2 / Math.abs(dy));
+  return { x: box.x + dx * scale, y: box.y + dy * scale };
 }
