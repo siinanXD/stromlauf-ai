@@ -30,7 +30,8 @@ def rescore(run: dict, questions: list[dict]) -> tuple[dict, list[dict], list[st
         if question is None:
             unknown.append(old["id"])
             continue
-        result = evallib.score(question, old.get("answer", ""), old.get("sources", []), old.get("tools"))
+        result = evallib.score(question, old.get("answer", ""), old.get("sources", []), old.get("tools"),
+                               check_sources=old.get("mode") not in evallib.NO_FILES)
         rows.append({**old, "question": question["question"], "score": result})
     return evallib.summarize(rows), rows, unknown
 

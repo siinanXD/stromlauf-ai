@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 RETRIEVAL_MODES = ("tag", "semantic", "keyword", "fact", "signal", "calc", "site")
+NO_FILES = {"signal", "calc", "site"}  # Retrieval-Modi ohne zitierte Dateinamen: quellen gilt als erfuellt
 ERROR_PREFIX = "[FEHLER]"
 COMPARE_KEYS = ("fakten_mittel", "quellen_ok", "sauber", "werkzeug_ok", "voll_bestanden", "dauer_mittel_s")
 
@@ -113,7 +114,8 @@ def passed(result: dict) -> bool:
 
 
 def is_error(row: dict) -> bool:
-    return str(row.get("answer", "")).startswith(ERROR_PREFIX)
+    """Netz-/API-Fehler: vom Skript vorangestellt oder vom Backend als error-Event in den Strom geschrieben."""
+    return ERROR_PREFIX in str(row.get("answer", ""))
 
 
 def summarize(rows: list[dict]) -> dict:

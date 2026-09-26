@@ -176,7 +176,6 @@ def test_rescore_reproduces_reference_run():
     questions = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     summary, rows, unknown = rescore.rescore(run, questions)
     assert unknown == [] and summary["fragen"] == len(run["results"])
-    assert summary["fakten_mittel"] == run["summary"]["fakten_mittel"]
     for old, new in zip(run["results"], rows, strict=True):
         assert new["id"] == old["id"]
         assert new["score"]["fakten"] == old["score"]["fakten"] and new["score"]["sauber"] == old["score"]["sauber"]
@@ -209,3 +208,49 @@ def test_questions_cover_testdoku_and_testwerk():
     assert sum(1 for r in rows if r.get("retrieval")) >= 30
     assert all(r["id"].endswith("nicht-vorhanden") for r in rows if not r["expect_sources"] and r.get("agent", True))
     assert all(r["must_not_contain"] for r in rows if r["id"].endswith("nicht-vorhanden"))
+
+
+# --- Fix pass nach Review ------------------------------------------------------------------------
+
+
+def test_is_error_detects_streamed_error_event():
+    answer, _, _ = evallib.parse_sse(["event: token", 'data: {"text": "Ich schaue nach."}', "",
+                                      "event: error", 'data: {"message": "Guthaben erschoepft"}', ""])
+    assert evallib.is_error({"answer": answer})
+    assert not evallib.is_error({"answer": "Der Fehler liegt an -F2."})
+
+
+def test_rescore_reference_run_counts_streamed_errors_and_full_summary():
+    rescore = _load("rescore")
+    run = json.loads((ROOT / "eval" / "results" / "referenz_2026-09-26.json").read_text(encoding="utf-8"))
+    summary, rows, _ = rescore.rescore(run, evallib.load_questions(ROOT / "eval" / "questions.jsonl"))
+    assert summary["nicht_bewertet_fehler"] == 5 and summary["bewertet"] == 19
+    assert summary["voll_bestanden"] == run["summary"]["voll_bestanden"] == 19
+    assert summary["quellen_ok"] == 1.0 and summary["sauber"] == 1.0
+    for old, new in zip(run["results"], rows, strict=True):
+        assert new["score"]["quellen_ok"] == old["score"]["quellen_ok"]
+
+
+def test_rescore_retrieval_run_skips_sources_for_modes_without_files():
+    rescore = _load("rescore")
+    run = json.loads((ROOT / "eval" / "results" / "referenz_retrieval_2026-09-27.json").read_text(encoding="utf-8"))
+    summary, rows, unknown = rescore.rescore(run, evallib.load_questions(ROOT / "eval" / "questions.jsonl"))
+    assert unknown == [] and summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 31
+
+
+def test_retrieval_http_and_value_errors_are_scored_as_failures():
+    import httpx
+    rr = _load("run_retrieval")
+    response = httpx.Response(404, json={"detail": "-S99 kommt nicht vor"}, request=httpx.Request("GET", "http://x"))
+    text = rr.answer_for_error(httpx.HTTPStatusError("404", request=response.request, response=response))
+    assert not evallib.is_error({"answer": text}) and "404" in text and "-S99" in text
+    assert not evallib.is_error({"answer": rr.answer_for_error(ValueError("Artikel XX unbekannt"))})
+    assert evallib.is_error({"answer": rr.answer_for_error(httpx.ConnectError("zu"))})
+
+
+def test_retrieval_gate_fails_on_unscored_errors():
+    rr = _load("run_retrieval")
+    assert rr.gate_failed({"fakten_mittel": 1.0, "nicht_bewertet_fehler": 3}, 0.9)
+    assert rr.gate_failed({"fakten_mittel": 0.8, "nicht_bewertet_fehler": 0}, 0.9)
+    assert not rr.gate_failed({"fakten_mittel": 1.0, "nicht_bewertet_fehler": 0}, 0.9)
+    assert not rr.gate_failed({"fakten_mittel": 0.0, "nicht_bewertet_fehler": 3}, 0.0)

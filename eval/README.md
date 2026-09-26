@@ -50,7 +50,9 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 - `sauber`: Anteil der Fragen ohne verbotene Angaben
 - `werkzeug_ok`: Anteil der Fragen mit `tools`, bei denen der Agent sie aufgerufen hat (nur Agentenlauf)
 - `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok, sauber und Werkzeug ok
-- `nicht_bewertet_fehler`: API-/Netzfehler zaehlen nicht als falsche Antwort
+- `nicht_bewertet_fehler`: API-/Netzfehler (auch als `error`-Event im Strom) zaehlen nicht als falsche
+  Antwort. In der Retrieval-Schicht sind 404/409 und unbekannte Artikel dagegen echte Fehltreffer und
+  werden mit 0 Fakten bewertet; `--min` schlaegt zusaetzlich fehl, sobald unbewertete Fehler uebrig sind.
 
 ## Aufrufe
 

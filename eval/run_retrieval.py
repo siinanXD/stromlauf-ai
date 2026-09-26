@@ -32,7 +32,27 @@ except ImportError:  # pragma: no cover
 
 QUESTIONS = HERE / "questions.jsonl"
 RESULTS = HERE / "results"
-NO_FILES = {"signal", "calc", "site"}
+
+
+def answer_for_error(exc: Exception) -> str:
+    """HTTP-Fehler (404 Kennzeichen unbekannt, 409 Testwerk fehlt) und unbekannte Artikel sind Retrieval-Fehler
+    und werden bewertet (fakten 0); nur Netzfehler bleiben unbewertet."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        try:
+            detail = exc.response.json().get("detail", exc.response.text)
+        except ValueError:
+            detail = exc.response.text
+        return f"Kein Ergebnis ({exc.response.status_code}): {detail}"
+    if isinstance(exc, ValueError):
+        return f"Kein Ergebnis: {exc}"
+    return f"{evallib.ERROR_PREFIX} {type(exc).__name__}: {exc}"
+
+
+def gate_failed(summary: dict, minimum: float) -> bool:
+    """--min: unter dem Fakten-Mittel oder mit unbewerteten Fehlern, sobald eine Schwelle gesetzt ist."""
+    if minimum <= 0:
+        return False
+    return summary["fakten_mittel"] < minimum or summary["nicht_bewertet_fehler"] > 0
 
 
 def find_hall(site: dict, query: str) -> dict | None:
@@ -86,8 +106,8 @@ def main() -> int:
 
     with httpx.Client(base_url=args.api, timeout=120) as client:
         try:
-            sources = client.get("/api/sources").json()
-            articles = {a["code"]: a["id"] for a in client.get("/api/articles").json()}
+            sources = client.get("/api/sources").raise_for_status().json()
+            articles = {a["code"]: a["id"] for a in client.get("/api/articles").raise_for_status().json()}
         except httpx.HTTPError as exc:
             sys.exit(f"Backend unter {args.api} nicht erreichbar: {exc}")
         by_name = {s["name"]: s["id"] for s in sources}
@@ -102,9 +122,9 @@ def main() -> int:
             try:
                 text, files = evallib.flatten(mode, fetch(client, q, by_name, articles))
             except Exception as exc:  # HTTP-Fehler, unbekannter Artikel, Netz
-                text, files = f"{evallib.ERROR_PREFIX} {type(exc).__name__}: {exc}", []
+                text, files = answer_for_error(exc), []
             cited = [{"filename": f} for f in files]
-            result = evallib.score(q, text, cited, None, check_sources=mode not in NO_FILES)
+            result = evallib.score(q, text, cited, None, check_sources=mode not in evallib.NO_FILES)
             rows.append({"id": q["id"], "source": q.get("source"), "question": q["question"], "mode": mode,
                          "answer": text, "sources": cited, "dauer_s": 0.0, "score": result})
             evallib.print_row(i, len(questions), q, result)
@@ -113,8 +133,9 @@ def main() -> int:
     out = evallib.write_result(RESULTS, "retrieval_", summary, rows)
     evallib.print_summary(summary, args.baseline)
     print(f"\nErgebnis: {out}")
-    if summary["fakten_mittel"] < args.min:
-        print(f"Unter Schwelle {args.min}: fakten_mittel {summary['fakten_mittel']}")
+    if gate_failed(summary, args.min):
+        print(f"Unter Schwelle {args.min}: fakten_mittel {summary['fakten_mittel']}, "
+              f"unbewertete Fehler {summary['nicht_bewertet_fehler']}")
         return 1
     return 0
 
