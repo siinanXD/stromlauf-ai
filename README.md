@@ -42,10 +42,26 @@ Danach im Frontend fragen, zum Beispiel: *„Was haengt an E0.3 und wo ist das i
 *„Warum leuchtet -H2 nach 20 Sekunden?“* Weitere Fragen mit Loesungsweg in
 [`examples/foerderband/README.md`](examples/foerderband/README.md).
 
-## Werk: Halle, Maschinen, Schaltschrank
+## Werk: Standortplan, Halle, Maschinen, Schaltschrank
 
-Reiter **Werk** im Frontend: Hallen anlegen, Maschinen als Kacheln anordnen (Foerderband,
-Hauptmaschine, Verpackung ...), Materialfluss als Pfeile zeichnen. Jede Maschine hat eine
+Reiter **Werk** oeffnet den **Standortplan** (`/werk`): alle Hallen als Grundriss-Bloecke mit Art
+(Grundstoff, Verarbeitung, Lager, Buero), verkleinertem Maschinenlayout und Materialfluss zwischen
+den Hallen. Bloecke lassen sich ziehen und in der Groesse aendern; Pfeil vom rechten Griff auf eine
+andere Halle zeichnet einen Fluss. Rot ist nur die Zahl laufender Fehlersuchen einer Halle.
+
+**Testwerk Tissue** laden (4 Hallen, 30 Maschinen, Kennzahlen mit Quellen, kein KI-Aufruf):
+
+```bash
+python scripts/load_testwerk.py            # --refresh ersetzt ein vorhandenes Testwerk
+```
+
+Papiermaschine PM1 in 6 Sektoren liefert Mutterrollen an 6 Verarbeitungslinien (je Hauptmaschine →
+Verpackung → Palettierer), dann Lager & Versand mit 8 Verladetoren; das Buero gibt Auftraege.
+Daten: `examples/testwerk/testwerk.json`, Recherche: `.ai/research/solution-comparisons/`.
+
+**Halle** (`/werk/halle/{id}`): Maschinen als Kacheln anordnen (Foerderband, Hauptmaschine,
+Verpackung ...), Materialfluss als Pfeile zeichnen, Maschinen einer Linie oder eines Sektors
+bekommen ein gemeinsames Band (Feld „Linie/Sektor“). Die Kachel zeigt die erste Kennzahl. Jede Maschine hat eine
 Maschinenseite mit Foto, zugeordneter Wissensquelle, Fehlerliste (Code, Symptom, Ursache,
 Behebung, beteiligte BMK) und Schaltschrankbildern. Im Schaltschrankbild werden Bauteile als
 Rechtecke markiert, von Hand oder per **Bauteile erkennen lassen** (Claude Vision schlaegt
@@ -55,7 +71,8 @@ Beispielhalle mit Aufbauplan und 14 fertigen Markierungen an.
 
 ### Draufsicht (Vogelperspektive)
 
-Die Maschinenseite hat Tabs **Draufsicht · Fehler · Schaltschrank · Dokumente**. Die Draufsicht
+Die Maschinenseite hat Tabs **Draufsicht · Signalweg · Fehler · Schaltschrank · Kennzahlen ·
+Dokumente**. **Kennzahlen** sind Wert, Einheit und Quelle (URL oder „Richtwert“). Die Draufsicht
 zeigt Baugruppen und Feldgeraete (-M1, -B1, -S3 ...) als Rechtecke oder Kreise in mm auf einem
 Raster (100/1000 mm). Quelle ist eine Skizze (Upload oder PDF-Seite aus der Doku) oder eine eigene
 Zeichnung. **Vorschlaege erkennen** laesst Claude Vision die Skizze lesen (kostet API-Tokens pro
@@ -96,7 +113,7 @@ Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`),
 
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
-            Werk (Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
+            Werk (Standortplan, Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
             Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
@@ -104,7 +121,9 @@ backend/    FastAPI
   app/agent/       LangGraph-Agent (Claude) mit Werkzeugen: search_knowledge, find_tag,
                    keyword_search, get_page, view_page, get_plc_block, list_documents
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
-                   Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege)
+                   Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
+                   site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
+  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860

@@ -4,278 +4,185 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { HallCanvas } from "@/components/HallCanvas";
-import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
-import {
-  api,
-  MACHINE_TYPE_LABELS,
-  plant,
-  type Flow,
-  type Hall,
-  type HallDetail,
-  type KnowledgeSource,
-  type Machine,
-  type MachineType,
-} from "@/lib/api";
+import { SiteCanvas } from "@/components/site/SiteCanvas";
+import { HALL_KIND_LABELS, plant, type HallKind, type SiteData, type SiteFlow } from "@/lib/api";
+import type { Rect } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
-const TYPES = Object.keys(MACHINE_TYPE_LABELS) as MachineType[];
+const KINDS = Object.keys(HALL_KIND_LABELS) as HallKind[];
 
+/** Standortplan: alle Hallen mit Lage, Materialfluss zwischen Hallen, gewählte Halle im Panel. */
 export default function WerkPage() {
-  const [halls, setHalls] = useState<Hall[]>([]);
-  const [hallId, setHallId] = useState<string | null>(null);
-  const [hall, setHall] = useState<HallDetail | null>(null);
-  const [sources, setSources] = useState<KnowledgeSource[]>([]);
+  const [site, setSite] = useState<SiteData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [newHall, setNewHall] = useState("");
-  const [newMachine, setNewMachine] = useState({ name: "", machine_type: "main" as MachineType });
+  const [newHall, setNewHall] = useState({ name: "", kind: "production" as HallKind });
   const [error, setError] = useState<string | null>(null);
 
-  const loadHalls = useCallback(
+  const load = useCallback(
     () =>
       plant
-        .listHalls()
-        .then((list) => {
-          setHalls(list);
-          setHallId((current) => current ?? list[0]?.id ?? null);
+        .getSite()
+        .then((data) => {
+          setSite(data);
+          setError(null);
         })
         .catch((err) => setError((err as Error).message)),
     [],
   );
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const loadHall = useCallback(
-    (id: string) =>
-      plant
-        .getHall(id)
-        .then(setHall)
-        .catch(() => setHall(null)),
-    [],
+  const saveRect = useCallback((id: string, rect: Rect) => {
+    setSite((current) => current && { ...current, halls: current.halls.map((h) => (h.id === id ? { ...h, ...rect } : h)) });
+    plant
+      .updateHall(id, { site_x: Math.round(rect.x), site_y: Math.round(rect.y), site_w: Math.round(rect.w), site_h: Math.round(rect.h) })
+      .catch((err) => setError((err as Error).message));
+  }, []);
+
+  const saveFlows = useCallback(
+    async (flows: SiteFlow[]) => {
+      setSite((current) => current && { ...current, flows });
+      await plant.replaceSiteFlows(flows).catch((err) => setError((err as Error).message));
+      await load();
+    },
+    [load],
   );
-
-  useEffect(() => {
-    loadHalls();
-    api.listSources().then(setSources).catch(() => {});
-  }, [loadHalls]);
-
-  useEffect(() => {
-    if (hallId) loadHall(hallId);
-  }, [hallId, loadHall]);
 
   async function createHall(event: React.FormEvent) {
     event.preventDefault();
-    if (!newHall.trim()) return;
+    if (!newHall.name.trim()) return;
     try {
-      const created = await plant.createHall(newHall.trim());
-      setNewHall("");
-      await loadHalls();
-      setHallId(created.id);
+      const hall = await plant.createHall(newHall.name.trim(), "", newHall.kind);
+      setNewHall({ ...newHall, name: "" });
+      await load();
+      setSelectedId(hall.id);
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
-  async function deleteHall() {
-    if (!hall || !confirm(`Halle „${hall.name}“ mit ${hall.machines.length} Maschine(n) löschen?`)) return;
-    await plant.deleteHall(hall.id).catch((err) => setError(err.message));
-    setHallId(null);
-    await loadHalls();
+  async function changeKind(id: string, kind: HallKind) {
+    await plant.updateHall(id, { kind }).catch((err) => setError((err as Error).message));
+    await load();
   }
 
-  async function createMachine(event: React.FormEvent) {
-    event.preventDefault();
-    if (!hall || !newMachine.name.trim()) return;
-    const index = hall.machines.length;
-    try {
-      const machine = await plant.createMachine(hall.id, {
-        name: newMachine.name.trim(),
-        machine_type: newMachine.machine_type,
-        pos_x: 48 + (index % 4) * 216,
-        pos_y: 48 + Math.floor(index / 4) * 144,
-      });
-      setNewMachine({ name: "", machine_type: newMachine.machine_type });
-      await loadHall(hall.id);
-      setSelectedId(machine.id);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }
-
-  async function updateSelected(body: Parameters<typeof plant.updateMachine>[1]) {
-    if (!hall || !selectedId) return;
-    await plant.updateMachine(selectedId, body).catch((err) => setError(err.message));
-    await loadHall(hall.id);
-  }
-
-  async function deleteSelected() {
-    const machine = hall?.machines.find((m) => m.id === selectedId);
-    if (!hall || !machine || !confirm(`Maschine „${machine.name}“ löschen?`)) return;
-    await plant.deleteMachine(machine.id).catch((err) => setError(err.message));
-    setSelectedId(null);
-    await loadHall(hall.id);
-  }
-
-  async function saveFlows(flows: Flow[]) {
-    if (!hall) return;
-    setHall({ ...hall, flows });
-    await plant.replaceFlows(hall.id, flows).catch((err) => setError(err.message));
-    await loadHall(hall.id);
-  }
-
-  const current = hall && hall.id === hallId ? hall : null;
-  const selected: Machine | undefined = current?.machines.find((m) => m.id === selectedId);
+  const selected = site?.halls.find((h) => h.id === selectedId);
+  const machines = site?.halls.reduce((sum, h) => sum + h.machine_count, 0) ?? 0;
 
   return (
-    <AppShell breadcrumb={current ? [{ label: "Werk", href: "/werk" }, { label: current.name }] : [{ label: "Werk" }]}>
+    <AppShell breadcrumb={[{ label: "Werk" }]}>
       <div className="flex h-full flex-col">
-
-        <div className="flex min-h-0 flex-1">
-          <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
-            <div className="flex items-center justify-between px-4 pb-1.5 pt-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hallen</h2>
-            </div>
-            <ul>
-              {halls.map((h) => (
-                <li key={h.id}>
-                  <button
-                    onClick={() => {
-                      setHallId(h.id);
-                      setSelectedId(null);
-                    }}
-                    className={`flex w-full items-center gap-2 px-4 py-1.5 text-left text-sm hover:bg-secondary ${h.id === hallId ? "bg-secondary font-medium" : ""}`}
-                  >
-                    <span className="truncate">{h.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{h.machine_count}</span>
-                  </button>
-                </li>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2">
+          <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Standortplan</h1>
+          {site && (
+            <span className="text-sm text-muted-foreground">
+              {site.halls.length} Hallen · {machines} Maschinen
+            </span>
+          )}
+          <form onSubmit={createHall} className="flex w-full flex-wrap gap-1.5 sm:ml-auto sm:w-auto sm:flex-nowrap">
+            <input
+              value={newHall.name}
+              onChange={(event) => setNewHall({ ...newHall, name: event.target.value })}
+              placeholder="Neue Halle, z. B. Halle 3"
+              aria-label="Name der neuen Halle"
+              className="h-8 min-w-0 basis-full border border-border bg-background px-2 text-sm sm:w-48 sm:basis-auto"
+            />
+            <select
+              value={newHall.kind}
+              onChange={(event) => setNewHall({ ...newHall, kind: event.target.value as HallKind })}
+              aria-label="Art der neuen Halle"
+              className="h-8 min-w-0 flex-1 border border-border bg-background px-1.5 text-sm sm:flex-none"
+            >
+              {KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {HALL_KIND_LABELS[kind]}
+                </option>
               ))}
-            </ul>
-            <form onSubmit={createHall} className="flex gap-1.5 px-3 pt-2">
-              <input
-                value={newHall}
-                onChange={(event) => setNewHall(event.target.value)}
-                placeholder="Neue Halle, z. B. Halle 3"
-                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-              />
-              <button className="rounded-md bg-primary px-2.5 text-sm font-medium text-primary-foreground">+</button>
-            </form>
-            {error && <p className="px-4 pt-2 text-xs text-danger">{error}</p>}
-          </aside>
+            </select>
+            <button className="h-8 shrink-0 border border-line bg-card px-3 text-sm font-medium hover:border-primary hover:text-primary">
+              + Halle anlegen
+            </button>
+          </form>
+        </div>
+        {error && <p className="border-b border-border px-4 py-1.5 text-xs text-danger">{error}</p>}
 
-          <main className="flex min-w-0 flex-1 flex-col">
-            {!current ? (
-              <div className="p-8 text-muted-foreground">
-                <h1 className="text-xl font-semibold text-foreground">Werk</h1>
-                <p className="mt-2 max-w-md text-sm">
-                  Lege links eine Halle an. Darin ordnest du Maschinen als Kacheln an, zeichnest den Materialfluss und
-                  hängst an jede Maschine ihre Doku, Fehlerliste und Schaltschrankbilder.
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <div className="min-h-[420px] min-w-0 flex-1">
+            {site && <SiteCanvas site={site} selectedId={selectedId} onSelect={setSelectedId} onRect={saveRect} onFlowsChanged={saveFlows} />}
+          </div>
+
+          <aside className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-4 text-sm lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
+            {selected ? (
+              <div className="space-y-3">
+                <div>
+                  <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">Halle</div>
+                  <h2 className="font-mono text-base font-semibold uppercase">{selected.name}</h2>
+                </div>
+                <select
+                  aria-label="Art der Halle"
+                  value={selected.kind}
+                  onChange={(event) => changeKind(selected.id, event.target.value as HallKind)}
+                  className="h-8 w-full border border-border bg-background px-2"
+                >
+                  {KINDS.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {HALL_KIND_LABELS[kind]}
+                    </option>
+                  ))}
+                </select>
+                <dl className="grid grid-cols-3 gap-2 font-mono">
+                  <div>
+                    <dd className="text-base font-semibold">{selected.machine_count}</dd>
+                    <dt className="text-[11px] text-muted-foreground">Maschinen</dt>
+                  </div>
+                  <div>
+                    <dd className="text-base font-semibold">{selected.lines.length}</dd>
+                    <dt className="text-[11px] text-muted-foreground">Linien</dt>
+                  </div>
+                  <div>
+                    <dd className={cn("text-base font-semibold", selected.open_diagnoses > 0 && "text-danger")}>{selected.open_diagnoses}</dd>
+                    <dt className="text-[11px] text-muted-foreground">Fehlersuchen</dt>
+                  </div>
+                </dl>
+                {selected.lines.length > 0 && (
+                  <ul className="space-y-0.5 border-t border-border pt-2">
+                    {selected.lines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                )}
+                {selected.description && <p className="border-t border-border pt-2 text-[13px] text-muted-foreground">{selected.description}</p>}
+                <Link
+                  href={`/werk/halle/${selected.id}`}
+                  className="block bg-primary py-2 text-center font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Halle öffnen →
+                </Link>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Ziehen: verschieben · Ecke: Größe · rechter Griff → Halle: Materialfluss · Pfeil anklicken: löschen
                 </p>
               </div>
             ) : (
-              <>
-                <div className="flex items-center gap-3 border-b border-border px-4 py-2">
-                  <h1 className="truncate font-mono text-lg font-semibold uppercase">{current.name}</h1>
-                  <span className="text-sm text-muted-foreground">{current.machines.length} Maschinen</span>
-                  <span className="ml-auto">
-                    <OnboardingDialog hallId={current.id} onCreated={() => loadHall(current.id)} />
-                  </span>
-                  <button onClick={deleteHall} className="text-sm text-muted-foreground hover:text-danger">
-                    Halle löschen
-                  </button>
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-                  <div className="min-h-[420px] min-w-0 flex-1">
-                    <HallCanvas
-                      machines={current.machines}
-                      flows={current.flows}
-                      selectedId={selectedId}
-                      onSelect={setSelectedId}
-                      onMoved={(id, x, y) => plant.updateMachine(id, { pos_x: x, pos_y: y }).catch((err) => setError(err.message))}
-                      onFlowsChanged={saveFlows}
-                    />
-                  </div>
-
-                  <aside className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-card p-4 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0">
-                    <form onSubmit={createMachine} className="space-y-2">
-                      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Maschine anlegen</h2>
-                      <input
-                        value={newMachine.name}
-                        onChange={(event) => setNewMachine({ ...newMachine, name: event.target.value })}
-                        placeholder="Name, z. B. Förderband FB-01"
-                        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-                      />
-                      <div className="flex gap-1.5">
-                        <select
-                          value={newMachine.machine_type}
-                          onChange={(event) => setNewMachine({ ...newMachine, machine_type: event.target.value as MachineType })}
-                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-                        >
-                          {TYPES.map((type) => (
-                            <option key={type} value={type}>
-                              {MACHINE_TYPE_LABELS[type]}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">Anlegen</button>
-                      </div>
-                    </form>
-
-                    {selected && (
-                      <div className="mt-6 space-y-3 border-t border-border pt-4">
-                        <div className="flex items-center justify-between">
-                          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ausgewählt</h2>
-                          <Link href={`/werk/maschine/${selected.id}`} className="text-sm text-primary hover:underline">
-                            Maschinenseite →
-                          </Link>
-                        </div>
-                        <label className="block text-sm">
-                          <span className="text-xs text-muted-foreground">Name</span>
-                          <input
-                            key={selected.id + selected.name}
-                            defaultValue={selected.name}
-                            onBlur={(event) => event.target.value.trim() && event.target.value !== selected.name && updateSelected({ name: event.target.value.trim() })}
-                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
-                          />
-                        </label>
-                        <label className="block text-sm">
-                          <span className="text-xs text-muted-foreground">Typ</span>
-                          <select
-                            value={selected.machine_type}
-                            onChange={(event) => updateSelected({ machine_type: event.target.value as MachineType })}
-                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
-                          >
-                            {TYPES.map((type) => (
-                              <option key={type} value={type}>
-                                {MACHINE_TYPE_LABELS[type]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="block text-sm">
-                          <span className="text-xs text-muted-foreground">Wissensquelle (Doku)</span>
-                          <select
-                            value={selected.source_id ?? ""}
-                            onChange={(event) =>
-                              event.target.value ? updateSelected({ source_id: event.target.value }) : updateSelected({ clear_source: true })
-                            }
-                            className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5"
-                          >
-                            <option value="">keine</option>
-                            {sources.map((source) => (
-                              <option key={source.id} value={source.id}>
-                                {source.name} ({source.document_count})
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button onClick={deleteSelected} className="text-sm text-muted-foreground hover:text-danger">
-                          Maschine löschen
-                        </button>
-                      </div>
-                    )}
-                  </aside>
-                </div>
-              </>
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hallen</h2>
+                <ul className="mt-2 divide-y divide-border border-y border-border">
+                  {site?.halls.map((hall) => (
+                    <li key={hall.id}>
+                      <button onClick={() => setSelectedId(hall.id)} className="flex w-full items-center gap-2 py-2 text-left hover:text-primary">
+                        <span className="min-w-0 flex-1 truncate">{hall.name}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">{HALL_KIND_LABELS[hall.kind]}</span>
+                        <span className="w-6 text-right font-mono text-xs">{hall.machine_count}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
+                  Halle im Plan anklicken für Details. Testwerk laden: <code>python scripts/load_testwerk.py</code>
+                </p>
+              </div>
             )}
-          </main>
+          </aside>
         </div>
       </div>
     </AppShell>

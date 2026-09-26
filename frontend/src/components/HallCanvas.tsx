@@ -15,15 +15,20 @@ import {
   type Connection,
   type EdgeTypes,
   type NodeTypes,
+  type OnNodesChange,
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo } from "react";
 
 import { FlowEdge, type FlowEdgeType } from "@/components/hall/FlowEdge";
+import { LaneNode, type LaneNodeType } from "@/components/hall/LaneNode";
 import { MachineNode, TILE_H, TILE_W, type MachineNodeType } from "@/components/hall/MachineNode";
 import type { Flow, Machine } from "@/lib/api";
+import { laneBoxes, TILE } from "@/lib/site";
 
 const GRID = 24;
-const NODE_TYPES: NodeTypes = { machine: MachineNode };
+const NODE_TYPES: NodeTypes = { machine: MachineNode, lane: LaneNode };
+
+type HallNode = MachineNodeType | LaneNodeType;
 const EDGE_TYPES: EdgeTypes = { flow: FlowEdge };
 
 const sameFlow = (a: Flow, b: Flow) => a.from_machine_id === b.from_machine_id && a.to_machine_id === b.to_machine_id;
@@ -63,6 +68,31 @@ export function HallCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState<MachineNodeType>(buildNodes());
   useEffect(() => setNodes(buildNodes()), [buildNodes, setNodes]);
 
+  // Linienbaender aus den Live-Positionen: folgen den Kacheln schon waehrend des Ziehens
+  const lanes = useMemo<LaneNodeType[]>(
+    () =>
+      laneBoxes(
+        nodes.map((node) => ({ line: node.data.machine.line, x: node.position.x, y: node.position.y })),
+        TILE,
+      ).map((lane) => ({
+        id: `lane:${lane.line}`,
+        type: "lane",
+        position: { x: lane.x, y: lane.y },
+        width: lane.w,
+        height: lane.h,
+        // Groesse als gemessen vorgeben: sonst misst React Flow jedes neu gebaute Band erneut,
+        // meldet eine Aenderung und loest den naechsten Aufbau aus (Endlosschleife)
+        measured: { width: lane.w, height: lane.h },
+        data: { line: lane.line },
+        selectable: false,
+        draggable: false,
+        focusable: false,
+        zIndex: -1,
+        style: { pointerEvents: "none" },
+      })),
+    [nodes],
+  );
+
   const flowEdges = useMemo<FlowEdgeType[]>(
     () =>
       flows.map((flow) => ({
@@ -91,20 +121,28 @@ export function HallCanvas({
 
   return (
     <div className="relative size-full bg-card">
-      <ReactFlow<MachineNodeType, FlowEdgeType>
-        nodes={nodes}
+      <ReactFlow<HallNode, FlowEdgeType>
+        nodes={[...lanes, ...nodes]}
         edges={edges}
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
-        onNodesChange={onNodesChange}
+        onNodesChange={onNodesChange as OnNodesChange<HallNode>}
         onEdgesChange={onEdgesChange}
-        onNodeClick={(_, node) => onSelect(node.id)}
+        onNodeClick={(_, node) => node.type === "machine" && onSelect(node.id)}
         onPaneClick={() => onSelect(null)}
-        onNodeDragStop={(_, node) => onMoved(node.id, Math.max(0, node.position.x), Math.max(0, node.position.y))}
+        onNodeDragStop={(_, grabbed, dragged) => {
+          dragged
+            .filter((node) => node.type === "machine")
+            .forEach((node) => onMoved(node.id, Math.max(0, node.position.x), Math.max(0, node.position.y)));
+          // Auswahl erst nach dem Loslassen: ein Panelwechsel waehrend des Ziehens verschiebt die Flaeche
+          if (grabbed.type === "machine") onSelect(grabbed.id);
+        }}
         onConnect={connect}
         onEdgesDelete={(deleted) => onFlowsChanged(flows.filter((f) => !deleted.some((e) => e.source === f.from_machine_id && e.target === f.to_machine_id)))}
         onBeforeDelete={async ({ nodes: doomed }) => doomed.length === 0}
         deleteKeyCode={["Delete", "Backspace"]}
+        selectionKeyCode={null}
+        multiSelectionKeyCode={null}
         snapToGrid
         snapGrid={[GRID, GRID]}
         connectionLineStyle={{ stroke: "var(--primary)", strokeWidth: 2, strokeDasharray: "6 4" }}
@@ -121,7 +159,7 @@ export function HallCanvas({
           pannable
           zoomable
           className="!rounded-none !border !border-line !bg-card max-md:!hidden"
-          nodeColor={(node) => (node.id === selectedId ? "var(--primary)" : "#cdd5df")}
+          nodeColor={(node) => (node.type === "lane" ? "var(--secondary)" : node.id === selectedId ? "var(--primary)" : "#cdd5df")}
           maskColor="rgba(20, 38, 61, 0.08)"
         />
         <Panel position="top-left" className="!m-3 max-w-[calc(100%-1.5rem)] border border-line bg-card px-3 py-1.5 text-xs text-muted-foreground">

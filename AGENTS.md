@@ -10,12 +10,17 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Hallen-Baukasten, `/werk/maschine/[id]`.
-- Werk-Datenmodell (`models.py`): Hall -> Machine (-> KnowledgeSource) -> FaultEntry, CabinetImage -> CabinetHotspot,
-  Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession (Fehlersuche-Log).
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Standortplan, `/werk/halle/[id]` Hallen-Baukasten,
+  `/werk/maschine/[id]`.
+- Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
+  CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
+  (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
+  Reine Werk-Logik in `backend/app/werk/`.
 - Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
-  Tabellen entstehen per `create_all`; Bilder liegen unter `backend/data/images/`.
+  Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
+  `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
+  `backend/data/images/`.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
@@ -43,3 +48,4 @@ Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom al
 und muss neu erstellt werden.
 
 GitHub-Remote: `siinanXD/stromlauf-ai` (privat, seit 2026-09-25). Beispielanlage: `examples/foerderband/`, Laden mit `python scripts/load_example.py`.
+Testwerk Tissue (4 Hallen, 30 Maschinen): `examples/testwerk/testwerk.json`, Laden mit `python scripts/load_testwerk.py [--refresh]`.

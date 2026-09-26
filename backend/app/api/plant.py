@@ -48,6 +48,7 @@ from app.schemas import (
     TagSearchHit,
     TagSearchMachine,
 )
+from app.werk.site import HALL_KINDS, key_figure
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["plant"])
@@ -99,7 +100,30 @@ def _machine_out(session: Session, machine: Machine) -> MachineOut:
         fault_count=len(machine.faults),
         cabinet_count=len(machine.cabinets),
         document_count=documents,
+        line=machine.line,
+        key_figure=key_figure([{"value": s.value, "unit": s.unit} for s in machine.specs]),
+        hall_name=machine.hall.name,
     )
+
+
+def _hall_out(hall: Hall) -> HallOut:
+    return HallOut(
+        id=hall.id,
+        name=hall.name,
+        description=hall.description,
+        created_at=hall.created_at,
+        machine_count=len(hall.machines),
+        kind=hall.kind,
+        site_x=hall.site_x,
+        site_y=hall.site_y,
+        site_w=hall.site_w,
+        site_h=hall.site_h,
+    )
+
+
+def _check_kind(kind: str | None) -> None:
+    if kind is not None and kind not in HALL_KINDS:
+        raise HTTPException(400, f"kind muss eins sein von {list(HALL_KINDS)}")
 
 
 # --- Hallen ---------------------------------------------------------------------------------
@@ -108,26 +132,29 @@ def _machine_out(session: Session, machine: Machine) -> MachineOut:
 @router.get("/halls", response_model=list[HallOut])
 def list_halls(session: Session = Depends(get_session)):
     halls = session.scalars(select(Hall).options(selectinload(Hall.machines)).order_by(Hall.created_at)).all()
-    return [HallOut(id=h.id, name=h.name, description=h.description, created_at=h.created_at, machine_count=len(h.machines)) for h in halls]
+    return [_hall_out(h) for h in halls]
 
 
 @router.post("/halls", response_model=HallOut, status_code=201)
 def create_hall(body: HallCreate, session: Session = Depends(get_session)):
-    hall = Hall(name=body.name, description=body.description)
+    _check_kind(body.kind)
+    hall = Hall(name=body.name, description=body.description, kind=body.kind)
     session.add(hall)
     session.commit()
-    return HallOut(id=hall.id, name=hall.name, description=hall.description, created_at=hall.created_at)
+    return _hall_out(hall)
 
 
 @router.get("/halls/{hall_id}", response_model=HallDetail)
 def get_hall(hall_id: str, session: Session = Depends(get_session)):
-    hall = _get(session, Hall, hall_id, "Halle")
+    hall = session.scalar(
+        select(Hall)
+        .where(Hall.id == hall_id)
+        .options(selectinload(Hall.machines).selectinload(Machine.specs))
+    )
+    if hall is None:
+        raise HTTPException(404, "Halle nicht gefunden")
     return HallDetail(
-        id=hall.id,
-        name=hall.name,
-        description=hall.description,
-        created_at=hall.created_at,
-        machine_count=len(hall.machines),
+        **_hall_out(hall).model_dump(),
         machines=[_machine_out(session, m) for m in hall.machines],
         flows=[FlowOut.model_validate(f) for f in hall.flows],
     )
@@ -136,12 +163,12 @@ def get_hall(hall_id: str, session: Session = Depends(get_session)):
 @router.patch("/halls/{hall_id}", response_model=HallOut)
 def update_hall(hall_id: str, body: HallUpdate, session: Session = Depends(get_session)):
     hall = _get(session, Hall, hall_id, "Halle")
-    if body.name is not None:
-        hall.name = body.name
-    if body.description is not None:
-        hall.description = body.description
+    data = body.model_dump(exclude_unset=True, exclude_none=True)
+    _check_kind(data.get("kind"))
+    for key, value in data.items():
+        setattr(hall, key, value)
     session.commit()
-    return HallOut(id=hall.id, name=hall.name, description=hall.description, created_at=hall.created_at, machine_count=len(hall.machines))
+    return _hall_out(hall)
 
 
 @router.delete("/halls/{hall_id}", status_code=204)

@@ -14,6 +14,7 @@ import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
 import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
 import { PartPanel } from "@/components/machine/PartPanel";
+import { SpecsTab } from "@/components/machine/SpecsTab";
 import { SignalPath } from "@/components/signal/SignalPath";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +33,7 @@ import {
   type MachineDetail,
 } from "@/lib/api";
 
-type TabId = "draufsicht" | "signalweg" | "fehler" | "schaltschrank" | "dokumente";
+type TabId = "draufsicht" | "signalweg" | "fehler" | "schaltschrank" | "kennzahlen" | "dokumente";
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
@@ -183,7 +184,13 @@ export default function MachinePage() {
   const canDetect = Boolean(layout && (layout.has_image || (layout.document_id && layout.page)));
 
   return (
-    <AppShell breadcrumb={[{ label: "Werk", href: "/werk" }, { label: machine.name }]}>
+    <AppShell
+      breadcrumb={[
+        { label: "Werk", href: "/werk" },
+        { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
+        { label: machine.name },
+      ]}
+    >
       <Tabs value={tab} onValueChange={(value) => setTab(value as TabId)} className="flex h-full flex-col gap-0">
         <div className="flex flex-wrap items-end gap-x-8 gap-y-2 border-b border-line px-6 pt-4">
           <div className="min-w-0 pb-2">
@@ -205,6 +212,9 @@ export default function MachinePage() {
             </TabsTrigger>
             <TabsTrigger value="schaltschrank" className={TRIGGER}>
               Schaltschrank
+            </TabsTrigger>
+            <TabsTrigger value="kennzahlen" className={TRIGGER}>
+              Kennzahlen
             </TabsTrigger>
             <TabsTrigger value="dokumente" className={TRIGGER}>
               Dokumente
@@ -301,6 +311,10 @@ export default function MachinePage() {
 
         <TabsContent value="schaltschrank" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
           <CabinetsTab machine={machine} highlightTag={highlightTag} onChanged={loadMachine} onOpenPage={setPageTarget} />
+        </TabsContent>
+
+        <TabsContent value="kennzahlen" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+          <SpecsTab machineId={machine.id} onSaved={loadMachine} />
         </TabsContent>
 
         <TabsContent value="dokumente" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">

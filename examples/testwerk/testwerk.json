@@ -1,0 +1,827 @@
+{
+  "name": "Testwerk Tissue",
+  "note": "Fiktives Werk mit belegten Kennzahlen (Recherche 2026-09-26). 'Richtwert' = keine Herstellerangabe.",
+  "halls": [
+    {
+      "name": "Papiermaschine PM1",
+      "kind": "base",
+      "description": "Tissuemaschine in 6 Sektoren. Rein: Zellstoff, Altpapier, Chemie, Wasser. Raus: Mutterrollen für die Verarbeitung.",
+      "site": {
+        "x": 40,
+        "y": 40,
+        "w": 1000,
+        "h": 260
+      },
+      "machines": [
+        {
+          "key": "pm1-s1",
+          "name": "PM1-S1 Stoffaufbereitung",
+          "machine_type": "main",
+          "line": "PM1 Tissuemaschine",
+          "x": 48,
+          "y": 48,
+          "description": "Löst Zellstoff- und Altpapierballen auf und mahlt die Fasern.",
+          "specs": [
+            {
+              "label": "Durchsatz",
+              "value": "3,6",
+              "unit": "t/h",
+              "source": "Abgeleitet: 30.000 t/a ÷ 8.400 h/a (Jahreskapazität S6)"
+            },
+            {
+              "label": "Rohstoffe",
+              "value": "Zellstoff, Altpapier, Wasser",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Aggregate",
+              "value": "Pulper, Refiner",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "pm1-s2",
+          "name": "PM1-S2 Chemikaliendosierung",
+          "machine_type": "other",
+          "line": "PM1 Tissuemaschine",
+          "x": 48,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Dosierstellen",
+              "value": "4",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Chemikalien",
+              "value": "Nassfestmittel, Retentionsmittel, Farbstoff",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "pm1-s3",
+          "name": "PM1-S3 Stoffauflauf und Former",
+          "machine_type": "main",
+          "line": "PM1 Tissuemaschine",
+          "x": 288,
+          "y": 120,
+          "description": "",
+          "specs": [
+            {
+              "label": "Arbeitsbreite",
+              "value": "2,8",
+              "unit": "m",
+              "source": "https://www.valmet.com/tissue/tissue-making-solutions/Advantage-DCT/"
+            },
+            {
+              "label": "Former",
+              "value": "Crescent-Former",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "pm1-s4",
+          "name": "PM1-S4 Pressenpartie",
+          "machine_type": "main",
+          "line": "PM1 Tissuemaschine",
+          "x": 528,
+          "y": 120,
+          "description": "",
+          "specs": [
+            {
+              "label": "Presse",
+              "value": "Saugpresswalze",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Arbeitsbreite",
+              "value": "2,8",
+              "unit": "m",
+              "source": "https://www.valmet.com/tissue/tissue-making-solutions/Advantage-DCT/"
+            }
+          ]
+        },
+        {
+          "key": "pm1-s5",
+          "name": "PM1-S5 Yankee-Trockner und Haube",
+          "machine_type": "main",
+          "line": "PM1 Tissuemaschine",
+          "x": 768,
+          "y": 120,
+          "description": "",
+          "specs": [
+            {
+              "label": "Yankee-Durchmesser",
+              "value": "5,5",
+              "unit": "m",
+              "source": "https://www.paperindustryworld.com/new-xcelline-tm10-tissue-machine-voith-successfully-started-new-record-time/"
+            },
+            {
+              "label": "Haube",
+              "value": "dampfbeheizt",
+              "unit": "",
+              "source": "https://www.voith.com/corp-en/news-room/press-releases-72431.html"
+            }
+          ]
+        },
+        {
+          "key": "pm1-s6",
+          "name": "PM1-S6 Aufrollung",
+          "machine_type": "main",
+          "line": "PM1 Tissuemaschine",
+          "x": 1008,
+          "y": 120,
+          "description": "Wickelt die Bahn zu Mutterrollen (Tambour) auf.",
+          "specs": [
+            {
+              "label": "Konstruktionsgeschwindigkeit",
+              "value": "2.200",
+              "unit": "m/min",
+              "source": "https://www.valmet.com/tissue/tissue-making-solutions/Advantage-DCT/"
+            },
+            {
+              "label": "Jahreskapazität",
+              "value": "~30.000",
+              "unit": "t/a",
+              "source": "https://www.valmet.com/tissue/tissue-making-solutions/Advantage-DCT/"
+            },
+            {
+              "label": "Arbeitsbreite",
+              "value": "2,8",
+              "unit": "m",
+              "source": "https://www.valmet.com/tissue/tissue-making-solutions/Advantage-DCT/"
+            }
+          ]
+        },
+        {
+          "key": "pm1-p",
+          "name": "PM1-P Mutterrollenpuffer",
+          "machine_type": "storage",
+          "line": "",
+          "x": 1248,
+          "y": 120,
+          "description": "",
+          "specs": [
+            {
+              "label": "Stellplätze",
+              "value": "24",
+              "unit": "Mutterrollen",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Mutterrollengewicht",
+              "value": "1–3",
+              "unit": "t",
+              "source": "https://www.yuanhuapaper.com/calculate-weight-density-and-thickness-of-tissue-parent-roll/"
+            }
+          ]
+        }
+      ],
+      "flows": [
+        [
+          "pm1-s1",
+          "pm1-s3",
+          "Faserstoff"
+        ],
+        [
+          "pm1-s2",
+          "pm1-s3",
+          "Chemie"
+        ],
+        [
+          "pm1-s3",
+          "pm1-s4",
+          ""
+        ],
+        [
+          "pm1-s4",
+          "pm1-s5",
+          ""
+        ],
+        [
+          "pm1-s5",
+          "pm1-s6",
+          ""
+        ],
+        [
+          "pm1-s6",
+          "pm1-p",
+          "Mutterrollen"
+        ]
+      ]
+    },
+    {
+      "name": "Verarbeitung",
+      "kind": "production",
+      "description": "6 Linien, je Hauptmaschine → Verpackung → Palettierer. Versorgung mit Mutterrollen aus PM1.",
+      "site": {
+        "x": 40,
+        "y": 360,
+        "w": 560,
+        "h": 700
+      },
+      "machines": [
+        {
+          "key": "l1-ur",
+          "name": "L1-UR Umroller Toilettenpapier",
+          "machine_type": "main",
+          "line": "L1 Toilettenpapier",
+          "x": 48,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "10",
+              "unit": "Logs/min",
+              "source": "https://www.valmet.com/tissue/tissue-converting/converting-lines-for-tissue-rolls/start-up-lines-xseries/perini-x3/"
+            },
+            {
+              "label": "Bahngeschwindigkeit",
+              "value": "200",
+              "unit": "m/min",
+              "source": "https://www.valmet.com/tissue/tissue-converting/converting-lines-for-tissue-rolls/start-up-lines-xseries/perini-x3/"
+            },
+            {
+              "label": "Rollentrennsäge",
+              "value": "135",
+              "unit": "Schnitte/min",
+              "source": "https://www.flexography.org/industry-news/paper-converting-machine-co-pcmc-launches-paragon-tissue-rewinder/"
+            }
+          ]
+        },
+        {
+          "key": "l1-vp",
+          "name": "L1-VP Folienverpacker",
+          "machine_type": "packaging",
+          "line": "L1 Toilettenpapier",
+          "x": 288,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "220",
+              "unit": "Pakete/min",
+              "source": "https://www.valmet.com/tissue/tissue-converting/equipment/casmatic-cmw208-kp060/"
+            }
+          ]
+        },
+        {
+          "key": "l1-pal",
+          "name": "L1-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L1 Toilettenpapier",
+          "x": 528,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "60",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Palette",
+              "value": "Europalette 1.200 × 800",
+              "unit": "mm",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l2-ur",
+          "name": "L2-UR Umroller Küchenrolle",
+          "machine_type": "main",
+          "line": "L2 Küchenrolle",
+          "x": 48,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Bahngeschwindigkeit",
+              "value": "600",
+              "unit": "m/min",
+              "source": "https://tissueonlinenorthamerica.com/gambini-complete-lines-for-tissue-converting/"
+            },
+            {
+              "label": "Rollenbreite",
+              "value": "bis 2.850",
+              "unit": "mm",
+              "source": "https://tissueonlinenorthamerica.com/gambini-complete-lines-for-tissue-converting/"
+            }
+          ]
+        },
+        {
+          "key": "l2-bd",
+          "name": "L2-BD Bündler",
+          "machine_type": "packaging",
+          "line": "L2 Küchenrolle",
+          "x": 288,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "40",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l2-pal",
+          "name": "L2-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L2 Küchenrolle",
+          "x": 528,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "40",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l3-sf",
+          "name": "L3-SF Serviettenfaltmaschine",
+          "machine_type": "main",
+          "line": "L3 Servietten",
+          "x": 48,
+          "y": 384,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "2.500",
+              "unit": "Servietten/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Falz",
+              "value": "1/4-Falz",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l3-vp",
+          "name": "L3-VP Folienverpacker",
+          "machine_type": "packaging",
+          "line": "L3 Servietten",
+          "x": 288,
+          "y": 384,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "120",
+              "unit": "Pakete/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l3-pal",
+          "name": "L3-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L3 Servietten",
+          "x": 528,
+          "y": 384,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "30",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l4-if",
+          "name": "L4-IF Interfolder",
+          "machine_type": "main",
+          "line": "L4 Kosmetiktücher",
+          "x": 48,
+          "y": 552,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "1.800",
+              "unit": "Tücher/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Flächengewicht",
+              "value": "13–15",
+              "unit": "g/m²",
+              "source": "https://www.yuanhuapaper.com/calculate-weight-density-and-thickness-of-tissue-parent-roll/"
+            }
+          ]
+        },
+        {
+          "key": "l4-kt",
+          "name": "L4-KT Kartoniermaschine",
+          "machine_type": "packaging",
+          "line": "L4 Kosmetiktücher",
+          "x": 288,
+          "y": 552,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "150",
+              "unit": "Boxen/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l4-pal",
+          "name": "L4-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L4 Kosmetiktücher",
+          "x": 528,
+          "y": 552,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "25",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l5-fh",
+          "name": "L5-FH Falthandtuchmaschine",
+          "machine_type": "main",
+          "line": "L5 Falthandtücher",
+          "x": 48,
+          "y": 720,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "1.200",
+              "unit": "Tücher/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Flächengewicht",
+              "value": "40–45",
+              "unit": "g/m²",
+              "source": "https://www.yuanhuapaper.com/calculate-weight-density-and-thickness-of-tissue-parent-roll/"
+            }
+          ]
+        },
+        {
+          "key": "l5-bd",
+          "name": "L5-BD Bündler",
+          "machine_type": "packaging",
+          "line": "L5 Falthandtücher",
+          "x": 288,
+          "y": 720,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "35",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l5-pal",
+          "name": "L5-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L5 Falthandtücher",
+          "x": 528,
+          "y": 720,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "25",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l6-ur",
+          "name": "L6-UR Großrollen-Umroller",
+          "machine_type": "main",
+          "line": "L6 Industrierollen",
+          "x": 48,
+          "y": 888,
+          "description": "",
+          "specs": [
+            {
+              "label": "Bahngeschwindigkeit",
+              "value": "400",
+              "unit": "m/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Rollendurchmesser",
+              "value": "bis 400",
+              "unit": "mm",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l6-vp",
+          "name": "L6-VP Einzelrollenverpacker",
+          "machine_type": "packaging",
+          "line": "L6 Industrierollen",
+          "x": 288,
+          "y": 888,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "20",
+              "unit": "Rollen/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "l6-pal",
+          "name": "L6-PAL Palettierer",
+          "machine_type": "robot",
+          "line": "L6 Industrierollen",
+          "x": 528,
+          "y": 888,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "15",
+              "unit": "Gebinde/min",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        }
+      ],
+      "flows": [
+        [
+          "l1-ur",
+          "l1-vp",
+          ""
+        ],
+        [
+          "l1-vp",
+          "l1-pal",
+          ""
+        ],
+        [
+          "l2-ur",
+          "l2-bd",
+          ""
+        ],
+        [
+          "l2-bd",
+          "l2-pal",
+          ""
+        ],
+        [
+          "l3-sf",
+          "l3-vp",
+          ""
+        ],
+        [
+          "l3-vp",
+          "l3-pal",
+          ""
+        ],
+        [
+          "l4-if",
+          "l4-kt",
+          ""
+        ],
+        [
+          "l4-kt",
+          "l4-pal",
+          ""
+        ],
+        [
+          "l5-fh",
+          "l5-bd",
+          ""
+        ],
+        [
+          "l5-bd",
+          "l5-pal",
+          ""
+        ],
+        [
+          "l6-ur",
+          "l6-vp",
+          ""
+        ],
+        [
+          "l6-vp",
+          "l6-pal",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "Lager & Versand",
+      "kind": "warehouse",
+      "description": "Einlagerung ins Hochregallager, Kommissionierung, 8 Verladetore für Sattelzüge (33 Europaletten).",
+      "site": {
+        "x": 660,
+        "y": 360,
+        "w": 680,
+        "h": 280
+      },
+      "machines": [
+        {
+          "key": "lv-ft",
+          "name": "LV-FT Palettenförderer",
+          "machine_type": "conveyor",
+          "line": "Einlagerung",
+          "x": 48,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "120",
+              "unit": "Paletten/h",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "lv-sw",
+          "name": "LV-SW Stretchwickler und Etikettierer",
+          "machine_type": "packaging",
+          "line": "Einlagerung",
+          "x": 288,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Leistung",
+              "value": "60",
+              "unit": "Paletten/h",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "lv-hrl",
+          "name": "LV-HRL Hochregallager",
+          "machine_type": "storage",
+          "line": "Einlagerung",
+          "x": 528,
+          "y": 48,
+          "description": "",
+          "specs": [
+            {
+              "label": "Stellplätze",
+              "value": "4.800",
+              "unit": "Paletten",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "Regalbediengeräte",
+              "value": "2",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "lv-km",
+          "name": "LV-KM Kommissionierplatz",
+          "machine_type": "other",
+          "line": "Versand",
+          "x": 528,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Arbeitsplätze",
+              "value": "6",
+              "unit": "",
+              "source": "Richtwert (keine Herstellerangabe)"
+            }
+          ]
+        },
+        {
+          "key": "lv-vt",
+          "name": "LV-VT Verladetore",
+          "machine_type": "other",
+          "line": "Versand",
+          "x": 768,
+          "y": 216,
+          "description": "",
+          "specs": [
+            {
+              "label": "Anzahl Tore",
+              "value": "8",
+              "unit": "Tore",
+              "source": "Richtwert (keine Herstellerangabe)"
+            },
+            {
+              "label": "LKW-Kapazität",
+              "value": "33",
+              "unit": "Europaletten",
+              "source": "https://cargolo.com/de/europalette-masse"
+            },
+            {
+              "label": "Torbelegung",
+              "value": "30–90",
+              "unit": "min",
+              "source": "https://datadocks.com/posts/loading-dock-congestion"
+            },
+            {
+              "label": "Beladung",
+              "value": "~6",
+              "unit": "min/Palette",
+              "source": "https://datadocks.com/posts/loading-dock-congestion"
+            }
+          ]
+        }
+      ],
+      "flows": [
+        [
+          "lv-ft",
+          "lv-sw",
+          ""
+        ],
+        [
+          "lv-sw",
+          "lv-hrl",
+          ""
+        ],
+        [
+          "lv-hrl",
+          "lv-km",
+          "Auslagerung"
+        ],
+        [
+          "lv-km",
+          "lv-vt",
+          ""
+        ]
+      ]
+    },
+    {
+      "name": "Büro",
+      "kind": "office",
+      "description": "Abteilungen: Kundenservice, Finanzen, Arbeitsvorbereitung, Einkauf, Versand, Geschäftsführung.",
+      "site": {
+        "x": 660,
+        "y": 700,
+        "w": 400,
+        "h": 220
+      },
+      "machines": [],
+      "flows": []
+    }
+  ],
+  "site_flows": [
+    [
+      "Papiermaschine PM1",
+      "Verarbeitung",
+      "Mutterrollen"
+    ],
+    [
+      "Verarbeitung",
+      "Lager & Versand",
+      "Paletten"
+    ],
+    [
+      "Büro",
+      "Verarbeitung",
+      "Aufträge"
+    ]
+  ]
+}
