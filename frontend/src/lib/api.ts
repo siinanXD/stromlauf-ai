@@ -322,3 +322,92 @@ export const plant = {
   lookupTag: (machineId: string, tag: string) =>
     request<TagLookup>(`/api/machines/${machineId}/tags/${encodeURIComponent(tag)}`),
 };
+
+// --- Draufsicht (Maschinen-Layout) und globale Suche --------------------------------------------
+
+export const LAYOUT_KINDS = [
+  "Motor",
+  "Sensor",
+  "Taster",
+  "Not-Halt",
+  "Leuchte",
+  "Schaltschrank",
+  "Band/Förderer",
+  "Rahmen",
+  "Schutztür",
+  "Sonstiges",
+] as const;
+
+export type LayoutKind = (typeof LAYOUT_KINDS)[number];
+
+export interface LayoutPart {
+  id: string;
+  layout_id: string;
+  tag: string;
+  label: string;
+  kind: LayoutKind;
+  shape: "rect" | "circle";
+  x_mm: number;
+  y_mm: number;
+  w_mm: number;
+  h_mm: number;
+  rotation_deg: number;
+  confidence: number | null;
+  origin: "manual" | "vision";
+  confirmed: boolean;
+}
+
+export type LayoutPartInput = Omit<LayoutPart, "id" | "layout_id" | "confidence" | "origin">;
+
+export interface Layout {
+  id: string;
+  machine_id: string;
+  width_mm: number;
+  depth_mm: number;
+  has_image: boolean;
+  document_id: string | null;
+  page: number | null;
+  scale_note: string;
+  updated_at: string;
+  parts: LayoutPart[];
+}
+
+export type LayoutInput = Pick<Layout, "width_mm" | "depth_mm" | "document_id" | "page" | "scale_note">;
+
+export interface TagSearchHit {
+  tag: string;
+  tag_type: string;
+  occurrences: number;
+  machines: { id: string; name: string }[];
+}
+
+export const layout = {
+  /** null, wenn die Maschine noch keine Draufsicht hat (404). */
+  get: async (machineId: string): Promise<Layout | null> => {
+    const response = await fetch(`${API_URL}/api/machines/${machineId}/layout`);
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.detail ?? `${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  },
+  put: (machineId: string, body: LayoutInput) =>
+    request<Layout>(`/api/machines/${machineId}/layout`, json(body, "PUT")),
+  uploadImage: (machineId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Layout>(`/api/machines/${machineId}/layout/image`, { method: "POST", body: form });
+  },
+  imageUrl: (machineId: string, bust = "") => `${API_URL}/api/machines/${machineId}/layout/image?v=${encodeURIComponent(bust)}`,
+  createPart: (layoutId: string, body: Partial<LayoutPartInput>) =>
+    request<LayoutPart>(`/api/layouts/${layoutId}/parts`, json(body)),
+  updatePart: (partId: string, body: Partial<LayoutPartInput>) =>
+    request<LayoutPart>(`/api/layout-parts/${partId}`, json(body, "PATCH")),
+  deletePart: (partId: string) => request<void>(`/api/layout-parts/${partId}`, { method: "DELETE" }),
+  detect: (layoutId: string) => request<Layout>(`/api/layouts/${layoutId}/detect`, { method: "POST" }),
+  exportUrl: (layoutId: string) => `${API_URL}/api/layouts/${layoutId}/export`,
+};
+
+export const searchTags = (q: string) =>
+  request<TagSearchHit[]>(`/api/tags/search?q=${encodeURIComponent(q)}`);
