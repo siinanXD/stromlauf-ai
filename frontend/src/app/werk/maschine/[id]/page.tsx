@@ -1,7 +1,7 @@
 "use client";
 
 import { ScanSearch } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -35,16 +35,14 @@ const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary
 
 export default function MachinePage() {
   const { id } = useParams<{ id: string }>();
-  const [initialTag] = useState<string | null>(() =>
-    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tag"),
-  );
+  const urlTag = useSearchParams().get("tag");
   const [machine, setMachine] = useState<MachineDetail | null>(null);
   const [layout, setLayout] = useState<Layout | null | undefined>(undefined);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [tab, setTab] = useState<TabId>("draufsicht");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faultFilter, setFaultFilter] = useState<string | null>(null);
-  const [highlightTag, setHighlightTag] = useState<string | null>(initialTag);
+  const [highlightTag, setHighlightTag] = useState<string | null>(urlTag);
   const [editing, setEditing] = useState<Fault | "new" | null>(null);
   const [pageTarget, setPageTarget] = useState<PageTarget | null>(null);
   const [imageBust, setImageBust] = useState(0);
@@ -70,14 +68,18 @@ export default function MachinePage() {
     api.listSources().then(setSources).catch(() => {});
   }, [loadMachine, loadLayout]);
 
-  // ?tag=-M1 aus Suche oder Chat: passendes Teil in der Draufsicht waehlen, sonst Schaltschrank zeigen
-  const [appliedTag, setAppliedTag] = useState(false);
-  if (!appliedTag && layout !== undefined) {
-    setAppliedTag(true);
-    if (initialTag) {
-      const hit = layout?.parts.find((p) => p.tag.toUpperCase() === initialTag.toUpperCase());
-      if (hit) setSelectedId(hit.id);
-      else setTab("schaltschrank");
+  // ?tag=-M1 aus Suche oder Chat: passendes Teil in der Draufsicht waehlen, sonst Schaltschrank zeigen.
+  // Merkt sich den angewendeten Tag, damit eine neue Suche auf derselben Seite wieder greift.
+  const [appliedTag, setAppliedTag] = useState<string | null | undefined>(undefined);
+  if (layout !== undefined && appliedTag !== urlTag) {
+    setAppliedTag(urlTag);
+    if (urlTag) {
+      const hit = layout?.parts.find((p) => p.tag.toUpperCase() === urlTag.toUpperCase());
+      setHighlightTag(urlTag);
+      if (hit) {
+        setSelectedId(hit.id);
+        setTab("draufsicht");
+      } else setTab("schaltschrank");
     }
   }
 

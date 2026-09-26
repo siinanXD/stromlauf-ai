@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -101,6 +102,7 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
 
         <main className="min-h-0 flex-1">{children}</main>
       </div>
+      <GlobalSearch />
     </div>
   );
 }
