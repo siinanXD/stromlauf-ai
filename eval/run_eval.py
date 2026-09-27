@@ -1,7 +1,7 @@
 """Agentenlauf: jede Frage an den Chat-Agenten eines laufenden Stromlauf-AI-Backends. Kostet API-Tokens je Frage.
 
 Aufruf:  python eval/run_eval.py [--api http://localhost:8010] [--only festo] [--limit 5] [--min 0.8]
-                                 [--baseline eval/results/<datei>.json]
+                                 [--baseline eval/results/<datei>.json] [--resume eval/results/<datei>.json]
 
 Jede Frage in eval/questions.jsonl (ohne "agent": false) wird als neuer Chat an /api/chat geschickt (nur die
 angegebene Wissensquelle). Bewertet wird ohne LLM-Richter, nur mit Regeln (eval/evallib.py):
@@ -11,12 +11,18 @@ angegebene Wissensquelle). Bewertet wird ohne LLM-Richter, nur mit Regeln (eval/
   sauber     kein must_not_contain-Muster in der Antwort (Halluzinations-Fallen)
   werkzeug   die in "tools" erwarteten Werkzeuge wurden aufgerufen (nur wenn erwartet)
 
-Ergebnis: eval/results/<zeitstempel>.json plus Tabelle auf der Konsole. --baseline zeigt die Differenz zu
-einem frueheren Lauf, --min liefert Exit-Code 1 unter dem Fakten-Mittel. Kostenlose Vorstufe: run_retrieval.py,
-kostenlose Wiederbewertung eines gespeicherten Laufs: rescore.py.
+Ergebnis: eval/results/<zeitstempel>.json plus Tabelle auf der Konsole, nach jeder Frage geschrieben, damit
+ein Abbruch keine bezahlten Antworten kostet; --resume setzt eine solche Datei fort (fehlerhafte Fragen werden
+wiederholt). --baseline zeigt die Differenz zu einem frueheren Lauf, --min liefert Exit-Code 1 unter dem
+Fakten-Mittel. Kostenlose Vorstufe: run_retrieval.py, kostenlose Wiederbewertung: rescore.py.
+
+Tokens und Kosten je Frage stehen im Ergebnis (usage-Ereignisse des Chats, Preise aus app/flow/pricing.py).
+Mit Langfuse-Schluesseln in der .env bekommt jede Frage die Tags eval:<lauf> und q:<id>; nach dem Lauf werden
+die Bewertungen als Scores an die Session des jeweiligen Chats geschrieben.
 """
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -32,6 +38,12 @@ try:
 except ImportError:  # pragma: no cover
     sys.exit("httpx fehlt: cd backend && .venv/Scripts/pip install -e \".[dev]\"")
 
+try:  # Preistabelle und Langfuse-Zugang kommen aus dem Backend
+    from app.flow.pricing import cost_usd
+    from app.tracing import langfuse_client
+except ImportError:  # pragma: no cover
+    sys.exit("Backend nicht installiert: cd backend && .venv/Scripts/pip install -e \".[dev]\"")
+
 QUESTIONS = HERE / "questions.jsonl"
 RESULTS = HERE / "results"
 
@@ -41,13 +53,37 @@ def _auth_headers() -> dict[str, str]:
     return {"X-API-Key": key} if key else {}
 
 
-def ask(client: httpx.Client, message: str, source_ids: list[str]) -> tuple[str, list[dict], list[str], float]:
-    """Schickt eine Frage, liest den SSE-Strom, gibt (Antwort, Quellen, Werkzeuge, Sekunden) zurueck."""
+def ask(
+    client: httpx.Client, message: str, source_ids: list[str], tags: list[str]
+) -> tuple[str, list[dict], list[str], float, dict]:
+    """Eine Frage stellen: (Antwort, Quellen, Werkzeuge, Sekunden, Lauf-Infos mit Verbrauch und Kosten)."""
     started = time.time()
-    with client.stream("POST", "/api/chat", json={"message": message, "source_ids": source_ids}) as response:
+    body = {"message": message, "source_ids": source_ids, "trace_tags": tags}
+    with client.stream("POST", "/api/chat", json=body) as response:
         response.raise_for_status()
-        answer, sources, tools = evallib.parse_sse(response.iter_lines())
-    return answer, sources, tools, time.time() - started
+        answer, sources, tools, meta = evallib.parse_sse(response.iter_lines())
+    usage = meta["usage"]
+    usage["cost_usd"] = cost_usd(usage["model"], usage["input_tokens"], usage["output_tokens"])
+    return answer, sources, tools, time.time() - started, meta
+
+
+def push_scores(run: str, rows: list[dict]) -> None:
+    """Bewertungen als Scores an die Session des jeweiligen Chats. Ohne Langfuse-Schluessel: nichts."""
+    client = langfuse_client()
+    if client is None:
+        return
+    written = 0
+    for row in rows:
+        session = row.get("conversation_id")
+        if not session or evallib.is_error(row):
+            continue
+        score = row["score"]
+        client.create_score(session_id=session, name="fakten", value=score["fakten"], data_type="NUMERIC")
+        client.create_score(session_id=session, name="quellen_ok", value=float(score["quellen_ok"]), data_type="NUMERIC")
+        client.create_score(session_id=session, name="sauber", value=float(score["sauber"]), data_type="NUMERIC")
+        written += 1
+    client.flush()
+    print(f"Langfuse: {written} von {len(rows)} Antworten bewertet (Lauf {run}).")
 
 
 def main() -> int:
@@ -57,6 +93,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, help="Nur die ersten N Fragen (nach Filter)")
     parser.add_argument("--min", type=float, default=0.0, help="Exit-Code 1, wenn fakten_mittel darunter liegt")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
+    parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
     args = parser.parse_args()
 
     questions = [q for q in evallib.load_questions(QUESTIONS, args.only) if q.get("agent", True)]
@@ -64,6 +101,22 @@ def main() -> int:
         questions = questions[: args.limit]
     if not questions:
         sys.exit("Keine Fragen ausgewaehlt.")
+
+    run = evallib.run_id()
+    rows: list[dict] = []
+    if args.resume:
+        if not args.resume.exists():
+            sys.exit(f"{args.resume} gibt es nicht.")
+        if args.resume.stem.startswith("referenz"):
+            sys.exit("Referenzlauf wird nicht ueberschrieben. Erst kopieren, dann die Kopie fortsetzen.")
+        run = args.resume.stem  # fortgesetzt wird in dieselbe Datei
+        rows = [r for r in json.loads(args.resume.read_text(encoding="utf-8"))["results"] if not evallib.is_error(r)]
+        done = {r["id"] for r in rows}
+        questions = [q for q in questions if q["id"] not in done]
+        print(f"Setze {args.resume.name} fort: {len(rows)} fertig, {len(questions)} offen")
+        if not questions:
+            sys.exit("Alle Fragen dieses Laufs sind schon beantwortet.")
+    out = RESULTS / f"{run}.json"
 
     with httpx.Client(base_url=args.api, timeout=600, headers=_auth_headers()) as client:
         try:
@@ -76,20 +129,24 @@ def main() -> int:
             sys.exit(f"Wissensquellen fehlen im Backend: {missing}. Erst laden (scripts/load_example.py, "
                      "scripts/load_folder.py, scripts/load_testwerk.py --docs).")
 
-        rows = []
         for i, q in enumerate(questions, 1):
+            tags = [f"eval:{run}", f"q:{q['id']}"]
+            meta: dict = {}
             try:
-                answer, cited, tools, seconds = ask(client, q["question"], [by_name[q["source"]]])
+                answer, cited, tools, seconds, meta = ask(client, q["question"], [by_name[q["source"]]], tags)
             except Exception as exc:  # Netz, Timeout
                 answer, cited, tools, seconds = f"{evallib.ERROR_PREFIX} {type(exc).__name__}: {exc}", [], [], 0.0
             result = evallib.score(q, answer, cited, tools)
             rows.append({"id": q["id"], "source": q["source"], "question": q["question"], "answer": answer,
-                         "sources": cited, "tools": tools, "dauer_s": round(seconds, 1), "score": result})
+                         "sources": cited, "tools": tools, "dauer_s": round(seconds, 1), "score": result,
+                         "conversation_id": meta.get("conversation_id", ""), "usage": meta.get("usage", {})})
             evallib.print_row(i, len(questions), q, result, seconds)
+            evallib.save_result(out, evallib.summarize(rows), rows)  # Abbruch kostet keine bezahlte Antwort
 
     summary = evallib.summarize(rows)
-    out = evallib.write_result(RESULTS, "", summary, rows)
+    evallib.save_result(out, summary, rows)
     evallib.print_summary(summary, args.baseline)
+    push_scores(run, rows)
     print(f"\nErgebnis: {out}")
     if summary["fakten_mittel"] < args.min:
         print(f"Unter Schwelle {args.min}: fakten_mittel {summary['fakten_mittel']}")

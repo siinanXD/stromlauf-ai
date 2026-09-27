@@ -11,6 +11,15 @@ Eine Fragenliste (`questions.jsonl`), drei Schichten. Die ersten beiden kosten n
 Erst Retrieval laufen lassen. Wenn dort ein Fakt fehlt, kann der Agent ihn nicht finden; das ist ohne
 Agentenlauf zu beheben. Den Agentenlauf nur bewusst starten.
 
+Der Agentenlauf schreibt nach **jeder** Frage in `eval/results/<zeitstempel>.json`. Bricht er ab, setzt
+`--resume eval/results/<datei>.json` ihn fort und wiederholt nur die fehlgeschlagenen Fragen; bezahlte
+Antworten gehen nicht verloren. Referenzdateien (`referenz*.json`) werden dabei nicht ueberschrieben.
+
+Tokens, Modellaufrufe und Kosten stehen je Frage unter `usage` und summiert in der Zusammenfassung
+(`tokens_ein`, `tokens_aus`, `modellaufrufe`, `kosten_usd`; Preise aus `backend/app/flow/pricing.py`).
+Mit Langfuse-Schluesseln in der `.env` bekommt jede Frage die Tags `eval:<lauf>` und `q:<id>`, und nach
+dem Lauf werden `fakten`, `quellen_ok` und `sauber` als Scores an die Session des Chats geschrieben.
+
 ## Fragen
 
 51 Fragen, sechs Quellen:
@@ -83,6 +92,7 @@ python eval/rescore.py eval/results/referenz_2026-09-26.json --out eval/results/
 
 python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet Tokens
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
+python eval/run_eval.py --resume eval/results/2026-09-27_10-12-33.json   # abgebrochenen Lauf fortsetzen
 ```
 
 Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf die Referenzdateien, `git add -f`).

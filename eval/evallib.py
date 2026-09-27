@@ -61,11 +61,18 @@ def validate_questions(rows: list[dict]) -> list[str]:
 # --- Agentenantwort lesen -----------------------------------------------------------------------
 
 
-def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str]]:
-    """SSE-Strom von /api/chat: (Antwort, Quellen, Werkzeugaufrufe). Ein error-Event wird an die Antwort angehaengt."""
+def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
+    """SSE-Strom von /api/chat: (Antwort, Quellen, Werkzeugaufrufe, Lauf-Infos).
+
+    Die Lauf-Infos enthalten die Konversations-ID (in Langfuse die Session dieses Chats) und den
+    summierten Verbrauch aus den usage-Ereignissen, eines je Modellaufruf. Ein error-Event wird an
+    die Antwort angehaengt.
+    """
     answer: list[str] = []
     sources: list[dict] = []
     tools: list[str] = []
+    usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0, "model": ""}
+    meta = {"conversation_id": "", "usage": usage}
     event = None
     for line in lines:
         if line.startswith("event:"):
@@ -74,15 +81,22 @@ def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str]]:
             data = json.loads(line[5:].strip() or "null")
             if event == "token":
                 answer.append(data["text"])
+            elif event == "conversation":
+                meta["conversation_id"] = data.get("id", "")
             elif event == "sources":
                 sources = data
             elif event == "tool_start":
                 tools.append(data["name"])
+            elif event == "usage":
+                usage["input_tokens"] += data.get("input_tokens", 0)
+                usage["output_tokens"] += data.get("output_tokens", 0)
+                usage["calls"] += 1
+                usage["model"] = data.get("model") or usage["model"]
             elif event == "error":
                 answer.append(f"\n{ERROR_PREFIX} {data.get('message')}")
             elif event == "done":
                 break
-    return "".join(answer), sources, tools
+    return "".join(answer), sources, tools, meta
 
 
 # --- Bewertung ----------------------------------------------------------------------------------
@@ -134,6 +148,20 @@ def summarize(rows: list[dict]) -> dict:
         "werkzeug_ok": round(sum(r["score"]["werkzeug_ok"] for r in with_tools) / len(with_tools), 3) if with_tools else None,
         "voll_bestanden": sum(passed(r["score"]) for r in scored),
         "dauer_mittel_s": round(sum(r.get("dauer_s", 0.0) for r in scored) / n, 1),
+        **usage_total(rows),
+    }
+
+
+def usage_total(rows: list[dict]) -> dict:
+    """Tokens, Modellaufrufe und Kosten eines Laufs. Leer, wenn keine Zeile Verbrauch mitbringt."""
+    used = [r["usage"] for r in rows if r.get("usage")]
+    if not used:
+        return {}
+    return {
+        "tokens_ein": sum(u.get("input_tokens", 0) for u in used),
+        "tokens_aus": sum(u.get("output_tokens", 0) for u in used),
+        "modellaufrufe": sum(u.get("calls", 0) for u in used),
+        "kosten_usd": round(sum(u.get("cost_usd", 0.0) for u in used), 4),
     }
 
 
@@ -180,11 +208,19 @@ def flatten(mode: str, payload: object) -> tuple[str, list[str]]:
 # --- Ausgabe ------------------------------------------------------------------------------------
 
 
-def write_result(results_dir: Path, prefix: str, summary: dict, rows: list[dict]) -> Path:
-    results_dir.mkdir(exist_ok=True)
-    out = results_dir / f"{prefix}{datetime.now():%Y-%m-%d_%H-%M-%S}.json"
+def run_id() -> str:
+    return f"{datetime.now():%Y-%m-%d_%H-%M-%S}"
+
+
+def save_result(out: Path, summary: dict, rows: list[dict]) -> Path:
+    """Schreibt (bzw. ueberschreibt) eine Ergebnisdatei; nach jeder Frage aufrufbar."""
+    out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps({"summary": summary, "results": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
+
+
+def write_result(results_dir: Path, prefix: str, summary: dict, rows: list[dict]) -> Path:
+    return save_result(results_dir / f"{prefix}{run_id()}.json", summary, rows)
 
 
 def print_row(index: int, total: int, question: dict, result: dict, seconds: float | None = None) -> None:
