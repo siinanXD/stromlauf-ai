@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from load_example import SOURCE_NAME, upload, wait_for  # noqa: E402
+from load_example import upload, wait_for  # noqa: E402
 
 try:
     import httpx

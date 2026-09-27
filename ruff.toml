@@ -1,0 +1,7 @@
+# Gleiche Regeln wie backend/pyproject.toml, fuer scripts/ und eval/ (kein eigenes Paket).
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008", "UP017", "E501"]

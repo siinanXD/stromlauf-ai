@@ -28,7 +28,7 @@ jobs:
       - name: Abhaengigkeiten
         run: pip install -e ".[dev,examples]"
       - name: Ruff
-        run: ruff check .
+        run: ruff check . ../scripts ../eval
       - name: Tests
         run: python -m pytest -q
 

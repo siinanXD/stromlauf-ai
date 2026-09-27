@@ -4,10 +4,19 @@ import csv
 import sys
 from pathlib import Path
 
+from data import (
+    DEVICES,
+    INPUTS,
+    LOC_CABINET,
+    LOC_FIELD,
+    MERKER,
+    OUTPUTS,
+    PLANT,
+    TERMINALS_X3,
+    TERMINALS_X4,
+)
 from openpyxl import Workbook
 from openpyxl.styles import Font
-
-from data import DEVICES, INPUTS, LOC_CABINET, LOC_FIELD, MERKER, OUTPUTS, PLANT, TERMINALS_X3, TERMINALS_X4
 
 OUT = Path(sys.argv[1])
 OUT.mkdir(parents=True, exist_ok=True)
