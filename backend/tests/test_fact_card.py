@@ -1,4 +1,6 @@
-from app.ingestion.fact_card import build_fact_card
+from pathlib import Path
+
+from app.ingestion.fact_card import build_fact_card, location_names, locations_in
 
 
 def hit(doc_type, context, page=None, section="", filename=None):
@@ -63,7 +65,7 @@ def test_full_table_chunk_yields_all_terminals():
 
 def test_sheet_ref_value_has_no_page():
     card = build_fact_card("-M1", [BOM, SCHEMATIC])
-    [ref] = card["rows"][0]["values"]
+    [ref] = next(row for row in card["rows"] if row["label"] == "Stromlaufplan")["values"]
     assert ref["page"] is None and ref["document_id"] == "id-schematic"
 
 
@@ -87,3 +89,60 @@ def test_single_source_only():
     assert hits_of_single_source([a, {**SCHEMATIC, "source_id": "A"}]) == [a, {**SCHEMATIC, "source_id": "A"}]
     assert hits_of_single_source([a, b]) is None
     assert hits_of_single_source([]) == []
+
+
+# --- Einbauort aus der Stueckliste ----------------------------------------------------------------
+
+LEGEND = "Anlage =FB1, Schaltschrank +ST1, Feld +FE1. Beispielanlage, frei erfunden."
+
+
+def test_einbauort_aus_der_stuecklistenzeile_steht_vorn():
+    card = build_fact_card("-M1", [BOM, SCHEMATIC])
+    assert rows(card)["Einbauort"] == ["+FE1"]  # Zeile von -M1, nicht die des Sicherheitsschaltgeraets
+    assert card["rows"][0]["label"] == "Einbauort"  # erst der Ort, dann die Verweise
+
+
+def test_einbauort_mit_klartext_aus_der_kopfzeile():
+    card = build_fact_card("-M1", [BOM], legend=LEGEND)
+    assert rows(card)["Einbauort"] == ["Feld +FE1"]
+    assert card["rows"][0]["values"][0]["ref"] == "+FE1"
+
+
+def test_klartext_auch_wenn_die_kopfzeile_im_kontext_der_stueckliste_steht():
+    card = build_fact_card("-M1", [hit("bom", LEGEND), BOM])
+    assert rows(card)["Einbauort"] == ["Feld +FE1"]
+
+
+def test_ohne_einbauort_keine_zeile():
+    card = build_fact_card("-M1", [TERMINAL_U])
+    assert "Einbauort" not in rows(card)
+
+
+def test_locations_in_nimmt_leitungen_mit_und_prosa_nicht():
+    assert locations_in("+ST1") == ["+ST1"]
+    assert locations_in("+ST1 -> +FE1") == ["+ST1", "+FE1"]  # Leitung liegt in beiden Orten
+    assert locations_in("Leitung von +ST1 nach +FE1") == []
+    assert locations_in("Drehstrommotor 1,5 kW, IE3") == []
+    assert locations_in("") == []
+
+
+def test_location_names_liest_nur_ortskennzeichen():
+    assert location_names(LEGEND) == {"+ST1": "Schaltschrank", "+FE1": "Feld"}
+    assert location_names("") == {}
+
+
+def test_einbauort_und_kopfzeile_passen_zur_echten_stueckliste():
+    """Muster gegen die erzeugte Stueckliste: aendert der Generator das Format, faellt es hier auf."""
+    import openpyxl
+
+    path = Path(__file__).resolve().parents[2] / "examples" / "foerderband" / "02_Stueckliste_FB-01.xlsx"
+    sheet = openpyxl.load_workbook(path).active
+    table = [["" if cell is None else str(cell) for cell in row] for row in sheet.iter_rows(values_only=True)]
+
+    legend = next(row[0] for row in table if row[0].startswith("Anlage"))
+    assert location_names(legend) == {"+ST1": "Schaltschrank", "+FE1": "Feld"}
+
+    column = next(row for row in table if row[0] == "BMK").index("Einbauort")
+    cells = {row[column] for row in table if row[0].startswith("-") and row[column]}
+    assert {"+ST1", "+FE1"} <= cells
+    assert all(locations_in(cell) for cell in cells)  # jede Zelle ist als Ort erkennbar

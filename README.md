@@ -298,8 +298,11 @@ je ein Beleg), **Sicherheit** (nur wenn relevant), **Details** (eingeklappt). Be
 Modell als `[[Dateiname|Ort]]`; die Oberflaeche macht daraus Chips und listet nur zitierte Stellen.
 Ein Klick auf einen Stromlaufplan-Verweis wie `/3.8` oeffnet rechts Blatt 3 und markiert Spalte 8.
 Blatt und Spalten liest das Backend aus der PDF-Textebene (`GET /api/documents/{id}/locate`),
-ohne Vision. Nennt die Frage ein Betriebsmittel (-K1), zeigt eine **Befundkarte** Stromlaufplan-
-Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`), nicht vom Modell.
+ohne Vision. Nennt die Frage ein Betriebsmittel (-K1), zeigt eine **Befundkarte** Einbauort,
+Stromlaufplan-Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`), nicht
+vom Modell. Der **Einbauort** kommt aus der Einbauort-Spalte der Stückliste (`+ST1`, `+FE1`), den
+Klartext („Schaltschrank +ST1") liefert die Kopfzeile derselben Datei; Leitungen tragen beide Orte.
+Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 
 ## Architektur
 

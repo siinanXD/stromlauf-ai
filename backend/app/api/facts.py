@@ -60,7 +60,18 @@ def fact_card(tag: str, source_ids: list[str] = Query(default=[]), session: Sess
         ).all()
         for document_id, content in chunks:
             hits.append({**table_docs[document_id], "context": content})
-    card = build_fact_card(normalized, hits)
+    # Kopfzeile der Stueckliste ("Anlage =FB1, Schaltschrank +ST1, Feld +FE1") fuer den Klartext der Orte
+    legend = ""
+    bom_ids = {h["document_id"] for h in hits if h["doc_type"] == "bom"}
+    if bom_ids:
+        legend = "\n".join(
+            session.scalars(
+                select(Chunk.content)
+                .where(Chunk.document_id.in_(bom_ids), Chunk.content.contains("Anlage", autoescape=True))
+                .limit(3)
+            )
+        )
+    card = build_fact_card(normalized, hits, legend)
     if card is None:
         raise HTTPException(404, f"Keine Befunde zu {normalized}")
     return card
