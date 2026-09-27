@@ -344,6 +344,29 @@ Wie Zusammenhänge entstehen:
 
 Gescannte PDFs: `OCR_ENABLED=true` in `.env`.
 
+## Tracing: was in Langfuse landet (optional)
+
+Mit `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` in der `.env` und dem Extra
+`pip install -e "backend[trace]"` schicken drei Stellen Traces:
+
+| Was | Session in Langfuse | Tags | Woher |
+| --- | --- | --- | --- |
+| Chat: Agent, Werkzeugaufrufe, Tokens, Kosten | Konversations-ID | `stromlauf-ai`, `model:…`, dazu `ChatRequest.trace_tags` | `app/tracing.py` als LangChain-Callback in `graph.astream` |
+| Vision: Seitenanalyse beim Upload, Draufsicht, Schaltschrank | Dokument- bzw. Bild-ID | `ingestion` plus `seitenanalyse`, `draufsicht` oder `schaltschrank` | derselbe Callback über `app/tracing.py: vision_trace` |
+| Ablauf-Extraktion | ein Trace je Lauf | Spans `phase_a`, `phase_b`, `layout` | `app/flow/tracing.py`, setzt Tokens und Kosten selbst |
+
+Ohne Schlüssel ist alles ein No-op: `trace_config` liefert ein leeres Dict, die Extraktion vergibt eine
+lokale Trace-ID und loggt weiter als JSON. Die Schlüssel- und Paketprüfung steht nur in `app/tracing.py`.
+
+**Nicht** getrackt, weil ohne Modell und ohne Kosten: hybride Suche (`app/retrieval.py`), Embeddings
+(bge-m3 lokal) und die deterministischen Parser (Signalweg, Fehlersuche, Steckbrief).
+
+Im Chat-Strom kommt je Modellaufruf ein SSE-Ereignis `usage` mit Input-/Output-Tokens und Modell —
+unabhängig von Langfuse, daraus rechnet der Eval-Lauf seine Kosten (`app/flow/pricing.py`).
+
+Live gegen Langfuse noch ungeprüft (hier ohne Schlüssel gelaufen); abgedeckt sind Konfiguration und
+Weitergabe durch `backend/tests/test_tracing.py`.
+
 ## Antwortqualitaet messen
 
 `eval/questions.jsonl` enthaelt 51 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu

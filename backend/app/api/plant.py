@@ -52,6 +52,7 @@ from app.schemas import (
     TagSearchHit,
     TagSearchMachine,
 )
+from app.tracing import vision_trace
 from app.werk.site import HALL_KINDS, key_figure
 
 logger = logging.getLogger(__name__)
@@ -453,7 +454,7 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
             )
         )
     try:
-        items = detect_components(Path(cabinet.image_path), known)
+        items = detect_components(Path(cabinet.image_path), known, vision_trace(cabinet_id, "schaltschrank"))
     except Exception as exc:
         logger.exception("Vision-Erkennung fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc

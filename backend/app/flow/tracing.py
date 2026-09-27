@@ -2,6 +2,10 @@
 
 Ohne LANGFUSE_PUBLIC_KEY/SECRET_KEY (oder ohne Paket) laeuft alles als No-op; die Pipeline
 merkt den Unterschied nur an meta.trace_id = null.
+
+Eigenes Modul, weil die Extraktion Spans, Tokens und Kosten selbst setzt (kein LangChain im
+Spiel). Chat und Vision laufen ueber LangChain und nutzen den Callback aus `app/tracing.py`;
+die Schluesselpruefung steht nur dort.
 """
 
 import json
@@ -118,19 +122,10 @@ class Trace:
 
 
 def _langfuse_client():
-    from app.config import get_settings
+    """Client samt Schluessel- und Paketpruefung kommt aus app.tracing."""
+    from app.tracing import langfuse_client
 
-    settings = get_settings()
-    if not (settings.langfuse_public_key and settings.langfuse_secret_key):
-        return None
-    try:
-        from langfuse import Langfuse
-    except ImportError:
-        logger.warning('{"event": "langfuse_missing", "hint": "pip install langfuse"}')
-        return None
-    return Langfuse(
-        public_key=settings.langfuse_public_key, secret_key=settings.langfuse_secret_key, host=settings.langfuse_host
-    )
+    return langfuse_client()
 
 
 @contextmanager

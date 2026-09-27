@@ -17,6 +17,7 @@ from app.ingestion.docling_parser import parse_document
 from app.ingestion.tags import extract_tags
 from app.ingestion.vision import describe_page
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
+from app.tracing import vision_trace
 
 logger = logging.getLogger(__name__)
 
@@ -122,10 +123,12 @@ def _vision_pieces(document_id: str, path: Path, pages: dict[int, str]) -> tuple
     pieces: list[Piece] = []
     failed: list[int] = []
     done = 0
+    # ein Trace je Dokument, alle Seiten als Aufrufe darin
+    trace = vision_trace(document_id, "seitenanalyse")
 
     def work(page: int) -> tuple[int, str | None]:
         try:
-            return page, describe_page(path, page, pages[page])
+            return page, describe_page(path, page, pages[page], trace)
         except Exception:
             logger.exception("Vision-Analyse fehlgeschlagen: %s Seite %s", path.name, page)
             return page, None
