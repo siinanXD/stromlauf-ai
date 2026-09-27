@@ -14,11 +14,13 @@ import { plant, type MachineDetail } from "@/lib/api";
 export function CabinetsTab({
   machine,
   highlightTag,
+  highlightTags,
   onChanged,
   onOpenPage,
 }: {
   machine: MachineDetail;
   highlightTag: string | null;
+  highlightTags?: string[];
   onChanged: () => void;
   onOpenPage: (target: PageTarget) => void;
 }) {
@@ -65,7 +67,7 @@ export function CabinetsTab({
               löschen
             </button>
           </div>
-          <CabinetEditor cabinet={cabinet} machineId={machine.id} highlightTag={highlightTag} onChanged={onChanged} onOpenPage={onOpenPage} />
+          <CabinetEditor cabinet={cabinet} machineId={machine.id} highlightTag={highlightTag} highlightTags={highlightTags} onChanged={onChanged} onOpenPage={onOpenPage} />
         </section>
       ))}
     </div>

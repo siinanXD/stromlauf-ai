@@ -10,7 +10,17 @@ from app.db import session_scope
 from app.embeddings import embeddings
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import image_block, render_page_png
-from app.models import Chunk, DocStatus, Document, KnowledgeSource, TagOccurrence
+from app.models import (
+    Chunk,
+    DocStatus,
+    Document,
+    FaultEntry,
+    Hall,
+    KnowledgeSource,
+    Machine,
+    TagOccurrence,
+)
+from app.retrieval import hybrid_chunk_ids
 
 
 def _source_ids(config: RunnableConfig) -> list[str]:
@@ -44,9 +54,10 @@ def _format_chunk(document: Document, chunk: Chunk) -> str:
 def search_knowledge(
     query: str, config: RunnableConfig, doc_types: list[str] | None = None, k: int = 8
 ) -> tuple[str, list[dict]]:
-    """Semantische Suche ueber alle Dokumente der gewaehlten Wissensquellen
-    (Stromlaufplaene inkl. Vision-Beschreibungen, Stuecklisten, Klemmenplaene, AWL-Netzwerke,
-    Handbuecher). Gut fuer Funktionsfragen ("Was schaltet die Pumpe ein?").
+    """Hybride Suche ueber alle Dokumente der gewaehlten Wissensquellen: Bedeutung (Embeddings)
+    und Volltext (Fachbegriffe, Typbezeichnungen) verschmolzen. Deckt Stromlaufplaene inkl.
+    Vision-Beschreibungen, Stuecklisten, Klemmenplaene, AWL-Netzwerke und Handbuecher ab.
+    Gut fuer Funktionsfragen ("Was schaltet die Pumpe ein?").
     Fuer exakte Kennzeichen (-K12, E0.0, -X1:5) stattdessen find_tag verwenden.
 
     Args:
@@ -56,22 +67,20 @@ def search_knowledge(
         k: Anzahl Treffer (1-20).
     """
     vector = embeddings.embed_query(query)
-    statement = (
-        select(Chunk, Document)
-        .join(Document, Chunk.document_id == Document.id)
-        .order_by(Chunk.embedding.cosine_distance(vector))
-        .limit(max(1, min(k, 20)))
-    )
-    statement = _scoped(statement, Chunk.source_id, config)
-    if doc_types:
-        statement = statement.where(Document.doc_type.in_(doc_types))
-
+    limit = max(1, min(k, 20))
     with session_scope() as session:
-        rows = session.execute(statement).all()
-        if not rows:
+        ids = hybrid_chunk_ids(session, query, vector, _source_ids(config), doc_types, limit)
+        if not ids:
             return "Keine Treffer. Sind Dokumente hochgeladen und fertig verarbeitet?", []
-        text = "\n\n".join(_format_chunk(document, chunk) for chunk, document in rows)
-        refs = [_ref(document, chunk.page, chunk.section) for chunk, document in rows]
+        rows = session.execute(
+            select(Chunk, Document)
+            .join(Document, Chunk.document_id == Document.id)
+            .where(Chunk.id.in_(ids))
+        ).all()
+        by_id = {chunk.id: (chunk, document) for chunk, document in rows}
+        ordered = [by_id[i] for i in ids if i in by_id]
+        text = "\n\n".join(_format_chunk(document, chunk) for chunk, document in ordered)
+        refs = [_ref(document, chunk.page, chunk.section) for chunk, document in ordered]
     return text, refs
 
 
@@ -228,4 +237,53 @@ def list_documents(config: RunnableConfig) -> str:
         )
 
 
-TOOLS = [search_knowledge, find_tag, keyword_search, get_page, view_page, get_plc_block, list_documents]
+def fault_matches(fault: dict, query: str) -> bool:
+    """Woertlich in Code, Symptom, Ursache, Behebung oder als Kennzeichen in tags (Schreibweise egal)."""
+    needle = query.strip().lower()
+    if not needle:
+        return True
+    haystack = " ".join(str(fault.get(k, "")) for k in ("code", "symptom", "cause", "fix", "doc_ref")).lower()
+    if needle in haystack:
+        return True
+    normalized = normalize_tag(query)
+    return any(normalize_tag(str(t)) == normalized for t in fault.get("tags") or [])
+
+
+def format_faults(rows: list[dict], query: str, limit: int = 20) -> str:
+    hits = [r for r in rows if fault_matches(r, query)][:limit]
+    if not hits:
+        return f'Kein Fehlereintrag passt zu "{query}". Die Fehlerlisten sind von Hand gepflegt und decken nicht alles ab.'
+    lines = [f"Fehlereintraege zu \"{query}\" ({len(hits)}, werksweit, von der Instandhaltung gepflegt):"]
+    for r in hits:
+        tags = ", ".join(r.get("tags") or []) or "-"
+        lines.append(
+            f"- {r['machine']} ({r['hall']}) | {r.get('code') or '-'} | Symptom: {r.get('symptom') or '-'} | "
+            f"Ursache: {r.get('cause') or '-'} | Behebung: {r.get('fix') or '-'} | Doku: {r.get('doc_ref') or '-'} | BMK: {tags}"
+        )
+    return "\n".join(lines)
+
+
+@tool
+def search_faults(query: str, config: RunnableConfig) -> str:
+    """Durchsucht die handgepflegten Fehlerlisten ALLER Maschinen des Werks (Code, Symptom, Ursache,
+    Behebung, beteiligte Kennzeichen). Erfahrungswissen der Instandhaltung, unabhaengig von der
+    gewaehlten Dokumentation: Treffer an anderen Maschinen als Erfahrung kennzeichnen, nicht als
+    Beleg fuer diese Maschine. Gut fuer "Band steht", "Motorschutz", "-F2", "F03"."""
+    statement = (
+        select(FaultEntry, Machine.name, Hall.name)
+        .join(Machine, FaultEntry.machine_id == Machine.id)
+        .join(Hall, Machine.hall_id == Hall.id)
+        .order_by(Machine.name, FaultEntry.code)
+    )
+    with session_scope() as session:
+        rows = [
+            {
+                "machine": machine, "hall": hall, "code": f.code, "symptom": f.symptom, "cause": f.cause,
+                "fix": f.fix, "doc_ref": f.doc_ref, "tags": list(f.tags or []),
+            }
+            for f, machine, hall in session.execute(statement).all()
+        ]
+    return format_faults(rows, query)
+
+
+TOOLS = [search_knowledge, find_tag, keyword_search, get_page, view_page, get_plc_block, list_documents, search_faults]

@@ -34,6 +34,18 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3100"
 
+    # Ablauf-Visualisierung (app/flow): kleines Modell fuer I/O und Sensor/Aktor, starkes fuer Schrittkette
+    flow_model_small: str = "claude-haiku-4-5"
+    flow_model_strong: str = "claude-opus-5"
+    flow_effort: str = "medium"  # low | medium | high fuer die Schrittkette
+
+    # Langfuse (optional): ohne Schluessel laeuft die Extraktion ohne Trace
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+    # Gemeinsamer Schluessel fuer alle /api-Routen (leer = offen, nur lokal sinnvoll)
+    api_key: str | None = None
+
     @property
     def upload_dir(self) -> Path:
         return self.data_dir / "uploads"
@@ -41,6 +53,10 @@ class Settings(BaseSettings):
     @property
     def checkpoint_db(self) -> Path:
         return self.data_dir / "checkpoints.sqlite"
+
+    @property
+    def flow_cache_dir(self) -> Path:
+        return self.data_dir / "flow_cache"
 
 
 @lru_cache

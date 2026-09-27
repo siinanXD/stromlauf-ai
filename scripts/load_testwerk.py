@@ -13,6 +13,7 @@ Standort-Fluesse zwischen anderen Hallen bleiben erhalten.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -23,6 +24,11 @@ except ImportError:  # pragma: no cover
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "examples" / "testwerk" / "testwerk.json"
+
+def _auth_headers() -> dict[str, str]:
+    """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
+    key = os.environ.get("STROMLAUF_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
 
 def call(client: httpx.Client, method: str, url: str, body=None):
@@ -218,7 +224,7 @@ def main() -> None:
     parser.add_argument("--refresh", action="store_true", help="vorhandenes Testwerk bzw. vorhandene Quellen ersetzen")
     parser.add_argument("--docs", action="store_true", help="nur die Testdokumentation (UR-01, PM1-AR) laden und verknuepfen")
     args = parser.parse_args()
-    with httpx.Client(base_url=args.api, timeout=120) as client:
+    with httpx.Client(base_url=args.api, timeout=120, headers=_auth_headers()) as client:
         if args.docs:
             load_docs(client, args.refresh)
         else:

@@ -6,11 +6,12 @@ Fuer eigene Testdaten (testdata/ ist in .gitignore). Dateityp wird vom Backend a
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from load_example import SOURCE_NAME, upload, wait_for  # noqa: E402
+from load_example import upload, wait_for  # noqa: E402
 
 try:
     import httpx
@@ -18,6 +19,11 @@ except ImportError:  # pragma: no cover
     sys.exit("httpx fehlt: cd backend && .venv/Scripts/pip install -e \".[dev]\"")
 
 SUFFIXES = {".pdf", ".xlsx", ".csv", ".docx", ".pptx", ".md", ".html", ".txt", ".awl", ".sdf", ".png", ".jpg", ".jpeg"}
+
+def _auth_headers() -> dict[str, str]:
+    """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
+    key = os.environ.get("STROMLAUF_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
 
 def main() -> int:
@@ -32,7 +38,7 @@ def main() -> int:
     if not files:
         sys.exit(f"Keine unterstuetzten Dateien in {args.folder}")
 
-    with httpx.Client(base_url=args.api, timeout=300) as client:
+    with httpx.Client(base_url=args.api, timeout=300, headers=_auth_headers()) as client:
         sources = client.get("/api/sources").json()
         source = next((s for s in sources if s["name"] == args.name), None)
         if source is None:

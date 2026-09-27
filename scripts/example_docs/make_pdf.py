@@ -2,10 +2,18 @@
 
 from pathlib import Path
 
+from data import (
+    INPUTS,
+    LOC_CABINET,
+    LOC_FIELD,
+    OUTPUTS,
+    PAGES,
+    PLANT,
+    TERMINALS_X3,
+    TERMINALS_X4,
+)
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
-
-from data import DEVICES, INPUTS, LOC_CABINET, LOC_FIELD, OUTPUTS, PAGES, PLANT, TERMINALS_X3, TERMINALS_X4
 
 W, H = landscape(A4)
 MARGIN = 28
@@ -139,7 +147,7 @@ def page_1(s: Sheet):
 def page_2(s: Sheet):
     # Netz L1 L2 L3 N PE oben, Steuerspannung unten
     ys = {"L1": H - 90, "L2": H - 105, "L3": H - 120, "N": H - 135, "PE": H - 150}
-    for i, (name, y) in enumerate(ys.items()):
+    for name, y in ys.items():
         s.rail(y, name, x1=col_x(1) - 30, x2=col_x(8) + 30)
     s.text(col_x(1) - 30, ys["L1"] + 14, "Netzeinspeisung 3/N/PE AC 400/230 V 50 Hz, Vorsicherung bauseits 25 A", 8)
     # -X1 Klemmen
@@ -148,7 +156,7 @@ def page_2(s: Sheet):
         s.terminal(col_x(1), y, f"-X1:{k}")
     # -Q1 Hauptschalter
     x = col_x(2)
-    for i, y in enumerate([ys["L1"], ys["L2"], ys["L3"]]):
+    for y in (ys["L1"], ys["L2"], ys["L3"]):
         s.wire(x - 40, y, x - 10, y)
         s.wire(x + 10, y, x + 40, y)
     s.device(x, ys["L2"], "-Q1", "Hauptschalter 25 A", w=20, h=50, extra="1/2 3/4 5/6")
@@ -182,7 +190,7 @@ def page_2(s: Sheet):
 
 def page_3(s: Sheet):
     ys = [H - 90, H - 105, H - 120]
-    for name, y in zip(["L1", "L2", "L3"], ys):
+    for name, y in zip(["L1", "L2", "L3"], ys, strict=True):
         s.rail(y, name, x1=col_x(1) - 30, x2=col_x(3))
     s.xref(col_x(1) - 30, ys[0] + 14, "von /2.2 (-Q1)")
     # -F2 Motorschutz
@@ -212,7 +220,7 @@ def page_3(s: Sheet):
     # -X4 Klemmen und Motor
     yX = H - 340
     xm = col_x(5)
-    for i, (t, dx) in enumerate(zip(["U", "V", "W"], (-12, 0, 12))):
+    for dx in (-12, 0, 12):  # Phasen U, V, W
         s.wire(xm + dx, yK - 40, xm + dx, yX + 4)
         s.terminal(xm + dx, yX, "")
     s.text(xm + 20, yX - 3, "-X4:U  -X4:V  -X4:W  (Kabel 4G2,5 zum Feld +FE1)", 7)
@@ -341,12 +349,12 @@ def page_7(s: Sheet):
     cols = [col_x(1) - 30, col_x(1) + 40, col_x(3) - 20, col_x(5) - 30, col_x(7) - 30]
     heads = ["Klemme", "intern", "extern (Feld)", "Funktion", "Blatt"]
     y = H - 105
-    for x, h in zip(cols, heads):
+    for x, h in zip(cols, heads, strict=True):
         s.text(x, y, h, 8, bold=True)
     s.wire(cols[0], y - 4, W - MARGIN - 10, y - 4)
     for row in TERMINALS_X3 + TERMINALS_X4:
         y -= 14
-        for x, cell in zip(cols, row):
+        for x, cell in zip(cols, row, strict=True):
             s.text(x, y, cell, 8)
     s.text(col_x(1) - 30, y - 30, "Leitungen: -X3 -> Bedienpult 12x0,75 mm2 (Leitung -W1), -X3 -> Lichtschranken 4x0,5 mm2 (-W2, -W3), -X4 -> -M1 4G2,5 mm2 (-W4).", 8)
 
@@ -356,7 +364,7 @@ def build(out: Path):
     c.setTitle("Stromlaufplan Foerderband FB-01")
     c.setAuthor("Stromlauf AI Beispielanlage")
     builders = [page_1, page_2, page_3, page_4, page_5, page_6, page_7]
-    for (page, title), fn in zip(PAGES, builders):
+    for (page, title), fn in zip(PAGES, builders, strict=True):
         fn(Sheet(c, page, title))
         c.showPage()
     c.save()

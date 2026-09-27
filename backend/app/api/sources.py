@@ -1,4 +1,5 @@
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -9,12 +10,24 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_session
+from app.ingestion import doctype
 from app.ingestion.docling_parser import DOCLING_SUFFIXES, PLAIN_TEXT_SUFFIXES
-from app.ingestion.pdf_layout import page_columns, parse_ref, sheet_page
+from app.ingestion.pdf_layout import known_sheets, page_columns, parse_ref, sheet_page
 from app.ingestion.pipeline import detect_doc_type, ingest_document
+from app.ingestion.profile import CORE_DOC_TYPES, Occurrence, build_profile
 from app.ingestion.vision import render_page_png
-from app.models import DocStatus, DocType, Document, KnowledgeSource
-from app.schemas import DocumentOut, LocateBox, LocateOut, SourceCreate, SourceOut
+from app.models import DocStatus, DocType, Document, KnowledgeSource, TagOccurrence
+from app.schemas import (
+    DocTypeDetection,
+    DocumentOut,
+    LocateBox,
+    LocateOut,
+    ProfileDocType,
+    ProfileDocument,
+    SourceCreate,
+    SourceOut,
+    SourceProfile,
+)
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
@@ -75,6 +88,58 @@ def list_documents(source_id: str, session: Session = Depends(get_session)):
     ).all()
 
 
+@router.get("/sources/{source_id}/profile", response_model=SourceProfile)
+def source_profile(source_id: str, session: Session = Depends(get_session)):
+    """Steckbrief: welche Dokumenttypen da sind, wie die Kennzeichen sie abdecken, wo Luecken sind."""
+    source = _get_source(session, source_id)
+    documents = session.scalars(
+        select(Document).where(Document.source_id == source_id).order_by(Document.doc_type, Document.filename)
+    ).all()
+    doc_type_of = {d.id: d.doc_type for d in documents}
+    tag_counts: dict[str, int] = dict(
+        session.execute(
+            select(TagOccurrence.document_id, func.count())
+            .where(TagOccurrence.source_id == source_id)
+            .group_by(TagOccurrence.document_id)
+        ).all()
+    )
+    rows = session.execute(
+        select(TagOccurrence.tag, TagOccurrence.tag_type, TagOccurrence.document_id, TagOccurrence.page).where(
+            TagOccurrence.source_id == source_id
+        )
+    ).all()
+    occurrences = [Occurrence(tag, tag_type, doc_type_of[doc_id], doc_id, page) for tag, tag_type, doc_id, page in rows]
+    ready = [d for d in documents if d.status == DocStatus.READY]
+    present = {d.doc_type for d in ready}
+    sheets: set[int] | None = None
+    for document in ready:
+        path = Path(document.storage_path)
+        if document.doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf" and path.exists():
+            sheets = (sheets or set()) | known_sheets(path)
+    profile = build_profile(occurrences, present, sheets)
+    return SourceProfile(
+        source_id=source.id,
+        source_name=source.name,
+        documents=[
+            ProfileDocument(
+                id=d.id, filename=d.filename, doc_type=d.doc_type, status=d.status, page_count=d.page_count,
+                tag_count=tag_counts.get(d.id, 0),
+            )
+            for d in documents
+        ],
+        doc_types=[
+            ProfileDocType(
+                doc_type=doc_type,
+                present=doc_type in present,
+                filenames=[d.filename for d in ready if d.doc_type == doc_type],
+            )
+            for doc_type in CORE_DOC_TYPES
+        ],
+        sheets=sorted(sheets or []),
+        **profile,
+    )
+
+
 @router.post("/sources/{source_id}/documents", response_model=DocumentOut, status_code=201)
 def upload_document(
     source_id: str,
@@ -97,7 +162,7 @@ def upload_document(
     with path.open("wb") as target:
         shutil.copyfileobj(file.file, target)
 
-    resolved_type = detect_doc_type(filename, doc_type)
+    resolved_type = detect_doc_type(filename, doc_type, path)
     document = Document(
         id=document_id,
         source_id=source_id,
@@ -110,6 +175,23 @@ def upload_document(
     session.commit()
     background.add_task(ingest_document, document_id)
     return document
+
+
+@router.post("/documents/detect", response_model=DocTypeDetection)
+def detect_document_type(file: UploadFile = File(...)):
+    """Dokumenttyp aus dem Inhalt vorschlagen, ohne zu speichern (Upload-Dialog, Bestaetigung durch den Nutzer)."""
+    filename = Path(file.filename or "upload").name
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(415, f"Dateityp {suffix or '(ohne)'} nicht unterstuetzt. Erlaubt: {sorted(ALLOWED_SUFFIXES)}")
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        shutil.copyfileobj(file.file, handle)
+        temp_path = Path(handle.name)
+    try:
+        found = doctype.detect(filename, temp_path)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return DocTypeDetection(filename=filename, **found.__dict__)
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOut)
@@ -125,6 +207,7 @@ def reingest_document(
     if document.status == DocStatus.PROCESSING:
         raise HTTPException(409, "Dokument wird gerade verarbeitet")
     document.status = DocStatus.PENDING
+    document.attempts = 0  # bewusster Neustart: Zaehler der Neustart-Sperre zuruecksetzen
     session.commit()
     background.add_task(ingest_document, document_id)
     return document

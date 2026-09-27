@@ -4,7 +4,7 @@ Eine Fragenliste (`questions.jsonl`), drei Schichten. Die ersten beiden kosten n
 
 | Schicht | Aufruf | Kosten | Misst |
 | --- | --- | --- | --- |
-| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, semantische Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
+| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, hybride Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
 | Wiederbewertung | `python eval/rescore.py eval/results/<lauf>.json` | keine | Gespeicherte Agentenantworten mit der aktuellen Fragenliste neu bewerten |
 | Agent | `python eval/run_eval.py` | **API-Tokens je Frage**, ca. 20 min | Antwortet der Chat-Agent Ende-zu-Ende richtig, zitiert er, nutzt er das passende Werkzeug? |
 
@@ -53,6 +53,23 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 - `nicht_bewertet_fehler`: API-/Netzfehler (auch als `error`-Event im Strom) zaehlen nicht als falsche
   Antwort. In der Retrieval-Schicht sind 404/409 und unbekannte Artikel dagegen echte Fehltreffer und
   werden mit 0 Fakten bewertet; `--min` schlaegt zusaetzlich fehl, sobald unbewertete Fehler uebrig sind.
+
+## Ablauf-Extraktion gegen Gold (`run_flow.py`)
+
+Misst ein Extraktions-JSON (`scripts/extract_flow.py`) gegen `testdata/festo/gold.flow.json`, ohne Modellaufruf:
+
+- I/O-Liste: Recall und Precision ueber die normalisierte Adresse; je Treffer Symbol, Richtung, Art, Kontakt
+  und BMK, aber nur wo das Gold sie nennt.
+- Schrittkette: Anzahl mit Toleranz 25 % (mindestens 1), Wiedererkennung der Schrittnamen, Transitionen.
+- Belege: Anteil Annahmen, mittlere Sicherheit, Verweise ohne I/O-Punkt. Kosten, Latenz und Trace-ID aus `meta`.
+
+```bash
+python eval/run_flow.py --pred eval/results/festo_pred.flow.json [--min-recall 0.9 --min-precision 0.9]
+```
+
+Ergebnis: `eval/results/flow_<zeitstempel>.json`. Exit 2, solange das Gold noch die Vorlage ist
+(`summary` beginnt mit `VORLAGE`); Exit 1 unter einer Schwelle oder bei Schrittanzahl ausserhalb der Toleranz.
+Gold ausfuellen: `testdata/festo/README.md`.
 
 ## Aufrufe
 

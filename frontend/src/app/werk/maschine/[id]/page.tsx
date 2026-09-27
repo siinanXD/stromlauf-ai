@@ -10,12 +10,16 @@ import { DiagnosisRunner } from "@/components/diagnosis/DiagnosisRunner";
 import { MaintenanceLog } from "@/components/diagnosis/MaintenanceLog";
 import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
+import { FlowTab } from "@/components/machine/FlowTab";
+import { MachineChatTab } from "@/components/machine/MachineChatTab";
+import { FaultBanner } from "@/components/machine/FaultBanner";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
 import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
 import { PartPanel } from "@/components/machine/PartPanel";
 import { SpecsTab } from "@/components/machine/SpecsTab";
 import { SignalPath } from "@/components/signal/SignalPath";
+import { faultHits } from "@/lib/faults";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -33,7 +37,12 @@ import {
   type MachineDetail,
 } from "@/lib/api";
 
-type TabId = "draufsicht" | "signalweg" | "fehler" | "schaltschrank" | "kennzahlen" | "dokumente";
+type TabId = "draufsicht" | "ablauf" | "chat" | "signalweg" | "fehler" | "schaltschrank" | "kennzahlen" | "dokumente";
+const TAB_IDS = new Set<string>(["draufsicht", "ablauf", "chat", "signalweg", "fehler", "schaltschrank", "kennzahlen", "dokumente"]);
+
+function tabFromUrl(value: string | null): TabId {
+  return value && TAB_IDS.has(value) ? (value as TabId) : "draufsicht";
+}
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
@@ -45,11 +54,12 @@ export default function MachinePage() {
   const [machine, setMachine] = useState<MachineDetail | null>(null);
   const [layout, setLayout] = useState<Layout | null | undefined>(undefined);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
-  const [tab, setTab] = useState<TabId>(urlTab === "signalweg" ? "signalweg" : "draufsicht");
+  const [tab, setTab] = useState<TabId>(() => tabFromUrl(urlTab));
   const [signalTag, setSignalTag] = useState<string>(urlTag ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faultFilter, setFaultFilter] = useState<string | null>(null);
   const [highlightTag, setHighlightTag] = useState<string | null>(urlTag);
+  const [activeFault, setActiveFault] = useState<Fault | null>(null);
   const [editing, setEditing] = useState<Fault | "new" | null>(null);
   const [pageTarget, setPageTarget] = useState<PageTarget | null>(null);
   const [imageBust, setImageBust] = useState(0);
@@ -122,6 +132,16 @@ export default function MachinePage() {
   }
 
   const selected: LayoutPart | null = layout?.parts.find((p) => p.id === selectedId) ?? null;
+  const faultTags = activeFault?.tags ?? [];
+  const hits = activeFault ? faultHits(activeFault, layout, machine?.cabinets ?? []) : null;
+
+  const showFault = useCallback(
+    (fault: Fault) => {
+      setActiveFault((current) => (current?.id === fault.id ? null : fault));
+      if (fault.tags[0]) setHighlightTag(fault.tags[0]);
+    },
+    [],
+  )
 
   const selectTag = useCallback(
     (tag: string) => {
@@ -204,6 +224,12 @@ export default function MachinePage() {
             <TabsTrigger value="draufsicht" className={TRIGGER}>
               Draufsicht
             </TabsTrigger>
+            <TabsTrigger value="ablauf" className={TRIGGER}>
+              Ablauf
+            </TabsTrigger>
+            <TabsTrigger value="chat" className={TRIGGER}>
+              Chat
+            </TabsTrigger>
             <TabsTrigger value="signalweg" className={TRIGGER}>
               Signalweg
             </TabsTrigger>
@@ -223,6 +249,23 @@ export default function MachinePage() {
         </div>
 
         {error && <p className="mx-6 mt-3 border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>}
+        {activeFault && hits && (
+          <FaultBanner
+            fault={activeFault}
+            hits={hits}
+            hasFlow={Boolean(machine.source_id)}
+            onTab={(target) => {
+              if (target === "draufsicht" && hits.partIds[0]) setSelectedId(hits.partIds[0]);
+              setTab(target);
+            }}
+            onTag={selectTag}
+            onDiagnose={(fault) => {
+              setTab("fehler");
+              startDiagnosis(fault);
+            }}
+            onClose={() => setActiveFault(null)}
+          />
+        )}
 
         <TabsContent value="draufsicht" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
           {layout === undefined ? (
@@ -238,6 +281,7 @@ export default function MachinePage() {
                   layout={layout}
                   machineName={machine.name}
                   selectedId={selectedId}
+                  highlightTags={faultTags}
                   onSelect={(part) => setSelectedId(part?.id ?? null)}
                   onChanged={loadLayout}
                   onDetect={canDetect ? detect : undefined}
@@ -290,6 +334,8 @@ export default function MachinePage() {
           )}
           <FaultTable
             onDiagnose={startDiagnosis}
+            onShow={showFault}
+            activeFaultId={activeFault?.id ?? null}
             faults={machine.faults}
             tagFilter={faultFilter}
             onTagFilter={setFaultFilter}
@@ -310,7 +356,19 @@ export default function MachinePage() {
         </TabsContent>
 
         <TabsContent value="schaltschrank" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
-          <CabinetsTab machine={machine} highlightTag={highlightTag} onChanged={loadMachine} onOpenPage={setPageTarget} />
+          <CabinetsTab machine={machine} highlightTag={highlightTag} highlightTags={faultTags} onChanged={loadMachine} onOpenPage={setPageTarget} />
+        </TabsContent>
+
+        <TabsContent value="ablauf" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+          <FlowTab machineId={machine.id} hasSource={Boolean(machine.source_id)} highlightTags={faultTags} />
+        </TabsContent>
+
+        <TabsContent value="chat" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+          <MachineChatTab
+            machine={machine}
+            onOpenPage={setPageTarget}
+            activeReference={pageTarget?.reference ? `${pageTarget.documentId}${pageTarget.reference}` : null}
+          />
         </TabsContent>
 
         <TabsContent value="kennzahlen" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">

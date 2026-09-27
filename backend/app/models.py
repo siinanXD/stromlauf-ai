@@ -6,6 +6,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
     Boolean,
+    Computed,
     Date,
     DateTime,
     Float,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.config import get_settings
@@ -84,6 +86,8 @@ class Document(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     vision_enrichment: Mapped[bool] = mapped_column(default=False)
+    # Anlaeufe der Verarbeitung; begrenzt Neustart-Schleifen (ingestion/resume.py)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     source: Mapped[KnowledgeSource] = relationship(back_populates="documents")
@@ -110,6 +114,10 @@ class Chunk(Base):
     content: Mapped[str] = mapped_column(Text)
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
     embedding: Mapped[list[float]] = mapped_column(Vector(get_settings().embedding_dim))
+    # Volltext fuer die Hybrid-Suche; Postgres pflegt die Spalte selbst (siehe migrations.py)
+    tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('german', content)", persisted=True), nullable=True
+    )
 
     document: Mapped[Document] = relationship(back_populates="chunks")
 
@@ -122,6 +130,7 @@ class Chunk(Base):
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
         Index("ix_chunks_doc_page", "document_id", "page"),
+        Index("ix_chunks_tsv", "tsv", postgresql_using="gin"),
     )
 
 

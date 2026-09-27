@@ -17,12 +17,15 @@ from app.ingestion.tags import normalize_tag, search_prefixes
 from app.models import (
     CabinetHotspot,
     CabinetImage,
+    DiagnosisSession,
+    DocStatus,
     Document,
     FaultEntry,
     Hall,
     HallFlow,
     KnowledgeSource,
     Machine,
+    MachineLayout,
     MachineType,
     TagOccurrence,
 )
@@ -41,6 +44,7 @@ from app.schemas import (
     HotspotUpdate,
     MachineCreate,
     MachineDetail,
+    MachineListItem,
     MachineOut,
     MachineUpdate,
     TagHit,
@@ -224,6 +228,59 @@ def create_machine(hall_id: str, body: MachineCreate, session: Session = Depends
     session.commit()
     session.refresh(machine)
     return _machine_out(session, machine)
+
+
+@router.get("/machines", response_model=list[MachineListItem])
+def list_machines(session: Session = Depends(get_session)):
+    """Alle Maschinen des Werks mit Doku-Stand, Fehlern und offenen Diagnosen (Maschinenuebersicht)."""
+    machines = session.scalars(
+        select(Machine)
+        .options(
+            selectinload(Machine.hall),
+            selectinload(Machine.source),
+            selectinload(Machine.specs),
+            selectinload(Machine.faults),
+            selectinload(Machine.cabinets),
+        )
+        .join(Hall, Machine.hall_id == Hall.id)
+        .order_by(Hall.name, Machine.line, Machine.order_index, Machine.name)
+    ).all()
+    documents: dict[str, list[int]] = {}
+    for source_id, status, count in session.execute(
+        select(Document.source_id, Document.status, func.count()).group_by(Document.source_id, Document.status)
+    ):
+        totals = documents.setdefault(source_id, [0, 0])
+        totals[0] += count
+        if status == DocStatus.READY:
+            totals[1] += count
+    open_diagnoses = dict(
+        session.execute(
+            select(DiagnosisSession.machine_id, func.count())
+            .where(DiagnosisSession.outcome == "open")
+            .group_by(DiagnosisSession.machine_id)
+        ).all()
+    )
+    with_layout = set(session.scalars(select(MachineLayout.machine_id)))
+    return [
+        MachineListItem(
+            id=m.id,
+            name=m.name,
+            machine_type=m.machine_type,
+            line=m.line,
+            hall_id=m.hall_id,
+            hall_name=m.hall.name,
+            source_id=m.source_id,
+            source_name=m.source.name if m.source else None,
+            document_count=documents.get(m.source_id, [0, 0])[0] if m.source_id else 0,
+            ready_document_count=documents.get(m.source_id, [0, 0])[1] if m.source_id else 0,
+            fault_count=len(m.faults),
+            open_diagnoses=open_diagnoses.get(m.id, 0),
+            cabinet_count=len(m.cabinets),
+            has_layout=m.id in with_layout,
+            key_figure=key_figure([{"value": s.value, "unit": s.unit} for s in m.specs]),
+        )
+        for m in machines
+    ]
 
 
 @router.get("/machines/{machine_id}", response_model=MachineDetail)

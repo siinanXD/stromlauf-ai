@@ -9,11 +9,20 @@ START_HINT = "Backend starten: cd backend && .venv/Scripts/uvicorn app.main:app 
 
 
 class StromlaufClient:
-    def __init__(self, api_url: str, transport: httpx.BaseTransport | None = None, timeout: float = 120.0):
+    def __init__(
+        self,
+        api_url: str,
+        transport: httpx.BaseTransport | None = None,
+        timeout: float = 120.0,
+        api_key: str | None = None,
+    ):
         self.api_url = api_url.rstrip("/")
         # Verbindungsaufbau kurz (Backend aus = schnell melden), Antwort lang (erste Suche laedt das Modell)
         self._http = httpx.Client(
-            base_url=self.api_url, timeout=httpx.Timeout(timeout, connect=3.0), transport=transport
+            base_url=self.api_url,
+            timeout=httpx.Timeout(timeout, connect=3.0),
+            transport=transport,
+            headers={"X-API-Key": api_key} if api_key else {},
         )
 
     def get(self, path: str, **params: Any) -> Any:

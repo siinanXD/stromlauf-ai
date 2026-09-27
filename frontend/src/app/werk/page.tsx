@@ -77,7 +77,10 @@ export default function WerkPage() {
           <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Standortplan</h1>
           {site && (
             <span className="text-sm text-muted-foreground">
-              {site.halls.length} Hallen · {machines} Maschinen
+              {site.halls.length} Hallen ·{" "}
+              <Link href="/werk/maschinen" className="text-primary hover:underline">
+                {machines} Maschinen
+              </Link>
             </span>
           )}
           <form onSubmit={createHall} className="flex w-full flex-wrap gap-1.5 sm:ml-auto sm:w-auto sm:flex-nowrap">

@@ -20,6 +20,9 @@ sieh dir die Seite mit view_page selbst an. Vision-Beschreibungen koennen Lesefe
 bei Widerspruch gilt der extrahierte PDF-Text fuer Schreibweisen und das Bild fuer die Topologie.
 - AWL erklaerst du netzwerkweise in Klartext (Verknuepfungsergebnis, Setzen/Ruecksetzen, \
 Zeiten, Spruenge) und nennst Operanden mit Symbol und Adresse.
+- Bei Stoerungen zuerst search_faults: die Fehlerlisten der Instandhaltung gelten werksweit und \
+enthalten Erfahrung, die in keiner Doku steht. Ein Treffer an einer anderen Maschine ist ein Hinweis \
+("an <Maschine> war es ..."), kein Beleg fuer diese Maschine.
 
 Antwortformat
 Gliedere jede Antwort mit genau diesen Ueberschriften (Markdown, zweite Ebene), in dieser Reihenfolge:
@@ -50,3 +53,17 @@ Sicherheitsregeln. Weise darauf hin, wenn eine Frage auf Arbeiten unter Spannung
 Ueberbruecken von Sicherheitseinrichtungen (Not-Halt, Schutztueren, Sicherheitsrelais) oder \
 Aenderungen an Sicherheitsfunktionen hinauslaeuft, und gib dafuer keine Anleitung zum Umgehen.
 """
+
+
+def system_prompt_for(configurable: dict | None) -> str:
+    """Systemprompt plus Maschinenkontext, wenn der Chat auf eine Maschine festgelegt ist."""
+    machine = (configurable or {}).get("machine")
+    if not machine:
+        return SYSTEM_PROMPT
+    where = f" in {machine['hall']}" if machine.get("hall") else ""
+    return (
+        SYSTEM_PROMPT
+        + f"\nKontext\nDieser Chat gehoert zur Maschine {machine['name']}{where}. Nur ihre Dokumentation ist "
+        "durchsuchbar; Aussagen zu anderen Maschinen nur aus search_faults und als solche gekennzeichnet. "
+        "Beziehe Antworten auf diese Maschine und ihre Kennzeichen.\n"
+    )

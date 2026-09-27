@@ -20,6 +20,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { layout as layoutApi, type Layout, type LayoutPart } from "@/lib/api";
+import { matchesAny } from "@/lib/faults";
 import { cn } from "@/lib/utils";
 
 import {
@@ -49,6 +50,8 @@ export interface LayoutCanvasProps {
   detecting?: boolean;
   machineName: string;
   selectedId: string | null;
+  /** Kennzeichen eines gewaehlten Fehlers: Teile rot markieren */
+  highlightTags?: string[];
   onSelect: (part: LayoutPart | null) => void;
   onChanged: () => void;
 }
@@ -61,7 +64,7 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
   );
 }
 
-function Canvas({ layout, machineName, selectedId, onSelect, onChanged, onDetect, detecting }: LayoutCanvasProps) {
+function Canvas({ layout, machineName, selectedId, highlightTags, onSelect, onChanged, onDetect, detecting }: LayoutCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [tool, setTool] = useState<Tool>("select");
   const [showSketch, setShowSketch] = useState(false);
@@ -78,8 +81,11 @@ function Canvas({ layout, machineName, selectedId, onSelect, onChanged, onDetect
   );
 
   const buildNodes = useCallback(
-    (): CanvasNode[] => [floorNode(layout), ...layout.parts.map((p) => partToNode(p, p.id === selectedId, saveBox))],
-    [layout, selectedId, saveBox],
+    (): CanvasNode[] => [
+      floorNode(layout),
+      ...layout.parts.map((p) => partToNode(p, p.id === selectedId, saveBox, Boolean(highlightTags?.length && matchesAny(p.tag, highlightTags)))),
+    ],
+    [layout, selectedId, saveBox, highlightTags],
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>(buildNodes());
   useEffect(() => setNodes(buildNodes()), [buildNodes, setNodes]);

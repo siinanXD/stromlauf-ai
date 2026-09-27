@@ -11,7 +11,7 @@ export const GRID_MAJOR_MM = 1000;
 export const NEW_PART_MM = 300;
 
 export type ResizeBox = { x: number; y: number; width: number; height: number };
-export type PartNodeData = { part: LayoutPart; onResizeEnd?: (partId: string, box: ResizeBox) => void };
+export type PartNodeData = { part: LayoutPart; onResizeEnd?: (partId: string, box: ResizeBox) => void; highlighted?: boolean };
 export type FloorNodeData = { width_mm: number; depth_mm: number };
 export type PartNode = Node<PartNodeData, "part">;
 export type FloorNode = Node<FloorNodeData, "floor">;
@@ -25,14 +25,14 @@ const BACKGROUND_KINDS = new Set(["Band/Förderer", "Rahmen", "Schaltschrank"]);
 export const px = (mm: number) => mm * MM_TO_PX;
 export const mm = (pixels: number) => Math.round((pixels / MM_TO_PX) * 10) / 10;
 
-export function partToNode(part: LayoutPart, selected: boolean, onResizeEnd?: PartNodeData["onResizeEnd"]): PartNode {
+export function partToNode(part: LayoutPart, selected: boolean, onResizeEnd?: PartNodeData["onResizeEnd"], highlighted = false): PartNode {
   return {
     id: part.id,
     type: "part",
     position: { x: px(part.x_mm), y: px(part.y_mm) },
     width: px(part.w_mm),
     height: px(part.h_mm),
-    data: { part, onResizeEnd },
+    data: { part, onResizeEnd, highlighted },
     selected,
     zIndex: BACKGROUND_KINDS.has(part.kind) ? 1 : 2,
   };

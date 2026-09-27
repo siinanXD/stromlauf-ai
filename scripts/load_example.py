@@ -8,6 +8,7 @@ examples/foerderband/ hoch und wartet, bis jede Ingestion abgeschlossen ist.
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -30,6 +31,11 @@ FILES = [
     ("06_Betriebsanleitung_FB-01.md", "manual"),
 ]
 DONE_STATES = {"ready", "failed"}
+
+def _auth_headers() -> dict[str, str]:
+    """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
+    key = os.environ.get("STROMLAUF_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
 
 def find_or_create_source(client: httpx.Client) -> dict:
@@ -203,7 +209,7 @@ def main() -> int:
     if missing:
         sys.exit(f"Dateien fehlen in {EXAMPLE_DIR}: {missing}")
 
-    with httpx.Client(base_url=args.api, timeout=120) as client:
+    with httpx.Client(base_url=args.api, timeout=120, headers=_auth_headers()) as client:
         try:
             client.get("/api/sources").raise_for_status()
         except httpx.HTTPError as exc:

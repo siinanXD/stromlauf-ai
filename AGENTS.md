@@ -7,11 +7,20 @@ Klemmen (`-X1:5`) und SPS-Adressen (`E0.0`) über alle Dokumente. Details: `READ
 Workspace-Regeln gelten zusätzlich: `C:\Dev\CLAUDE.md` → `AI-Workspace\shared-rules\`.
 Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes).
 
+## Fokus
+
+Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
+Fehlersuche, Schaltschrank, Draufsicht, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
+Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). **Planung** (`/planung`) und **Leitstand**
+(`/leitstand`) sind Nebenmodule im Feature-Freeze: nur Fehlerbehebung, keine neuen Funktionen, in der
+Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung an der Maschine?
+
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Standortplan, `/werk/halle/[id]` Hallen-Baukasten,
-  `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand` Durchlauf-Simulation.
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
+  `/werk/halle/[id]` Hallen-Baukasten, `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand`
+  Durchlauf-Simulation (die letzten beiden: Nebenmodule, Feature-Freeze).
 - Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
   CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
   (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
@@ -21,11 +30,34 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
   "Maschinenstundensatz" der Maschine. Leitstand: Customer (Kreditlimit) -> Order -> OrderLine, StockItem
   (Anfangsbestand je Artikel), `articles.price`; Simulationskern `app/werk/sim.py` (heapq-Ereignisschleife,
   Parameter `workers` je Buero-Station und `credit_hold_min` in PlantSetting "calc").
-- Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
-  `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
+- Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
+  `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
+  Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
+  zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
+  Dokumenttyp bei Upload „auto“: `ingestion/doctype.py` aus Textprobe (Endung > Inhalt > Dateiname), Vorschau
+  `POST /api/documents/detect`, Bestaetigung je Datei im Quellen-Panel; Tests gegen alle Beispieldateien.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
   `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
-  `backend/data/images/`.
+  `backend/data/images/`. Ingestion laeuft im Prozess; nach Neustart reiht `ingestion/resume.py`
+  angefangene Dokumente neu ein (max. 3 Anlaeufe je `documents.attempts`, "Neu verarbeiten" setzt zurueck).
+- Ablauf-Visualisierung `backend/app/flow/`: Schema `schema.py` -> `schemas/machine_flow.json` (Generator
+  `scripts/flow_schema.py`, Test prueft Gleichheit). Extraktion `extract.py`: Phase A klein parallel (I/O,
+  Sensoren/Aktoren), Phase B stark (Schrittkette), Cache SHA-256+Prompt-Version unter `data/flow_cache/`,
+  Langfuse optional (`tracing.py`), JSON-Logs Logger `flow`. CLI `scripts/extract_flow.py` / `extract-flow`.
+  Anzeige liest nur das JSON, nie ein Modell. Prompt-Aenderung = `PROMPT_VERSION` in `prompts.py` erhoehen.
+  API `app/api/flow.py`: `GET /api/machines/{id}/flow` (Cache), `POST .../flow/extract` (kostet). Animation:
+  `frontend/public/ablauf/index.html` + `sim.js` (SVG, Vanilla JS, keine Libs), Tab „Ablauf“ per iframe (`FlowTab.tsx`).
+- Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
+  erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
+  Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
+  Konversationen mit `source_ids == [source_id]` (`GET /api/conversations?source_id=`), keine neue Spalte.
+- Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
+  `LayoutCanvas.highlightTags`, `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
+  Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
+- Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
+  Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
+- Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
+  generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
@@ -43,12 +75,15 @@ docker compose up -d db
 cd backend && .venv/Scripts/uvicorn app.main:app --reload --port 8010
 cd frontend && npm run dev        # http://localhost:3100
 
+backend/.venv/Scripts/python scripts/check.py   # alles: ruff, pytest, eslint, tsc, vitest (ca. 1 min)
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
 python eval/run_retrieval.py      # Eval ohne Kosten; eval/run_eval.py kostet Tokens je Frage
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
+CI (`.github/workflows/ci.yml`) laeuft nur per Hand: privates Repo ohne Actions-Guthaben. Vor jedem Push
+`scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
 
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
 und muss neu erstellt werden.

@@ -28,6 +28,20 @@ npm run dev                   # http://localhost:3100
 Beim ersten Upload lädt das Backend das Embedding-Modell (`BAAI/bge-m3`, ca. 2 GB) und die
 Docling-Layoutmodelle von Hugging Face.
 
+## Zugriffsschutz
+
+Ohne `API_KEY` in `.env` läuft das Backend offen (nur lokal sinnvoll). Mit `API_KEY` verlangt jede
+Route unter `/api/` den Schlüssel, nur `/api/health` bleibt frei:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # Schlüssel erzeugen
+# .env: API_KEY=<Schlüssel>  NEXT_PUBLIC_API_KEY=<Schlüssel>  STROMLAUF_API_KEY=<Schlüssel>
+```
+
+Frontend, Skripte (`scripts/`, `eval/`) und MCP-Server schicken ihn als Header `X-API-Key`; auch
+`Authorization: Bearer` gilt. Bilder lädt der Browser ohne Header, dafür hängt das Frontend
+`?api_key=` an Bild-URLs. Es ist ein gemeinsamer Schlüssel je Installation, keine Benutzerverwaltung.
+
 ## In 5 Minuten ausprobieren
 
 Im Ordner [`examples/foerderband/`](examples/foerderband/) liegt eine komplette, frei erfundene
@@ -61,7 +75,12 @@ Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signa
 und Fehlersuche funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
 prüfen jeden Verweis gegen den Plan und lassen alle Parser über die Dateien laufen.
 
-## Werk: Standortplan, Halle, Maschinen, Schaltschrank
+## Werk: Maschinen, Standortplan, Halle, Schaltschrank
+
+Reiter **Maschinen** (`/werk/maschinen`) ist der Einstieg: alle Maschinen des Werks in einer Tabelle
+mit Typ, Linie, Halle, Stand der Dokumentation (keine / n von m fertig / fertig), Zahl der
+Fehlereinträge, offenen Fehlersuchen und erster Kennzahl; Filter über Name, Linie, Halle, Typ und
+Wissensquelle. Rot ist nur die Zahl offener Fehlersuchen. Daten: `GET /api/machines`.
 
 Reiter **Werk** oeffnet den **Standortplan** (`/werk`): alle Hallen als Grundriss-Bloecke mit Art
 (Grundstoff, Verarbeitung, Lager, Buero), verkleinertem Maschinenlayout und Materialfluss zwischen
@@ -103,6 +122,65 @@ Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `ki
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
+## Dokumenttyp aus dem Inhalt
+
+Beim Hochladen mit „Automatisch erkennen“ liest das Backend eine Textprobe (erste drei PDF-Seiten,
+erste Zeilen einer Tabelle oder Textdatei) und schlägt den Typ mit Begründung vor, etwa
+„Kopfzeile Klemmleiste;Klemme;Ziel“ oder „Schriftfeld Blatt n / m; Spaltenkopf 1 … 8“. Der Dialog
+zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochgeladen. Reihenfolge:
+Endung (.awl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
+`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
+
+## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
+
+Zwei Phasen, strikt getrennt. **(A) Extraktion** liest Funktionsbeschreibung, Symboltabelle, Stückliste
+und AWL und schreibt ein JSON nach `schemas/machine_flow.json`. **(B) Anzeige** liest nur dieses JSON,
+ohne Modellaufruf. Gleiche Dateien und gleiche Prompt-Version kommen aus dem Cache
+(`backend/data/flow_cache/<sha256>.json`), also null Kosten beim zweiten Mal.
+
+```bash
+python scripts/extract_flow.py examples/foerderband/06_Betriebsanleitung_FB-01.md \
+  --awl examples/foerderband/04_SPS_Programm_FB-01.awl \
+  --extra examples/foerderband/05_Symboltabelle_FB-01.sdf \
+  --extra examples/foerderband/02_Stueckliste_FB-01.xlsx \
+  --out backend/data/flows/fb01.flow.json          # oder: pip install -e backend && extract-flow ...
+```
+
+- **Modelle** über `.env`: `FLOW_MODEL_SMALL` (I/O-Liste und Sensoren/Aktoren, zwei Aufrufe parallel)
+  und `FLOW_MODEL_STRONG` (nur Schrittkette), `FLOW_EFFORT` für die Schrittkette. Layout der Draufsicht
+  entsteht deterministisch aus den I/O-Punkten, ohne Modell.
+- **Belege:** jedes Objekt trägt `source` (Datei, Seite oder Abschnitt, Zitat bis 15 Wörter), `confidence`
+  und `assumption`. Verweise auf unbekannte Adressen landen in `open_questions`, werden nicht geraten.
+- **Trace:** mit `LANGFUSE_PUBLIC_KEY`/`SECRET_KEY` (Paket `langfuse`, Extra `backend[trace]`) wird jede
+  Extraktion ein Trace mit Spans `phase_a`, `phase_b`, `layout` und einer Generation je Modellaufruf
+  (Tokens, Kosten, Latenz, Prompt-Version). Die Trace-ID steht in `meta.trace_id`. JSON-Logs auf stderr
+  tragen dieselbe Trace-ID. Ohne Langfuse: lokale ID, gleiche Logs.
+- **Kosten** stehen in `meta.total.cost_usd` (Preistabelle in `app/flow/pricing.py`) und in Langfuse.
+  Messwert je Extraktion: noch nicht erhoben, dieser Container hat keinen API-Schlüssel. Nach dem ersten
+  Lauf hier eintragen.
+- Latenzbudget 30 s: Phase A parallel, `meta.total.latency_ms` und Log-Feld `over_budget` zeigen Verstöße.
+
+**Anzeige** (Tab **Ablauf** auf der Maschinenseite): eine eigenständige Seite `frontend/public/ablauf/index.html`,
+SVG plus Vanilla JS ohne Bibliotheken, per iframe eingebettet. Sie lädt nur das JSON (`GET /api/machines/{id}/flow`
+aus dem Cache, in der Regel unter 30 ms) und simuliert die Schrittkette: Draufsicht mit aktiven Aktoren grün,
+ausgelösten Sensoren gelb, unterbrochenem Sicherheitskreis rot; GRAFCET-Leiste mit aktuellem Schritt und
+Bedingungen; Abspielen, Pause, Einzelschritt, Geschwindigkeit; DI/DO-Tabelle, Klick auf eine DI-Zeile schaltet
+den Eingang (Störung von Hand auslösen). Klick auf Sensor, Aktor, Schritt oder Transition zeigt das Zitat mit
+Datei und Seite. Gestrichelt = Lage geschätzt. Der Knopf „Ablauf extrahieren“ ruft `POST
+/api/machines/{id}/flow/extract` (kostet Tokens, einmal je Dokumentstand). Simulationskern
+`public/ablauf/sim.js`, Tests `src/lib/ablauf.test.ts`. Demo ohne Backend: `/ablauf/index.html?src=/ablauf/example.json`.
+
+## Steckbrief je Wissensquelle (ohne KI-Kosten)
+
+Nach dem Upload zeigt `/quelle/{id}` (Link im Quellen-Panel, im Tab „Dokumente“ der Maschine und in
+der Maschinenübersicht), was die Dokumente hergeben: welche der sechs Dokumenttypen da sind, eine
+Abdeckungsmatrix (jedes Betriebsmittel, jede Klemme, jede SPS-Adresse mit Fundstellen je Dokumenttyp)
+und eine Lückenliste aus Regeln zwischen zwei Dokumenttypen, etwa „Betriebsmittel im Plan, aber nicht in
+der Stückliste“, „Klemme im Plan, aber nicht im Klemmenplan“, „SPS-Adresse im Programm ohne Symbol“ oder
+„Blattverweis auf ein Blatt, das der Plan nicht hat“. Eine Regel greift nur, wenn beide Dokumenttypen
+vorhanden sind. Rechenkern `backend/app/ingestion/profile.py`, Daten `GET /api/sources/{id}/profile`.
+Die Beispielanlage FB-01 hat genau eine Lücke: Symbol `M10.1` ohne Verwendung im AWL.
+
 ## Signalweg, Fehlersuche, Onboarding (ohne KI-Kosten)
 
 Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:
@@ -118,7 +196,9 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
   Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
 
-## Planung: Vorkalkulation (ohne KI-Kosten)
+## Planung: Vorkalkulation (Nebenmodul, ohne KI-Kosten)
+
+Nebenmodul im Feature-Freeze: wird gepflegt, aber nicht erweitert. Der Kern des Projekts ist die Maschine mit ihrer Dokumentation.
 
 Reiter **Planung** (`/planung`): Auftrag mit Positionen (Artikel, Menge in Paketen oder Paletten),
 Eingang und Wunschtermin eingeben; sofort erscheinen **Verladebereit am** (grün „hält“ oder
@@ -134,7 +214,9 @@ freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätz
 Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
 Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
 
-## Leitstand: Durchlauf-Simulation (ohne KI-Kosten)
+## Leitstand: Durchlauf-Simulation (Nebenmodul, ohne KI-Kosten)
+
+Nebenmodul im Feature-Freeze, siehe Planung.
 
 Reiter **Leitstand** (`/leitstand`): alle Aufträge des Auftragsbuchs laufen deterministisch durch
 das Werk. Eine **Simulationsuhr** (Abspielen, 1 h / 6 h / 1 Tag je Sekunde, Schieberegler) zeigt zu
@@ -191,6 +273,24 @@ Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen; S
 Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python scripts/mcp_server.py --http` →
 `http://127.0.0.1:8765/mcp`. Code: `backend/stromlauf_mcp/`, Suche über `GET /api/search`.
 
+## Fehler markieren
+
+Tab **Fehler**, Knopf **Zeigen** an einem Eintrag: ein roter Balken über allen Tabs nennt den Fehler und seine
+Kennzeichen. Gleichzeitig werden die betroffenen Teile in der **Draufsicht**, die Bauteile im
+**Schaltschrankfoto** und die I/O-Punkte samt Schritten im **Ablauf** rot markiert. Der Balken zählt die
+Treffer je Ansicht, springt per Klick dorthin, nennt nicht platzierte Kennzeichen und startet die geführte
+Fehlersuche. Rein aus Daten, kein Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
+
+## Chat je Maschine
+
+Tab **Chat** auf der Maschinenseite: der Scope ist fest die Wissensquelle der Maschine. Das Backend erzwingt
+das über `machine_id` im Chat-Aufruf, die Auswahl anderer Quellen ist dort nicht möglich; der Agent bekommt
+den Maschinenkontext (Name, Halle) in den Systemprompt. Ausnahme, bewusst: die handgepflegten
+**Fehlerlisten** aller Maschinen bleiben werksweit durchsuchbar (Werkzeug `search_faults`), Treffer an anderen
+Maschinen kennzeichnet der Agent als Erfahrung, nicht als Beleg. Die Chats einer Maschine sind die
+Konversationen, deren Scope genau ihre Quelle ist (`GET /api/conversations?source_id=…`, keine neue Spalte).
+Der Reiter **Chat** in der Navigation bleibt der werksweite Chat mit freier Quellenwahl.
+
 ## Chat-Antworten
 
 Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,
@@ -213,6 +313,8 @@ backend/    FastAPI
                    optionale Vision-Analyse der Schaltplanseiten (Claude)
   app/agent/       LangGraph-Agent (Claude) mit Werkzeugen: search_knowledge, find_tag,
                    keyword_search, get_page, view_page, get_plc_block, list_documents
+  app/retrieval.py Hybrid-Suche: Vektor (pgvector, HNSW) + Volltext (tsvector 'german', GIN),
+                   Fusion per Reciprocal Rank Fusion; search_knowledge und /api/search?mode=semantic
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
                    Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
                    site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
@@ -257,6 +359,16 @@ python eval/run_eval.py          # Agentenlauf, kostet API-Tokens je Frage
 Details in [`eval/README.md`](eval/README.md).
 
 ## Tests
+
+Alle Prüfungen auf einmal, wie sie eine CI ausführen würde (ohne Cloud-Kosten, etwa 1 Minute):
+
+```bash
+backend/.venv/Scripts/python scripts/check.py                 # ruff, pytest, eslint, tsc, vitest
+backend/.venv/Scripts/python scripts/check.py --install-hook  # dasselbe automatisch vor jedem Push
+```
+
+Der GitHub-Workflow `.github/workflows/ci.yml` ist nur von Hand startbar, weil das private Repo kein
+Actions-Guthaben hat. Wird das Repo öffentlich, `push`/`pull_request` wieder als Auslöser eintragen.
 
 ```bash
 cd backend && .venv/Scripts/python -m pytest -q
