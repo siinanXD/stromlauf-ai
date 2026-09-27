@@ -103,6 +103,7 @@ def main() -> int:
     parser.add_argument("--api", default="http://localhost:8010")
     parser.add_argument("--only", help="Filter auf id oder Quellname, z. B. ur01")
     parser.add_argument("--min", type=float, default=0.0, help="Exit-Code 1, wenn fakten_mittel darunter liegt")
+    parser.add_argument("--min-sources", type=float, default=0.0, help="Exit-Code 1, wenn quellen_ok darunter liegt")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
     args = parser.parse_args()
 
@@ -142,6 +143,9 @@ def main() -> int:
     if gate_failed(summary, args.min):
         print(f"Unter Schwelle {args.min}: fakten_mittel {summary['fakten_mittel']}, "
               f"unbewertete Fehler {summary['nicht_bewertet_fehler']}")
+        return 1
+    if args.min_sources > 0 and summary["quellen_ok"] < args.min_sources:
+        print(f"Unter Schwelle {args.min_sources}: quellen_ok {summary['quellen_ok']}")
         return 1
     return 0
 

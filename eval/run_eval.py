@@ -94,6 +94,7 @@ def main() -> int:
     parser.add_argument("--min", type=float, default=0.0, help="Exit-Code 1, wenn fakten_mittel darunter liegt")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
     parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
+    parser.add_argument("--max-cost", type=float, default=0.0, help="Kostendeckel in USD: keine weitere Frage, sobald die Summe darueber liegt")
     args = parser.parse_args()
 
     questions = [q for q in evallib.load_questions(QUESTIONS, args.only) if q.get("agent", True)]
@@ -129,7 +130,11 @@ def main() -> int:
             sys.exit(f"Wissensquellen fehlen im Backend: {missing}. Erst laden (scripts/load_example.py, "
                      "scripts/load_folder.py, scripts/load_testwerk.py --docs).")
 
+        spent = 0.0
         for i, q in enumerate(questions, 1):
+            if args.max_cost > 0 and spent >= args.max_cost:
+                print(f"Kostendeckel erreicht ({spent:.2f} USD >= {args.max_cost:.2f}): {len(questions) - i + 1} Fragen ausgelassen")
+                break
             tags = [f"eval:{run}", f"q:{q['id']}"]
             meta: dict = {}
             try:
@@ -140,6 +145,7 @@ def main() -> int:
             rows.append({"id": q["id"], "source": q["source"], "question": q["question"], "answer": answer,
                          "sources": cited, "tools": tools, "dauer_s": round(seconds, 1), "score": result,
                          "conversation_id": meta.get("conversation_id", ""), "usage": meta.get("usage", {})})
+            spent += float((meta.get("usage") or {}).get("cost_usd") or 0.0)
             evallib.print_row(i, len(questions), q, result, seconds)
             evallib.save_result(out, evallib.summarize(rows), rows)  # Abbruch kostet keine bezahlte Antwort
 

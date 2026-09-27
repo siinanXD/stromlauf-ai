@@ -20,6 +20,19 @@ Tokens, Modellaufrufe und Kosten stehen je Frage unter `usage` und summiert in d
 Mit Langfuse-Schluesseln in der `.env` bekommt jede Frage die Tags `eval:<lauf>` und `q:<id>`, und nach
 dem Lauf werden `fakten`, `quellen_ok` und `sauber` als Scores an die Session des Chats geschrieben.
 
+
+## Gates in CI (`.github/workflows/eval.yml`)
+
+- **Retrieval-Gate** bei jedem PR und auf master: Backend mit pgvector und lokalem `bge-m3` (Modellcache),
+  `scripts/load_example.py` (FB-01, ohne Vision), dann `run_retrieval.py --only "Foerderband FB-01" --min 0.9
+  --min-sources 0.9`. Kostet keine Tokens.
+- **Nightly** (03:17 UTC, auch manuell): `run_eval.py --min 0.8 --max-cost 2.00` (stoppt, sobald die Summe der
+  `usage.cost_usd` den Deckel erreicht) und `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf
+  gegen die 14 gelabelten Boxen des FB-01-Aufbauplans). Braucht `ANTHROPIC_API_KEY` als Secret (Environment
+  `eval`), optional `LANGFUSE_*`; ohne Secret wird der Job uebersprungen.
+- **Isolation**: `backend/tests/test_isolation_eval.py` stellt fuenf Retrieval-Fragen ueber Workspaces hinweg
+  (Kennzeichen, Befundkarte, Suche, Maschinen-Tag, Signalweg) und erwartet keine fremden Inhalte.
+
 ## Fragen
 
 51 Fragen, sechs Quellen:

@@ -1,0 +1,150 @@
+name: Eval
+
+# Eval-Gates (Issue #29): Retrieval-Schicht kostenlos bei jedem PR, Agentenlauf und Schaltschrank-IoU
+# nachts mit Kostendeckel (braucht ANTHROPIC_API_KEY als Secret; ohne Secret wird der Job uebersprungen).
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      max_cost_usd:
+        description: Kostendeckel fuer den Agentenlauf (USD)
+        default: "2.00"
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql+psycopg://stromlauf:stromlauf@localhost:5432/stromlauf
+  EMBEDDING_PROVIDER: local
+  HF_HOME: /home/runner/.cache/huggingface
+  DATA_DIR: /tmp/stromlauf-data
+
+jobs:
+  retrieval:
+    name: Retrieval-Gate (FB-01, kostenlos)
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: stromlauf
+          POSTGRES_PASSWORD: stromlauf
+          POSTGRES_DB: stromlauf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stromlauf -d stromlauf"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Modellcache (bge-m3, Docling)
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/huggingface
+          key: hf-bge-m3-docling-${{ runner.os }}-v1
+      - name: Backend mit CPU-Torch installieren
+        working-directory: backend
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+          pip install -e ".[dev]"
+      - name: Backend starten
+        working-directory: backend
+        run: |
+          nohup python -m uvicorn app.main:app --port 8010 > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8010/api/health && break; sleep 2; done
+          curl -sf http://localhost:8010/api/health
+      - name: Demo-Maschine FB-01 laden (Ingestion ohne Vision)
+        run: python scripts/load_example.py --api http://localhost:8010
+      - name: Retrieval-Eval mit Schwellwerten
+        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.9 --min-sources 0.9
+      - name: Backend-Log bei Fehler
+        if: failure()
+        run: tail -n 200 /tmp/backend.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: retrieval-results
+          path: eval/results/retrieval_*.json
+          retention-days: 14
+
+  nightly:
+    name: Nightly Agentenlauf + Schaltschrank-IoU (kostenpflichtig, Deckel)
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.repository == 'siinanXD/stromlauf-ai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: eval
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: stromlauf
+          POSTGRES_PASSWORD: stromlauf
+          POSTGRES_DB: stromlauf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stromlauf -d stromlauf"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST || 'https://cloud.langfuse.com' }}
+      CHAT_MODEL: ${{ vars.EVAL_CHAT_MODEL || 'claude-sonnet-5' }}
+      VISION_MODEL: ${{ vars.EVAL_VISION_MODEL || 'claude-sonnet-5' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secret vorhanden?
+        id: secret
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "ANTHROPIC_API_KEY fehlt: Nightly uebersprungen"; fi
+      - uses: actions/setup-python@v5
+        if: steps.secret.outputs.skip != 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - uses: actions/cache@v4
+        if: steps.secret.outputs.skip != 'true'
+        with:
+          path: /home/runner/.cache/huggingface
+          key: hf-bge-m3-docling-${{ runner.os }}-v1
+      - name: Backend installieren und starten
+        if: steps.secret.outputs.skip != 'true'
+        working-directory: backend
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.4"
+          pip install -e ".[dev,trace]"
+          nohup python -m uvicorn app.main:app --port 8010 > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8010/api/health && break; sleep 2; done
+      - name: Demo-Maschine laden
+        if: steps.secret.outputs.skip != 'true'
+        run: python scripts/load_example.py --api http://localhost:8010
+      - name: Agentenlauf FB-01 mit Kostendeckel
+        if: steps.secret.outputs.skip != 'true'
+        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.8 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
+      - name: Schaltschrank-IoU (ein Vision-Aufruf)
+        if: steps.secret.outputs.skip != 'true'
+        run: python eval/run_cabinet.py --api http://localhost:8010 --min-iou 0.5 --min-share 0.8
+      - name: Backend-Log bei Fehler
+        if: failure()
+        run: tail -n 200 /tmp/backend.log
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.secret.outputs.skip != 'true'
+        with:
+          name: nightly-results
+          path: |
+            eval/results/*.json
+          retention-days: 30
