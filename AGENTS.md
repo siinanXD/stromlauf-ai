@@ -54,6 +54,12 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
   `LayoutCanvas.highlightTags`, `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
+- Tracing (optional, Langfuse): `app/tracing.py` liefert `trace_config`/`vision_trace` (LangChain-Callback)
+  fuer Chat und die drei Vision-Aufrufe, `langfuse_client` fuer Skripte; Schluesselpruefung nur dort.
+  `app/flow/tracing.py` bleibt eigenstaendig (setzt Spans, Tokens, Kosten selbst) und nutzt sie.
+  Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
+  rechnet Kosten aus `app/flow/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
+  Nicht getrackt: Retrieval und Embeddings (ohne Modellkosten).
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,

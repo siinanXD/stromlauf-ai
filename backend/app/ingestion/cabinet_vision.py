@@ -50,7 +50,7 @@ def image_size(path: Path) -> tuple[int, int]:
         return image.size
 
 
-def detect_components(path: Path, known_tags: list[str] | None = None) -> list[dict]:
+def detect_components(path: Path, known_tags: list[str] | None = None, trace: dict | None = None) -> list[dict]:
     settings = get_settings()
     if not settings.anthropic_api_key:
         raise RuntimeError("ANTHROPIC_API_KEY fehlt")
@@ -73,7 +73,7 @@ def detect_components(path: Path, known_tags: list[str] | None = None) -> list[d
             {"type": "text", "text": DETECT_PROMPT.format(known=known)},
         ]
     )
-    response = llm.invoke([message])
+    response = llm.invoke([message], trace or None)
     content = response.content
     text = content if isinstance(content, str) else "".join(
         b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"

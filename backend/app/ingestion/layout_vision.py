@@ -53,7 +53,7 @@ def _positive(value) -> float | None:
     return number if number > 0 else None
 
 
-def detect_layout(png: bytes, known_tags: list[str] | None = None) -> dict:
+def detect_layout(png: bytes, known_tags: list[str] | None = None, trace: dict | None = None) -> dict:
     """Ruft Claude Vision auf (kostet API-Tokens). Rueckgabe: items, floor, width_mm, depth_mm."""
     settings = get_settings()
     if not settings.anthropic_api_key:
@@ -76,7 +76,7 @@ def detect_layout(png: bytes, known_tags: list[str] | None = None) -> dict:
             {"type": "text", "text": DETECT_PROMPT.format(kinds=", ".join(LAYOUT_KINDS), known=known)},
         ]
     )
-    content = llm.invoke([message]).content
+    content = llm.invoke([message], trace or None).content
     text = content if isinstance(content, str) else "".join(
         b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
     )

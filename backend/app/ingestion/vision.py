@@ -73,7 +73,7 @@ def image_block(png: bytes) -> dict:
     }
 
 
-def describe_page(path: Path, page: int, extracted_text: str = "") -> str:
+def describe_page(path: Path, page: int, extracted_text: str = "", trace: dict | None = None) -> str:
     settings = get_settings()
     llm = ChatAnthropic(
         model=settings.vision_model,
@@ -90,7 +90,7 @@ def describe_page(path: Path, page: int, extracted_text: str = "") -> str:
     message = HumanMessage(
         content=[image_block(render_page_png(path, page)), {"type": "text", "text": VISION_PROMPT + hint}]
     )
-    response = llm.invoke([message])
+    response = llm.invoke([message], trace or None)
     content = response.content
     if isinstance(content, str):
         return content

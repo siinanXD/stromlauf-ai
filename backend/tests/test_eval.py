@@ -64,9 +64,10 @@ def test_parse_sse_collects_answer_sources_tools_and_error():
         "event: done", "data: {}", "",
         "event: token", 'data: {"text": "danach"}', "",
     ]
-    answer, sources, tools = evallib.parse_sse(lines)
+    answer, sources, tools, meta = evallib.parse_sse(lines)
     assert answer == "Hallo Welt\n[FEHLER] kaputt"
     assert sources == [{"filename": "a.pdf"}] and tools == ["find_tag"]
+    assert meta["conversation_id"] == "c"
 
 
 def test_summarize_separates_errors():
@@ -214,7 +215,7 @@ def test_questions_cover_testdoku_and_testwerk():
 
 
 def test_is_error_detects_streamed_error_event():
-    answer, _, _ = evallib.parse_sse(["event: token", 'data: {"text": "Ich schaue nach."}', "",
+    answer, _, _, _ = evallib.parse_sse(["event: token", 'data: {"text": "Ich schaue nach."}', "",
                                       "event: error", 'data: {"message": "Guthaben erschoepft"}', ""])
     assert evallib.is_error({"answer": answer})
     assert not evallib.is_error({"answer": "Der Fehler liegt an -F2."})
@@ -254,3 +255,60 @@ def test_retrieval_gate_fails_on_unscored_errors():
     assert rr.gate_failed({"fakten_mittel": 0.8, "nicht_bewertet_fehler": 0}, 0.9)
     assert not rr.gate_failed({"fakten_mittel": 1.0, "nicht_bewertet_fehler": 0}, 0.9)
     assert not rr.gate_failed({"fakten_mittel": 0.0, "nicht_bewertet_fehler": 3}, 0.0)
+
+
+# --- Verbrauch und Kosten ------------------------------------------------------------------------
+
+
+def test_parse_sse_summiert_usage_je_modellaufruf():
+    lines = [
+        "event: conversation", 'data: {"id": "c7"}', "",
+        "event: usage", 'data: {"input_tokens": 1200, "output_tokens": 80, "model": "claude-sonnet-5-20260115"}', "",
+        "event: token", 'data: {"text": "Moment"}', "",
+        "event: usage", 'data: {"input_tokens": 300, "output_tokens": 20, "model": "claude-sonnet-5-20260115"}', "",
+        "event: done", "data: {}", "",
+    ]
+    _, _, _, meta = evallib.parse_sse(lines)
+    assert meta["usage"] == {
+        "input_tokens": 1500, "output_tokens": 100, "calls": 2, "model": "claude-sonnet-5-20260115",
+    }
+
+
+def test_usage_total_nur_wenn_verbrauch_vorliegt():
+    assert evallib.usage_total([{"answer": "x"}]) == {}
+    rows = [
+        {"answer": "a", "usage": {"input_tokens": 100, "output_tokens": 10, "calls": 1, "cost_usd": 0.0003}},
+        {"answer": "b", "usage": {"input_tokens": 200, "output_tokens": 20, "calls": 2, "cost_usd": 0.0006}},
+    ]
+    assert evallib.usage_total(rows) == {
+        "tokens_ein": 300, "tokens_aus": 30, "modellaufrufe": 3, "kosten_usd": 0.0009,
+    }
+
+
+def test_summarize_nimmt_kosten_auf():
+    rows = [{"answer": "a", "dauer_s": 1.0,
+             "usage": {"input_tokens": 1_000_000, "output_tokens": 0, "calls": 1, "cost_usd": 2.0},
+             "score": {"fakten": 1.0, "quellen_ok": True, "sauber": True, "werkzeug_ok": None}}]
+    summary = evallib.summarize(rows)
+    assert summary["kosten_usd"] == 2.0 and summary["tokens_ein"] == 1_000_000
+
+
+def test_preis_auch_fuer_datierte_modell_id():
+    from app.flow.pricing import cost_usd, prices_for
+
+    assert prices_for("claude-sonnet-5") == prices_for("claude-sonnet-5-20260115")
+    assert prices_for("gpt-irgendwas") is None
+    assert cost_usd("claude-sonnet-5-20260115", 1_000_000, 0) == 2.0
+    assert cost_usd("unbekannt", 1_000_000, 1_000_000) == 0.0
+
+
+def test_save_result_ueberschreibt_dieselbe_datei(tmp_path):
+    out = tmp_path / "lauf.json"
+    rows = [{"id": "a", "answer": "x", "dauer_s": 1.0,
+             "score": {"fakten": 1.0, "quellen_ok": True, "sauber": True, "werkzeug_ok": None}}]
+    evallib.save_result(out, evallib.summarize(rows), rows)
+    rows.append({"id": "b", "answer": "y", "dauer_s": 1.0,
+                 "score": {"fakten": 0.0, "quellen_ok": True, "sauber": True, "werkzeug_ok": None}})
+    evallib.save_result(out, evallib.summarize(rows), rows)
+    saved = json.loads(out.read_text(encoding="utf-8"))
+    assert [r["id"] for r in saved["results"]] == ["a", "b"] and saved["summary"]["fragen"] == 2

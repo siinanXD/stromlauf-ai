@@ -18,8 +18,18 @@ PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
 }
 
 
+def prices_for(model: str) -> tuple[float, float] | None:
+    """Eintrag zum Modell; die API liefert datierte IDs (claude-sonnet-5-20260115)."""
+    if model in PRICES_PER_MTOK:
+        return PRICES_PER_MTOK[model]
+    for name, prices in PRICES_PER_MTOK.items():
+        if model.startswith(name):
+            return prices
+    return None
+
+
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
-    prices = PRICES_PER_MTOK.get(model)
+    prices = prices_for(model)
     if prices is None:
         logger.warning('{"event": "unknown_model_price", "model": "%s"}', model)
         return 0.0

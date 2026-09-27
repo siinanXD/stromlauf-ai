@@ -76,6 +76,7 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     message: str = Field(min_length=1)
     source_ids: list[str] = []
+    trace_tags: list[str] = []  # Tags am Langfuse-Trace, z. B. eval:2026-09-27, q:fb01-e03
     # Maschinen-Chat: Scope ist fest die Wissensquelle der Maschine; source_ids werden dann ignoriert
     machine_id: str | None = None
 

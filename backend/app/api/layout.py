@@ -26,6 +26,7 @@ from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import render_page_png
 from app.models import Document, LayoutPart, Machine, MachineLayout, TagOccurrence
 from app.schemas import LayoutIn, LayoutOut, LayoutPartIn, LayoutPartOut, LayoutPartUpdate
+from app.tracing import vision_trace
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["layout"])
@@ -185,7 +186,7 @@ def detect_layout_parts(layout_id: str, session: Session = Depends(get_session))
             )
         )
     try:
-        result = detect_layout(png, known)
+        result = detect_layout(png, known, vision_trace(layout.id, "draufsicht"))
     except Exception as exc:
         logger.exception("Vision-Erkennung (Draufsicht) fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc

@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.db import get_session, session_scope
 from app.models import Conversation, Machine
 from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
+from app.tracing import trace_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -159,6 +160,7 @@ async def chat(body: ChatRequest, request: Request):
         conversation_id, title = conversation.id, conversation.title
 
     config = _thread_config(conversation_id, source_ids, machine)
+    config.update(trace_config(conversation_id, body.trace_tags, get_settings().chat_model))
 
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
@@ -180,6 +182,14 @@ async def chat(body: ChatRequest, request: Request):
                 for update in payload.values():
                     for message in (update or {}).get("messages", []):
                         if isinstance(message, AIMessage):
+                            usage = getattr(message, "usage_metadata", None) or {}
+                            if usage:
+                                yield _sse("usage", {
+                                    "input_tokens": usage.get("input_tokens", 0),
+                                    "output_tokens": usage.get("output_tokens", 0),
+                                    "model": message.response_metadata.get("model_name")
+                                    or get_settings().chat_model,
+                                })
                             for call in message.tool_calls:
                                 yield _sse("tool_start", {"name": call["name"], "args": call["args"]})
                             if message.tool_calls:
