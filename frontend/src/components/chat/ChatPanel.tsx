@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Message } from "@/components/Message";
 import type { PageTarget } from "@/components/PageViewer";
-import { api, streamChat, type ChatMessage } from "@/lib/api";
+import { api, streamChat, type AnswerMeta, type ChatMessage } from "@/lib/api";
 
 export interface ChatScope {
   /** Wissensquellen, die der Agent durchsuchen darf; leer = alle. */
@@ -28,6 +28,9 @@ export function ChatPanel({
   initialInput = "",
   banner,
   placeholder = "Frage zur Anlage stellen … (Enter sendet, Shift+Enter neue Zeile)",
+  onMeta,
+  onOpenPart,
+  onShowInModel,
 }: {
   scope: ChatScope;
   conversationId: string | null;
@@ -39,10 +42,17 @@ export function ChatPanel({
   initialInput?: string;
   banner?: ReactNode;
   placeholder?: string;
+  /** Antwort-Vertrag am Ende des Streams: Maschinenseite markiert die Bauteile im Modell. */
+  onMeta?: (meta: AnswerMeta) => void;
+  /** Klick auf einen Bauteil-Chip unter der Antwort. */
+  onOpenPart?: (tag: string) => void;
+  /** "Im Modell zeigen" unter der Antwort. */
+  onShowInModel?: (tags: string[]) => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState(initialInput);
   const [streaming, setStreaming] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const ownedIdRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -109,6 +119,12 @@ export function ChatPanel({
           });
         else if (event === "sources") updateLast((m) => ({ ...m, sources: data }));
         else if (event === "usage") updateLast((m) => ({ ...m, cost_cents: (m.cost_cents ?? 0) + data.cost_cents }));
+        else if (event === "meta") {
+          updateLast((m) => ({ ...m, meta: data }));
+          onMeta?.(data);
+          const n = data.referenced_tags.length;
+          setAnnouncement(n > 0 ? `Antwort fertig, ${n} ${n === 1 ? "Bauteil" : "Bauteile"} im Modell markiert.` : "Antwort fertig.");
+        }
         else if (event === "error") updateLast((m) => ({ ...m, error: data.message }));
       }
     } catch (err) {
@@ -143,12 +159,17 @@ export function ChatPanel({
                 sourceIds={scope.sourceIds}
                 activeReference={activeReference}
                 onOpen={onOpenPage}
+                onOpenPart={onOpenPart}
+                onShowInModel={onShowInModel}
               />
             ))
           )}
           <div ref={bottomRef} />
         </div>
       </div>
+      <p className="sr-only-live" aria-live="polite" role="status">
+        {announcement}
+      </p>
       <form
         className="border-t border-border bg-card px-4 py-3"
         onSubmit={(event) => {

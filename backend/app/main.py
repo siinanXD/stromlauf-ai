@@ -15,6 +15,7 @@ from app.api import (
     facts,
     flow,
     layout,
+    machine_map,
     onboarding,
     orders,
     planning,
@@ -72,6 +73,7 @@ async def _budget_exceeded(request: Request, exc: BudgetExceeded) -> JSONRespons
 app.include_router(auth.router)
 app.include_router(sources.router)
 app.include_router(costs.router)
+app.include_router(machine_map.router)
 app.include_router(chat.router)
 app.include_router(plant.router)
 app.include_router(layout.router)

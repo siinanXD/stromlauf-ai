@@ -2,38 +2,83 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Nur helles Theme: dark:-Klassen der shadcn-Komponenten greifen nie (keine .dark-Klasse). */
-@custom-variant dark (&:is(.dark *));
+/* dark: ueber data-theme am <html>; das Inline-Skript in layout.tsx setzt es aus localStorage
+   oder prefers-color-scheme, damit shadcn-dark:-Klassen und die Variablen dasselbe schalten. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Blaupause: technisches Zeichnungsblatt. Figma 25Zi2sbyA5rXJcwViTqB10, Frame 5:273.
-   Blau = Auswahl/Aktion, Rot nur fuer Fehler und Not-Halt. Nur helles Theme. */
+/* Vision – Machine Assistant, Figma "Foundations" (2OqLHx6iMLcQetq6uM90FC): Inter fuer UI, IBM Plex Mono
+   fuer Kennzeichen, 8-px-Raster, Radius 8/12/16. Signal-Amber nur fuer "hier schauen", Brand-Blau fuer
+   Aktionen, Rot fuer Fehler und Not-Halt. Hell und dunkel (data-theme). */
 :root {
-  --background: #f4f1e8;
-  --foreground: #14263d;
-  --card: #fbf9f3;
-  --card-foreground: #14263d;
-  --popover: #fbf9f3;
-  --popover-foreground: #14263d;
-  --primary: #1e5bd8;
+  --background: #f5f6f8; /* bg/canvas */
+  --foreground: #111827; /* fg/primary */
+  --card: #ffffff; /* bg/surface */
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #2563eb; /* accent/brand */
   --primary-foreground: #ffffff;
-  --secondary: #efebe0;
-  --secondary-foreground: #14263d;
-  --muted: #efebe0;
-  --muted-foreground: #5a6a80;
-  --accent: #e6eaf0;
-  --accent-foreground: #14263d;
-  --destructive: #d7263d;
-  --border: #aeb9c7;
-  --input: #aeb9c7;
-  --ring: #1e5bd8;
-  --radius: 0rem;
+  --primary-soft: #dbeafe; /* accent/brand-soft */
+  --secondary: #eef0f3; /* bg/surface-2 */
+  --secondary-foreground: #111827;
+  --muted: #eef0f3;
+  --muted-foreground: #5b6472; /* fg/secondary */
+  --accent: #eef0f3;
+  --accent-foreground: #111827;
+  --destructive: #dc2626; /* status/error */
+  --border: #e3e6eb; /* border/subtle */
+  --input: #c9ced6; /* border/strong */
+  --ring: #2563eb;
+  --radius: 0.5rem;
 
-  --ok: #1f7a4d;
-  --danger: #d7263d;
-  --nav: #14263d;
-  --nav-foreground: #8fa0b8;
-  --grid: #e3e7ec;
-  --line: #14263d;
+  --ok: #16a34a; /* status/ok */
+  --warn: #d97706; /* status/warn */
+  --danger: #dc2626;
+  --signal: #f59e0b; /* accent/signal: "hier schauen" */
+  --signal-soft: #fef3c7;
+  --signal-foreground: #1f1300;
+  --nav: #12151b; /* bg/rail */
+  --nav-hover: #1c2029;
+  --nav-foreground: #8b93a1; /* fg/on-rail-muted */
+  --nav-foreground-strong: #e5e7eb; /* fg/on-rail */
+  --grid: #e3e6eb;
+  --line: #c9ced6; /* border/strong */
+}
+
+[data-theme="dark"] {
+  --background: #0f1115;
+  --foreground: #f3f4f6;
+  --card: #171a20;
+  --card-foreground: #f3f4f6;
+  --popover: #171a20;
+  --popover-foreground: #f3f4f6;
+  --primary: #60a5fa;
+  --primary-foreground: #0f1115;
+  --primary-soft: #172554;
+  --secondary: #1f232b;
+  --secondary-foreground: #f3f4f6;
+  --muted: #1f232b;
+  --muted-foreground: #a3acba;
+  --accent: #1f232b;
+  --accent-foreground: #f3f4f6;
+  --destructive: #f87171;
+  --border: #2a2f39;
+  --input: #3a4150;
+  --ring: #60a5fa;
+
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --signal: #fbbf24;
+  --signal-soft: #3a2e0b;
+  --signal-foreground: #fef3c7;
+  --nav: #0a0c10;
+  --nav-hover: #151920;
+  --nav-foreground: #8b93a1;
+  --nav-foreground-strong: #e5e7eb;
+  --grid: #2a2f39;
+  --line: #3a4150;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -56,14 +101,21 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ok: var(--ok);
+  --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-nav: var(--nav);
+  --color-nav-hover: var(--nav-hover);
   --color-nav-foreground: var(--nav-foreground);
+  --color-nav-foreground-strong: var(--nav-foreground-strong);
   --color-grid: var(--grid);
   --color-line: var(--line);
-  --font-sans: var(--font-plex-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-plex-mono);
+  --font-heading: var(--font-inter);
   --radius-sm: var(--radius);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
@@ -79,6 +131,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden; /* breite Inhalte scrollen in ihrem Container (ux-spec §4) */
   }
 }
 
@@ -165,4 +218,33 @@
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-weight: 600;
   color: var(--primary);
+}
+
+/* Modell: Bauteil aus der Antwort ("hier schauen") - Puls nur ohne reduced motion */
+@keyframes signal-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--signal) 55%, transparent); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+.part-chip[data-referenced="true"] {
+  animation: signal-pulse 1.6s ease-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .part-chip[data-referenced="true"] { animation: none; }
+  .animate-pulse { animation: none; }
+  * { transition-duration: 0.01ms !important; }
+}
+.sr-only-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Scroll-Container mit breitem Inhalt (Tabs, Zonenstreifen, Belege, Fotos): ihre Mindestbreite darf die
+   Seite nicht aufweiten (Android/Chrome weitet sonst den Layout-Viewport). */
+.tab-scroller,
+.scroll-contain {
+  contain: inline-size;
 }

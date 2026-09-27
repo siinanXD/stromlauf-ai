@@ -1,11 +1,12 @@
 "use client";
 
-import { Calculator, Cog, Factory, Gauge, MessageSquare, Search } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { MachineRail } from "@/components/rail/MachineRail";
 import { api, auth, costs, type AuthMe, type WorkspaceBudget } from "@/lib/api";
 import { costText } from "@/lib/format";
 import { clearToken, getToken, redirectToLogin, tokenValid } from "@/lib/auth";
@@ -16,49 +17,16 @@ export interface Crumb {
   href?: string;
 }
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: typeof Cog;
-  /** Aktiv, wenn der Pfad passt; Standard: Präfix. */
-  match?: (pathname: string) => boolean;
-}
-
-/** Kern: Maschine und ihre Doku. Planung und Leitstand sind Nebenmodule (Feature-Freeze, siehe AGENTS.md). */
-const MAIN_NAV: NavItem[] = [
-  { href: "/", label: "Chat", icon: MessageSquare, match: (p) => p === "/" },
-  { href: "/werk/maschinen", label: "Maschinen", icon: Cog, match: (p) => p.startsWith("/werk/maschine") },
-  { href: "/werk", label: "Werk", icon: Factory, match: (p) => p.startsWith("/werk") && !p.startsWith("/werk/maschine") },
-];
-const SIDE_NAV: NavItem[] = [
-  { href: "/planung", label: "Planung", icon: Calculator },
-  { href: "/leitstand", label: "Leitstand", icon: Gauge },
-];
-
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const { href, label, icon: Icon, match } = item;
-  const active = match ? match(pathname) : pathname.startsWith(href);
-  return (
-    <Link href={href} className="group flex flex-col items-center gap-1">
-      <span
-        className={cn(
-          "grid size-10 place-items-center border",
-          active ? "border-white bg-white/15 text-white" : "border-[#3b4f6b] text-nav-foreground group-hover:text-white",
-        )}
-      >
-        <Icon className="size-4" />
-      </span>
-      <span className={cn("text-[10px]", active ? "text-white" : "text-nav-foreground")}>{label}</span>
-    </Link>
-  );
-}
-
-/** Rahmen aller Seiten: dunkle Navigationsleiste links, Kopfzeile mit Pfad, Suche und Status. */
+/**
+ * Rahmen aller Seiten: links die Maschinen-Rail (280 px ab 1280, 72-px-Icon-Rail von 768 bis 1279, Drawer darunter),
+ * Kopfzeile mit Pfad, Suche und Status, Banner bei erreichtem KI-Monatslimit.
+ */
 export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; children: ReactNode }) {
   const pathname = usePathname();
   const [online, setOnline] = useState<boolean | null>(null);
   const [me, setMe] = useState<AuthMe | null>(null);
   const [budget, setBudget] = useState<WorkspaceBudget | null>(null);
+  const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
     // Monatslimit: Banner, sobald der Workspace am Limit ist (die API lehnt dann jeden KI-Aufruf mit 402 ab)
@@ -112,26 +80,27 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
 
   return (
     <div className="flex h-full">
-      <nav className="flex w-16 shrink-0 flex-col items-center gap-3 bg-nav py-3.5">
-        <Link
-          href="/"
-          className="mb-4 grid size-9 place-items-center bg-primary font-mono text-lg font-semibold text-primary-foreground"
-          title="Stromlauf AI"
-        >
-          S
-        </Link>
-        {MAIN_NAV.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
-        ))}
-        <div className="mt-auto flex flex-col items-center gap-3 border-t border-[#3b4f6b] pt-3 opacity-70" title="Nebenmodule">
-          {SIDE_NAV.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
+      {/* >= 1280: volle Rail; 768-1279: Icon-Rail; darunter Drawer */}
+      <aside className="hidden shrink-0 md:block xl:hidden" data-testid="rail-icons">
+        <MachineRail mode="icons" me={me} />
+      </aside>
+      <aside className="hidden shrink-0 xl:block" data-testid="rail-full">
+        <MachineRail mode="full" me={me} />
+      </aside>
+      {drawer && (
+        <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Maschinen">
+          <div className="h-full w-[280px] max-w-[88vw] shadow-xl" data-testid="rail-drawer">
+            <MachineRail mode="full" me={me} onNavigate={() => setDrawer(false)} />
+          </div>
+          <button type="button" className="flex-1 bg-black/50" aria-label="Menü schließen" onClick={() => setDrawer(false)} />
         </div>
-      </nav>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-card px-6">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 md:px-6">
+          <button type="button" onClick={() => setDrawer((d) => !d)} className="grid size-9 place-items-center rounded-lg border border-border md:hidden" aria-label={drawer ? "Menü schließen" : "Maschinen öffnen"} aria-expanded={drawer} data-testid="rail-toggle">
+            {drawer ? <X className="size-4" /> : <Menu className="size-4" />}
+          </button>
           <ol className="flex min-w-0 items-center gap-2 font-mono text-[13px] uppercase">
             {breadcrumb.map((crumb, index) => {
               const last = index === breadcrumb.length - 1;

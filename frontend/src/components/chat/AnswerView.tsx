@@ -11,7 +11,9 @@ import type { ChatMessage, SourceRef, ToolCall } from "@/lib/api";
 import { costText } from "@/lib/format";
 
 import { CitationChip } from "./CitationChip";
+import { EvidenceRow } from "./EvidenceRow";
 import { FactCard } from "./FactCard";
+import { PartChip } from "./PartChip";
 
 const TOOL_LABELS: Record<string, string> = {
   search_knowledge: "Suche in Wissensquellen",
@@ -55,6 +57,8 @@ export function AnswerView({
   sourceIds,
   activeReference,
   onOpen,
+  onOpenPart,
+  onShowInModel,
 }: {
   message: ChatMessage;
   question: string;
@@ -62,6 +66,8 @@ export function AnswerView({
   sourceIds: string[];
   activeReference: string | null;
   onOpen: (target: PageTarget) => void;
+  onOpenPart?: (tag: string) => void;
+  onShowInModel?: (tags: string[]) => void;
 }) {
   const { markdown, citations } = useMemo(() => parseCitations(message.content), [message.content]);
   const sections = useMemo(() => splitSections(markdown), [markdown]);
@@ -221,6 +227,33 @@ export function AnswerView({
               </div>
             ))}
           </dl>
+        </section>
+      )}
+
+      {!streaming && message.meta && message.meta.referenced_tags.length > 0 && (
+        <section data-testid="referenced-parts">
+          <SectionLabel>In der Antwort referenziert</SectionLabel>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {message.meta.referenced_tags.map((tag) => (
+              <PartChip key={tag} tag={tag} referenced onClick={onOpenPart ? () => onOpenPart(tag) : undefined} />
+            ))}
+            {onShowInModel && (
+              <button
+                type="button"
+                onClick={() => onShowInModel(message.meta!.referenced_tags)}
+                className="ml-1 rounded-lg border border-border px-2 py-1 text-xs font-medium hover:border-primary hover:text-primary"
+              >
+                Im Modell zeigen
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {!streaming && message.meta && message.meta.evidence.length > 0 && (
+        <section data-testid="evidence-row">
+          <SectionLabel>Belegbilder</SectionLabel>
+          <EvidenceRow evidence={message.meta.evidence} onOpen={onOpen} />
         </section>
       )}
 

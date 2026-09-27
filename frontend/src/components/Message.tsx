@@ -11,6 +11,8 @@ export function Message({
   sourceIds,
   activeReference,
   onOpen,
+  onOpenPart,
+  onShowInModel,
 }: {
   message: ChatMessage;
   /** Nutzerfrage zu dieser Antwort (fuer die Befundkarte). */
@@ -19,6 +21,8 @@ export function Message({
   sourceIds: string[];
   activeReference: string | null;
   onOpen: (target: PageTarget) => void;
+  onOpenPart?: (tag: string) => void;
+  onShowInModel?: (tags: string[]) => void;
 }) {
   if (message.role === "user") {
     return (
@@ -35,6 +39,8 @@ export function Message({
       sourceIds={sourceIds}
       activeReference={activeReference}
       onOpen={onOpen}
+      onOpenPart={onOpenPart}
+      onShowInModel={onShowInModel}
     />
   );
 }
