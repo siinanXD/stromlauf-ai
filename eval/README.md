@@ -1,39 +1,70 @@
 # Eval: Antwortqualitaet messen
 
-24 Fragen mit Erwartungen in `questions.jsonl`, drei Wissensquellen:
+Eine Fragenliste (`questions.jsonl`), drei Schichten. Die ersten beiden kosten nichts.
+
+| Schicht | Aufruf | Kosten | Misst |
+| --- | --- | --- | --- |
+| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, semantische Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
+| Wiederbewertung | `python eval/rescore.py eval/results/<lauf>.json` | keine | Gespeicherte Agentenantworten mit der aktuellen Fragenliste neu bewerten |
+| Agent | `python eval/run_eval.py` | **API-Tokens je Frage**, ca. 20 min | Antwortet der Chat-Agent Ende-zu-Ende richtig, zitiert er, nutzt er das passende Werkzeug? |
+
+Erst Retrieval laufen lassen. Wenn dort ein Fakt fehlt, kann der Agent ihn nicht finden; das ist ohne
+Agentenlauf zu beheben. Den Agentenlauf nur bewusst starten.
+
+## Fragen
+
+51 Fragen, sechs Quellen:
 
 | Quelle | Fragen | Daten |
 | --- | --- | --- |
-| Foerderband FB-01 | 7 | `examples/foerderband/` (im Repo) |
+| Foerderband FB-01 | 9 | `examples/foerderband/` (`scripts/load_example.py`) |
+| Umroller UR-01 | 11 | `examples/umroller/` (`scripts/load_testwerk.py --docs`) |
+| Aufrollung PM1-AR | 10 | `examples/aufrollung/` (`scripts/load_testwerk.py --docs`) |
 | Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal) |
 | AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2) |
+| Testwerk (Planung, Standort) | 4 | `scripts/load_testwerk.py`; nur Retrieval (`"agent": false`), der Chat-Agent hat dafuer keine Werkzeuge |
 
-Drei Fragen sind Fallen: die Antwort steht in keinem Dokument. Erwartet wird „nicht vorhanden“,
-bestraft wird eine erfundene Zahl.
+Fuenf Fragen sind Fallen (`*-nicht-vorhanden`): die Antwort steht in keinem Dokument. Erwartet wird
+„nicht vorhanden“, bestraft wird eine erfundene Zahl.
+
+Je Zeile: `id`, `source`, `question`, `must_contain` (Regex, Gross/Klein egal, `|` trennt Alternativen),
+`must_not_contain` (Halluzinations-Fallen), `expect_sources` (Dateien, die zitiert sein muessen). Optional:
+
+- `retrieval`: `{"mode": "tag|semantic|keyword|fact|signal|calc|site", "query": ...}` — Anfrage der
+  Retrieval-Schicht. Die kuerzeste Anfrage, die die Belege liefert (`"Blockade"` statt der ganzen Frage).
+  Bei `calc` ist `query` der Auftrag mit Artikelcodes, bei `site` ein Namensteil der Halle.
+- `tools`: Werkzeuge, die der Agent aufrufen soll (`find_tag`, `search_knowledge`, `keyword_search`).
+- `agent: false`: nur Retrieval.
+
+Vor dem Eintragen die Musterantwort im Dokument nachschlagen, nicht aus einer Agentenantwort abschreiben.
+Nach einer Aenderung: `python eval/rescore.py eval/results/referenz_2026-09-26.json` zeigt, was sich
+an der Bewertung des Referenzlaufs aendert, ohne den Agenten zu bezahlen.
 
 ## Bewertung ohne LLM-Richter
 
-Jede Frage hat `must_contain` (Regex-Muster, die in der Antwort stehen muessen), `must_not_contain`
-(Halluzinations-Fallen) und `expect_sources` (Dateien, die als Quelle zitiert sein muessen).
-Gleiche Antwort ergibt immer gleiche Punktzahl; eine veraenderte Zahl bedeutet also eine veraenderte
-Antwort, nicht einen anderen Richter.
+Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
+
+- `fakten_mittel`: Anteil gefundener `must_contain`-Muster, gemittelt ueber alle Fragen
+- `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden (bei `signal`,
+  `calc`, `site` gibt es keine Dateinamen, dort gilt es als erfuellt)
+- `sauber`: Anteil der Fragen ohne verbotene Angaben
+- `werkzeug_ok`: Anteil der Fragen mit `tools`, bei denen der Agent sie aufgerufen hat (nur Agentenlauf)
+- `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok, sauber und Werkzeug ok
+- `nicht_bewertet_fehler`: API-/Netzfehler (auch als `error`-Event im Strom) zaehlen nicht als falsche
+  Antwort. In der Retrieval-Schicht sind 404/409 und unbekannte Artikel dagegen echte Fehltreffer und
+  werden mit 0 Fakten bewertet; `--min` schlaegt zusaetzlich fehl, sobald unbewertete Fehler uebrig sind.
+
+## Aufrufe
 
 ```bash
-python eval/run_eval.py                        # alle 24 Fragen, ca. 20 min, ein Agentenlauf je Frage
-python eval/run_eval.py --only festo           # nur eine Quelle
-python eval/run_eval.py --baseline eval/results/2026-09-26_10-00-00.json   # Vergleich mit frueherem Lauf
+python eval/run_retrieval.py                              # alle Fragen mit retrieval, Sekunden
+python eval/run_retrieval.py --only ur01 --min 0.9        # Filter; Exit-Code 1 unter dem Fakten-Mittel
+python eval/run_retrieval.py --baseline eval/results/referenz_retrieval_2026-09-27.json
+
+python eval/rescore.py eval/results/referenz_2026-09-26.json --out eval/results/neu.json
+
+python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet Tokens
+python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 ```
 
-Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf eine Referenzdatei).
-
-## Kennzahlen
-
-- `fakten_mittel`: Anteil gefundener Pflichtangaben, gemittelt ueber alle Fragen
-- `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden
-- `sauber`: Anteil der Fragen ohne verbotene Angaben
-- `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok und sauber
-
-## Fragen ergaenzen
-
-Eine Zeile JSON anhaengen. Muster sind Regex, `|` trennt Alternativen (`"4 s|4 Sekunden"`).
-Vor dem Eintragen die Musterantwort im Dokument nachschlagen, nicht aus einer Agentenantwort abschreiben.
+Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf die Referenzdateien, `git add -f`).

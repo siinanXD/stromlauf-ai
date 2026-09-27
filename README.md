@@ -244,9 +244,17 @@ Gescannte PDFs: `OCR_ENABLED=true` in `.env`.
 
 ## Antwortqualitaet messen
 
-`eval/questions.jsonl` enthaelt 24 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu
-zitierende Quellen), darunter drei Fallen ohne Antwort im Material. `python eval/run_eval.py` schickt
-sie an das laufende Backend und bewertet ohne LLM-Richter. Details in [`eval/README.md`](eval/README.md).
+`eval/questions.jsonl` enthaelt 51 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu
+zitierende Quellen) zu FB-01, UR-01, PM1-AR, Festo, AWL und Testwerk, darunter fuenf Fallen ohne Antwort
+im Material. Drei Schichten, bewertet ohne LLM-Richter:
+
+```bash
+python eval/run_retrieval.py     # kostenlos: liefern die Werkzeuge die Belege? (Sekunden)
+python eval/rescore.py eval/results/referenz_2026-09-26.json   # kostenlos: gespeicherten Lauf neu bewerten
+python eval/run_eval.py          # Agentenlauf, kostet API-Tokens je Frage
+```
+
+Details in [`eval/README.md`](eval/README.md).
 
 ## Tests
 
