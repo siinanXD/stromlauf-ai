@@ -1,0 +1,65 @@
+name: Build task
+description: Bounded implementation task for the autonomous factory
+title: "[Build] "
+labels: []
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What user/business result must this task create?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Existing context
+      description: Relevant files, components, decisions or prior behavior that must be inspected/reused.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Define what is included and what must not be expanded in this task.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, testable conditions that make this issue complete.
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Automated tests / evals
+      description: Unit, integration, migration, AI eval, E2E or other evidence expected from the implementation owner.
+    validations:
+      required: true
+
+  - type: textarea
+    id: deployment
+    attributes:
+      label: Deployment / data / observability impact
+      description: Expected migrations, Preview/Staging impact, traces/evals, permissions or external integrations. Write 'none' when not applicable.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: Build-ready contract
+      options:
+        - label: Existing code was inspected before proposing new architecture.
+          required: true
+        - label: Significant generic infrastructure should be researched for OSS/standard reuse first.
+          required: true
+        - label: Exactly one implementation owner will be assigned at a time.
+          required: true

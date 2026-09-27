@@ -7,6 +7,13 @@ Klemmen (`-X1:5`) und SPS-Adressen (`E0.0`) über alle Dokumente. Details: `READ
 Workspace-Regeln gelten zusätzlich: `C:\Dev\CLAUDE.md` → `AI-Workspace\shared-rules\`.
 Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes).
 
+## Produktvertrag und Plan
+
+`docs/product/contract.md` (Ziel, Nutzer, Must-haves, Akzeptanz), `docs/product/architecture.md`,
+`docs/product/ux-spec.md` (Figma: https://www.figma.com/design/2OqLHx6iMLcQetq6uM90FC), `docs/product/cost-model.md`.
+Arbeit laeuft ueber GitHub-Issues mit Akzeptanzkriterien (Template `.github/ISSUE_TEMPLATE/build-task.yml`), ein
+Umsetzer je Issue, Pull Request mit gruener CI, unabhaengiges Review vor dem Merge.
+
 ## Fokus
 
 Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
