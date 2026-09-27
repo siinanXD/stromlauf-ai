@@ -1,4 +1,5 @@
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_session
+from app.ingestion import doctype
 from app.ingestion.docling_parser import DOCLING_SUFFIXES, PLAIN_TEXT_SUFFIXES
 from app.ingestion.pdf_layout import known_sheets, page_columns, parse_ref, sheet_page
 from app.ingestion.pipeline import detect_doc_type, ingest_document
@@ -16,6 +18,7 @@ from app.ingestion.profile import CORE_DOC_TYPES, Occurrence, build_profile
 from app.ingestion.vision import render_page_png
 from app.models import DocStatus, DocType, Document, KnowledgeSource, TagOccurrence
 from app.schemas import (
+    DocTypeDetection,
     DocumentOut,
     LocateBox,
     LocateOut,
@@ -159,7 +162,7 @@ def upload_document(
     with path.open("wb") as target:
         shutil.copyfileobj(file.file, target)
 
-    resolved_type = detect_doc_type(filename, doc_type)
+    resolved_type = detect_doc_type(filename, doc_type, path)
     document = Document(
         id=document_id,
         source_id=source_id,
@@ -172,6 +175,23 @@ def upload_document(
     session.commit()
     background.add_task(ingest_document, document_id)
     return document
+
+
+@router.post("/documents/detect", response_model=DocTypeDetection)
+def detect_document_type(file: UploadFile = File(...)):
+    """Dokumenttyp aus dem Inhalt vorschlagen, ohne zu speichern (Upload-Dialog, Bestaetigung durch den Nutzer)."""
+    filename = Path(file.filename or "upload").name
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_SUFFIXES:
+        raise HTTPException(415, f"Dateityp {suffix or '(ohne)'} nicht unterstuetzt. Erlaubt: {sorted(ALLOWED_SUFFIXES)}")
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        shutil.copyfileobj(file.file, handle)
+        temp_path = Path(handle.name)
+    try:
+        found = doctype.detect(filename, temp_path)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return DocTypeDetection(filename=filename, **found.__dict__)
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOut)

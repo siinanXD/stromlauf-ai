@@ -67,6 +67,15 @@ export interface SourceProfile {
   coverage: { tag: string; tag_type: "device" | "terminal" | "plc_address"; docs: Record<string, number> }[];
 }
 
+/** Vorschlag fuer den Dokumenttyp vor dem Upload (POST /api/documents/detect). */
+export interface DocTypeDetection {
+  filename: string;
+  doc_type: DocType;
+  confidence: number;
+  reason: string;
+  source: "content" | "filename" | "suffix" | "none";
+}
+
 export interface Conversation {
   id: string;
   title: string;
@@ -133,6 +142,11 @@ export const api = {
       method: "POST",
       body: form,
     });
+  },
+  detectDocType: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<DocTypeDetection>("/api/documents/detect", { method: "POST", body: form });
   },
   reingestDocument: (id: string) =>
     request<SourceDocument>(`/api/documents/${id}/reingest`, { method: "POST" }),

@@ -122,6 +122,15 @@ Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `ki
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
+## Dokumenttyp aus dem Inhalt
+
+Beim Hochladen mit „Automatisch erkennen“ liest das Backend eine Textprobe (erste drei PDF-Seiten,
+erste Zeilen einer Tabelle oder Textdatei) und schlägt den Typ mit Begründung vor, etwa
+„Kopfzeile Klemmleiste;Klemme;Ziel“ oder „Schriftfeld Blatt n / m; Spaltenkopf 1 … 8“. Der Dialog
+zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochgeladen. Reihenfolge:
+Endung (.awl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
+`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
+
 ## Steckbrief je Wissensquelle (ohne KI-Kosten)
 
 Nach dem Upload zeigt `/quelle/{id}` (Link im Quellen-Panel, im Tab „Dokumente“ der Maschine und in

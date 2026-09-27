@@ -34,6 +34,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
   zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
+  Dokumenttyp bei Upload „auto“: `ingestion/doctype.py` aus Textprobe (Endung > Inhalt > Dateiname), Vorschau
+  `POST /api/documents/detect`, Bestaetigung je Datei im Quellen-Panel; Tests gegen alle Beispieldateien.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
   `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
   `backend/data/images/`. Ingestion laeuft im Prozess; nach Neustart reiht `ingestion/resume.py`

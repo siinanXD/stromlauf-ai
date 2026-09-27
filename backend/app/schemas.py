@@ -33,6 +33,16 @@ class DocumentOut(BaseModel):
     created_at: datetime
 
 
+class DocTypeDetection(BaseModel):
+    """Vorschlag fuer den Dokumenttyp vor dem Upload (POST /api/documents/detect)."""
+
+    filename: str
+    doc_type: str
+    confidence: float
+    reason: str
+    source: str  # content | filename | suffix | none
+
+
 class ConversationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

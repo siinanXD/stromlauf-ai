@@ -1,7 +1,6 @@
 """Ingestion: Datei -> Textstuecke -> Embeddings + Kennzeichen-Index."""
 
 import logging
-import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -13,7 +12,7 @@ from sqlalchemy import delete
 from app.config import get_settings
 from app.db import session_scope
 from app.embeddings import embeddings
-from app.ingestion import awl_parser
+from app.ingestion import awl_parser, doctype
 from app.ingestion.docling_parser import parse_document
 from app.ingestion.tags import extract_tags
 from app.ingestion.vision import describe_page
@@ -21,12 +20,6 @@ from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
 
 logger = logging.getLogger(__name__)
 
-_FILENAME_HINTS: list[tuple[str, DocType]] = [
-    (r"st(ü|ue|u)ckliste|\bbom\b|artikelliste", DocType.BOM),
-    (r"klemm", DocType.TERMINAL_PLAN),
-    (r"stromlauf|schaltplan|eplan|schematic|elektroplan", DocType.SCHEMATIC),
-    (r"handbuch|manual|anleitung|betriebsanl|datasheet|datenblatt", DocType.MANUAL),
-]
 _EMBED_BATCH = 64
 
 # Docling und das Embedding-Modell brauchen je Lauf mehrere GB RAM. Mehrere Uploads
@@ -44,19 +37,11 @@ class Piece:
     plc_loose: bool = False  # "A 1.0" mit Leerzeichen als SPS-Adresse werten
 
 
-def detect_doc_type(filename: str, requested: str) -> DocType:
+def detect_doc_type(filename: str, requested: str, path: Path | None = None) -> DocType:
+    """Gewuenschter Typ, sonst Erkennung aus Inhalt (mit path) und Dateiname (ingestion/doctype.py)."""
     if requested and requested != DocType.AUTO:
         return DocType(requested)
-    suffix = Path(filename).suffix.lower()
-    if suffix == ".awl":
-        return DocType.PLC_PROGRAM
-    if suffix == ".sdf":
-        return DocType.PLC_SYMBOLS
-    lowered = filename.lower()
-    for pattern, doc_type in _FILENAME_HINTS:
-        if re.search(pattern, lowered):
-            return doc_type
-    return DocType.OTHER
+    return doctype.detect(filename, path).doc_type
 
 
 def _splitter() -> RecursiveCharacterTextSplitter:
