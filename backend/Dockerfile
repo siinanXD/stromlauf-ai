@@ -19,7 +19,9 @@ COPY alembic ./alembic
 COPY app ./app
 COPY stromlauf_mcp ./stromlauf_mcp
 
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu \
+# torch UND torchvision aus dem CPU-Index: ein torchvision von PyPI passt nicht zum CPU-torch
+# ("operator torchvision::nms does not exist" beim ersten Embedding)
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install -e ".[trace]"
 
 # Uploads, Bilder, Flow-Cache und HF-Modelle liegen unter /data (Railway-Volume mounten)
