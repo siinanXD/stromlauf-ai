@@ -38,7 +38,7 @@ def main() -> int:
     gold = MachineFlow.model_validate_json(args.gold.read_text(encoding="utf-8"))
     pred = MachineFlow.model_validate_json(args.pred.read_text(encoding="utf-8"))
     if is_template(gold):
-        print(f"{args.gold}: noch die Vorlage (summary beginnt mit VORLAGE). Erst ausfuellen, siehe testdata/festo/README.md")
+        print(f"{args.gold}: noch die Vorlage (summary beginnt mit VORLAGE). Erst ausfuellen: Vorlage schemas/examples/gold.template.flow.json, Hinweise in open_questions")
         return 2
 
     result = compare(gold, pred)

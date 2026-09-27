@@ -1,0 +1,31 @@
+{
+  "machine": "Festo MPS Trennen",
+  "summary": "VORLAGE: Ablauf in zwei bis drei Saetzen. Diese Zeile ersetzen, sobald das Gold ausgefuellt ist; solange sie mit VORLAGE beginnt, bricht eval/run_flow.py mit Exit 2 ab.",
+  "io_points": [
+    {"address": "E0.0", "symbol": "Start", "direction": "DI", "kind": "operator", "contact": "NO", "tag": "-S1", "location": "", "description": "Beispielpunkt, ersetzen", "active_state": 1,
+     "source": {"file": "Stromlaufplan.pdf", "page": 1, "chunk": null, "quote": "Zitat aus dem Dokument"}, "confidence": 1.0, "assumption": false}
+  ],
+  "steps": [
+    {"id": "S0", "name": "Grundstellung", "initial": true, "actions": [], "transitions": [],
+     "source": {"file": "Handbuch.pdf", "page": 1, "chunk": null, "quote": "Zitat aus dem Dokument"}, "confidence": 1.0, "assumption": false}
+  ],
+  "layout": {"title": "", "elements": []},
+  "open_questions": [
+    "So wird das Gold ausgefuellt: Datei nach testdata/festo/gold.flow.json kopieren (testdata/ ist gitignored, Festo-Doku nicht weiterverteilen).",
+    "io_points: jede SPS-Adresse aus Symboltabelle und Stromlaufplan, mit Zitat und Seite. Felder, die die Doku nicht nennt, weglassen oder null lassen; sie werden dann nicht bewertet.",
+    "steps: die Schrittkette aus Handbuch oder AWL, genau ein Schritt initial=true, Transitionen nur auf bekannte Schritt-IDs.",
+    "Zum Schluss summary ohne VORLAGE schreiben und diese Hinweise loeschen. Pruefen: python eval/run_flow.py --pred <flow.json>"
+  ],
+  "meta": {
+    "schema_version": "1.0",
+    "prompt_version": "gold",
+    "cache_key": "0000000000000000000000000000000000000000000000000000000000000000",
+    "document_sha256": {},
+    "trace_id": null,
+    "models": {"gold": "hand"},
+    "phases": [],
+    "total": {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "latency_ms": 0},
+    "extracted_at": "2026-09-27T00:00:00Z",
+    "cached": false
+  }
+}

@@ -69,7 +69,8 @@ python eval/run_flow.py --pred eval/results/festo_pred.flow.json [--min-recall 0
 
 Ergebnis: `eval/results/flow_<zeitstempel>.json`. Exit 2, solange das Gold noch die Vorlage ist
 (`summary` beginnt mit `VORLAGE`); Exit 1 unter einer Schwelle oder bei Schrittanzahl ausserhalb der Toleranz.
-Gold ausfuellen: `testdata/festo/README.md`.
+Gold ausfuellen: `schemas/examples/gold.template.flow.json` nach `testdata/festo/gold.flow.json` kopieren (gitignored),
+Anleitung steht in `open_questions` der Vorlage.
 
 ## Aufrufe
 
