@@ -232,6 +232,25 @@ export interface Machine {
   hall_name: string;
 }
 
+/** Zeile der Maschinenübersicht (GET /api/machines). */
+export interface MachineListItem {
+  id: string;
+  name: string;
+  machine_type: MachineType;
+  line: string;
+  hall_id: string;
+  hall_name: string;
+  source_id: string | null;
+  source_name: string | null;
+  document_count: number;
+  ready_document_count: number;
+  fault_count: number;
+  open_diagnoses: number;
+  cabinet_count: number;
+  has_layout: boolean;
+  key_figure: string;
+}
+
 export interface Flow {
   id?: string;
   from_machine_id: string;
@@ -359,6 +378,7 @@ const json = (body: unknown, method = "POST"): RequestInit => ({
 
 export const plant = {
   listHalls: () => request<Hall[]>("/api/halls"),
+  listMachines: () => request<MachineListItem[]>("/api/machines"),
   createHall: (name: string, description = "", kind: HallKind = "generic") =>
     request<Hall>("/api/halls", json({ name, description, kind })),
   getHall: (id: string) => request<HallDetail>(`/api/halls/${id}`),

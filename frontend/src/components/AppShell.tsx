@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, Factory, Gauge, MessageSquare, Search } from "lucide-react";
+import { Calculator, Cog, Factory, Gauge, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
@@ -14,12 +14,42 @@ export interface Crumb {
   href?: string;
 }
 
-const NAV = [
-  { href: "/", label: "Chat", icon: MessageSquare },
-  { href: "/werk", label: "Werk", icon: Factory },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof Cog;
+  /** Aktiv, wenn der Pfad passt; Standard: Präfix. */
+  match?: (pathname: string) => boolean;
+}
+
+/** Kern: Maschine und ihre Doku. Planung und Leitstand sind Nebenmodule (Feature-Freeze, siehe AGENTS.md). */
+const MAIN_NAV: NavItem[] = [
+  { href: "/", label: "Chat", icon: MessageSquare, match: (p) => p === "/" },
+  { href: "/werk/maschinen", label: "Maschinen", icon: Cog, match: (p) => p.startsWith("/werk/maschine") },
+  { href: "/werk", label: "Werk", icon: Factory, match: (p) => p.startsWith("/werk") && !p.startsWith("/werk/maschine") },
+];
+const SIDE_NAV: NavItem[] = [
   { href: "/planung", label: "Planung", icon: Calculator },
   { href: "/leitstand", label: "Leitstand", icon: Gauge },
 ];
+
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const { href, label, icon: Icon, match } = item;
+  const active = match ? match(pathname) : pathname.startsWith(href);
+  return (
+    <Link href={href} className="group flex flex-col items-center gap-1">
+      <span
+        className={cn(
+          "grid size-10 place-items-center border",
+          active ? "border-white bg-white/15 text-white" : "border-[#3b4f6b] text-nav-foreground group-hover:text-white",
+        )}
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className={cn("text-[10px]", active ? "text-white" : "text-nav-foreground")}>{label}</span>
+    </Link>
+  );
+}
 
 /** Rahmen aller Seiten: dunkle Navigationsleiste links, Kopfzeile mit Pfad, Suche und Status. */
 export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; children: ReactNode }) {
@@ -43,22 +73,14 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
         >
           S
         </Link>
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link key={href} href={href} className="group flex flex-col items-center gap-1">
-              <span
-                className={cn(
-                  "grid size-10 place-items-center border",
-                  active ? "border-white bg-white/15 text-white" : "border-[#3b4f6b] text-nav-foreground group-hover:text-white",
-                )}
-              >
-                <Icon className="size-4" />
-              </span>
-              <span className={cn("text-[10px]", active ? "text-white" : "text-nav-foreground")}>{label}</span>
-            </Link>
-          );
-        })}
+        {MAIN_NAV.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+        <div className="mt-auto flex flex-col items-center gap-3 border-t border-[#3b4f6b] pt-3 opacity-70" title="Nebenmodule">
+          {SIDE_NAV.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </div>
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col">

@@ -230,6 +230,26 @@ class CabinetOut(BaseModel):
     hotspots: list[HotspotOut] = []
 
 
+class MachineListItem(BaseModel):
+    """Zeile der Maschinenuebersicht (/api/machines): Zustand der Doku und der Fehlersuche je Maschine."""
+
+    id: str
+    name: str
+    machine_type: str
+    line: str
+    hall_id: str
+    hall_name: str
+    source_id: str | None
+    source_name: str | None
+    document_count: int
+    ready_document_count: int
+    fault_count: int
+    open_diagnoses: int
+    cabinet_count: int
+    has_layout: bool
+    key_figure: str
+
+
 class MachineDetail(MachineOut):
     faults: list[FaultOut] = []
     cabinets: list[CabinetOut] = []

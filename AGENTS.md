@@ -7,11 +7,20 @@ Klemmen (`-X1:5`) und SPS-Adressen (`E0.0`) über alle Dokumente. Details: `READ
 Workspace-Regeln gelten zusätzlich: `C:\Dev\CLAUDE.md` → `AI-Workspace\shared-rules\`.
 Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes).
 
+## Fokus
+
+Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
+Fehlersuche, Schaltschrank, Draufsicht, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
+Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). **Planung** (`/planung`) und **Leitstand**
+(`/leitstand`) sind Nebenmodule im Feature-Freeze: nur Fehlerbehebung, keine neuen Funktionen, in der
+Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung an der Maschine?
+
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk` Standortplan, `/werk/halle/[id]` Hallen-Baukasten,
-  `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand` Durchlauf-Simulation.
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
+  `/werk/halle/[id]` Hallen-Baukasten, `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand`
+  Durchlauf-Simulation (die letzten beiden: Nebenmodule, Feature-Freeze).
 - Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
   CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
   (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).

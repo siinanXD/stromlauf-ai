@@ -75,7 +75,12 @@ Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signa
 und Fehlersuche funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
 prüfen jeden Verweis gegen den Plan und lassen alle Parser über die Dateien laufen.
 
-## Werk: Standortplan, Halle, Maschinen, Schaltschrank
+## Werk: Maschinen, Standortplan, Halle, Schaltschrank
+
+Reiter **Maschinen** (`/werk/maschinen`) ist der Einstieg: alle Maschinen des Werks in einer Tabelle
+mit Typ, Linie, Halle, Stand der Dokumentation (keine / n von m fertig / fertig), Zahl der
+Fehlereinträge, offenen Fehlersuchen und erster Kennzahl; Filter über Name, Linie, Halle, Typ und
+Wissensquelle. Rot ist nur die Zahl offener Fehlersuchen. Daten: `GET /api/machines`.
 
 Reiter **Werk** oeffnet den **Standortplan** (`/werk`): alle Hallen als Grundriss-Bloecke mit Art
 (Grundstoff, Verarbeitung, Lager, Buero), verkleinertem Maschinenlayout und Materialfluss zwischen
@@ -132,7 +137,9 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
   Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
 
-## Planung: Vorkalkulation (ohne KI-Kosten)
+## Planung: Vorkalkulation (Nebenmodul, ohne KI-Kosten)
+
+Nebenmodul im Feature-Freeze: wird gepflegt, aber nicht erweitert. Der Kern des Projekts ist die Maschine mit ihrer Dokumentation.
 
 Reiter **Planung** (`/planung`): Auftrag mit Positionen (Artikel, Menge in Paketen oder Paletten),
 Eingang und Wunschtermin eingeben; sofort erscheinen **Verladebereit am** (grün „hält“ oder
@@ -148,7 +155,9 @@ freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätz
 Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
 Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
 
-## Leitstand: Durchlauf-Simulation (ohne KI-Kosten)
+## Leitstand: Durchlauf-Simulation (Nebenmodul, ohne KI-Kosten)
+
+Nebenmodul im Feature-Freeze, siehe Planung.
 
 Reiter **Leitstand** (`/leitstand`): alle Aufträge des Auftragsbuchs laufen deterministisch durch
 das Werk. Eine **Simulationsuhr** (Abspielen, 1 h / 6 h / 1 Tag je Sekunde, Schieberegler) zeigt zu
