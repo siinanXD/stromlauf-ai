@@ -100,6 +100,45 @@ export const CHAT_STREAM = sse([
   ["done", {}],
 ]);
 
+const factCard = {
+  tag: "-K1",
+  title: "Hauptschütz",
+  bom_line: "-K1 | Hauptschütz | 3RT2015 | +ST1",
+  rows: [
+    { label: "Einbauort", values: [{ text: "+ST1 Schaltschrank", ref: "", document_id: null, filename: null, page: null }] },
+    { label: "Stromlaufplan", values: [{ text: "/3.4", ref: "/3.4", document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf", page: 3 }] },
+    { label: "Klemmen", values: [{ text: "-X1:5", ref: "", document_id: null, filename: null, page: null }] },
+  ],
+};
+
+const tagLookup = {
+  tag: "-K1",
+  bom_line: "-K1 | Hauptschütz | 3RT2015 | +ST1",
+  hits: [
+    { document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf", doc_type: "schematic", page: 3, section: "", context: "-K1 Hauptschütz A1/A2" },
+    { document_id: "d-bom", filename: "02_Stueckliste_FB-01.xlsx", doc_type: "bom", page: null, section: "", context: "-K1 | Hauptschütz | 3RT2015 | +ST1" },
+  ],
+};
+
+const signal = {
+  start: "-K1",
+  nodes: [
+    { id: "-K1", kind: "device", label: "-K1", ref: "", detail: "", level: 0 },
+    { id: "-X1:5", kind: "terminal", label: "-X1:5", ref: "", detail: "", level: 1 },
+    { id: "-F2", kind: "device", label: "-F2", ref: "", detail: "", level: 2 },
+    { id: "-M1", kind: "device", label: "-M1", ref: "", detail: "", level: 1 },
+  ],
+  edges: [
+    { source: "-K1", target: "-X1:5" },
+    { source: "-X1:5", target: "-F2" },
+    { source: "-K1", target: "-M1" },
+  ],
+  schematic: { document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf" },
+};
+
+/** Von Tests eingesehene PATCH-Bodies (Box-Roundtrip). */
+export const patched: { id: string; body: Record<string, unknown> }[] = [];
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
@@ -117,6 +156,23 @@ export async function mockApi(page: Page) {
     if (path === "/api/workspace/budget") return json(route, { month_cents: 187.5, month_calls: 42, cap_cents: null, exceeded: false });
     if (path === "/api/machines") return json(route, machineList);
     if (path === `/api/machines/${MACHINE_ID}`) return json(route, machine);
+    if (path === `/api/machines/${MACHINE_ID}/tags/-K1`) return json(route, tagLookup);
+    if (path.startsWith(`/api/machines/${MACHINE_ID}/tags/`)) return json(route, { tag: decodeURIComponent(path.split("/").pop()!), hits: [], bom_line: null });
+    if (path === "/api/facts") return url.searchParams.get("tag") === "-K1" ? json(route, factCard) : json(route, { detail: "nichts" }, 404);
+    if (path === "/api/signal-path") return url.searchParams.get("tag") === "-K1" ? json(route, signal) : json(route, { detail: "nichts" }, 404);
+    if (path.startsWith("/api/hotspots/") && method === "PATCH") {
+      const id = path.split("/").pop()!;
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      patched.push({ id, body });
+      for (const cabinet of machine.cabinets) {
+        const hotspot = cabinet.hotspots.find((h) => h.id === id);
+        if (hotspot) {
+          Object.assign(hotspot, body, { origin: "manual", confirmed: true });
+          return json(route, hotspot);
+        }
+      }
+      return json(route, { detail: "nicht gefunden" }, 404);
+    }
     if (path === `/api/machines/${MACHINE_ID}/map`) return json(route, map);
     if (path === `/api/machines/${MACHINE_ID}/layout`) return json(route, { detail: "Keine Draufsicht" }, 404);
     if (path === `/api/machines/${MACHINE_ID}/costs`)

@@ -253,7 +253,7 @@ export function AnswerView({
       {!streaming && message.meta && message.meta.evidence.length > 0 && (
         <section data-testid="evidence-row">
           <SectionLabel>Belegbilder</SectionLabel>
-          <EvidenceRow evidence={message.meta.evidence} onOpen={onOpen} />
+          <EvidenceRow evidence={message.meta.evidence} onOpen={onOpen} onOpenPart={onOpenPart} />
         </section>
       )}
 

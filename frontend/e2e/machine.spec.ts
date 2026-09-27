@@ -64,8 +64,11 @@ test("Antwort markiert -K1 im Modell, zeigt Belegbild, Chip löst openPart aus",
   await expect(page.getByTestId("highlight-count")).toContainText("2 Bauteile aus der Antwort markiert");
   await expect(page.getByRole("status")).toContainText("2 Bauteile im Modell markiert");
 
-  // Klick auf den Chip unter der Antwort -> openPart(tag): Bauteil ist gewaehlt, Schaltschrank-Ansicht (Hotspot vorhanden)
+  // Klick auf den Chip unter der Antwort -> openPart(tag): Datenblatt-Sheet, Bauteil gewaehlt, Schaltschrank-Ansicht (Hotspot vorhanden)
   await page.getByTestId("referenced-parts").getByRole("button", { name: "Bauteil -K1 öffnen" }).click();
+  await expect(page.getByTestId("part-sheet")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("part-sheet")).toBeHidden();
   await expect(page.getByTestId("machine-page")).toHaveAttribute("data-open-part", "-K1");
   await expect(page.getByRole("tab", { name: "Schaltschrank" })).toHaveAttribute("aria-selected", "true");
   await noHorizontalScroll(page);
