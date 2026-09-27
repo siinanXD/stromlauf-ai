@@ -131,6 +131,35 @@ zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochge
 Endung (.awl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
 `POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
 
+## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
+
+Zwei Phasen, strikt getrennt. **(A) Extraktion** liest Funktionsbeschreibung, Symboltabelle, Stückliste
+und AWL und schreibt ein JSON nach `schemas/machine_flow.json`. **(B) Anzeige** liest nur dieses JSON,
+ohne Modellaufruf. Gleiche Dateien und gleiche Prompt-Version kommen aus dem Cache
+(`backend/data/flow_cache/<sha256>.json`), also null Kosten beim zweiten Mal.
+
+```bash
+python scripts/extract_flow.py examples/foerderband/06_Betriebsanleitung_FB-01.md \
+  --awl examples/foerderband/04_SPS_Programm_FB-01.awl \
+  --extra examples/foerderband/05_Symboltabelle_FB-01.sdf \
+  --extra examples/foerderband/02_Stueckliste_FB-01.xlsx \
+  --out backend/data/flows/fb01.flow.json          # oder: pip install -e backend && extract-flow ...
+```
+
+- **Modelle** über `.env`: `FLOW_MODEL_SMALL` (I/O-Liste und Sensoren/Aktoren, zwei Aufrufe parallel)
+  und `FLOW_MODEL_STRONG` (nur Schrittkette), `FLOW_EFFORT` für die Schrittkette. Layout der Draufsicht
+  entsteht deterministisch aus den I/O-Punkten, ohne Modell.
+- **Belege:** jedes Objekt trägt `source` (Datei, Seite oder Abschnitt, Zitat bis 15 Wörter), `confidence`
+  und `assumption`. Verweise auf unbekannte Adressen landen in `open_questions`, werden nicht geraten.
+- **Trace:** mit `LANGFUSE_PUBLIC_KEY`/`SECRET_KEY` (Paket `langfuse`, Extra `backend[trace]`) wird jede
+  Extraktion ein Trace mit Spans `phase_a`, `phase_b`, `layout` und einer Generation je Modellaufruf
+  (Tokens, Kosten, Latenz, Prompt-Version). Die Trace-ID steht in `meta.trace_id`. JSON-Logs auf stderr
+  tragen dieselbe Trace-ID. Ohne Langfuse: lokale ID, gleiche Logs.
+- **Kosten** stehen in `meta.total.cost_usd` (Preistabelle in `app/flow/pricing.py`) und in Langfuse.
+  Messwert je Extraktion: noch nicht erhoben, dieser Container hat keinen API-Schlüssel. Nach dem ersten
+  Lauf hier eintragen.
+- Latenzbudget 30 s: Phase A parallel, `meta.total.latency_ms` und Log-Feld `over_budget` zeigen Verstöße.
+
 ## Steckbrief je Wissensquelle (ohne KI-Kosten)
 
 Nach dem Upload zeigt `/quelle/{id}` (Link im Quellen-Panel, im Tab „Dokumente“ der Maschine und in
