@@ -11,14 +11,14 @@ BASELINE = Path(__file__).resolve().parents[1] / "alembic" / "versions" / "0001_
 
 def test_baseline_legt_jede_modelltabelle_an():
     source = BASELINE.read_text(encoding="utf-8")
-    created = set(re.findall(r"op\.create_table\('([a-z_]+)'", source))
+    created = set(re.findall(r"op\.create_table\('([a-z_0-9]+)'", source))
     expected = {table.name for table in Base.metadata.sorted_tables}
     assert created == expected
 
 
 def test_baseline_legt_jeden_modellindex_an():
     source = BASELINE.read_text(encoding="utf-8")
-    created = set(re.findall(r"op\.create_index\('([a-z_]+)'", source))
+    created = set(re.findall(r"op\.create_index\((?:op\.f\()?'([a-z_0-9]+)'", source))
     expected = {index.name for table in Base.metadata.sorted_tables for index in table.indexes}
     assert created == expected
 
