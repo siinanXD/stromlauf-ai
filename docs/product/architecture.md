@@ -33,7 +33,11 @@ Browser (Next.js on Vercel)  ──HTTPS/SSE──▶  assistant-api (this repo'
 
 Requirement: ingestion of ≤ 300 pages runs for minutes, must survive a redeploy and resume. FastAPI `BackgroundTasks` die with the process. The smallest durable option is a PostgreSQL `ingestion_job` table polled with `SELECT … FOR UPDATE SKIP LOCKED` by one worker process built from the same image. No Redis, no Celery. Acceptance test: kill the worker mid-ingestion, restart, the job resumes at the last completed step without duplicate rows.
 
-### Why object storage
+### Storage decision for v1 (MB-1, 2026-09-27)
+
+Uploads, page images, cabinet photos and the flow cache stay on the local filesystem under `DATA_DIR`, mounted as a Railway volume (`/data`). One backend instance; the `BlobStore` adapter below is deferred until a second instance or object storage is actually needed. Embeddings are switchable (`EMBEDDING_PROVIDER=local|voyage`); Railway staging uses Voyage `voyage-4` (1024 dims) so the container needs no 2 GB model. The LangGraph checkpointer runs in Postgres (`CHECKPOINTER=postgres`).
+
+### Why object storage (deferred)
 
 PDFs and page renders (300 pages × ~150 KB PNG) do not belong in PostgreSQL rows. Railway buckets expose an S3 API, keep the provider count at two (Vercel, Railway) and stay in the EU region chosen for the project. Adapter `BlobStore` with `put/get/signed_url`; a local-filesystem implementation is used in tests.
 

@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from sqlalchemy import select
 
 from app.agent.graph import build_graph
@@ -23,6 +22,7 @@ from app.api import (
     sources,
 )
 from app.auth import api_key_middleware
+from app.checkpointer import open_checkpointer
 from app.config import get_settings
 from app.db import init_db, session_scope
 from app.ingestion.resume import plan_restart, resume_in_background
@@ -33,7 +33,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
     init_db()
     with session_scope() as session:
         # Jobs laufen im Prozess; nach einem Neustart werden angefangene neu eingereiht.
@@ -42,7 +41,7 @@ async def lifespan(app: FastAPI):
         ).all()
         resume_ids = plan_restart(interrupted)
     resume_in_background(resume_ids)
-    async with AsyncSqliteSaver.from_conn_string(str(settings.checkpoint_db)) as checkpointer:
+    async with open_checkpointer() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
         yield
