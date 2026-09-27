@@ -135,14 +135,14 @@ def test_me_und_magic_link_exchange(client, workspaces):
 
     get_settings.cache_clear()
     try:
-        requested = client.post("/api/auth/magic-link", json={"email": "neu@isolation.test"})
+        requested = client.post("/api/auth/magic-link", json={"email": "neu@isolation-test.de"})
         assert requested.status_code == 202, requested.text
         link = requested.json()["dev_link"]
         raw = link.split("token=", 1)[1]
         exchanged = client.post("/api/auth/exchange", json={"token": raw})
         assert exchanged.status_code == 200, exchanged.text
         body = exchanged.json()
-        assert body["email"] == "neu@isolation.test" and body["workspace"]["role"] == "admin"
+        assert body["email"] == "neu@isolation-test.de" and body["workspace"]["role"] == "admin"
         # neuer Nutzer = eigener, leerer Workspace
         assert client.get("/api/sources", headers=_auth(body["token"])).json() == []
         # Token nur einmal einloesbar
