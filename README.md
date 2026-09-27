@@ -28,6 +28,17 @@ npm run dev                   # http://localhost:3100
 Beim ersten Upload lädt das Backend das Embedding-Modell (`BAAI/bge-m3`, ca. 2 GB) und die
 Docling-Layoutmodelle von Hugging Face.
 
+## Schema-Migrationen (Alembic)
+
+Das Schema wird beim Start über Alembic auf den neuesten Stand gebracht (`init_db()` ruft
+`alembic upgrade head`). Von Hand aus `backend/`: `alembic upgrade head`, `alembic current`,
+`alembic downgrade base`. Die Baseline `0001_stromlauf_baseline` legt auf einer leeren Datenbank alle
+Tabellen an und bringt eine Datenbank aus der früheren `create_all`-Zeit über die additiven
+Statements in `app/migrations.py` auf denselben Stand. Neue Schemaänderungen: Modell ändern, dann
+`alembic revision --autogenerate -m "kurz-was"` (braucht eine laufende Datenbank), Datei prüfen,
+committen. `backend/tests/test_alembic_baseline.py` hält Baseline und Modell deckungsgleich; CI
+prüft die Migration von null gegen `pgvector/pgvector:pg17`.
+
 ## Zugriffsschutz
 
 Ohne `API_KEY` in `.env` läuft das Backend offen (nur lokal sinnvoll). Mit `API_KEY` verlangt jede

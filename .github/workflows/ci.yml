@@ -54,3 +54,69 @@ jobs:
         run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
+
+  migration:
+    name: Migration von null (Alembic, pgvector)
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: stromlauf
+          POSTGRES_PASSWORD: stromlauf
+          POSTGRES_DB: stromlauf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stromlauf -d stromlauf"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://stromlauf:stromlauf@localhost:5432/stromlauf
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Nur was die Migration braucht (keine Modelle, kein Docling)
+        run: pip install "alembic>=1.13" "sqlalchemy>=2.0.36" "pgvector>=0.3.6" "psycopg[binary]>=3.2" "pydantic-settings>=2.6"
+      - name: Leere Datenbank -> upgrade head
+        run: alembic upgrade head
+      - name: Alle Modelltabellen vorhanden
+        run: |
+          python - <<'PY'
+          from sqlalchemy import create_engine, inspect
+          from app.config import get_settings
+          from app.db import Base
+          from app import models  # noqa: F401
+          existing = set(inspect(create_engine(get_settings().database_url)).get_table_names())
+          missing = {t.name for t in Base.metadata.sorted_tables} - existing
+          assert not missing, f"fehlende Tabellen: {sorted(missing)}"
+          assert "alembic_version" in existing
+          print("ok:", len(existing), "Tabellen")
+          PY
+      - name: downgrade base raeumt auf
+        run: |
+          alembic downgrade base
+          python - <<'PY'
+          from sqlalchemy import create_engine, inspect
+          from app.config import get_settings
+          left = set(inspect(create_engine(get_settings().database_url)).get_table_names()) - {"alembic_version"}
+          assert not left, f"uebrig: {sorted(left)}"
+          print("ok: leer")
+          PY
+      - name: Datenbank aus der create_all-Zeit -> upgrade head (additiver Pfad)
+        run: |
+          python - <<'PY'
+          from app.db import Base, engine
+          from app import models  # noqa: F401
+          from sqlalchemy import text
+          with engine.begin() as conn:
+              conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+          Base.metadata.create_all(engine)
+          print("create_all-Schema angelegt")
+          PY
+          alembic upgrade head
+          alembic current | grep -q 0001_stromlauf_baseline
