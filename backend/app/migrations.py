@@ -1,8 +1,8 @@
-"""Additive Schema-Aenderungen an bestehenden Tabellen.
+"""Additive Schema-Aenderungen aus der Zeit vor Alembic (eingefroren).
 
-`create_all` legt nur fehlende Tabellen an, keine neuen Spalten. Neue Spalten auf bestehenden
-Tabellen stehen deshalb hier und werden beim Start idempotent angelegt. Nicht-additive Aenderungen
-(Umbenennen, Typwechsel, Loeschen) brauchen ein richtiges Migrationswerkzeug (Alembic).
+Die Alembic-Baseline `0001_stromlauf_baseline` fuehrt diese Statements aus, wenn sie auf eine
+Datenbank trifft, die noch per `create_all` entstanden ist. Neue Aenderungen kommen NICHT mehr
+hierher, sondern als Revision unter backend/alembic/versions/.
 """
 
 # (Tabelle, Spalte, Typ inkl. Standardwert) - Standardwert muss zum Modell passen

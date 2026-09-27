@@ -1,10 +1,10 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from app.config import get_settings
+from app.config import BACKEND_DIR, get_settings
 
 engine = create_engine(get_settings().database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
@@ -15,16 +15,24 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    from app import models  # noqa: F401  (registriert die Tabellen)
-    from app.migrations import upgrade_statements
+    """Schema per Alembic auf den neuesten Stand bringen (`alembic upgrade head`).
 
+    Ersetzt `create_all` + `app.migrations`: die Baseline 0001 legt auf einer leeren Datenbank alle
+    Tabellen an und bringt eine Datenbank aus der create_all-Zeit ueber dieselben additiven
+    Statements auf den gleichen Stand. Neue Schemaaenderungen sind neue Revisionen unter
+    backend/alembic/versions/ (`alembic revision --autogenerate -m "..."`).
+    """
+    from alembic.config import Config
+
+    from alembic import command
+    from app import models  # noqa: F401  (registriert die Tabellen)
+
+    config = Config(str(BACKEND_DIR / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+    config.set_main_option("sqlalchemy.url", get_settings().database_url)
     with engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    Base.metadata.create_all(engine)
-    # Neue Spalten auf Tabellen, die create_all nicht mehr anfasst
-    with engine.begin() as conn:
-        for statement in upgrade_statements():
-            conn.execute(text(statement))
+        config.attributes["connection"] = conn
+        command.upgrade(config, "head")
 
 
 def get_session() -> Iterator[Session]:
