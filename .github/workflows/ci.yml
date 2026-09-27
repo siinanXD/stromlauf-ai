@@ -29,7 +29,7 @@ jobs:
       - name: Torch (CPU) vor Docling, sonst zieht pip die CUDA-Variante
         run: pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Abhaengigkeiten
-        run: pip install -e ".[dev,examples]"
+        run: pip install -e ".[dev,examples,trace]"
       - name: Ruff
         run: ruff check . ../scripts ../eval
       - name: Tests
