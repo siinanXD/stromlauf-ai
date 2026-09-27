@@ -103,7 +103,13 @@ def resolve_principal(credentials: list[str], *, api_key: str | None, jwt_secret
 
 
 def is_open(path: str, method: str) -> bool:
-    return not path.startswith("/api/") or method == "OPTIONS" or path.startswith(OPEN_PREFIXES)
+    """Offen: alles ausserhalb /api, CORS-Preflight, Health und der Login-Fluss. `/api/auth/me` braucht
+    den Principal aus der Middleware und ist deshalb NICHT offen."""
+    if not path.startswith("/api/") or method == "OPTIONS":
+        return True
+    if path == "/api/auth/me":
+        return False
+    return path.startswith(OPEN_PREFIXES)
 
 
 async def auth_middleware(request: Request, call_next):

@@ -60,3 +60,5 @@ def test_offene_pfade():
     assert auth.is_open("/api/auth/magic-link", "POST")
     assert auth.is_open("/api/sources", "OPTIONS")
     assert not auth.is_open("/api/sources", "GET")
+    assert auth.is_open("/api/auth/mode", "GET")
+    assert not auth.is_open("/api/auth/me", "GET")
