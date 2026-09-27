@@ -259,7 +259,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
     logging.getLogger("httpx").setLevel(logging.WARNING)  # keine Zeile je Anfrage im Client-Log
-    client = StromlaufClient(os.environ.get("STROMLAUF_API", "http://127.0.0.1:8010"))
+    client = StromlaufClient(
+        os.environ.get("STROMLAUF_API", "http://127.0.0.1:8010"),
+        api_key=os.environ.get("STROMLAUF_API_KEY") or None,
+    )
     server = build_server(client, os.environ.get("STROMLAUF_APP", "http://localhost:3100").rstrip("/"))
     if args.http:
         server.run("streamable-http", host="127.0.0.1", port=args.port)

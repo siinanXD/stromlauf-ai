@@ -1,4 +1,19 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010";
+/** Gemeinsamer Schlüssel (Backend-Setting API_KEY). Leer = Backend läuft offen. */
+export const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
+
+/** Header für fetch(): X-API-Key, wenn ein Schlüssel gesetzt ist. */
+export function authHeaders(extra?: HeadersInit): HeadersInit {
+  const headers = new Headers(extra);
+  if (API_KEY) headers.set("X-API-Key", API_KEY);
+  return headers;
+}
+
+/** Bild-URLs für <img src>: der Browser schickt keine Header, deshalb ?api_key=. */
+export function withApiKey(url: string): string {
+  if (!API_KEY) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}api_key=${encodeURIComponent(API_KEY)}`;
+}
 
 export type DocType =
   | "auto"
@@ -76,7 +91,7 @@ export interface Health {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, init);
+  const response = await fetch(`${API_URL}${path}`, { ...init, headers: authHeaders(init?.headers) });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.detail ?? `${response.status} ${response.statusText}`);
@@ -115,7 +130,7 @@ export const api = {
   getMessages: (conversationId: string) =>
     request<ChatMessage[]>(`/api/conversations/${conversationId}/messages`),
   pageImageUrl: (documentId: string, page: number) =>
-    `${API_URL}/api/documents/${documentId}/pages/${page}/image`,
+    withApiKey(`${API_URL}/api/documents/${documentId}/pages/${page}/image`),
 };
 
 export type ChatEvent =
@@ -134,7 +149,7 @@ export async function* streamChat(
 ): AsyncGenerator<ChatEvent> {
   const response = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
     signal,
   });
@@ -366,7 +381,7 @@ export const plant = {
     form.append("file", file);
     return request<Machine>(`/api/machines/${id}/image`, { method: "POST", body: form });
   },
-  machineImageUrl: (id: string, bust = 0) => `${API_URL}/api/machines/${id}/image?v=${bust}`,
+  machineImageUrl: (id: string, bust = 0) => withApiKey(`${API_URL}/api/machines/${id}/image?v=${bust}`),
 
   createFault: (machineId: string, body: FaultInput) => request<Fault>(`/api/machines/${machineId}/faults`, json(body)),
   updateFault: (id: string, body: FaultInput) => request<Fault>(`/api/faults/${id}`, json(body, "PATCH")),
@@ -379,7 +394,7 @@ export const plant = {
     return request<Cabinet>(`/api/machines/${machineId}/cabinets`, { method: "POST", body: form });
   },
   getCabinet: (id: string) => request<Cabinet>(`/api/cabinets/${id}`),
-  cabinetImageUrl: (id: string) => `${API_URL}/api/cabinets/${id}/image`,
+  cabinetImageUrl: (id: string) => withApiKey(`${API_URL}/api/cabinets/${id}/image`),
   deleteCabinet: (id: string) => request<void>(`/api/cabinets/${id}`, { method: "DELETE" }),
   detectCabinet: (id: string) => request<Cabinet>(`/api/cabinets/${id}/detect`, { method: "POST" }),
   createHotspot: (cabinetId: string, body: Omit<Hotspot, "id" | "cabinet_id" | "confidence" | "origin">) =>
@@ -460,7 +475,7 @@ export interface TagSearchHit {
 export const layout = {
   /** null, wenn die Maschine noch keine Draufsicht hat (404). */
   get: async (machineId: string): Promise<Layout | null> => {
-    const response = await fetch(`${API_URL}/api/machines/${machineId}/layout`);
+    const response = await fetch(`${API_URL}/api/machines/${machineId}/layout`, { headers: authHeaders() });
     if (response.status === 404) return null;
     if (!response.ok) {
       const body = await response.json().catch(() => null);
@@ -475,7 +490,8 @@ export const layout = {
     form.append("file", file);
     return request<Layout>(`/api/machines/${machineId}/layout/image`, { method: "POST", body: form });
   },
-  imageUrl: (machineId: string, bust = "") => `${API_URL}/api/machines/${machineId}/layout/image?v=${encodeURIComponent(bust)}`,
+  imageUrl: (machineId: string, bust = "") =>
+    withApiKey(`${API_URL}/api/machines/${machineId}/layout/image?v=${encodeURIComponent(bust)}`),
   createPart: (layoutId: string, body: Partial<LayoutPartInput>) =>
     request<LayoutPart>(`/api/layouts/${layoutId}/parts`, json(body)),
   updatePart: (partId: string, body: Partial<LayoutPartInput>) =>
@@ -518,7 +534,7 @@ export const locate = (documentId: string, ref: string) =>
 export async function factCard(tag: string, sourceIds: string[]): Promise<FactCardData | null> {
   const params = new URLSearchParams({ tag });
   sourceIds.forEach((id) => params.append("source_ids", id));
-  const response = await fetch(`${API_URL}/api/facts?${params}`);
+  const response = await fetch(`${API_URL}/api/facts?${params}`, { headers: authHeaders() });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();

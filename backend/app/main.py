@@ -21,6 +21,7 @@ from app.api import (
     site,
     sources,
 )
+from app.auth import api_key_middleware
 from app.config import get_settings
 from app.db import init_db, session_scope
 from app.models import DocStatus, Document
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Stromlauf AI", lifespan=lifespan)
+app.middleware("http")(api_key_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",") if o.strip()],

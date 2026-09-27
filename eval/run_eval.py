@@ -17,6 +17,7 @@ kostenlose Wiederbewertung eines gespeicherten Laufs: rescore.py.
 """
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -33,6 +34,11 @@ except ImportError:  # pragma: no cover
 
 QUESTIONS = HERE / "questions.jsonl"
 RESULTS = HERE / "results"
+
+def _auth_headers() -> dict[str, str]:
+    """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
+    key = os.environ.get("STROMLAUF_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
 
 def ask(client: httpx.Client, message: str, source_ids: list[str]) -> tuple[str, list[dict], list[str], float]:
@@ -59,7 +65,7 @@ def main() -> int:
     if not questions:
         sys.exit("Keine Fragen ausgewaehlt.")
 
-    with httpx.Client(base_url=args.api, timeout=600) as client:
+    with httpx.Client(base_url=args.api, timeout=600, headers=_auth_headers()) as client:
         try:
             sources = client.get("/api/sources").json()
         except httpx.HTTPError as exc:

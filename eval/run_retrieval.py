@@ -17,6 +17,7 @@ Kein Modellaufruf, keine API-Kosten. Ergebnis: eval/results/retrieval_<zeitstemp
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -32,6 +33,11 @@ except ImportError:  # pragma: no cover
 
 QUESTIONS = HERE / "questions.jsonl"
 RESULTS = HERE / "results"
+
+def _auth_headers() -> dict[str, str]:
+    """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
+    key = os.environ.get("STROMLAUF_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
 
 def answer_for_error(exc: Exception) -> str:
@@ -104,7 +110,7 @@ def main() -> int:
     if not questions:
         sys.exit("Keine Fragen mit retrieval ausgewaehlt.")
 
-    with httpx.Client(base_url=args.api, timeout=120) as client:
+    with httpx.Client(base_url=args.api, timeout=120, headers=_auth_headers()) as client:
         try:
             sources = client.get("/api/sources").raise_for_status().json()
             articles = {a["code"]: a["id"] for a in client.get("/api/articles").raise_for_status().json()}

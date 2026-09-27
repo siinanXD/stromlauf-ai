@@ -28,6 +28,20 @@ npm run dev                   # http://localhost:3100
 Beim ersten Upload lädt das Backend das Embedding-Modell (`BAAI/bge-m3`, ca. 2 GB) und die
 Docling-Layoutmodelle von Hugging Face.
 
+## Zugriffsschutz
+
+Ohne `API_KEY` in `.env` läuft das Backend offen (nur lokal sinnvoll). Mit `API_KEY` verlangt jede
+Route unter `/api/` den Schlüssel, nur `/api/health` bleibt frei:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # Schlüssel erzeugen
+# .env: API_KEY=<Schlüssel>  NEXT_PUBLIC_API_KEY=<Schlüssel>  STROMLAUF_API_KEY=<Schlüssel>
+```
+
+Frontend, Skripte (`scripts/`, `eval/`) und MCP-Server schicken ihn als Header `X-API-Key`; auch
+`Authorization: Bearer` gilt. Bilder lädt der Browser ohne Header, dafür hängt das Frontend
+`?api_key=` an Bild-URLs. Es ist ein gemeinsamer Schlüssel je Installation, keine Benutzerverwaltung.
+
 ## In 5 Minuten ausprobieren
 
 Im Ordner [`examples/foerderband/`](examples/foerderband/) liegt eine komplette, frei erfundene

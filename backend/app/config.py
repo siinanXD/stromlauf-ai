@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     chunk_overlap: int = 150
 
     cors_origins: str = "http://localhost:3100"
+    # Gemeinsamer Schluessel fuer alle /api-Routen (leer = offen, nur lokal sinnvoll)
+    api_key: str | None = None
 
     @property
     def upload_dir(self) -> Path:
