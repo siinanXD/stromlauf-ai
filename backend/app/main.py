@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from sqlalchemy import update
+from sqlalchemy import select
 
 from app.agent.graph import build_graph
 from app.api import (
@@ -24,6 +24,7 @@ from app.api import (
 from app.auth import api_key_middleware
 from app.config import get_settings
 from app.db import init_db, session_scope
+from app.ingestion.resume import plan_restart, resume_in_background
 from app.models import DocStatus, Document
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -34,12 +35,12 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     init_db()
     with session_scope() as session:
-        # Jobs laufen im Prozess; nach einem Neustart sind angefangene Jobs verloren.
-        session.execute(
-            update(Document)
-            .where(Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING]))
-            .values(status=DocStatus.FAILED, error="Verarbeitung durch Neustart unterbrochen", progress="")
-        )
+        # Jobs laufen im Prozess; nach einem Neustart werden angefangene neu eingereiht.
+        interrupted = session.scalars(
+            select(Document).where(Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING]))
+        ).all()
+        resume_ids = plan_restart(interrupted)
+    resume_in_background(resume_ids)
     async with AsyncSqliteSaver.from_conn_string(str(settings.checkpoint_db)) as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)

@@ -14,6 +14,7 @@ ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("halls", "site_h", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
     ("machines", "line", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("articles", "price", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
+    ("documents", "attempts", "INTEGER NOT NULL DEFAULT 0"),
     # Volltext fuer die Hybrid-Suche; generierte Spalte, Postgres fuellt sie fuer alte Zeilen selbst
     ("chunks", "tsv", "tsvector GENERATED ALWAYS AS (to_tsvector('german', content)) STORED"),
 ]

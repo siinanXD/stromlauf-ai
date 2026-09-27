@@ -86,6 +86,8 @@ class Document(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     vision_enrichment: Mapped[bool] = mapped_column(default=False)
+    # Anlaeufe der Verarbeitung; begrenzt Neustart-Schleifen (ingestion/resume.py)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     source: Mapped[KnowledgeSource] = relationship(back_populates="documents")

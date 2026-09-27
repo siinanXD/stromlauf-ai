@@ -125,6 +125,7 @@ def reingest_document(
     if document.status == DocStatus.PROCESSING:
         raise HTTPException(409, "Dokument wird gerade verarbeitet")
     document.status = DocStatus.PENDING
+    document.attempts = 0  # bewusster Neustart: Zaehler der Neustart-Sperre zuruecksetzen
     session.commit()
     background.add_task(ingest_document, document_id)
     return document

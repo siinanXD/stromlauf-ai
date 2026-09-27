@@ -26,6 +26,7 @@ def test_upgrade_statements_add_each_column_idempotently():
         ("halls", "site_h"),
         ("machines", "line"),
         ("articles", "price"),
+        ("documents", "attempts"),
         ("chunks", "tsv"),
     ]
     assert statements[len(alters) :] == [

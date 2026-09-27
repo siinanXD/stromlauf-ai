@@ -191,6 +191,7 @@ def ingest_document(document_id: str) -> None:
             return
         document.status = DocStatus.PROCESSING
         document.error = None
+        document.attempts = (document.attempts or 0) + 1
         path = Path(document.storage_path)
         filename, source_id = document.filename, document.source_id
         doc_type, vision = document.doc_type, document.vision_enrichment
