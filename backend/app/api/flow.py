@@ -14,6 +14,7 @@ from app.db import get_session
 from app.flow import extract
 from app.flow.sources import DocText, load_document
 from app.models import DocStatus, DocType, Document, Machine
+from app.tenancy import same_workspace
 
 router = APIRouter(prefix="/api", tags=["flow"])
 
@@ -30,7 +31,7 @@ def flow_documents(documents: list[Document]) -> list[Document]:
 
 def _machine_docs(session: Session, machine_id: str) -> tuple[Machine, list[DocText], list[Path]]:
     machine = session.get(Machine, machine_id)
-    if machine is None:
+    if machine is None or not same_workspace(machine):
         raise HTTPException(404, "Maschine nicht gefunden")
     if not machine.source_id:
         raise HTTPException(409, "Maschine hat keine Wissensquelle")

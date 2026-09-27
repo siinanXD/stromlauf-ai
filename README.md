@@ -39,6 +39,24 @@ Statements in `app/migrations.py` auf denselben Stand. Neue Schemaänderungen: M
 committen. `backend/tests/test_alembic_baseline.py` hält Baseline und Modell deckungsgleich; CI
 prüft die Migration von null gegen `pgvector/pgvector:pg17`.
 
+## Mandanten und Anmeldung
+
+Jede fachliche Zeile (Quelle, Dokument, Chunk, Kennzeichen, Chat, Halle, Maschine, Fehler, Schaltschrank,
+Draufsicht, Fehlersuche) gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
+
+- `JWT_SECRET` gesetzt: Anmeldung per **Magic-Link** (`/login` → `POST /api/auth/magic-link` → Mail mit
+  Link → `POST /api/auth/exchange` → JWT, 12 h). Erste Anmeldung legt Nutzer und einen eigenen Workspace an.
+  Das Frontend schickt das JWT als `Authorization: Bearer`, Bild-URLs bekommen `?token=`.
+- `API_KEY` gesetzt: Dienstzugriff für Skripte und den MCP-Server im Workspace `default` (admin); ein JWT
+  geht dort ebenfalls als `X-API-Key`/`STROMLAUF_API_KEY`.
+- weder noch: offen, alles im Workspace `default` (nur lokal).
+
+Die Filterung sitzt in `backend/app/tenancy.py`: ein SQLAlchemy-Listener hängt an jedes ORM-SELECT die
+Bedingung `workspace_id = <aktuell>`, die Modelle setzen `workspace_id` beim Anlegen aus dem Kontext, und
+die Lade-Helfer der Router prüfen zusätzlich (fremde id → 404). `backend/tests/test_tenancy_isolation.py`
+prüft das gegen Postgres (CI). Planung und Leitstand (Nebenmodule im Feature-Freeze) sind noch
+werksweit, nicht je Workspace.
+
 ## Zugriffsschutz
 
 Ohne `API_KEY` in `.env` läuft das Backend offen (nur lokal sinnvoll). Mit `API_KEY` verlangt jede

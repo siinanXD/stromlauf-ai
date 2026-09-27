@@ -1,18 +1,25 @@
+import { clearToken, getToken, redirectToLogin } from "./auth";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010";
-/** Gemeinsamer Schlüssel (Backend-Setting API_KEY). Leer = Backend läuft offen. */
+/** Gemeinsamer Schlüssel (Backend-Setting API_KEY). Leer = Backend läuft offen oder per Login (JWT). */
 export const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
-/** Header für fetch(): X-API-Key, wenn ein Schlüssel gesetzt ist. */
+/** Header für fetch(): Bearer-JWT nach Login, sonst X-API-Key, wenn ein Schlüssel gesetzt ist. */
 export function authHeaders(extra?: HeadersInit): HeadersInit {
   const headers = new Headers(extra);
-  if (API_KEY) headers.set("X-API-Key", API_KEY);
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  else if (API_KEY) headers.set("X-API-Key", API_KEY);
   return headers;
 }
 
-/** Bild-URLs für <img src>: der Browser schickt keine Header, deshalb ?api_key=. */
+/** Bild-URLs für <img src>: der Browser schickt keine Header, deshalb ?token= bzw. ?api_key=. */
 export function withApiKey(url: string): string {
+  const token = getToken();
+  const sep = url.includes("?") ? "&" : "?";
+  if (token) return `${url}${sep}token=${encodeURIComponent(token)}`;
   if (!API_KEY) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}api_key=${encodeURIComponent(API_KEY)}`;
+  return `${url}${sep}api_key=${encodeURIComponent(API_KEY)}`;
 }
 
 export type DocType =
@@ -113,12 +120,58 @@ export interface Health {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, headers: authHeaders(init?.headers) });
+  if (response.status === 401 && !path.startsWith("/api/auth/")) {
+    clearToken();
+    redirectToLogin();
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.detail ?? `${response.status} ${response.statusText}`);
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
+
+export interface AuthMode {
+  mode: "jwt" | "legacy";
+  dev_link: boolean;
+}
+
+export interface AuthWorkspace {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export interface AuthMe {
+  email: string | null;
+  user_id: string | null;
+  workspace: AuthWorkspace;
+  via: "jwt" | "api_key" | "open";
+}
+
+export interface AuthExchange {
+  token: string;
+  expires_at: string;
+  email: string;
+  workspace: AuthWorkspace;
+}
+
+export const auth = {
+  mode: () => request<AuthMode>("/api/auth/mode"),
+  magicLink: (email: string) =>
+    request<{ sent: boolean; dev_link: string | null }>("/api/auth/magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }),
+  exchange: (token: string) =>
+    request<AuthExchange>("/api/auth/exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    }),
+  me: () => request<AuthMe>("/api/auth/me"),
+};
 
 export const api = {
   health: () => request<Health>("/api/health"),

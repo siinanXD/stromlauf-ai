@@ -25,6 +25,8 @@ dependencies = [
     "pillow>=10.4",
     "mcp>=2.2,<3",  # MCP-Server (stromlauf_mcp), offizielles SDK, MIT
     "httpx>=0.27",
+    "pyjwt>=2.8",
+    "email-validator>=2.1",
 ]
 
 [project.optional-dependencies]

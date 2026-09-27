@@ -17,6 +17,7 @@ from app.ingestion.docling_parser import parse_document
 from app.ingestion.tags import extract_tags
 from app.ingestion.vision import describe_page
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
+from app.tenancy import reset_workspace, set_workspace
 from app.tracing import vision_trace
 
 logger = logging.getLogger(__name__)
@@ -183,6 +184,9 @@ def ingest_document(document_id: str) -> None:
         path = Path(document.storage_path)
         filename, source_id = document.filename, document.source_id
         doc_type, vision = document.doc_type, document.vision_enrichment
+        workspace_id = document.workspace_id
+    # Chunks und Kennzeichen gehoeren zum Workspace des Dokuments (auch im Resume-Thread ohne Request)
+    workspace_token = set_workspace(workspace_id)
 
     if not _INGEST_LOCK.acquire(blocking=False):
         _set_progress(document_id, "wartet, anderes Dokument wird gerade verarbeitet")
@@ -251,6 +255,7 @@ def ingest_document(document_id: str) -> None:
                 document.progress = ""
     finally:
         _INGEST_LOCK.release()
+        reset_workspace(workspace_token)
 
 
 def _embedding_text(filename: str, piece: Piece) -> str:

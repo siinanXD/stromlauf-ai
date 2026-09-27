@@ -71,6 +71,10 @@ Demonstrated on a Vercel Preview + Railway staging with one demo machine built f
 - [ ] The UI works at 390 px width without horizontal scroll; Lighthouse accessibility ≥ 90 on the machine view.
 - [ ] Every AI call appears in Langfuse with model, tokens, cost, machine id and evidence references.
 
+### Known limitations (2026-09-27)
+
+Planung and Leitstand (feature-freeze modules) are not workspace-scoped; the Machine Assistant screens hide them.
+
 ### Non-goals (v1)
 
 Live PLC/sensor data, AR overlays, 3D CAD, spare-part ordering, native mobile apps, editing of source PDFs,

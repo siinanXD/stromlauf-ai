@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.agent.graph import build_graph
 from app.api import (
+    auth,
     chat,
     diagnosis,
     facts,
@@ -22,7 +23,7 @@ from app.api import (
     site,
     sources,
 )
-from app.auth import api_key_middleware
+from app.auth import auth_middleware
 from app.config import get_settings
 from app.db import init_db, session_scope
 from app.ingestion.resume import plan_restart, resume_in_background
@@ -49,13 +50,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Stromlauf AI", lifespan=lifespan)
-app.middleware("http")(api_key_middleware)
+app.middleware("http")(auth_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth.router)
 app.include_router(sources.router)
 app.include_router(chat.router)
 app.include_router(plant.router)

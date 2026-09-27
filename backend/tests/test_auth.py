@@ -1,64 +1,62 @@
-"""API-Key-Schutz: ohne Schluessel offen, mit Schluessel nur Header, Bearer oder ?api_key."""
+"""Zugriff und Mandant: JWT, API-Key, offener Modus - ohne Datenbank."""
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from datetime import datetime, timedelta, timezone
 
-from app.auth import api_key_middleware, is_allowed, presented_key
+import jwt
 
+from app import auth
 
-def test_open_when_no_key_configured():
-    assert is_allowed("/api/sources", "GET", None, None)
-    assert is_allowed("/api/sources", "GET", "", None)
+SECRET = "test-secret-0123456789"
 
 
-def test_health_and_preflight_stay_open():
-    assert is_allowed("/api/health", "GET", "geheim", None)
-    assert is_allowed("/api/sources", "OPTIONS", "geheim", None)
-    assert is_allowed("/docs", "GET", "geheim", None)
+def _headers(**values):
+    return {k.lower().replace("_", "-"): v for k, v in values.items()}
 
 
-def test_key_required_and_compared_exactly():
-    assert not is_allowed("/api/sources", "GET", "geheim", None)
-    assert not is_allowed("/api/sources", "GET", "geheim", "Geheim")
-    assert is_allowed("/api/sources", "GET", "geheim", "geheim")
+def test_jwt_roundtrip():
+    token, expires = auth.issue_token(user_id="u1", email="a@b.de", workspace_id="ws1", role="admin", secret=SECRET, hours=1)
+    principal = auth.principal_from_token(token, SECRET)
+    assert principal is not None
+    assert (principal.user_id, principal.email, principal.workspace_id, principal.role, principal.via) == (
+        "u1", "a@b.de", "ws1", "admin", "jwt",
+    )
+    assert expires > datetime.now(timezone.utc)
 
 
-def test_presented_key_sources():
-    assert presented_key({"x-api-key": "a"}, {}) == "a"
-    assert presented_key({"authorization": "Bearer b"}, {}) == "b"
-    assert presented_key({"authorization": "Basic b"}, {}) is None
-    assert presented_key({}, {"api_key": "c"}) == "c"
-    assert presented_key({}, {}) is None
+def test_abgelaufenes_oder_fremdes_jwt_wird_abgelehnt():
+    expired = jwt.encode({"sub": "u", "ws": "w", "exp": datetime.now(timezone.utc) - timedelta(minutes=1)}, SECRET, algorithm="HS256")
+    assert auth.principal_from_token(expired, SECRET) is None
+    other = jwt.encode({"sub": "u", "ws": "w", "exp": datetime.now(timezone.utc) + timedelta(minutes=5)}, "anderes-secret", algorithm="HS256")
+    assert auth.principal_from_token(other, SECRET) is None
+    assert auth.principal_from_token("kein.jwt", SECRET) is None
 
 
-def _app(monkeypatch, key: str | None) -> TestClient:
-    from app import config
-
-    monkeypatch.setattr(config, "get_settings", lambda: config.Settings(api_key=key))
-    app = FastAPI()
-    app.middleware("http")(api_key_middleware)
-
-    @app.get("/api/ping")
-    def ping():
-        return {"ok": True}
-
-    @app.get("/api/health")
-    def health():
-        return {"status": "ok"}
-
-    return TestClient(app)
+def test_credentials_in_prioritaet():
+    found = auth.presented_credentials(_headers(authorization="Bearer AAA", x_api_key="BBB"), {"api_key": "CCC", "token": "DDD"}, "GET")
+    assert found == ["AAA", "BBB", "CCC", "DDD"]
+    assert auth.presented_credentials(_headers(), {"token": "DDD"}, "POST") == []
 
 
-def test_middleware_rejects_without_key(monkeypatch):
-    client = _app(monkeypatch, "geheim")
-    assert client.get("/api/ping").status_code == 401
-    assert "X-API-Key" in client.get("/api/ping").json()["detail"]
-    assert client.get("/api/health").status_code == 200
-    assert client.get("/api/ping", headers={"X-API-Key": "geheim"}).status_code == 200
-    assert client.get("/api/ping?api_key=geheim").status_code == 200
-    assert client.get("/api/ping", headers={"Authorization": "Bearer geheim"}).status_code == 200
+def test_api_key_ist_dienstzugriff_im_default_workspace():
+    principal = auth.resolve_principal(["geheim"], api_key="geheim", jwt_secret=SECRET)
+    assert principal is not None and principal.workspace_id == "default" and principal.via == "api_key"
+    assert auth.resolve_principal(["falsch"], api_key="geheim", jwt_secret=None) is None
 
 
-def test_middleware_open_without_configured_key(monkeypatch):
-    client = _app(monkeypatch, None)
-    assert client.get("/api/ping").status_code == 200
+def test_jwt_geht_auch_als_api_key_header():
+    token, _ = auth.issue_token(user_id="u1", email="a@b.de", workspace_id="ws9", role="member", secret=SECRET, hours=1)
+    principal = auth.resolve_principal([token], api_key="geheim", jwt_secret=SECRET)
+    assert principal is not None and principal.workspace_id == "ws9" and principal.role == "member"
+
+
+def test_offen_nur_ohne_jeden_schluessel():
+    assert auth.resolve_principal([], api_key=None, jwt_secret=None).via == "open"
+    assert auth.resolve_principal([], api_key=None, jwt_secret=SECRET) is None
+    assert auth.resolve_principal([], api_key="geheim", jwt_secret=None) is None
+
+
+def test_offene_pfade():
+    assert auth.is_open("/api/health", "GET")
+    assert auth.is_open("/api/auth/magic-link", "POST")
+    assert auth.is_open("/api/sources", "OPTIONS")
+    assert not auth.is_open("/api/sources", "GET")

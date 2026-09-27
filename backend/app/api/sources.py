@@ -28,6 +28,7 @@ from app.schemas import (
     SourceOut,
     SourceProfile,
 )
+from app.tenancy import same_workspace
 
 router = APIRouter(prefix="/api", tags=["sources"])
 
@@ -36,14 +37,14 @@ ALLOWED_SUFFIXES = DOCLING_SUFFIXES | PLAIN_TEXT_SUFFIXES | {".awl", ".sdf"}
 
 def _get_source(session: Session, source_id: str) -> KnowledgeSource:
     source = session.get(KnowledgeSource, source_id)
-    if source is None:
+    if source is None or not same_workspace(source):
         raise HTTPException(404, "Wissensquelle nicht gefunden")
     return source
 
 
 def _get_document(session: Session, document_id: str) -> Document:
     document = session.get(Document, document_id)
-    if document is None:
+    if document is None or not same_workspace(document):
         raise HTTPException(404, "Dokument nicht gefunden")
     return document
 

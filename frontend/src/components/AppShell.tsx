@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 import { GlobalSearch } from "@/components/GlobalSearch";
-import { api } from "@/lib/api";
+import { api, auth, type AuthMe } from "@/lib/api";
+import { clearToken, getToken, redirectToLogin, tokenValid } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export interface Crumb {
@@ -55,13 +56,32 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; children: ReactNode }) {
   const pathname = usePathname();
   const [online, setOnline] = useState<boolean | null>(null);
+  const [me, setMe] = useState<AuthMe | null>(null);
 
   useEffect(() => {
     api
       .health()
       .then(() => setOnline(true))
       .catch(() => setOnline(false));
+    // Login-Modus: ohne gueltiges Token zur Anmeldung; sonst Nutzer und Workspace anzeigen
+    auth
+      .mode()
+      .then((mode) => {
+        if (mode.mode === "jwt" && !tokenValid(getToken())) {
+          clearToken();
+          redirectToLogin();
+          return;
+        }
+        return auth.me().then(setMe);
+      })
+      .catch(() => {});
   }, []);
+
+  function logout() {
+    clearToken();
+    setMe(null);
+    redirectToLogin();
+  }
 
   return (
     <div className="flex h-full">
@@ -116,7 +136,15 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
             <kbd className="border border-border px-1.5 font-mono text-[11px]">Strg K</kbd>
           </button>
 
-          <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+          {me?.via === "jwt" && (
+            <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground" title={me.email ?? ""}>
+              <span className="hidden truncate sm:inline">{me.workspace.name}</span>
+              <button type="button" onClick={logout} className="border border-border px-2 py-0.5 hover:border-primary hover:text-primary">
+                Abmelden
+              </button>
+            </span>
+          )}
+          <span className={cn("flex shrink-0 items-center gap-2 text-xs text-muted-foreground", me?.via === "jwt" ? "" : "ml-auto")}>
             <span
               className={cn("size-2 rounded-full", online === null ? "bg-border" : online ? "bg-ok" : "bg-danger")}
             />
