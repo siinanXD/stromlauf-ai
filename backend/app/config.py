@@ -20,8 +20,14 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://stromlauf:stromlauf@localhost:5433/stromlauf"
     data_dir: Path = BACKEND_DIR / "data"
 
+    # local = sentence-transformers im Prozess (bge-m3, ca. 2 GB, braucht RAM);
+    # voyage = Voyage-AI-API (voyage-4, kein Modell im Container). Wechsel = neu indexieren.
+    embedding_provider: str = "local"
     embedding_model: str = "BAAI/bge-m3"
     embedding_dim: int = 1024
+    voyage_api_key: str | None = None
+    voyage_model: str = "voyage-4"
+    voyage_api_url: str = "https://api.voyageai.com/v1/embeddings"
     # e5-Modelle erwarten "query: " / "passage: " Praefixe, bge-m3 nicht.
     embedding_query_prefix: str = ""
     embedding_passage_prefix: str = ""
@@ -52,6 +58,9 @@ class Settings(BaseSettings):
     smtp_url: str | None = None  # smtp://user:pass@host:587 oder smtps://user:pass@host:465
     mail_from: str = "stromlauf@localhost"
     frontend_url: str = "http://localhost:3100"
+
+    # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
+    checkpointer: str = "sqlite"
 
     @property
     def upload_dir(self) -> Path:
