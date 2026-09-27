@@ -52,7 +52,7 @@ def test_step_tolerance_and_evidence_summary():
 
 
 def test_gold_template_validates_and_is_marked():
-    data = json.loads((REPO / "testdata" / "festo" / "gold.flow.json").read_text(encoding="utf-8"))
+    data = json.loads((REPO / "schemas" / "examples" / "gold.template.flow.json").read_text(encoding="utf-8"))
     gold = MachineFlow.model_validate(data)
     assert is_template(gold)
     assert gold.unresolved_refs() == []
