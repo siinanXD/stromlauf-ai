@@ -33,7 +33,7 @@ export function DocumentsTab({
     api.listDocuments(machine.source_id).then(setDocuments).catch(() => setDocuments([]));
   }, [machine.source_id]);
 
-  const chatHref = machine.source_id ? `/?source=${machine.source_id}` : "/";
+  const chatHref = `/werk/maschine/${machine.id}?tab=chat`;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

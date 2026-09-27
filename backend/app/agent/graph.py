@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from app.agent.prompts import SYSTEM_PROMPT
+from app.agent.prompts import system_prompt_for
 from app.agent.tools import TOOLS
 from app.config import get_settings
 
@@ -30,7 +30,7 @@ def build_graph(checkpointer):
     get_model = lru_cache(maxsize=1)(_build_model)
 
     async def agent(state: MessagesState, config: RunnableConfig) -> dict:
-        messages = [SystemMessage(SYSTEM_PROMPT), *state["messages"]]
+        messages = [SystemMessage(system_prompt_for(config.get("configurable"))), *state["messages"]]
         return {"messages": [await get_model().ainvoke(messages, config)]}
 
     builder = StateGraph(MessagesState)

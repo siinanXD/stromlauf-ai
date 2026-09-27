@@ -11,6 +11,7 @@ import { MaintenanceLog } from "@/components/diagnosis/MaintenanceLog";
 import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
 import { FlowTab } from "@/components/machine/FlowTab";
+import { MachineChatTab } from "@/components/machine/MachineChatTab";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
 import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
@@ -34,7 +35,12 @@ import {
   type MachineDetail,
 } from "@/lib/api";
 
-type TabId = "draufsicht" | "ablauf" | "signalweg" | "fehler" | "schaltschrank" | "kennzahlen" | "dokumente";
+type TabId = "draufsicht" | "ablauf" | "chat" | "signalweg" | "fehler" | "schaltschrank" | "kennzahlen" | "dokumente";
+const TAB_IDS = new Set<string>(["draufsicht", "ablauf", "chat", "signalweg", "fehler", "schaltschrank", "kennzahlen", "dokumente"]);
+
+function tabFromUrl(value: string | null): TabId {
+  return value && TAB_IDS.has(value) ? (value as TabId) : "draufsicht";
+}
 
 const TRIGGER = "px-3 text-sm data-active:font-semibold data-active:text-primary after:!bg-primary";
 
@@ -46,7 +52,7 @@ export default function MachinePage() {
   const [machine, setMachine] = useState<MachineDetail | null>(null);
   const [layout, setLayout] = useState<Layout | null | undefined>(undefined);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
-  const [tab, setTab] = useState<TabId>(urlTab === "signalweg" || urlTab === "ablauf" ? urlTab : "draufsicht");
+  const [tab, setTab] = useState<TabId>(() => tabFromUrl(urlTab));
   const [signalTag, setSignalTag] = useState<string>(urlTag ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [faultFilter, setFaultFilter] = useState<string | null>(null);
@@ -208,6 +214,9 @@ export default function MachinePage() {
             <TabsTrigger value="ablauf" className={TRIGGER}>
               Ablauf
             </TabsTrigger>
+            <TabsTrigger value="chat" className={TRIGGER}>
+              Chat
+            </TabsTrigger>
             <TabsTrigger value="signalweg" className={TRIGGER}>
               Signalweg
             </TabsTrigger>
@@ -319,6 +328,14 @@ export default function MachinePage() {
 
         <TabsContent value="ablauf" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
           <FlowTab machineId={machine.id} hasSource={Boolean(machine.source_id)} />
+        </TabsContent>
+
+        <TabsContent value="chat" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">
+          <MachineChatTab
+            machine={machine}
+            onOpenPage={setPageTarget}
+            activeReference={pageTarget?.reference ? `${pageTarget.documentId}${pageTarget.reference}` : null}
+          />
         </TabsContent>
 
         <TabsContent value="kennzahlen" className="min-h-0 flex-1 overflow-y-auto p-4 md:px-6">

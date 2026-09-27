@@ -10,7 +10,16 @@ from app.db import session_scope
 from app.embeddings import embeddings
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import image_block, render_page_png
-from app.models import Chunk, DocStatus, Document, KnowledgeSource, TagOccurrence
+from app.models import (
+    Chunk,
+    DocStatus,
+    Document,
+    FaultEntry,
+    Hall,
+    KnowledgeSource,
+    Machine,
+    TagOccurrence,
+)
 from app.retrieval import hybrid_chunk_ids
 
 
@@ -228,4 +237,53 @@ def list_documents(config: RunnableConfig) -> str:
         )
 
 
-TOOLS = [search_knowledge, find_tag, keyword_search, get_page, view_page, get_plc_block, list_documents]
+def fault_matches(fault: dict, query: str) -> bool:
+    """Woertlich in Code, Symptom, Ursache, Behebung oder als Kennzeichen in tags (Schreibweise egal)."""
+    needle = query.strip().lower()
+    if not needle:
+        return True
+    haystack = " ".join(str(fault.get(k, "")) for k in ("code", "symptom", "cause", "fix", "doc_ref")).lower()
+    if needle in haystack:
+        return True
+    normalized = normalize_tag(query)
+    return any(normalize_tag(str(t)) == normalized for t in fault.get("tags") or [])
+
+
+def format_faults(rows: list[dict], query: str, limit: int = 20) -> str:
+    hits = [r for r in rows if fault_matches(r, query)][:limit]
+    if not hits:
+        return f'Kein Fehlereintrag passt zu "{query}". Die Fehlerlisten sind von Hand gepflegt und decken nicht alles ab.'
+    lines = [f"Fehlereintraege zu \"{query}\" ({len(hits)}, werksweit, von der Instandhaltung gepflegt):"]
+    for r in hits:
+        tags = ", ".join(r.get("tags") or []) or "-"
+        lines.append(
+            f"- {r['machine']} ({r['hall']}) | {r.get('code') or '-'} | Symptom: {r.get('symptom') or '-'} | "
+            f"Ursache: {r.get('cause') or '-'} | Behebung: {r.get('fix') or '-'} | Doku: {r.get('doc_ref') or '-'} | BMK: {tags}"
+        )
+    return "\n".join(lines)
+
+
+@tool
+def search_faults(query: str, config: RunnableConfig) -> str:
+    """Durchsucht die handgepflegten Fehlerlisten ALLER Maschinen des Werks (Code, Symptom, Ursache,
+    Behebung, beteiligte Kennzeichen). Erfahrungswissen der Instandhaltung, unabhaengig von der
+    gewaehlten Dokumentation: Treffer an anderen Maschinen als Erfahrung kennzeichnen, nicht als
+    Beleg fuer diese Maschine. Gut fuer "Band steht", "Motorschutz", "-F2", "F03"."""
+    statement = (
+        select(FaultEntry, Machine.name, Hall.name)
+        .join(Machine, FaultEntry.machine_id == Machine.id)
+        .join(Hall, Machine.hall_id == Hall.id)
+        .order_by(Machine.name, FaultEntry.code)
+    )
+    with session_scope() as session:
+        rows = [
+            {
+                "machine": machine, "hall": hall, "code": f.code, "symptom": f.symptom, "cause": f.cause,
+                "fix": f.fix, "doc_ref": f.doc_ref, "tags": list(f.tags or []),
+            }
+            for f, machine, hall in session.execute(statement).all()
+        ]
+    return format_faults(rows, query)
+
+
+TOOLS = [search_knowledge, find_tag, keyword_search, get_page, view_page, get_plc_block, list_documents, search_faults]

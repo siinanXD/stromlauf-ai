@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_session, session_scope
-from app.models import Conversation
+from app.models import Conversation, Machine
 from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
 
 logger = logging.getLogger(__name__)
@@ -43,11 +43,22 @@ def _dedupe_sources(refs: list[dict]) -> list[dict]:
     return unique
 
 
-def _thread_config(conversation_id: str, source_ids: list[str]) -> dict:
-    return {
-        "configurable": {"thread_id": conversation_id, "source_ids": source_ids},
-        "recursion_limit": 60,
-    }
+def _thread_config(conversation_id: str, source_ids: list[str], machine: dict | None = None) -> dict:
+    configurable = {"thread_id": conversation_id, "source_ids": source_ids}
+    if machine:
+        configurable["machine"] = machine
+    return {"configurable": configurable, "recursion_limit": 60}
+
+
+def machine_scope(session: Session, machine_id: str) -> tuple[list[str], dict]:
+    """Fester Scope eines Maschinen-Chats: nur die Wissensquelle der Maschine."""
+    machine = session.get(Machine, machine_id)
+    if machine is None:
+        raise HTTPException(404, "Maschine nicht gefunden")
+    if not machine.source_id:
+        raise HTTPException(409, "Maschine hat keine Wissensquelle; im Tab Dokumente eine waehlen")
+    context = {"id": machine.id, "name": machine.name, "hall": machine.hall.name if machine.hall else ""}
+    return [machine.source_id], context
 
 
 async def _close_dangling_tool_calls(graph, config: dict) -> None:
@@ -74,8 +85,12 @@ async def _close_dangling_tool_calls(graph, config: dict) -> None:
 
 
 @router.get("/conversations", response_model=list[ConversationOut])
-def list_conversations(session: Session = Depends(get_session)):
-    return session.scalars(select(Conversation).order_by(Conversation.updated_at.desc())).all()
+def list_conversations(source_id: str | None = None, session: Session = Depends(get_session)):
+    """Alle Chats; mit source_id nur die, deren Scope genau diese Quelle ist (Maschinen-Chat)."""
+    rows = session.scalars(select(Conversation).order_by(Conversation.updated_at.desc())).all()
+    if source_id:
+        rows = [c for c in rows if list(c.source_ids or []) == [source_id]]
+    return rows
 
 
 @router.delete("/conversations/{conversation_id}", status_code=204)
@@ -130,17 +145,20 @@ async def chat(body: ChatRequest, request: Request):
     graph = request.app.state.graph
 
     with session_scope() as session:
+        source_ids, machine = body.source_ids, None
+        if body.machine_id:
+            source_ids, machine = machine_scope(session, body.machine_id)
         conversation = session.get(Conversation, body.conversation_id) if body.conversation_id else None
         if conversation is None:
             title = " ".join(body.message.split())
             conversation = Conversation(title=title[:80] + ("…" if len(title) > 80 else ""))
             session.add(conversation)
-        conversation.source_ids = body.source_ids
+        conversation.source_ids = source_ids
         conversation.updated_at = datetime.now(timezone.utc)
         session.flush()
         conversation_id, title = conversation.id, conversation.title
 
-    config = _thread_config(conversation_id, body.source_ids)
+    config = _thread_config(conversation_id, source_ids, machine)
 
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})

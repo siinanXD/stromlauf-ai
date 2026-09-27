@@ -273,6 +273,16 @@ Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen; S
 Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python scripts/mcp_server.py --http` →
 `http://127.0.0.1:8765/mcp`. Code: `backend/stromlauf_mcp/`, Suche über `GET /api/search`.
 
+## Chat je Maschine
+
+Tab **Chat** auf der Maschinenseite: der Scope ist fest die Wissensquelle der Maschine. Das Backend erzwingt
+das über `machine_id` im Chat-Aufruf, die Auswahl anderer Quellen ist dort nicht möglich; der Agent bekommt
+den Maschinenkontext (Name, Halle) in den Systemprompt. Ausnahme, bewusst: die handgepflegten
+**Fehlerlisten** aller Maschinen bleiben werksweit durchsuchbar (Werkzeug `search_faults`), Treffer an anderen
+Maschinen kennzeichnet der Agent als Erfahrung, nicht als Beleg. Die Chats einer Maschine sind die
+Konversationen, deren Scope genau ihre Quelle ist (`GET /api/conversations?source_id=…`, keine neue Spalte).
+Der Reiter **Chat** in der Navigation bleibt der werksweite Chat mit freier Quellenwahl.
+
 ## Chat-Antworten
 
 Antworten sind fest gegliedert: **Kurzantwort** (max. 2 Saetze), **Pruefen** (max. 5 Schritte,

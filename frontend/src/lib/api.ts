@@ -151,7 +151,9 @@ export const api = {
   reingestDocument: (id: string) =>
     request<SourceDocument>(`/api/documents/${id}/reingest`, { method: "POST" }),
   deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
-  listConversations: () => request<Conversation[]>("/api/conversations"),
+  /** Alle Chats; mit sourceId nur die, deren Scope genau diese Quelle ist (Maschinen-Chat). */
+  listConversations: (sourceId?: string) =>
+    request<Conversation[]>(`/api/conversations${sourceId ? `?source_id=${encodeURIComponent(sourceId)}` : ""}`),
   deleteConversation: (id: string) =>
     request<void>(`/api/conversations/${id}`, { method: "DELETE" }),
   getMessages: (conversationId: string) =>
@@ -171,7 +173,7 @@ export type ChatEvent =
 
 /** POST /api/chat und die SSE-Antwort Ereignis für Ereignis ausliefern. */
 export async function* streamChat(
-  body: { conversation_id: string | null; message: string; source_ids: string[] },
+  body: { conversation_id: string | null; message: string; source_ids: string[]; machine_id?: string },
   signal: AbortSignal,
 ): AsyncGenerator<ChatEvent> {
   const response = await fetch(`${API_URL}/api/chat`, {

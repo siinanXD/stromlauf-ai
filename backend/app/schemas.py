@@ -76,6 +76,8 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     message: str = Field(min_length=1)
     source_ids: list[str] = []
+    # Maschinen-Chat: Scope ist fest die Wissensquelle der Maschine; source_ids werden dann ignoriert
+    machine_id: str | None = None
 
 
 # --- Werk: Halle / Maschine / Fehlerliste / Schaltschrank ------------------------------------
