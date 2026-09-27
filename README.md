@@ -273,6 +273,14 @@ Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, Pfade anpassen; S
 Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python scripts/mcp_server.py --http` →
 `http://127.0.0.1:8765/mcp`. Code: `backend/stromlauf_mcp/`, Suche über `GET /api/search`.
 
+## Fehler markieren
+
+Tab **Fehler**, Knopf **Zeigen** an einem Eintrag: ein roter Balken über allen Tabs nennt den Fehler und seine
+Kennzeichen. Gleichzeitig werden die betroffenen Teile in der **Draufsicht**, die Bauteile im
+**Schaltschrankfoto** und die I/O-Punkte samt Schritten im **Ablauf** rot markiert. Der Balken zählt die
+Treffer je Ansicht, springt per Klick dorthin, nennt nicht platzierte Kennzeichen und startet die geführte
+Fehlersuche. Rein aus Daten, kein Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
+
 ## Chat je Maschine
 
 Tab **Chat** auf der Maschinenseite: der Scope ist fest die Wissensquelle der Maschine. Das Backend erzwingt

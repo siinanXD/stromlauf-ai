@@ -9,7 +9,7 @@ import type { FloorNode, PartNode as PartNodeType } from "./geometry";
 const SMALL_PX = 40; // darunter steht die Beschriftung neben dem Teil
 
 export function PartNode({ data, selected, width = 0, height = 0 }: NodeProps<PartNodeType>) {
-  const { part, onResizeEnd } = data;
+  const { part, onResizeEnd, highlighted } = data;
   const circle = part.shape === "circle";
   const emergency = part.kind === "Not-Halt";
   const belt = part.kind === "Band/Förderer";
@@ -39,6 +39,7 @@ export function PartNode({ data, selected, width = 0, height = 0 }: NodeProps<Pa
           proposal && "border-dashed border-primary bg-primary/5",
           selected && "border-2 border-primary",
           selected && !emergency && !belt && "bg-primary/10",
+          highlighted && "border-2 border-danger bg-danger/10 shadow-[0_0_0_4px_rgba(215,38,61,0.25)]",
         )}
         style={{ transform: part.rotation_deg ? `rotate(${part.rotation_deg}deg)` : undefined }}
         title={[part.tag, part.label, part.kind].filter(Boolean).join(" · ")}

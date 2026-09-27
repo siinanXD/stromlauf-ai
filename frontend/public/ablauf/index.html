@@ -72,6 +72,11 @@
   .el.on-safety .shape { fill:var(--danger); stroke:var(--danger); }
   .el.selected .shape { stroke:var(--primary); stroke-width:3; }
   .el.assumed .shape { stroke-dasharray:4 3; }
+  .el.fault .shape { stroke:var(--danger); stroke-width:3; filter:drop-shadow(0 0 6px rgba(215,38,61,.7)); }
+  .el.fault text { fill:var(--danger); font-weight:600; }
+  .step.fault { border-color:var(--danger); box-shadow:0 0 0 2px rgba(215,38,61,.25); }
+  tr.fault td { background:rgba(215,38,61,.08); }
+  .faultbar { padding:6px 16px; font-size:12px; color:var(--danger); border-bottom:1px solid var(--border); background:var(--card); }
   @media (max-width: 800px) { main { grid-template-columns:1fr; grid-template-rows:minmax(260px,1fr) auto; } aside { border-left:0; border-top:1px solid var(--border); } }
 </style>
 </head>
@@ -108,6 +113,10 @@ const $ = (id) => document.getElementById(id);
 const KIND = { sensor: "Sensor", actuator: "Aktor", operator: "Bedienung", safety: "Sicherheit", other: "Sonstiges" };
 const params = new URLSearchParams(location.search);
 const src = params.get("src") || "./example.json";
+const faultTags = (params.get("tags") || "").split(",").map((t) => t.trim()).filter(Boolean);
+const normTag = (t) => String(t || "").replace(/\s+/g, "").toUpperCase().replace(/^-/, "");
+function isFaultPoint(p) { if (!faultTags.length || !p) return false; const keys = [p.tag, p.address, p.symbol].map(normTag).filter(Boolean); return faultTags.some((t) => keys.includes(normTag(t))); }
+function stepTouchesFault(step) { return [...step.actions.map((a) => a.io), ...step.transitions.flatMap((t) => t.conditions.map((c) => c.io))].some((ref) => isFaultPoint(index.get(ref))); }
 
 let flow, state, index, timer = null, last = 0, speed = 1, selected = null;
 
@@ -127,6 +136,13 @@ function renderHeader() {
     $("questions").innerHTML = "<b>Offene Fragen:</b> " + flow.open_questions.map(esc).join(" · ");
   }
   $("planTitle").textContent = flow.layout.title || "Draufsicht";
+  if (faultTags.length) {
+    const hit = flow.io_points.filter(isFaultPoint);
+    const bar = document.createElement("div");
+    bar.className = "faultbar";
+    bar.textContent = `Fehler-Markierung: ${faultTags.join(", ")} · ${hit.length} I/O-Punkt${hit.length === 1 ? "" : "e"} und ${flow.steps.filter(stepTouchesFault).length} Schritte betroffen`;
+    $("questions").parentElement.insertBefore(bar, $("questions"));
+  }
 }
 
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -138,7 +154,7 @@ function renderGrafcet() {
   const primary = current && current.transitions.length ? current.transitions.reduce((b, t) => (t.confidence > b.confidence ? t : b), current.transitions[0]) : null;
   flow.steps.forEach((step, i) => {
     const el = document.createElement("div");
-    el.className = "step" + (step.id === state.stepId ? " active" : "") + (step.initial ? " initial" : "");
+    el.className = "step" + (step.id === state.stepId ? " active" : "") + (step.initial ? " initial" : "") + (stepTouchesFault(step) ? " fault" : "");
     el.innerHTML = `<div class="id">${esc(step.id)}${step.assumption ? " <span class='badge assumption'>Annahme</span>" : ""}</div><div class="name">${esc(step.name)}</div>` +
       `<div class="actions">${step.actions.map((a) => `${esc(labelOf(a.io))}${a.state ? "↑" : "↓"}`).join(" ")}</div>`;
     el.onclick = () => select({ type: "step", step });
@@ -182,7 +198,7 @@ function renderPlan() {
     const p = index.get(e.io);
     if (!p) continue;
     const x = e.x * W, y = e.y * H;
-    const cls = `el ${stateClass(p)}${selected && selected.point === p ? " selected" : ""}${e.assumption ? " assumed" : ""}`;
+    const cls = `el ${stateClass(p)}${selected && selected.point === p ? " selected" : ""}${e.assumption ? " assumed" : ""}${isFaultPoint(p) ? " fault" : ""}`;
     let shape;
     if (e.shape === "circle") shape = `<circle class="shape" cx="${x}" cy="${y}" r="18"/>`;
     else if (e.shape === "rect") shape = `<rect class="shape" x="${x - 26}" y="${y - 16}" width="52" height="32"/>`;
@@ -200,7 +216,7 @@ function renderIO() {
   for (const p of rows) {
     const tr = document.createElement("tr");
     const isIn = p.direction === "DI" || p.direction === "AI";
-    tr.className = (isIn ? "di" : "do") + (selected && selected.point === p ? " selected" : "");
+    tr.className = (isIn ? "di" : "do") + (selected && selected.point === p ? " selected" : "") + (isFaultPoint(p) ? " fault" : "");
     const on = isActive(state, p);
     const dotCls = "dot" + (on ? " on " + (p.kind === "safety" ? "safety" : isIn ? "in" : "out") : "");
     const value = isIn ? state.inputs[p.address] : state.outputs[p.address];

@@ -9,7 +9,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, Pencil, Plus, Stethoscope, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Plus, Crosshair, Stethoscope, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 
 import { Tag } from "@/components/Tag";
@@ -33,8 +33,13 @@ export function FaultTable({
   onEdit,
   onDelete,
   onDiagnose,
+  onShow,
+  activeFaultId = null,
 }: {
   faults: Fault[];
+  /** Fehler markieren: Kennzeichen in Draufsicht, Schaltschrank und Ablauf hervorheben */
+  onShow?: (fault: Fault) => void;
+  activeFaultId?: string | null;
   tagFilter: string | null;
   onTagFilter: (tag: string | null) => void;
   onTagClick: (tag: string) => void;
@@ -71,6 +76,17 @@ export function FaultTable({
           header: "",
           cell: ({ row }) => (
             <div className="flex justify-end gap-1">
+              {onShow && (
+                <Button
+                  size="xs"
+                  variant={row.original.id === activeFaultId ? "default" : "outline"}
+                  aria-pressed={row.original.id === activeFaultId}
+                  onClick={() => onShow(row.original)}
+                >
+                  <Crosshair />
+                  Zeigen
+                </Button>
+              )}
               <Button size="xs" variant="outline" className="border-primary/60 text-primary" onClick={() => onDiagnose(row.original)}>
                 <Stethoscope />
                 Diagnose
@@ -85,7 +101,7 @@ export function FaultTable({
           ),
         }),
       ]),
-    [onDelete, onDiagnose, onEdit, onTagClick],
+    [onDelete, onDiagnose, onEdit, onTagClick, onShow, activeFaultId],
   );
 
   const table = useTable({

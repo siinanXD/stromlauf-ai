@@ -11,7 +11,7 @@ import { plant } from "@/lib/api";
  * Tab „Ablauf“: bettet die eigenstaendige Animationsseite (public/ablauf, SVG + Vanilla JS) ein.
  * Die Seite laedt nur das JSON aus dem Cache; ein Modell laeuft hier nie. Extraktion nur auf Knopfdruck.
  */
-export function FlowTab({ machineId, hasSource }: { machineId: string; hasSource: boolean }) {
+export function FlowTab({ machineId, hasSource, highlightTags = [] }: { machineId: string; hasSource: boolean; highlightTags?: string[] }) {
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -36,7 +36,8 @@ export function FlowTab({ machineId, hasSource }: { machineId: string; hasSource
   if (!hasSource) {
     return <p className="text-sm text-muted-foreground">Keine Dokumentation verknüpft. Im Tab „Dokumente“ eine Wissensquelle wählen.</p>;
   }
-  const src = `/ablauf/index.html?src=${encodeURIComponent(plant.flowUrl(machineId))}&v=${version}`;
+  const tags = highlightTags.length ? `&tags=${encodeURIComponent(highlightTags.join(","))}` : "";
+  const src = `/ablauf/index.html?src=${encodeURIComponent(plant.flowUrl(machineId))}${tags}&v=${version}`;
   return (
     <div className="flex h-full flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-sm">

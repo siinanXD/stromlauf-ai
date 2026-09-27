@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { plant, type Cabinet, type Hotspot, type TagLookup } from "@/lib/api";
+import { matchesAny } from "@/lib/faults";
 import type { PageTarget } from "@/components/PageViewer";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -18,12 +19,15 @@ export function CabinetEditor({
   cabinet,
   machineId,
   highlightTag,
+  highlightTags,
   onChanged,
   onOpenPage,
 }: {
   cabinet: Cabinet;
   machineId: string;
   highlightTag?: string | null;
+  /** Kennzeichen eines gewaehlten Fehlers: Bauteile rot markieren */
+  highlightTags?: string[];
   onChanged: () => void;
   onOpenPage: (target: PageTarget) => void;
 }) {
@@ -163,6 +167,7 @@ export function CabinetEditor({
           <img src={plant.cabinetImageUrl(cabinet.id)} alt={cabinet.title} className="block w-full" draggable={false} />
           {cabinet.hotspots.map((hotspot) => {
             const isActive = hotspot.id === activeId;
+            const isFault = Boolean(highlightTags?.length && matchesAny(hotspot.tag, highlightTags));
             return (
               <button
                 key={hotspot.id}
@@ -170,7 +175,9 @@ export function CabinetEditor({
                 onClick={() => setActiveId(isActive ? null : hotspot.id)}
                 title={`${hotspot.tag || "(ohne BMK)"} ${hotspot.kind}`.trim()}
                 className={`absolute rounded-sm border-2 text-[11px] font-semibold leading-none ${
-                  isActive
+                  isFault
+                    ? "border-danger bg-danger/20 shadow-[0_0_0_4px_rgba(215,38,61,0.3)]"
+                    : isActive
                     ? "border-primary bg-primary/25 text-primary-foreground"
                     : hotspot.confirmed
                       ? "border-primary/80 bg-primary/10 hover:bg-primary/25"
@@ -178,7 +185,7 @@ export function CabinetEditor({
                 }`}
                 style={{ left: `${hotspot.x * 100}%`, top: `${hotspot.y * 100}%`, width: `${hotspot.w * 100}%`, height: `${hotspot.h * 100}%` }}
               >
-                <span className="absolute -top-0.5 left-0 -translate-y-full rounded-t bg-primary px-1 py-0.5 text-primary-foreground">
+                <span className={`absolute -top-0.5 left-0 -translate-y-full rounded-t px-1 py-0.5 text-primary-foreground ${isFault ? "bg-danger" : "bg-primary"}`}>
                   {hotspot.tag || "?"}
                 </span>
               </button>
