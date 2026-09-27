@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import type { PageTarget } from "@/components/PageViewer";
 import { citationLabel, deviceTagOf, parseCitations, refOf, splitSections, type Citation } from "@/lib/answer";
 import type { ChatMessage, SourceRef, ToolCall } from "@/lib/api";
+import { costText } from "@/lib/format";
 
 import { CitationChip } from "./CitationChip";
 import { FactCard } from "./FactCard";
@@ -221,6 +222,12 @@ export function AnswerView({
             ))}
           </dl>
         </section>
+      )}
+
+      {!streaming && message.cost_cents !== undefined && (
+        <p className="font-mono text-[11px] text-muted-foreground" title="Aus dem Kostenbuch: alle Modellaufrufe dieser Antwort">
+          Kosten dieser Antwort: {costText(message.cost_cents)}
+        </p>
       )}
     </div>
   );

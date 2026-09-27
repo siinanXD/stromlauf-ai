@@ -47,23 +47,21 @@ export function ChatPanel({
   const ownedIdRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Neue Vorbelegung von aussen (z. B. Klick auf eine Fehlerzeile) uebernehmen: Zustand beim Rendern angleichen
+  const [lastInitial, setLastInitial] = useState(initialInput);
+  if (initialInput !== lastInitial) {
+    setLastInitial(initialInput);
     setInput(initialInput);
-  }, [initialInput]);
+  }
 
   useEffect(() => {
     if (conversationId === ownedIdRef.current) return; // vom eigenen Stream vergeben: Verlauf ist schon da
     abortRef.current?.abort();
     ownedIdRef.current = conversationId;
-    if (!conversationId) {
-      setMessages([]);
-      return;
-    }
     let cancelled = false;
-    api
-      .getMessages(conversationId)
-      .then((result) => !cancelled && setMessages(result))
-      .catch(() => !cancelled && setMessages([]));
+    // null = neuer Chat: leerer Verlauf (asynchron wie das Laden, damit kein setState direkt im Effekt steht)
+    const load = conversationId ? api.getMessages(conversationId) : Promise.resolve<ChatMessage[]>([]);
+    load.then((result) => !cancelled && setMessages(result)).catch(() => !cancelled && setMessages([]));
     return () => {
       cancelled = true;
     };
@@ -110,10 +108,16 @@ export function ChatPanel({
             return { ...m, tool_calls: m.tool_calls.map((c, i) => (i === index ? { ...c, done: true } : c)) };
           });
         else if (event === "sources") updateLast((m) => ({ ...m, sources: data }));
+        else if (event === "usage") updateLast((m) => ({ ...m, cost_cents: (m.cost_cents ?? 0) + data.cost_cents }));
         else if (event === "error") updateLast((m) => ({ ...m, error: data.message }));
       }
     } catch (err) {
-      if (!controller.signal.aborted) updateLast((m) => ({ ...m, error: (err as Error).message }));
+      if (!controller.signal.aborted) {
+        const message = (err as Error).message;
+        updateLast((m) => ({ ...m, error: message }));
+        // 402 vom Backend: Banner in der AppShell aktualisieren
+        if (message.includes("Monatslimit")) window.dispatchEvent(new CustomEvent("stromlauf:budget"));
+      }
     } finally {
       updateLast((m) => ({ ...m, content: m.content.trim() }));
       setStreaming(false);

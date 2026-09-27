@@ -57,6 +57,23 @@ die Lade-Helfer der Router prüfen zusätzlich (fremde id → 404). `backend/tes
 prüft das gegen Postgres (CI). Planung und Leitstand (Nebenmodule im Feature-Freeze) sind noch
 werksweit, nicht je Workspace.
 
+## Kostenbuch: was eine Maschine kostet
+
+Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank- und Draufsicht-Erkennung, Ablauf-Extraktion)
+landet als Zeile in `ai_call_ledger` mit Workspace, Maschine, Zweck, Modell, Tokens und Kosten
+(`backend/app/ledger.py`, Preise aus `backend/app/flow/pricing.py`, Listenpreise 1:1 als Euro-Cent).
+Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht je Seite sofort.
+
+- `GET /api/machines/{id}/costs`: laufender Monat und gesamt, je Zweck. Im Kopf der Maschinenansicht
+  steht der Chip „KI diesen Monat …“, jede Chat-Antwort zeigt ihre Kosten im Footer.
+- `GET /api/machines/estimate?pages=&photos=&vision=`: Schaetzung vor der Ingestion aus gemessenen
+  Medianen (ab 5 Aufrufen je Zweck), sonst aus den Annahmen in `docs/product/cost-model.md`. Der
+  Upload-Dialog zeigt sie unter den erkannten Dateien („Modell erstellen · ≈ x €“).
+- Monatslimit je Workspace: `PATCH /api/workspace/budget {"cap_cents": 5000}` (Admin), `null` = kein
+  Limit. Ist das Limit erreicht, lehnt die API jeden weiteren KI-Aufruf mit **402** ab, bevor der
+  Provider gerufen wird; die Ingestion laeuft ohne Vision-Seiten weiter, Cache-Treffer der
+  Ablauf-Extraktion bleiben moeglich. Die Oberflaeche zeigt ein Banner mit „Limit erhoehen“.
+
 ## Deployment (Railway)
 
 Backend als Container (`backend/Dockerfile`, Build-Kontext `backend/`), Datenbank Postgres mit pgvector,

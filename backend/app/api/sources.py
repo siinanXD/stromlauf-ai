@@ -190,9 +190,24 @@ def detect_document_type(file: UploadFile = File(...)):
         temp_path = Path(handle.name)
     try:
         found = doctype.detect(filename, temp_path)
+        page_count = _pdf_page_count(temp_path) if suffix == ".pdf" else None
     finally:
         temp_path.unlink(missing_ok=True)
-    return DocTypeDetection(filename=filename, **found.__dict__)
+    return DocTypeDetection(filename=filename, page_count=page_count, **found.__dict__)
+
+
+def _pdf_page_count(path: Path) -> int | None:
+    """Seitenzahl fuer die Kostenschaetzung; None, wenn die Datei kein lesbares PDF ist."""
+    try:
+        import pypdfium2 as pdfium
+
+        pdf = pdfium.PdfDocument(str(path))
+        try:
+            return len(pdf)
+        finally:
+            pdf.close()
+    except Exception:
+        return None
 
 
 @router.get("/documents/{document_id}", response_model=DocumentOut)

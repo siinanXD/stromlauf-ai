@@ -9,6 +9,7 @@ from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import delete
 
+from app import ledger
 from app.config import get_settings
 from app.db import session_scope
 from app.embeddings import embeddings
@@ -71,6 +72,23 @@ def _set_progress(document_id: str, progress: str) -> None:
             document.progress = progress
 
 
+def _budget_exhausted() -> bool:
+    with session_scope() as session:
+        try:
+            ledger.check_budget(session)
+        except ledger.BudgetExceeded:
+            return True
+    return False
+
+
+def _book_page(machine_id: str | None, usage: ledger.Usage | None) -> None:
+    """Seitenanalyse sofort zubuchen (auch wenn die Ingestion danach scheitert, war der Aufruf teuer)."""
+    if usage is None:
+        return
+    with session_scope() as session:
+        ledger.record_usage(session, usage, purpose="vision.page", machine_id=machine_id, images=1)
+
+
 def _awl_pieces(path: Path) -> list[Piece]:
     blocks = awl_parser.parse_awl(awl_parser.read_text(path))
     if not blocks:
@@ -119,35 +137,50 @@ def _symbol_pieces(path: Path) -> list[Piece]:
     ]
 
 
-def _vision_pieces(document_id: str, path: Path, pages: dict[int, str]) -> tuple[list[Piece], list[int]]:
+def _vision_pieces(
+    document_id: str, path: Path, pages: dict[int, str], machine_id: str | None = None
+) -> tuple[list[Piece], list[int], list[int]]:
+    """Liefert (Stuecke, fehlgeschlagene Seiten, wegen Monatslimit uebersprungene Seiten)."""
     settings = get_settings()
     pieces: list[Piece] = []
     failed: list[int] = []
+    skipped: list[int] = []
     done = 0
     # ein Trace je Dokument, alle Seiten als Aufrufe darin
     trace = vision_trace(document_id, "seitenanalyse")
 
-    def work(page: int) -> tuple[int, str | None]:
+    def work(page: int) -> tuple[int, str | None, ledger.Usage | None]:
+        config, collector = ledger.collect(trace)
         try:
-            return page, describe_page(path, page, pages[page], trace)
+            return page, describe_page(path, page, pages[page], config), collector.total()
         except Exception:
             logger.exception("Vision-Analyse fehlgeschlagen: %s Seite %s", path.name, page)
-            return page, None
+            return page, None, collector.total()
 
-    with ThreadPoolExecutor(max_workers=settings.vision_concurrency) as pool:
-        for page, description in pool.map(work, sorted(pages)):
-            done += 1
-            _set_progress(document_id, f"Vision-Analyse {done}/{len(pages)}")
-            if description is None:
-                failed.append(page)
-            elif description.strip():
-                pieces.append(
-                    Piece(description, kind="vision", page=page, section="Vision-Analyse")
-                )
-    return pieces, failed
+    ordered = sorted(pages)
+    batch_size = max(1, settings.vision_concurrency)
+    with ThreadPoolExecutor(max_workers=batch_size) as pool:
+        for start in range(0, len(ordered), batch_size):
+            # Limit vor jedem Schub pruefen (im Hauptthread, der den Workspace-Kontext hat)
+            if _budget_exhausted():
+                skipped = ordered[start:]
+                break
+            for page, description, usage in pool.map(work, ordered[start : start + batch_size]):
+                done += 1
+                _book_page(machine_id, usage)
+                _set_progress(document_id, f"Vision-Analyse {done}/{len(pages)}")
+                if description is None:
+                    failed.append(page)
+                elif description.strip():
+                    pieces.append(
+                        Piece(description, kind="vision", page=page, section="Vision-Analyse")
+                    )
+    return pieces, failed, skipped
 
 
-def _build_pieces(document_id: str, path: Path, doc_type: str, vision: bool) -> tuple[list[Piece], int | None, str]:
+def _build_pieces(
+    document_id: str, path: Path, doc_type: str, vision: bool, machine_id: str | None = None
+) -> tuple[list[Piece], int | None, str]:
     """Liefert (Stuecke, Seitenzahl, Hinweis)."""
     if doc_type == DocType.PLC_PROGRAM or path.suffix.lower() == ".awl":
         return _awl_pieces(path), None, ""
@@ -165,10 +198,14 @@ def _build_pieces(document_id: str, path: Path, doc_type: str, vision: bool) -> 
             note = "Vision-Analyse uebersprungen: ANTHROPIC_API_KEY fehlt"
         else:
             page_texts = {p.page: p.raw_text or p.markdown for p in parsed if p.page}
-            vision_pieces, failed = _vision_pieces(document_id, path, page_texts)
+            vision_pieces, failed, skipped = _vision_pieces(document_id, path, page_texts, machine_id)
             pieces += vision_pieces
+            notes = []
             if failed:
-                note = f"Vision-Analyse fehlgeschlagen auf Seiten {', '.join(map(str, failed))}"
+                notes.append(f"Vision-Analyse fehlgeschlagen auf Seiten {', '.join(map(str, failed))}")
+            if skipped:
+                notes.append(f"Vision-Analyse ab Seite {skipped[0]} uebersprungen: KI-Monatslimit erreicht")
+            note = "; ".join(notes)
     return pieces, page_count, note
 
 
@@ -185,6 +222,7 @@ def ingest_document(document_id: str) -> None:
         filename, source_id = document.filename, document.source_id
         doc_type, vision = document.doc_type, document.vision_enrichment
         workspace_id = document.workspace_id
+        machine_id = ledger.machine_for_source(session, source_id)  # fuers Kostenbuch
     # Chunks und Kennzeichen gehoeren zum Workspace des Dokuments (auch im Resume-Thread ohne Request)
     workspace_token = set_workspace(workspace_id)
 
@@ -192,7 +230,7 @@ def ingest_document(document_id: str) -> None:
         _set_progress(document_id, "wartet, anderes Dokument wird gerade verarbeitet")
         _INGEST_LOCK.acquire()
     try:
-        raw_pieces, page_count, note = _build_pieces(document_id, path, doc_type, vision)
+        raw_pieces, page_count, note = _build_pieces(document_id, path, doc_type, vision, machine_id)
         pieces = [part for piece in raw_pieces for part in _split(piece)]
         if not pieces:
             raise ValueError("Kein Text im Dokument gefunden (gescanntes PDF? OCR_ENABLED=true setzen)")

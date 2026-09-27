@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { eur, minutesText, num, parseAmount, qtyText, whenText } from "./format";
+import { costText, eur, minutesText, num, parseAmount, qtyText, whenText } from "./format";
 
 describe("format", () => {
   it("formatiert Zahlen deutsch", () => {
@@ -17,6 +17,13 @@ describe("format", () => {
   it("zeigt Euro mit zwei Nachkommastellen", () => {
     expect(eur(1.4531)).toBe("1,45 €");
     expect(eur(17168.68)).toBe("17.168,68 €");
+  });
+
+  it("zeigt KI-Kosten aus Cent als ungefaehren Eurobetrag", () => {
+    expect(costText(0)).toBe("0,00 €");
+    expect(costText(0.3)).toBe("< 0,01 €");
+    expect(costText(1.87)).toBe("≈ 0,02 €");
+    expect(costText(243)).toBe("≈ 2,43 €");
   });
 
   it("zeigt Zeitpunkte mit Wochentag", () => {

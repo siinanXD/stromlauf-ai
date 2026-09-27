@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import ledger
 from app.api.plant import _get, _store_image
 from app.db import get_session
 from app.ingestion.cabinet_vision import load_png
@@ -185,8 +186,10 @@ def detect_layout_parts(layout_id: str, session: Session = Depends(get_session))
                 .distinct()
             )
         )
+    ledger.check_budget(session)
+    config, usage = ledger.collect(vision_trace(layout.id, "draufsicht"))
     try:
-        result = detect_layout(png, known, vision_trace(layout.id, "draufsicht"))
+        result = detect_layout(png, known, config)
     except Exception as exc:
         logger.exception("Vision-Erkennung (Draufsicht) fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
@@ -203,6 +206,7 @@ def detect_layout_parts(layout_id: str, session: Session = Depends(get_session))
         to_parts(rebase_to_floor(result["items"], result["floor"]), layout.width_mm, layout.depth_mm), confirmed_tags
     ):
         session.add(LayoutPart(layout_id=layout.id, origin="vision", confirmed=False, **data))
+    ledger.record_usage(session, usage.total(), purpose="vision.layout", machine_id=layout.machine_id, images=1)
     session.commit()
     session.refresh(layout)
     return layout_out(layout)

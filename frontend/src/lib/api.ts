@@ -81,7 +81,64 @@ export interface DocTypeDetection {
   confidence: number;
   reason: string;
   source: "content" | "filename" | "suffix" | "none";
+  /** Seiten einer PDF (fuer die Kostenschaetzung vor dem Upload); null bei anderen Formaten. */
+  page_count: number | null;
 }
+
+// --- Kostenbuch: KI-Kosten je Maschine, Schaetzung, Monatslimit des Workspace -----------------
+
+export interface CostBucket {
+  cents: number;
+  calls: number;
+}
+
+export interface WorkspaceBudget {
+  month_cents: number;
+  month_calls: number;
+  cap_cents: number | null;
+  exceeded: boolean;
+}
+
+export interface MachineCosts {
+  machine_id: string;
+  month: CostBucket & { by_purpose: Record<string, CostBucket> };
+  total: CostBucket & { by_purpose: Record<string, CostBucket> };
+  workspace: WorkspaceBudget;
+}
+
+export interface CostEstimate {
+  pages: number;
+  photos: number;
+  vision: boolean;
+  per_page_vision_cents: number;
+  per_page_extraction_cents: number;
+  per_photo_cents: number;
+  chat_per_answer_cents: number;
+  total_cents: number;
+  basis: Record<string, "measured" | "list">;
+  models: Record<string, string>;
+}
+
+export const PURPOSE_LABELS: Record<string, string> = {
+  chat: "Chat-Antworten",
+  "vision.page": "Seitenanalyse",
+  "vision.cabinet": "Schaltschrank-Erkennung",
+  "vision.layout": "Draufsicht-Erkennung",
+  flow: "Ablauf-Extraktion",
+};
+
+export const costs = {
+  machine: (machineId: string) => request<MachineCosts>(`/api/machines/${machineId}/costs`),
+  estimate: (pages: number, photos = 0, vision = true) =>
+    request<CostEstimate>(`/api/machines/estimate?pages=${pages}&photos=${photos}&vision=${vision}`),
+  budget: () => request<WorkspaceBudget>("/api/workspace/budget"),
+  setBudget: (cap_cents: number | null) =>
+    request<WorkspaceBudget>("/api/workspace/budget", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cap_cents }),
+    }),
+};
 
 export interface Conversation {
   id: string;
@@ -110,6 +167,8 @@ export interface ChatMessage {
   tool_calls: ToolCall[];
   sources: SourceRef[];
   error?: string;
+  /** Kosten dieser Antwort in Cent (Summe der usage-Events; nur fuer live gestreamte Antworten). */
+  cost_cents?: number;
 }
 
 export interface Health {
@@ -221,6 +280,7 @@ export type ChatEvent =
   | { event: "tool_start"; data: { name: string; args: Record<string, unknown> } }
   | { event: "tool_end"; data: { name: string } }
   | { event: "sources"; data: SourceRef[] }
+  | { event: "usage"; data: { input_tokens: number; output_tokens: number; model: string; cost_cents: number } }
   | { event: "error"; data: { message: string } }
   | { event: "done"; data: Record<string, never> };
 

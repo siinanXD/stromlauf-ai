@@ -1,14 +1,16 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from app.agent.graph import build_graph
 from app.api import (
     auth,
     chat,
+    costs,
     diagnosis,
     facts,
     flow,
@@ -27,6 +29,7 @@ from app.checkpointer import open_checkpointer
 from app.config import get_settings
 from app.db import init_db, session_scope
 from app.ingestion.resume import plan_restart, resume_in_background
+from app.ledger import BudgetExceeded
 from app.models import DocStatus, Document
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -56,8 +59,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(BudgetExceeded)
+async def _budget_exceeded(request: Request, exc: BudgetExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=402,
+        content={"detail": str(exc), "code": "budget_exceeded", "used_cents": exc.used_cents, "cap_cents": exc.cap_cents},
+    )
+
+
 app.include_router(auth.router)
 app.include_router(sources.router)
+app.include_router(costs.router)
 app.include_router(chat.router)
 app.include_router(plant.router)
 app.include_router(layout.router)

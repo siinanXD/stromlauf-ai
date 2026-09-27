@@ -12,6 +12,7 @@ import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
 import { FlowTab } from "@/components/machine/FlowTab";
 import { MachineChatTab } from "@/components/machine/MachineChatTab";
+import { MachineCostChip } from "@/components/machine/MachineCostChip";
 import { FaultBanner } from "@/components/machine/FaultBanner";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
@@ -219,6 +220,9 @@ export default function MachinePage() {
               {MACHINE_TYPE_LABELS[machine.machine_type]} · {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente ·{" "}
               {layout ? `${layout.parts.length} Teile` : "keine Draufsicht"}
             </p>
+            <div className="mt-1">
+              <MachineCostChip machineId={id} refreshKey={imageBust} />
+            </div>
           </div>
           <TabsList variant="line" className="ml-auto h-10 max-w-full justify-start gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             <TabsTrigger value="draufsicht" className={TRIGGER}>

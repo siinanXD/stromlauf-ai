@@ -11,6 +11,13 @@ export const qtyText = (value: number, unit: string) => `${num(value, DIGITS[uni
 
 export const eur = (value: number) => `${num(value, 2)} €`;
 
+/** KI-Kosten aus dem Kostenbuch (Cent, Listenpreise 1:1 in Euro): "≈ 0,02 €", unter einem Zehntelcent "< 0,01 €". */
+export function costText(cents: number): string {
+  if (cents <= 0) return "0,00 €";
+  if (cents < 0.5) return "< 0,01 €";
+  return `≈ ${eur(cents / 100)}`;
+}
+
 export const whenText = (iso: string) => {
   const d = new Date(iso);
   return `${dayLabel(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;

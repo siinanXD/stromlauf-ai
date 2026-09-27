@@ -5,6 +5,7 @@ from enum import StrEnum
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Computed,
     Date,
@@ -65,6 +66,8 @@ class Workspace(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # KI-Monatslimit in Cent; None = kein Limit. Geprueft vor jedem Provider-Aufruf (app/ledger.py).
+    monthly_ai_cap_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class User(Base):
@@ -600,3 +603,23 @@ class StockItem(Base):
     units: Mapped[int] = mapped_column(Integer, default=0)
 
     article: Mapped[Article] = relationship()
+
+
+class AiCall(WorkspaceScoped, Base):
+    """Kostenbuch: ein KI-Aufruf, seiner Maschine und seinem Zweck zugebucht (app/ledger.py)."""
+
+    __tablename__ = "ai_call_ledger"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    machine_id: Mapped[str | None] = mapped_column(
+        ForeignKey("machines.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    purpose: Mapped[str] = mapped_column(String(32))  # chat | vision.page | vision.cabinet | vision.layout | flow
+    provider: Mapped[str] = mapped_column(String(32), default="anthropic")
+    model: Mapped[str] = mapped_column(String(120))
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    images: Mapped[int] = mapped_column(Integer, default=0)
+    cost_microcents: Mapped[int] = mapped_column(BigInteger, default=0)  # 1 Cent = 1_000_000
+    trace_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
