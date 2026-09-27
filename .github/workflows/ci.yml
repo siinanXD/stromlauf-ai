@@ -123,18 +123,19 @@ jobs:
           print("ok: leer")
           PY
       - name: Datenbank aus der create_all-Zeit -> upgrade head (additiver Pfad)
+        # Das alte Schema ist genau das der Baseline (test_alembic_baseline haelt beide deckungsgleich);
+        # ohne alembic_version-Tabelle nimmt 0001 den additiven Pfad, danach laufen die neueren Revisionen.
         run: |
+          alembic upgrade 0001_stromlauf_baseline
           python - <<'PY'
-          from app.db import Base, engine
-          from app import models  # noqa: F401
+          from app.db import engine
           from sqlalchemy import text
           with engine.begin() as conn:
-              conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
-          Base.metadata.create_all(engine)
-          print("create_all-Schema angelegt")
+              conn.execute(text("DROP TABLE alembic_version"))
+          print("create_all-Schema ohne Versionstabelle angelegt")
           PY
           alembic upgrade head
-          alembic current | grep -q 0001_stromlauf_baseline
+          alembic current | grep -q "(head)"
 
   docker:
     name: Backend-Image bauen
