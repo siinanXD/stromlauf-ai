@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import ledger
 from app.db import get_session
 from app.flow import extract
 from app.flow.sources import DocText, load_document
@@ -70,8 +71,18 @@ def extract_machine_flow(machine_id: str, force: bool = False, session: Session 
     """Extraktion anstossen (synchron, Budget 30 s). Gleicher Dokumentstand kommt aus dem Cache."""
     machine, docs, paths = _machine_docs(session, machine_id)
     names = {p: d.file for p, d in zip(paths, docs, strict=True)}
+    if force or not extract.cache_path(extract.cache_key(docs)).exists():
+        ledger.check_budget(session)  # Cache-Treffer kosten nichts und laufen auch am Limit
     try:
         flow = extract.extract_flow(paths, machine=machine.name, force=force, names=names)
     except RuntimeError as exc:
         raise HTTPException(502, str(exc)) from exc
+    if not flow.meta.cached:
+        for phase in flow.meta.phases:
+            if not phase.cached:
+                ledger.record(
+                    session, purpose="flow", model=phase.model, input_tokens=phase.usage.input_tokens,
+                    output_tokens=phase.usage.output_tokens, machine_id=machine.id, trace_id=flow.meta.trace_id,
+                )
+        session.commit()
     return flow.model_dump(mode="json")

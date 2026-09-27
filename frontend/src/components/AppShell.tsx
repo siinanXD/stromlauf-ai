@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 import { GlobalSearch } from "@/components/GlobalSearch";
-import { api, auth, type AuthMe } from "@/lib/api";
+import { api, auth, costs, type AuthMe, type WorkspaceBudget } from "@/lib/api";
+import { costText } from "@/lib/format";
 import { clearToken, getToken, redirectToLogin, tokenValid } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,32 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
   const pathname = usePathname();
   const [online, setOnline] = useState<boolean | null>(null);
   const [me, setMe] = useState<AuthMe | null>(null);
+  const [budget, setBudget] = useState<WorkspaceBudget | null>(null);
+
+  useEffect(() => {
+    // Monatslimit: Banner, sobald der Workspace am Limit ist (die API lehnt dann jeden KI-Aufruf mit 402 ab)
+    costs
+      .budget()
+      .then(setBudget)
+      .catch(() => setBudget(null));
+    const onExceeded = () => costs.budget().then(setBudget).catch(() => {});
+    window.addEventListener("stromlauf:budget", onExceeded);
+    return () => window.removeEventListener("stromlauf:budget", onExceeded);
+  }, [pathname]);
+
+  async function raiseCap() {
+    if (!budget) return;
+    const current = budget.cap_cents === null ? "" : String(Math.round(budget.cap_cents / 100));
+    const answer = window.prompt("Neues KI-Monatslimit in Euro (leer = kein Limit):", current);
+    if (answer === null) return;
+    const euros = answer.trim() === "" ? null : Number(answer.replace(",", "."));
+    if (euros !== null && !Number.isFinite(euros)) return;
+    try {
+      setBudget(await costs.setBudget(euros === null ? null : Math.round(euros * 100)));
+    } catch (err) {
+      window.alert((err as Error).message);
+    }
+  }
 
   useEffect(() => {
     api
@@ -152,6 +179,19 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
           </span>
         </header>
 
+        {budget?.exceeded && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-danger/40 bg-danger/10 px-6 py-2 text-sm" role="alert">
+            <span>
+              KI-Monatslimit erreicht: {costText(budget.month_cents)} von {costText(budget.cap_cents ?? 0)} verbraucht. Chat, Vision und
+              Ablauf-Extraktion sind bis zum Monatswechsel gesperrt.
+            </span>
+            {(me === null || me.workspace.role === "admin") && (
+              <button type="button" onClick={raiseCap} className="border border-danger px-2 py-0.5 text-danger hover:bg-danger hover:text-white">
+                Limit erhöhen
+              </button>
+            )}
+          </div>
+        )}
         <main className="min-h-0 flex-1">{children}</main>
       </div>
       <GlobalSearch />

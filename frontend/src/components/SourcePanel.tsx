@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api, DOC_TYPE_LABELS, type DocType, type DocTypeDetection, type SourceDocument } from "@/lib/api";
+import { api, costs, DOC_TYPE_LABELS, type CostEstimate, type DocType, type DocTypeDetection, type SourceDocument } from "@/lib/api";
+import { costText } from "@/lib/format";
 import type { PageTarget } from "@/components/PageViewer";
 
 /** Datei mit erkanntem Typ, wartet auf Bestätigung im Panel. */
@@ -36,7 +37,22 @@ export function SourcePanel({
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<CostEstimate | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Schaetzung vor der Ingestion: PDF-Seiten aus der Typerkennung, Vision-Analyse je nach Haken
+  const pendingPages = pending.reduce((sum, item) => sum + (item.detection?.page_count ?? 0), 0);
+  useEffect(() => {
+    if (pending.length === 0) return;
+    let cancelled = false;
+    costs
+      .estimate(pendingPages, 0, vision)
+      .then((result) => !cancelled && setEstimate(result))
+      .catch(() => !cancelled && setEstimate(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [pending.length, pendingPages, vision]);
 
   const reload = useCallback(async () => {
     try {
@@ -104,6 +120,7 @@ export function SourcePanel({
         }
       }),
     );
+    setEstimate(null); // neue Auswahl: alte Schaetzung nicht anzeigen, bis die neue da ist
     setPending(detected);
     setDetecting(false);
     if (fileInput.current) fileInput.current.value = "";
@@ -248,13 +265,22 @@ export function SourcePanel({
                 </p>
               </li>
             ))}
+            {estimate && (
+              <li className="text-xs text-muted-foreground" data-testid="upload-estimate">
+                Geschätzte KI-Kosten: <span className="font-medium text-foreground">{costText(estimate.total_cents)}</span> für{" "}
+                {pendingPages} Seiten ({vision ? "Seitenanalyse + " : ""}Ablauf-Extraktion
+                {estimate.basis["vision.page"] === "measured" ? ", aus gemessenen Werten" : ", Listenpreise"}).
+              </li>
+            )}
             <li className="flex gap-1.5">
               <button
                 onClick={() => upload(pending)}
                 disabled={uploading}
                 className="flex-1 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground disabled:opacity-50"
               >
-                {uploading ? "Lädt hoch …" : `${pending.length} ${pending.length === 1 ? "Datei" : "Dateien"} hochladen`}
+                {uploading
+                  ? "Lädt hoch …"
+                  : `Modell erstellen (${pending.length} ${pending.length === 1 ? "Datei" : "Dateien"})${estimate ? ` · ${costText(estimate.total_cents)}` : ""}`}
               </button>
               <button
                 onClick={() => setPending([])}

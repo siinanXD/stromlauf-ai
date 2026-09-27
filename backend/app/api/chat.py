@@ -9,6 +9,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, Too
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import ledger
 from app.config import get_settings
 from app.db import get_session, session_scope
 from app.models import Conversation, KnowledgeSource, Machine
@@ -159,6 +160,8 @@ async def chat(body: ChatRequest, request: Request):
             visible = set(session.scalars(select(KnowledgeSource.id).where(KnowledgeSource.id.in_(source_ids))))
             if visible != set(source_ids):
                 raise HTTPException(404, "Wissensquelle nicht gefunden")
+        # Monatslimit des Workspace: Ablehnung, bevor der Provider gerufen wird (402 via BudgetExceeded)
+        ledger.check_budget(session)
         conversation = session.get(Conversation, body.conversation_id) if body.conversation_id else None
         if conversation is not None and not same_workspace(conversation):
             raise HTTPException(404, "Chat nicht gefunden")
@@ -196,13 +199,17 @@ async def chat(body: ChatRequest, request: Request):
                 for update in payload.values():
                     for message in (update or {}).get("messages", []):
                         if isinstance(message, AIMessage):
-                            usage = getattr(message, "usage_metadata", None) or {}
-                            if usage:
+                            usage = ledger.usage_of(message, get_settings().chat_model)
+                            if usage is not None:
+                                # jede Modellantwort (auch Werkzeugrunden) wird der Maschine zugebucht
+                                with session_scope() as booking:
+                                    call = ledger.record_usage(booking, usage, purpose="chat", machine_id=body.machine_id)
+                                    cost_cents = call.cost_microcents / ledger.MICROCENTS_PER_CENT
                                 yield _sse("usage", {
-                                    "input_tokens": usage.get("input_tokens", 0),
-                                    "output_tokens": usage.get("output_tokens", 0),
-                                    "model": message.response_metadata.get("model_name")
-                                    or get_settings().chat_model,
+                                    "input_tokens": usage.input_tokens,
+                                    "output_tokens": usage.output_tokens,
+                                    "model": usage.model,
+                                    "cost_cents": cost_cents,
                                 })
                             for call in message.tool_calls:
                                 yield _sse("tool_start", {"name": call["name"], "args": call["args"]})

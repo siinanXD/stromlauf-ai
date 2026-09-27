@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app import ledger
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size
@@ -458,8 +459,10 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
                 .distinct()
             )
         )
+    ledger.check_budget(session)
+    config, usage = ledger.collect(vision_trace(cabinet_id, "schaltschrank"))
     try:
-        items = detect_components(Path(cabinet.image_path), known, vision_trace(cabinet_id, "schaltschrank"))
+        items = detect_components(Path(cabinet.image_path), known, config)
     except Exception as exc:
         logger.exception("Vision-Erkennung fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
@@ -470,6 +473,7 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
             session.delete(old)
     for item in items:
         session.add(CabinetHotspot(cabinet_id=cabinet.id, origin="vision", confirmed=False, **item))
+    ledger.record_usage(session, usage.total(), purpose="vision.cabinet", machine_id=machine.id, images=1)
     session.commit()
     session.refresh(cabinet)
     return CabinetOut.model_validate(cabinet)

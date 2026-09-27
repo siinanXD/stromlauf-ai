@@ -41,6 +41,7 @@ class DocTypeDetection(BaseModel):
     confidence: float
     reason: str
     source: str  # content | filename | suffix | none
+    page_count: int | None = None  # PDF-Seiten fuer die Kostenschaetzung vor dem Upload
 
 
 class ConversationOut(BaseModel):
