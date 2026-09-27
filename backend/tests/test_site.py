@@ -16,7 +16,8 @@ def test_upgrade_statements_add_each_column_idempotently():
     assert statements[0] == (
         "ALTER TABLE halls ADD COLUMN IF NOT EXISTS kind VARCHAR(24) NOT NULL DEFAULT 'generic'"
     )
-    columns = [(s.split()[2], s.split()[8]) for s in statements]
+    alters = [s for s in statements if s.startswith("ALTER TABLE")]
+    columns = [(s.split()[2], s.split()[8]) for s in alters]
     assert columns == [
         ("halls", "kind"),
         ("halls", "site_x"),
@@ -25,6 +26,10 @@ def test_upgrade_statements_add_each_column_idempotently():
         ("halls", "site_h"),
         ("machines", "line"),
         ("articles", "price"),
+        ("chunks", "tsv"),
+    ]
+    assert statements[len(alters) :] == [
+        "CREATE INDEX IF NOT EXISTS ix_chunks_tsv ON chunks USING gin (tsv)"
     ]
 
 

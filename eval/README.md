@@ -4,7 +4,7 @@ Eine Fragenliste (`questions.jsonl`), drei Schichten. Die ersten beiden kosten n
 
 | Schicht | Aufruf | Kosten | Misst |
 | --- | --- | --- | --- |
-| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, semantische Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
+| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, hybride Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
 | Wiederbewertung | `python eval/rescore.py eval/results/<lauf>.json` | keine | Gespeicherte Agentenantworten mit der aktuellen Fragenliste neu bewerten |
 | Agent | `python eval/run_eval.py` | **API-Tokens je Frage**, ca. 20 min | Antwortet der Chat-Agent Ende-zu-Ende richtig, zitiert er, nutzt er das passende Werkzeug? |
 

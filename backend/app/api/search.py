@@ -12,7 +12,7 @@ MAX_QUERY = 200
 
 @router.get("/search")
 def search(q: str = "", mode: str = "semantic", source_id: str | None = None, k: int = 8) -> dict:
-    """Semantisch (Embeddings, lokal), woertlich oder exakt nach Kennzeichen; optional je Wissensquelle."""
+    """Hybrid (Embeddings + Volltext, lokal), woertlich oder exakt nach Kennzeichen; optional je Wissensquelle."""
     if not q.strip():
         raise HTTPException(400, "Suchbegriff fehlt")
     if len(q) > MAX_QUERY:

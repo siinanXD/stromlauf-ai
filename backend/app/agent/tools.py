@@ -11,6 +11,7 @@ from app.embeddings import embeddings
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import image_block, render_page_png
 from app.models import Chunk, DocStatus, Document, KnowledgeSource, TagOccurrence
+from app.retrieval import hybrid_chunk_ids
 
 
 def _source_ids(config: RunnableConfig) -> list[str]:
@@ -44,9 +45,10 @@ def _format_chunk(document: Document, chunk: Chunk) -> str:
 def search_knowledge(
     query: str, config: RunnableConfig, doc_types: list[str] | None = None, k: int = 8
 ) -> tuple[str, list[dict]]:
-    """Semantische Suche ueber alle Dokumente der gewaehlten Wissensquellen
-    (Stromlaufplaene inkl. Vision-Beschreibungen, Stuecklisten, Klemmenplaene, AWL-Netzwerke,
-    Handbuecher). Gut fuer Funktionsfragen ("Was schaltet die Pumpe ein?").
+    """Hybride Suche ueber alle Dokumente der gewaehlten Wissensquellen: Bedeutung (Embeddings)
+    und Volltext (Fachbegriffe, Typbezeichnungen) verschmolzen. Deckt Stromlaufplaene inkl.
+    Vision-Beschreibungen, Stuecklisten, Klemmenplaene, AWL-Netzwerke und Handbuecher ab.
+    Gut fuer Funktionsfragen ("Was schaltet die Pumpe ein?").
     Fuer exakte Kennzeichen (-K12, E0.0, -X1:5) stattdessen find_tag verwenden.
 
     Args:
@@ -56,22 +58,20 @@ def search_knowledge(
         k: Anzahl Treffer (1-20).
     """
     vector = embeddings.embed_query(query)
-    statement = (
-        select(Chunk, Document)
-        .join(Document, Chunk.document_id == Document.id)
-        .order_by(Chunk.embedding.cosine_distance(vector))
-        .limit(max(1, min(k, 20)))
-    )
-    statement = _scoped(statement, Chunk.source_id, config)
-    if doc_types:
-        statement = statement.where(Document.doc_type.in_(doc_types))
-
+    limit = max(1, min(k, 20))
     with session_scope() as session:
-        rows = session.execute(statement).all()
-        if not rows:
+        ids = hybrid_chunk_ids(session, query, vector, _source_ids(config), doc_types, limit)
+        if not ids:
             return "Keine Treffer. Sind Dokumente hochgeladen und fertig verarbeitet?", []
-        text = "\n\n".join(_format_chunk(document, chunk) for chunk, document in rows)
-        refs = [_ref(document, chunk.page, chunk.section) for chunk, document in rows]
+        rows = session.execute(
+            select(Chunk, Document)
+            .join(Document, Chunk.document_id == Document.id)
+            .where(Chunk.id.in_(ids))
+        ).all()
+        by_id = {chunk.id: (chunk, document) for chunk, document in rows}
+        ordered = [by_id[i] for i in ids if i in by_id]
+        text = "\n\n".join(_format_chunk(document, chunk) for chunk, document in ordered)
+        refs = [_ref(document, chunk.page, chunk.section) for chunk, document in ordered]
     return text, refs
 
 

@@ -227,6 +227,8 @@ backend/    FastAPI
                    optionale Vision-Analyse der Schaltplanseiten (Claude)
   app/agent/       LangGraph-Agent (Claude) mit Werkzeugen: search_knowledge, find_tag,
                    keyword_search, get_page, view_page, get_plc_block, list_documents
+  app/retrieval.py Hybrid-Suche: Vektor (pgvector, HNSW) + Volltext (tsvector 'german', GIN),
+                   Fusion per Reciprocal Rank Fusion; search_knowledge und /api/search?mode=semantic
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
                    Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
                    site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen

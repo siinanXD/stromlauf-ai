@@ -28,6 +28,8 @@ Frontend-spezifisch: `frontend/AGENTS.md` (Next.js-Version mit Breaking Changes)
   `backend/data/images/`.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
+- Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
+  generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
