@@ -1,4 +1,4 @@
-"""Befundkarte zu einem Betriebsmittel: Bezeichnung, Stromlaufplan-Stellen, Klemmen, SPS-Adressen.
+"""Befundkarte zu einem Betriebsmittel: Einbauort, Bezeichnung, Stromlaufplan-Stellen, Klemmen, SPS-Adressen.
 
 Quelle ist allein der Kennzeichen-Index (Fundstellen mit Textumgebung), nicht das Sprachmodell.
 Tabellen (Stueckliste, Klemmenplan, Symboltabelle) liegen dort als "| a | b | | c | d |" vor;
@@ -11,6 +11,26 @@ from app.ingestion.tags import extract_tags
 from app.models import TagType
 
 PLC_DOC_TYPES = {"plc_symbols", "plc_program"}
+# Einbauort nach IEC 81346: +ST1, +FE1. Leitungen tragen zwei ("+ST1 -> +FE1").
+LOCATION_CELL = re.compile(r"\+[A-Za-z][\w-]*")
+LOCATION_FILLER = re.compile(r"[\s,;/>.\-–—]+")
+# Klartext davor, wie in der Kopfzeile der Stueckliste: "Anlage =FB1, Schaltschrank +ST1, Feld +FE1"
+LOCATION_NAME = re.compile(r"([A-ZÄÖÜ][\wäöüß-]+)\s(\+[A-Za-z][\w-]*)")
+
+
+def locations_in(cell: str) -> list[str]:
+    """Ortskennzeichen einer Zelle, aber nur wenn die Zelle aus nichts anderem besteht.
+
+    "+ST1" und "+ST1 -> +FE1" zaehlen, eine Bezeichnung wie "Leitung von +ST1 nach +FE1" nicht.
+    """
+    codes = LOCATION_CELL.findall(cell)
+    rest = LOCATION_FILLER.sub("", LOCATION_CELL.sub("", cell))
+    return codes if codes and not rest else []
+
+
+def location_names(text: str) -> dict[str, str]:
+    """Klartext je Ortskennzeichen aus einem Text ("Schaltschrank +ST1" -> {"+ST1": "Schaltschrank"})."""
+    return {code: name for name, code in LOCATION_NAME.findall(text or "")}
 
 
 def _rows(context: str) -> list[list[str]]:
@@ -47,9 +67,19 @@ def hits_of_single_source(hits: list[dict]) -> list[dict] | None:
     return hits if len(sources) <= 1 else None
 
 
-def build_fact_card(tag: str, hits: list[dict]) -> dict | None:
-    """Befundkarte oder None, wenn der Index nichts Verwertbares hergibt."""
+def build_fact_card(tag: str, hits: list[dict], legend: str = "") -> dict | None:
+    """Befundkarte oder None, wenn der Index nichts Verwertbares hergibt.
+
+    `legend` ist die Kopfzeile der Stueckliste; daraus wird der Klartext der Einbauorte gelesen.
+    """
     title = bom_line = None
+    bom_hit = None
+    locations: list[str] = []
+    # Kopfzeile steht in einer eigenen Zeile, nicht in der des Betriebsmittels: vorab einsammeln
+    names = location_names(legend)
+    for hit in hits:
+        if hit["doc_type"] == "bom":
+            names.update(location_names(hit["context"]))
     sheet_refs: list[str] = []
     terminals: list[tuple[str, dict]] = []
     addresses: list[tuple[str, dict]] = []
@@ -59,6 +89,9 @@ def build_fact_card(tag: str, hits: list[dict]) -> dict | None:
             if not _mentions(cells, tag):
                 continue
             found = extract_tags(" ".join(cells), plc_loose=hit["doc_type"] in PLC_DOC_TYPES)
+            if hit["doc_type"] == "bom":
+                locations += [code for cell in cells for code in locations_in(cell)]
+                bom_hit = bom_hit or hit
             if hit["doc_type"] == "bom" and title is None:
                 bom_line = " | ".join(cells)
                 if tag in cells and cells.index(tag) + 1 < len(cells):
@@ -79,7 +112,12 @@ def build_fact_card(tag: str, hits: list[dict]) -> dict | None:
         if page and f"S. {page}" not in [v["text"] for v in schematic_values]:
             schematic_values.append(_value(f"S. {page}", hit, f"S. {page}"))
 
+    location_values = [
+        _value(f"{names[code]} {code}" if code in names else code, bom_hit, code)
+        for code in dict.fromkeys(locations)
+    ]
     rows = [
+        {"label": "Einbauort", "values": location_values},
         {"label": "Stromlaufplan", "values": schematic_values},
         {"label": "Klemmen", "values": _unique(terminals)},
         {"label": "SPS", "values": _unique(addresses)},
