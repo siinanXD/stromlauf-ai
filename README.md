@@ -283,6 +283,16 @@ Details in [`eval/README.md`](eval/README.md).
 
 ## Tests
 
+Alle Prüfungen auf einmal, wie sie eine CI ausführen würde (ohne Cloud-Kosten, etwa 1 Minute):
+
+```bash
+backend/.venv/Scripts/python scripts/check.py                 # ruff, pytest, eslint, tsc, vitest
+backend/.venv/Scripts/python scripts/check.py --install-hook  # dasselbe automatisch vor jedem Push
+```
+
+Der GitHub-Workflow `.github/workflows/ci.yml` ist nur von Hand startbar, weil das private Repo kein
+Actions-Guthaben hat. Wird das Repo öffentlich, `push`/`pull_request` wieder als Auslöser eintragen.
+
 ```bash
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test

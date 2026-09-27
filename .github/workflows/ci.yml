@@ -1,9 +1,10 @@
 name: CI
 
+# Nur von Hand startbar: das Repo ist privat und hat kein Actions-Guthaben. Lokal laufen dieselben
+# Pruefungen mit `python scripts/check.py` (Hook: `python scripts/check.py --install-hook`).
+# Wird das Repo oeffentlich oder gibt es Guthaben: `push`/`pull_request` wieder eintragen.
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

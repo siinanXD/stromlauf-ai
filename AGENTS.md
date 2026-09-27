@@ -57,12 +57,15 @@ docker compose up -d db
 cd backend && .venv/Scripts/uvicorn app.main:app --reload --port 8010
 cd frontend && npm run dev        # http://localhost:3100
 
+backend/.venv/Scripts/python scripts/check.py   # alles: ruff, pytest, eslint, tsc, vitest (ca. 1 min)
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
 python eval/run_retrieval.py      # Eval ohne Kosten; eval/run_eval.py kostet Tokens je Frage
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
+CI (`.github/workflows/ci.yml`) laeuft nur per Hand: privates Repo ohne Actions-Guthaben. Vor jedem Push
+`scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
 
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
 und muss neu erstellt werden.
