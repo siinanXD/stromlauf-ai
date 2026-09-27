@@ -64,6 +64,12 @@ def _sheet_map(path: str, mtime: float) -> tuple[dict[int, int], int]:
             pdf.close()
 
 
+def known_sheets(path: Path) -> set[int]:
+    """Blattnummern des Plans (Schriftfeld), sonst 1..Seitenzahl."""
+    sheets, pages = _sheet_map(str(path), path.stat().st_mtime)
+    return set(sheets) if sheets else set(range(1, pages + 1))
+
+
 def sheet_page(path: Path, sheet: int) -> int | None:
     """PDF-Seite (1-basiert) mit "Blatt {sheet}"; ohne Blatt-Beschriftung gilt Seite = Blatt."""
     sheets, pages = _sheet_map(str(path), path.stat().st_mtime)

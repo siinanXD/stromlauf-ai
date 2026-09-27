@@ -90,7 +90,13 @@ export default function MachinesPage() {
                       </Link>
                     </td>
                     <td className={cn(TD, m.ready_document_count === 0 && "text-muted-foreground")}>
-                      {docsLabel(m)}
+                      {m.source_id && m.ready_document_count > 0 ? (
+                        <Link href={`/quelle/${m.source_id}`} className="hover:text-primary hover:underline">
+                          {docsLabel(m)}
+                        </Link>
+                      ) : (
+                        docsLabel(m)
+                      )}
                       {m.source_name && <span className="ml-1 text-xs text-muted-foreground">({m.source_name})</span>}
                     </td>
                     <td className={cn(TD, "text-right tabular-nums")}>{m.fault_count}</td>

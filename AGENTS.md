@@ -18,7 +18,7 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
   `/werk/halle/[id]` Hallen-Baukasten, `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand`
   Durchlauf-Simulation (die letzten beiden: Nebenmodule, Feature-Freeze).
 - Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
@@ -30,8 +30,10 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   "Maschinenstundensatz" der Maschine. Leitstand: Customer (Kreditlimit) -> Order -> OrderLine, StockItem
   (Anfangsbestand je Artikel), `articles.price`; Simulationskern `app/werk/sim.py` (heapq-Ereignisschleife,
   Parameter `workers` je Buero-Station und `credit_hold_min` in PlantSetting "calc").
-- Signalweg, Fehlersuche und Onboarding sind deterministisch (keine API-Kosten); Parser in
-  `backend/app/ingestion/{signal_graph,diagnosis,onboarding}.py`, Tests gegen `examples/foerderband/`.
+- Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
+  `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
+  Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
+  zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
   `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
   `backend/data/images/`. Ingestion laeuft im Prozess; nach Neustart reiht `ingestion/resume.py`

@@ -379,6 +379,54 @@ class FactRow(BaseModel):
     values: list[FactValue]
 
 
+class ProfileDocument(BaseModel):
+    id: str
+    filename: str
+    doc_type: str
+    status: str
+    page_count: int | None
+    tag_count: int
+
+
+class ProfileDocType(BaseModel):
+    doc_type: str
+    present: bool
+    filenames: list[str]
+
+
+class ProfileGap(BaseModel):
+    kind: str
+    tag: str
+    message: str
+    doc_types: list[str]
+
+
+class ProfileCoverage(BaseModel):
+    tag: str
+    tag_type: str
+    docs: dict[str, int]
+
+
+class ProfileSummary(BaseModel):
+    devices: int
+    terminals: int
+    plc_addresses: int
+    gaps: int
+
+
+class SourceProfile(BaseModel):
+    """Steckbrief einer Wissensquelle: Dokumente, Abdeckung, Luecken (deterministisch, ohne Modell)."""
+
+    source_id: str
+    source_name: str
+    documents: list[ProfileDocument]
+    doc_types: list[ProfileDocType]
+    sheets: list[int]  # Blaetter des Stromlaufplans, leer ohne PDF-Plan
+    summary: ProfileSummary
+    gaps: list[ProfileGap]
+    coverage: list[ProfileCoverage]
+
+
 class FactCard(BaseModel):
     tag: str
     title: str | None = None

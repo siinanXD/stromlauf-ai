@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { ClipboardList, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -87,7 +87,15 @@ export function DocumentsTab({
               </option>
             ))}
           </select>
-          <Button size="sm" className="ml-auto" asChild>
+          {machine.source_id && (
+            <Button size="sm" variant="outline" className="ml-auto" asChild>
+              <Link href={`/quelle/${machine.source_id}`}>
+                <ClipboardList className="size-3.5" />
+                Steckbrief
+              </Link>
+            </Button>
+          )}
+          <Button size="sm" className={machine.source_id ? "" : "ml-auto"} asChild>
             <Link href={chatHref}>
               <MessageSquare className="size-3.5" />
               Chat zu dieser Maschine

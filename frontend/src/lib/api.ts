@@ -55,6 +55,18 @@ export interface SourceDocument {
   vision_enrichment: boolean;
 }
 
+/** Steckbrief einer Wissensquelle (GET /api/sources/{id}/profile), deterministisch aus dem Kennzeichen-Index. */
+export interface SourceProfile {
+  source_id: string;
+  source_name: string;
+  documents: { id: string; filename: string; doc_type: DocType; status: SourceDocument["status"]; page_count: number | null; tag_count: number }[];
+  doc_types: { doc_type: DocType; present: boolean; filenames: string[] }[];
+  sheets: number[];
+  summary: { devices: number; terminals: number; plc_addresses: number; gaps: number };
+  gaps: { kind: string; tag: string; message: string; doc_types: string[] }[];
+  coverage: { tag: string; tag_type: "device" | "terminal" | "plc_address"; docs: Record<string, number> }[];
+}
+
 export interface Conversation {
   id: string;
   title: string;
@@ -111,6 +123,7 @@ export const api = {
   deleteSource: (id: string) => request<void>(`/api/sources/${id}`, { method: "DELETE" }),
   listDocuments: (sourceId: string) =>
     request<SourceDocument[]>(`/api/sources/${sourceId}/documents`),
+  getSourceProfile: (sourceId: string) => request<SourceProfile>(`/api/sources/${sourceId}/profile`),
   uploadDocument: (sourceId: string, file: File, docType: DocType, vision: boolean) => {
     const form = new FormData();
     form.append("file", file);

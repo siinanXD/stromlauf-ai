@@ -122,6 +122,17 @@ Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `ki
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
+## Steckbrief je Wissensquelle (ohne KI-Kosten)
+
+Nach dem Upload zeigt `/quelle/{id}` (Link im Quellen-Panel, im Tab „Dokumente“ der Maschine und in
+der Maschinenübersicht), was die Dokumente hergeben: welche der sechs Dokumenttypen da sind, eine
+Abdeckungsmatrix (jedes Betriebsmittel, jede Klemme, jede SPS-Adresse mit Fundstellen je Dokumenttyp)
+und eine Lückenliste aus Regeln zwischen zwei Dokumenttypen, etwa „Betriebsmittel im Plan, aber nicht in
+der Stückliste“, „Klemme im Plan, aber nicht im Klemmenplan“, „SPS-Adresse im Programm ohne Symbol“ oder
+„Blattverweis auf ein Blatt, das der Plan nicht hat“. Eine Regel greift nur, wenn beide Dokumenttypen
+vorhanden sind. Rechenkern `backend/app/ingestion/profile.py`, Daten `GET /api/sources/{id}/profile`.
+Die Beispielanlage FB-01 hat genau eine Lücke: Symbol `M10.1` ohne Verwendung im AWL.
+
 ## Signalweg, Fehlersuche, Onboarding (ohne KI-Kosten)
 
 Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:

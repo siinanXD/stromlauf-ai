@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, DOC_TYPE_LABELS, type DocType, type SourceDocument } from "@/lib/api";
@@ -83,6 +84,11 @@ export function SourcePanel({
   return (
     <div className="space-y-2 border-t border-border bg-background/60 px-3 py-3 text-sm">
       {documents.length === 0 && <p className="text-muted-foreground">Noch keine Dokumente.</p>}
+      {documents.some((d) => d.status === "ready") && (
+        <Link href={`/quelle/${sourceId}`} className="inline-block text-xs font-medium text-primary hover:underline">
+          Steckbrief: Abdeckung und Lücken →
+        </Link>
+      )}
       <ul className="space-y-1.5">
         {documents.map((document) => (
           <li key={document.id} className="rounded-lg border border-border bg-card px-2.5 py-2">
