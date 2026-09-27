@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.config import get_settings
 from app.db import Base
+from app.tenancy import WorkspaceScoped
 
 
 def _uuid() -> str:
@@ -56,7 +57,52 @@ class TagType(StrEnum):
     CROSS_REF = "cross_ref"  # Seitenverweis, z.B. /12.3
 
 
-class KnowledgeSource(Base):
+class Workspace(Base):
+    """Mandant: ein Kunde/Werk. Alle fachlichen Zeilen tragen seine id (siehe app/tenancy.py)."""
+
+    __tablename__ = "workspaces"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class WorkspaceMember(Base):
+    """Rolle eines Nutzers in einem Workspace: admin | member."""
+
+    __tablename__ = "workspace_members"
+
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(16), default="member")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class LoginToken(Base):
+    """Magic-Link: nur der SHA-256 des Tokens liegt in der Datenbank, einmal einloesbar."""
+
+    __tablename__ = "login_tokens"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class KnowledgeSource(WorkspaceScoped, Base):
     """Wissensquelle: Container fuer zusammengehoerige Dokumente (z.B. eine Anlage)."""
 
     __tablename__ = "knowledge_sources"
@@ -71,7 +117,7 @@ class KnowledgeSource(Base):
     )
 
 
-class Document(Base):
+class Document(WorkspaceScoped, Base):
     __tablename__ = "documents"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
@@ -99,7 +145,7 @@ class Document(Base):
     )
 
 
-class Chunk(Base):
+class Chunk(WorkspaceScoped, Base):
     __tablename__ = "chunks"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
@@ -134,7 +180,7 @@ class Chunk(Base):
     )
 
 
-class TagOccurrence(Base):
+class TagOccurrence(WorkspaceScoped, Base):
     """Exakter Index aller Kennzeichen - das Rueckgrat fuer Zusammenhaenge ueber Dokumente."""
 
     __tablename__ = "tag_occurrences"
@@ -153,7 +199,7 @@ class TagOccurrence(Base):
     document: Mapped[Document] = relationship(back_populates="tags")
 
 
-class Conversation(Base):
+class Conversation(WorkspaceScoped, Base):
     __tablename__ = "conversations"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
@@ -177,7 +223,7 @@ class MachineType(StrEnum):
     OTHER = "other"
 
 
-class Hall(Base):
+class Hall(WorkspaceScoped, Base):
     """Produktionshalle: enthaelt Maschinen und den Materialfluss zwischen ihnen."""
 
     __tablename__ = "halls"
@@ -200,7 +246,7 @@ class Hall(Base):
     flows: Mapped[list["HallFlow"]] = relationship(back_populates="hall", cascade="all, delete-orphan")
 
 
-class Machine(Base):
+class Machine(WorkspaceScoped, Base):
     """Eine Maschine in der Halle. Die Doku haengt ueber source_id als Wissensquelle dran."""
 
     __tablename__ = "machines"
@@ -236,7 +282,7 @@ class Machine(Base):
     )
 
 
-class HallFlow(Base):
+class HallFlow(WorkspaceScoped, Base):
     """Materialfluss-Kante zwischen zwei Maschinen einer Halle."""
 
     __tablename__ = "hall_flows"
@@ -250,7 +296,7 @@ class HallFlow(Base):
     hall: Mapped[Hall] = relationship(back_populates="flows")
 
 
-class SiteFlow(Base):
+class SiteFlow(WorkspaceScoped, Base):
     """Materialfluss zwischen zwei Hallen im Standortplan."""
 
     __tablename__ = "site_flows"
@@ -261,7 +307,7 @@ class SiteFlow(Base):
     label: Mapped[str] = mapped_column(String(120), default="")
 
 
-class MachineSpec(Base):
+class MachineSpec(WorkspaceScoped, Base):
     """Kennzahl einer Maschine mit Quelle, z. B. 'Leistung 10 Logs/min (Hersteller-Datenblatt)'."""
 
     __tablename__ = "machine_specs"
@@ -275,7 +321,7 @@ class MachineSpec(Base):
     source: Mapped[str] = mapped_column(Text, default="")  # URL oder "Richtwert ..."
 
 
-class FaultEntry(Base):
+class FaultEntry(WorkspaceScoped, Base):
     """Fehlerliste der Maschine: Code, Symptom, Ursache, Behebung, Verweis in die Doku."""
 
     __tablename__ = "fault_entries"
@@ -293,7 +339,7 @@ class FaultEntry(Base):
     machine: Mapped[Machine] = relationship(back_populates="faults")
 
 
-class CabinetImage(Base):
+class CabinetImage(WorkspaceScoped, Base):
     """Foto oder Aufbauplan eines Schaltschranks mit markierten Bauteilen."""
 
     __tablename__ = "cabinet_images"
@@ -312,7 +358,7 @@ class CabinetImage(Base):
     )
 
 
-class CabinetHotspot(Base):
+class CabinetHotspot(WorkspaceScoped, Base):
     """Rechteck im Schaltschrankbild, relativ (0..1) zur Bildgroesse, mit BMK."""
 
     __tablename__ = "cabinet_hotspots"
@@ -335,7 +381,7 @@ class CabinetHotspot(Base):
     cabinet: Mapped[CabinetImage] = relationship(back_populates="hotspots")
 
 
-class MachineLayout(Base):
+class MachineLayout(WorkspaceScoped, Base):
     """Draufsicht einer Maschine in mm; Skizze als Upload oder als Seite eines Dokuments."""
 
     __tablename__ = "machine_layouts"
@@ -360,7 +406,7 @@ class MachineLayout(Base):
     )
 
 
-class LayoutPart(Base):
+class LayoutPart(WorkspaceScoped, Base):
     """Baugruppe oder Feldgeraet in der Draufsicht (Rechteck oder Kreis, Werte in mm)."""
 
     __tablename__ = "layout_parts"
@@ -383,7 +429,7 @@ class LayoutPart(Base):
     layout: Mapped[MachineLayout] = relationship(back_populates="parts")
 
 
-class DiagnosisSession(Base):
+class DiagnosisSession(WorkspaceScoped, Base):
     """Gefuehrte Fehlersuche an einer Maschine: Pruefschritte mit Ergebnis, Befund, Abschluss."""
 
     __tablename__ = "diagnosis_sessions"

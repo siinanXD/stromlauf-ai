@@ -52,6 +52,7 @@ from app.schemas import (
     TagSearchHit,
     TagSearchMachine,
 )
+from app.tenancy import same_workspace
 from app.tracing import vision_trace
 from app.werk.site import HALL_KINDS, key_figure
 
@@ -78,8 +79,9 @@ def _store_image(file: UploadFile) -> Path:
 
 
 def _get(session: Session, model, item_id: str, label: str):
+    """Laden mit Mandantenpruefung: fremde Zeilen sind fuer diesen Request nicht vorhanden (404)."""
     item = session.get(model, item_id)
-    if item is None:
+    if item is None or not same_workspace(item):
         raise HTTPException(404, f"{label} nicht gefunden")
     return item
 
@@ -214,7 +216,10 @@ def _remove_machine_files(machine: Machine) -> None:
 
 
 def _validate_source(session: Session, source_id: str | None) -> None:
-    if source_id and session.get(KnowledgeSource, source_id) is None:
+    if not source_id:
+        return
+    source = session.get(KnowledgeSource, source_id)
+    if source is None or not same_workspace(source):
         raise HTTPException(400, "Wissensquelle nicht gefunden")
 
 

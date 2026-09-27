@@ -51,6 +51,16 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://cloud.langfuse.com"
     # Gemeinsamer Schluessel fuer alle /api-Routen (leer = offen, nur lokal sinnvoll)
     api_key: str | None = None
+    # Anmeldung per Magic-Link + JWT (app/auth.py). Ohne JWT_SECRET: nur API_KEY bzw. offen.
+    jwt_secret: str | None = None
+    jwt_ttl_hours: int = 12
+    auth_dev_link: bool = False  # Link in der Antwort statt per Mail (nur Entwicklung)
+    smtp_url: str | None = None  # smtp://user:pass@host:587 oder smtps://user:pass@host:465
+    mail_from: str = "stromlauf@localhost"
+    frontend_url: str = "http://localhost:3100"
+
+    # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
+    checkpointer: str = "sqlite"
 
     # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
     checkpointer: str = "sqlite"

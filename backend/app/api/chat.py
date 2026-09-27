@@ -11,8 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_session, session_scope
-from app.models import Conversation, Machine
+from app.models import Conversation, KnowledgeSource, Machine
 from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
+from app.tenancy import current_workspace_id, reset_workspace, same_workspace, set_workspace
 from app.tracing import trace_config
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def _thread_config(conversation_id: str, source_ids: list[str], machine: dict | 
 def machine_scope(session: Session, machine_id: str) -> tuple[list[str], dict]:
     """Fester Scope eines Maschinen-Chats: nur die Wissensquelle der Maschine."""
     machine = session.get(Machine, machine_id)
-    if machine is None:
+    if machine is None or not same_workspace(machine):
         raise HTTPException(404, "Maschine nicht gefunden")
     if not machine.source_id:
         raise HTTPException(409, "Maschine hat keine Wissensquelle; im Tab Dokumente eine waehlen")
@@ -99,7 +100,7 @@ async def delete_conversation(
     conversation_id: str, request: Request, session: Session = Depends(get_session)
 ):
     conversation = session.get(Conversation, conversation_id)
-    if conversation is None:
+    if conversation is None or not same_workspace(conversation):
         raise HTTPException(404, "Chat nicht gefunden")
     session.delete(conversation)
     session.commit()
@@ -107,7 +108,10 @@ async def delete_conversation(
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageOut])
-async def get_messages(conversation_id: str, request: Request):
+async def get_messages(conversation_id: str, request: Request, session: Session = Depends(get_session)):
+    conversation = session.get(Conversation, conversation_id)
+    if conversation is None or not same_workspace(conversation):
+        raise HTTPException(404, "Chat nicht gefunden")
     graph = request.app.state.graph
     state = await graph.aget_state(_thread_config(conversation_id, []))
     result: list[MessageOut] = []
@@ -145,11 +149,19 @@ async def chat(body: ChatRequest, request: Request):
         raise HTTPException(400, "ANTHROPIC_API_KEY fehlt. In .env eintragen und Backend neu starten.")
     graph = request.app.state.graph
 
+    workspace_id = current_workspace_id()
     with session_scope() as session:
         source_ids, machine = body.source_ids, None
         if body.machine_id:
             source_ids, machine = machine_scope(session, body.machine_id)
+        elif source_ids:
+            # Nur Quellen des eigenen Workspace duerfen in den Scope
+            visible = set(session.scalars(select(KnowledgeSource.id).where(KnowledgeSource.id.in_(source_ids))))
+            if visible != set(source_ids):
+                raise HTTPException(404, "Wissensquelle nicht gefunden")
         conversation = session.get(Conversation, body.conversation_id) if body.conversation_id else None
+        if conversation is not None and not same_workspace(conversation):
+            raise HTTPException(404, "Chat nicht gefunden")
         if conversation is None:
             title = " ".join(body.message.split())
             conversation = Conversation(title=title[:80] + ("…" if len(title) > 80 else ""))
@@ -165,6 +177,8 @@ async def chat(body: ChatRequest, request: Request):
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
         refs: list[dict] = []
+        # Der Stream laeuft nach der Middleware weiter: Workspace fuer die Agenten-Werkzeuge erneut setzen
+        workspace_token = set_workspace(workspace_id)
         try:
             await _close_dangling_tool_calls(graph, config)
             async for mode, payload in graph.astream(
@@ -205,6 +219,8 @@ async def chat(body: ChatRequest, request: Request):
         except Exception as exc:
             logger.exception("Chat fehlgeschlagen")
             yield _sse("error", {"message": f"{type(exc).__name__}: {exc}"})
+        finally:
+            reset_workspace(workspace_token)
 
     return StreamingResponse(
         stream(),
