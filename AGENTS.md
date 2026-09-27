@@ -45,6 +45,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   Sensoren/Aktoren), Phase B stark (Schrittkette), Cache SHA-256+Prompt-Version unter `data/flow_cache/`,
   Langfuse optional (`tracing.py`), JSON-Logs Logger `flow`. CLI `scripts/extract_flow.py` / `extract-flow`.
   Anzeige liest nur das JSON, nie ein Modell. Prompt-Aenderung = `PROMPT_VERSION` in `prompts.py` erhoehen.
+  API `app/api/flow.py`: `GET /api/machines/{id}/flow` (Cache), `POST .../flow/extract` (kostet). Animation:
+  `frontend/public/ablauf/index.html` + `sim.js` (SVG, Vanilla JS, keine Libs), Tab „Ablauf“ per iframe (`FlowTab.tsx`).
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,

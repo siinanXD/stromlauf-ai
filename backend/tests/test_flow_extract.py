@@ -217,3 +217,24 @@ def test_cli_writes_file_and_reports_missing(settings, tmp_path, monkeypatch, ca
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["machine"] == "Foerderband FB-01" and "Trace" in capsys.readouterr().err
     assert cli.main([str(tmp_path / "fehlt.pdf"), "--quiet"]) == 2
+
+
+def test_display_name_overrides_upload_filename(tmp_path):
+    from types import SimpleNamespace as NS
+
+    from app.api.flow import flow_documents
+
+    stored = tmp_path / "0123abcd.sdf"
+    stored.write_bytes(FILES[1].read_bytes())
+    doc = load_document(stored, "plc_symbols", name="05_Symboltabelle_FB-01.sdf")
+    assert doc.file == "05_Symboltabelle_FB-01.sdf" and doc.passages[0].file == doc.file
+    assert extract.cache_key([doc]) == extract.cache_key([load_document(FILES[1])])
+
+    docs = [
+        NS(status="ready", doc_type="plc_symbols", filename="b.sdf"),
+        NS(status="ready", doc_type="manual", filename="z.md"),
+        NS(status="failed", doc_type="manual", filename="a.md"),
+        NS(status="ready", doc_type="schematic", filename="plan.pdf"),
+        NS(status="ready", doc_type="manual", filename="a.md"),
+    ]
+    assert [d.filename for d in flow_documents(docs)] == ["a.md", "z.md", "b.sdf"]

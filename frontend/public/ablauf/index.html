@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ablauf</title>
+<style>
+  /* Blaupause-Tokens (frontend/src/app/globals.css); Blau = Auswahl/Aktion, Rot nur Fehler/Not-Halt */
+  :root { --bg:#f6f4ee; --card:#fbf9f3; --fg:#14263d; --muted:#5a6a80; --border:#aeb9c7; --line:#14263d;
+          --primary:#1e5bd8; --ok:#1f7a4d; --warn:#e0b400; --danger:#d7263d; --grid:#e3e7ec; --secondary:#efebe0; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font:14px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
+  .mono { font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  .app { display:grid; grid-template-rows:auto auto 1fr; height:100%; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; padding:8px 16px; border-bottom:1px solid var(--border); background:var(--card); }
+  header h1 { margin:0; font:600 15px/1.2 "IBM Plex Mono", monospace; text-transform:uppercase; letter-spacing:.04em; }
+  header .meta { color:var(--muted); font-size:12px; }
+  .controls { display:flex; gap:6px; margin-left:auto; align-items:center; }
+  button, select { height:30px; border:1px solid var(--line); background:var(--card); color:var(--fg); padding:0 10px; font:inherit; cursor:pointer; }
+  button.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+  button:disabled { opacity:.5; cursor:default; }
+  .grafcet { display:flex; align-items:stretch; gap:0; overflow-x:auto; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--card); }
+  .step { min-width:150px; border:1px solid var(--line); padding:6px 10px; cursor:pointer; background:var(--bg); position:relative; }
+  .step.initial::before { content:""; position:absolute; inset:3px; border:1px solid var(--line); pointer-events:none; }
+  .step.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .step .id { font:600 12px "IBM Plex Mono", monospace; }
+  .step .name { font-size:13px; }
+  .step .actions { font:11px "IBM Plex Mono", monospace; opacity:.8; margin-top:2px; }
+  .arrow { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:120px; padding:0 6px; font-size:11px; color:var(--muted); text-align:center; }
+  .arrow .cond { font-family:"IBM Plex Mono", monospace; }
+  .arrow.ready .cond { color:var(--ok); font-weight:600; }
+  .arrow svg { width:100%; height:14px; }
+  main { display:grid; grid-template-columns:minmax(0,1fr) 340px; min-height:0; }
+  .plan { position:relative; min-height:0; overflow:hidden; background:var(--bg);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size:40px 40px; }
+  .plan svg { width:100%; height:100%; display:block; }
+  .plan .title { position:absolute; left:12px; top:8px; font:11px "IBM Plex Mono", monospace; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  aside { display:grid; grid-template-rows:auto 1fr; min-height:0; border-left:1px solid var(--border); background:var(--card); }
+  .detail { padding:10px 12px; border-bottom:1px solid var(--border); min-height:150px; font-size:13px; }
+  .detail h2 { margin:0 0 4px; font:600 12px "IBM Plex Mono", monospace; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .detail .what { font-weight:600; }
+  .detail blockquote { margin:6px 0; padding:6px 8px; border-left:3px solid var(--primary); background:var(--bg); font-style:italic; }
+  .detail .where { font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--muted); }
+  .badge { display:inline-block; padding:0 6px; border:1px solid var(--border); font:11px "IBM Plex Mono", monospace; margin-left:4px; }
+  .badge.assumption { border-color:var(--warn); color:#7a6200; }
+  .conf { height:4px; background:var(--secondary); margin-top:6px; }
+  .conf i { display:block; height:100%; background:var(--primary); }
+  .io { overflow:auto; min-height:0; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; font:600 11px "IBM Plex Mono", monospace; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); padding:6px 8px; position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--line); }
+  td { padding:4px 8px; border-bottom:1px solid var(--grid); vertical-align:top; }
+  tr.di { cursor:pointer; }
+  tr.di:hover { background:var(--secondary); }
+  tr.selected td { background:#e6eaf0; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; border:1px solid var(--border); background:var(--card); vertical-align:middle; }
+  .dot.on.out { background:var(--ok); border-color:var(--ok); }
+  .dot.on.in { background:var(--warn); border-color:var(--warn); }
+  .dot.on.safety { background:var(--danger); border-color:var(--danger); }
+  .questions { padding:6px 16px 8px; font-size:12px; color:var(--muted); border-bottom:1px solid var(--border); background:var(--card); }
+  .questions b { color:var(--fg); }
+  .error { padding:24px; color:var(--danger); }
+  @keyframes belt { from { stroke-dashoffset:0; } to { stroke-dashoffset:-40; } }
+  .belt-run { animation:belt .6s linear infinite; }
+  .belt-back { animation:belt .6s linear infinite reverse; }
+  .el { cursor:pointer; }
+  .el text { font:11px "IBM Plex Mono", monospace; fill:var(--fg); text-anchor:middle; pointer-events:none; }
+  .el .sym { fill:var(--muted); font-size:10px; }
+  .el .shape { fill:var(--card); stroke:var(--border); stroke-width:2; transition:fill .15s, stroke .15s; }
+  .el.on-out .shape { fill:var(--ok); stroke:var(--ok); }
+  .el.on-in .shape { fill:var(--warn); stroke:var(--warn); }
+  .el.on-safety .shape { fill:var(--danger); stroke:var(--danger); }
+  .el.selected .shape { stroke:var(--primary); stroke-width:3; }
+  .el.assumed .shape { stroke-dasharray:4 3; }
+  @media (max-width: 800px) { main { grid-template-columns:1fr; grid-template-rows:minmax(260px,1fr) auto; } aside { border-left:0; border-top:1px solid var(--border); } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <h1 id="title">Ablauf</h1>
+    <span class="meta" id="meta"></span>
+    <div class="controls">
+      <button id="play" class="primary" aria-label="Abspielen">▶ Abspielen</button>
+      <button id="step" aria-label="Einzelschritt">⏭ Schritt</button>
+      <button id="reset" aria-label="Zuruecksetzen">↺ Reset</button>
+      <select id="speed" aria-label="Geschwindigkeit">
+        <option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option>
+      </select>
+    </div>
+  </header>
+  <div>
+    <div class="grafcet" id="grafcet"></div>
+    <div class="questions" id="questions" hidden></div>
+  </div>
+  <main>
+    <div class="plan"><div class="title" id="planTitle"></div><svg id="svg" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Draufsicht"></svg></div>
+    <aside>
+      <div class="detail" id="detail"><h2>Beleg</h2><div class="what">Sensor, Aktor oder Schritt anklicken.</div></div>
+      <div class="io"><table id="io"><thead><tr><th></th><th>Adresse</th><th>Symbol</th><th>Art</th><th>Beschreibung</th></tr></thead><tbody></tbody></table></div>
+    </aside>
+  </main>
+</div>
+<script type="module">
+import { DWELL_MS, initialState, ioIndex, isActive, satisfied, setInput, stepOnce, tick, findStep } from "./sim.js";
+
+const $ = (id) => document.getElementById(id);
+const KIND = { sensor: "Sensor", actuator: "Aktor", operator: "Bedienung", safety: "Sicherheit", other: "Sonstiges" };
+const params = new URLSearchParams(location.search);
+const src = params.get("src") || "./example.json";
+
+let flow, state, index, timer = null, last = 0, speed = 1, selected = null;
+
+function stateClass(point) {
+  if (!isActive(state, point)) return "";
+  if (point.kind === "safety") return "on-safety";
+  return point.direction === "DO" || point.direction === "AO" ? "on-out" : "on-in";
+}
+
+function renderHeader() {
+  $("title").textContent = "Ablauf " + flow.machine;
+  const m = flow.meta;
+  const cost = m.cached ? "Cache, keine Kosten" : `${m.total.cost_usd.toFixed(4)} USD, ${(m.total.latency_ms / 1000).toFixed(1)} s`;
+  $("meta").textContent = `${flow.io_points.length} I/O · ${flow.steps.length} Schritte · ${m.models.strong} · ${cost}` + (m.trace_id ? ` · Trace ${m.trace_id.slice(0, 12)}` : "");
+  if (flow.open_questions.length) {
+    $("questions").hidden = false;
+    $("questions").innerHTML = "<b>Offene Fragen:</b> " + flow.open_questions.map(esc).join(" · ");
+  }
+  $("planTitle").textContent = flow.layout.title || "Draufsicht";
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function renderGrafcet() {
+  const box = $("grafcet");
+  box.innerHTML = "";
+  const current = findStep(flow, state.stepId);
+  const primary = current && current.transitions.length ? current.transitions.reduce((b, t) => (t.confidence > b.confidence ? t : b), current.transitions[0]) : null;
+  flow.steps.forEach((step, i) => {
+    const el = document.createElement("div");
+    el.className = "step" + (step.id === state.stepId ? " active" : "") + (step.initial ? " initial" : "");
+    el.innerHTML = `<div class="id">${esc(step.id)}${step.assumption ? " <span class='badge assumption'>Annahme</span>" : ""}</div><div class="name">${esc(step.name)}</div>` +
+      `<div class="actions">${step.actions.map((a) => `${esc(labelOf(a.io))}${a.state ? "↑" : "↓"}`).join(" ")}</div>`;
+    el.onclick = () => select({ type: "step", step });
+    box.appendChild(el);
+    if (i < flow.steps.length - 1) {
+      const next = flow.steps[i + 1];
+      const t = step.transitions.find((x) => x.target === next.id);
+      const arrow = document.createElement("div");
+      const ready = t && step.id === state.stepId && satisfied(state, t, index);
+      arrow.className = "arrow" + (ready ? " ready" : "");
+      arrow.innerHTML = `<div class="cond">${t ? esc(t.expression || t.conditions.map((c) => `${labelOf(c.io)}=${c.state}`).join(" ∧ ")) : ""}</div>` +
+        `<svg viewBox="0 0 100 14"><line x1="0" y1="7" x2="92" y2="7" stroke="currentColor" stroke-width="1.5"/><polygon points="92,2 100,7 92,12" fill="currentColor"/></svg>`;
+      if (t) arrow.onclick = () => select({ type: "transition", step, transition: t });
+      box.appendChild(arrow);
+    }
+  });
+  const others = current ? current.transitions.filter((t) => flow.steps[flow.steps.indexOf(current) + 1]?.id !== t.target) : [];
+  if (others.length) {
+    const el = document.createElement("div");
+    el.className = "arrow";
+    el.innerHTML = others.map((t) => `<div class="cond${satisfied(state, t, index) ? " ready" : ""}">→ ${esc(t.target)}: ${esc(t.expression)}</div>`).join("");
+    box.appendChild(el);
+  }
+  void primary;
+}
+
+function labelOf(ref) { const p = index.get(ref); return p ? (p.tag || p.symbol || p.address) : ref; }
+
+function renderPlan() {
+  const svg = $("svg");
+  const W = 1000, H = 560;
+  const running = flow.io_points.some((p) => p.kind === "actuator" && p.direction === "DO" && isActive(state, p) && /vorw|forw/i.test(p.description + p.symbol));
+  const backward = flow.io_points.some((p) => p.kind === "actuator" && p.direction === "DO" && isActive(state, p) && /rueck|rück|back|rev/i.test(p.description + p.symbol));
+  const hasBelt = flow.layout.elements.some((e) => e.shape === "arrow");
+  let out = "";
+  if (hasBelt) {
+    out += `<rect x="120" y="256" width="760" height="48" fill="#e6eaf0" stroke="#14263d" stroke-width="2"/>` +
+      `<line x1="120" y1="280" x2="880" y2="280" stroke="#14263d" stroke-width="3" stroke-dasharray="20 20" class="${running ? "belt-run" : backward ? "belt-back" : ""}"/>`;
+  }
+  for (const e of flow.layout.elements) {
+    const p = index.get(e.io);
+    if (!p) continue;
+    const x = e.x * W, y = e.y * H;
+    const cls = `el ${stateClass(p)}${selected && selected.point === p ? " selected" : ""}${e.assumption ? " assumed" : ""}`;
+    let shape;
+    if (e.shape === "circle") shape = `<circle class="shape" cx="${x}" cy="${y}" r="18"/>`;
+    else if (e.shape === "rect") shape = `<rect class="shape" x="${x - 26}" y="${y - 16}" width="52" height="32"/>`;
+    else shape = `<polygon class="shape" points="${x - 30},${y - 18} ${x + 14},${y - 18} ${x + 30},${y} ${x + 14},${y + 18} ${x - 30},${y + 18}"/>`;
+    out += `<g class="${cls}" data-io="${esc(p.address)}">${shape}<text x="${x}" y="${y + 34}">${esc(p.tag || p.address)}</text><text class="sym" x="${x}" y="${y + 46}">${esc(p.symbol || p.address)}</text></g>`;
+  }
+  svg.innerHTML = out;
+  svg.querySelectorAll(".el").forEach((g) => (g.onclick = () => select({ type: "io", point: index.get(g.dataset.io) })));
+}
+
+function renderIO() {
+  const body = $("io").querySelector("tbody");
+  body.innerHTML = "";
+  const rows = [...flow.io_points].sort((a, b) => (a.direction > b.direction ? 1 : a.direction < b.direction ? -1 : a.address.localeCompare(b.address, "de", { numeric: true })));
+  for (const p of rows) {
+    const tr = document.createElement("tr");
+    const isIn = p.direction === "DI" || p.direction === "AI";
+    tr.className = (isIn ? "di" : "do") + (selected && selected.point === p ? " selected" : "");
+    const on = isActive(state, p);
+    const dotCls = "dot" + (on ? " on " + (p.kind === "safety" ? "safety" : isIn ? "in" : "out") : "");
+    const value = isIn ? state.inputs[p.address] : state.outputs[p.address];
+    tr.innerHTML = `<td><span class="${dotCls}" title="${value}"></span></td><td class="mono">${esc(p.address)}</td><td class="mono">${esc(p.symbol)}</td>` +
+      `<td>${esc(KIND[p.kind] || p.kind)}${p.contact ? " " + p.contact : ""}${p.assumption ? " <span class='badge assumption'>?</span>" : ""}</td><td>${esc(p.description)}</td>`;
+    tr.onclick = (ev) => {
+      if (isIn && ev.target.closest("td") === tr.firstElementChild) { setInput(flow, state, p.address, state.inputs[p.address] ? 0 : 1, index); renderAll(); return; }
+      select({ type: "io", point: p });
+      if (isIn) { setInput(flow, state, p.address, state.inputs[p.address] ? 0 : 1, index); renderAll(); }
+    };
+    body.appendChild(tr);
+  }
+}
+
+function renderDetail() {
+  const box = $("detail");
+  if (!selected) { box.innerHTML = "<h2>Beleg</h2><div class='what'>Sensor, Aktor oder Schritt anklicken. Klick auf eine DI-Zeile schaltet den Eingang.</div>"; return; }
+  let what, src, conf, assumption, extra = "";
+  if (selected.type === "io") {
+    const p = selected.point;
+    what = `${esc(p.tag || p.address)} · ${esc(p.symbol || "")} · ${esc(KIND[p.kind] || p.kind)}${p.contact ? " (" + p.contact + ")" : ""}`;
+    extra = `<div>${esc(p.description)}${p.location ? " · " + esc(p.location) : ""}</div>`;
+    src = p.source; conf = p.confidence; assumption = p.assumption;
+  } else if (selected.type === "step") {
+    const s = selected.step;
+    what = `${esc(s.id)} ${esc(s.name)}`;
+    extra = `<div>${s.actions.map((a) => `${esc(labelOf(a.io))} ${a.state ? "setzen" : "ruecksetzen"}${a.note ? " (" + esc(a.note) + ")" : ""}`).join("; ") || "keine Aktionen"}</div>`;
+    src = s.source; conf = s.confidence; assumption = s.assumption;
+  } else {
+    const t = selected.transition;
+    what = `${esc(selected.step.id)} → ${esc(t.target)}`;
+    extra = `<div>${esc(t.expression || "")}${t.timer_s ? ` · ${t.timer_s} s` : ""}</div>`;
+    src = t.source; conf = t.confidence; assumption = t.assumption;
+  }
+  box.innerHTML = `<h2>Beleg</h2><div class="what">${what}${assumption ? "<span class='badge assumption'>Annahme</span>" : ""}</div>${extra}` +
+    `<blockquote>„${esc(src.quote)}“</blockquote><div class="where">${esc(src.file)}${src.page ? `, S. ${src.page}` : ""}${src.chunk ? `, ${esc(src.chunk)}` : ""}</div>` +
+    `<div class="conf" title="Sicherheit ${Math.round(conf * 100)} %"><i style="width:${Math.round(conf * 100)}%"></i></div>`;
+}
+
+function select(sel) { selected = sel; renderPlan(); renderIO(); renderDetail(); }
+function renderAll() { renderGrafcet(); renderPlan(); renderIO(); renderDetail(); }
+
+function loop(now) {
+  if (!timer) return;
+  const dt = Math.min(200, now - last) * speed;
+  last = now;
+  const before = state.stepId, inputsBefore = JSON.stringify(state.inputs);
+  tick(flow, state, dt, true, index);
+  if (state.stepId !== before || inputsBefore !== JSON.stringify(state.inputs)) renderAll();
+  timer = requestAnimationFrame(loop);
+}
+
+function play() {
+  if (timer) { cancelAnimationFrame(timer); timer = null; $("play").textContent = "▶ Abspielen"; return; }
+  last = performance.now(); timer = requestAnimationFrame(loop); $("play").textContent = "⏸ Pause";
+}
+
+$("play").onclick = play;
+$("step").onclick = () => { stepOnce(flow, state, index); renderAll(); };
+$("reset").onclick = () => { state = initialState(flow); renderAll(); };
+$("speed").onchange = (e) => { speed = Number(e.target.value); };
+document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); play(); } });
+
+const t0 = performance.now();
+fetch(src, { credentials: "omit" }).then(async (r) => {
+  if (!r.ok) { let detail = r.statusText; try { detail = (await r.json()).detail ?? detail; } catch {} throw new Error(`${r.status}: ${detail}`); }
+  return r.json();
+}).then((json) => {
+  flow = json; index = ioIndex(flow); state = initialState(flow);
+  renderHeader(); renderAll();
+  console.info(`Ablauf geladen in ${(performance.now() - t0).toFixed(0)} ms`);
+}).catch((err) => {
+  $("app").innerHTML = `<div class="error"><b>Ablauf nicht verfuegbar.</b><br>${esc(err.message)}<br><br>Extraktion: <code>python scripts/extract_flow.py …</code> oder Knopf „Ablauf extrahieren“ auf der Maschinenseite.</div>`;
+});
+</script>
+</body>
+</html>

@@ -90,10 +90,14 @@ def extract_flow(
     force: bool = False,
     client: Any = None,
     langfuse_client: Any = None,
+    names: dict[Path, str] | None = None,
 ) -> schema.MachineFlow:
-    """Ablauf aus den Dokumenten; aus dem Cache, wenn Dateien und Prompt-Version unveraendert sind."""
+    """Ablauf aus den Dokumenten; aus dem Cache, wenn Dateien und Prompt-Version unveraendert sind.
+
+    names: Anzeigename je Pfad (Uploads heissen auf der Platte <uuid>.pdf).
+    """
     settings = get_settings()
-    docs = [load_document(path) for path in paths]
+    docs = [load_document(path, name=(names or {}).get(path)) for path in paths]
     key = cache_key(docs)
     target = cache_path(key)
     if target.exists() and not force:

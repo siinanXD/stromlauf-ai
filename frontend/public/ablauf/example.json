@@ -1,0 +1,87 @@
+{
+  "machine": "Foerderband FB-01",
+  "summary": "Nach Freigabe (Not-Halt entriegelt, Motorschutz ok) startet -S1 das Band vorwaerts ueber -K1. Stop -S2 oder ein Fehler (Motorschutz) haelt es an; die Stoerung wird mit -H2 gemeldet.",
+  "io_points": [
+    {"address": "E0.0", "symbol": "Start", "direction": "DI", "kind": "operator", "contact": "NO", "tag": "-S1", "location": "+FE1 Bedienpult", "description": "Taster Start, Schliesser", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "\"Start\",\"E 0.0\",\"BOOL\",\"Taster Start, Schliesser\""}, "confidence": 0.98, "assumption": false},
+    {"address": "E0.1", "symbol": "Stop", "direction": "DI", "kind": "operator", "contact": "NC", "tag": "-S2", "location": "+FE1 Bedienpult", "description": "Taster Stop, Oeffner (1 = nicht betaetigt)", "active_state": 0,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Taster Stop, Oeffner (1 = nicht betaetigt)"}, "confidence": 0.98, "assumption": false},
+    {"address": "E0.2", "symbol": "MSS_OK", "direction": "DI", "kind": "safety", "contact": "NO", "tag": "-F2", "location": "+ST1", "description": "Motorschutz -F2 Hilfskontakt (1 = ok)", "active_state": 0,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Motorschutz -F2 Hilfskontakt (1 = ok)"}, "confidence": 0.95, "assumption": false},
+    {"address": "E0.3", "symbol": "NotHalt_OK", "direction": "DI", "kind": "safety", "contact": "NO", "tag": "-K3", "location": "+ST1", "description": "Sicherheitsrelais -K3 Freigabe (1 = Not-Halt entriegelt)", "active_state": 0,
+     "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "Kontakt 23/24 meldet E0.3 = 1 an die SPS"}, "confidence": 0.95, "assumption": false},
+    {"address": "E0.4", "symbol": "LS_Einlauf", "direction": "DI", "kind": "sensor", "contact": "NO", "tag": "-B1", "location": "+FE1 Einlauf", "description": "Lichtschranke Einlauf (1 = Teil erkannt)", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Lichtschranke Einlauf -B1 (1 = Teil erkannt)"}, "confidence": 0.98, "assumption": false},
+    {"address": "E0.5", "symbol": "LS_Auslauf", "direction": "DI", "kind": "sensor", "contact": "NO", "tag": "-B2", "location": "+FE1 Auslauf", "description": "Lichtschranke Auslauf (1 = Teil erkannt)", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Lichtschranke Auslauf -B2 (1 = Teil erkannt)"}, "confidence": 0.98, "assumption": false},
+    {"address": "A4.0", "symbol": "K1_Vorwaerts", "direction": "DO", "kind": "actuator", "contact": null, "tag": "-K1", "location": "+ST1", "description": "Schuetz Foerdermotor vorwaerts", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Schuetz -K1 Foerdermotor vorwaerts"}, "confidence": 0.98, "assumption": false},
+    {"address": "A4.1", "symbol": "K2_Rueckwaerts", "direction": "DO", "kind": "actuator", "contact": null, "tag": "-K2", "location": "+ST1", "description": "Schuetz Foerdermotor rueckwaerts", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Schuetz -K2 Foerdermotor rueckwaerts"}, "confidence": 0.98, "assumption": false},
+    {"address": "A4.2", "symbol": "H1_Betrieb", "direction": "DO", "kind": "actuator", "contact": null, "tag": "-H1", "location": "+FE1 Bedienpult", "description": "Meldeleuchte Betrieb gruen", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Meldeleuchte -H1 Betrieb gruen"}, "confidence": 0.98, "assumption": false},
+    {"address": "A4.3", "symbol": "H2_Stoerung", "direction": "DO", "kind": "actuator", "contact": null, "tag": "-H2", "location": "+FE1 Bedienpult", "description": "Meldeleuchte Stoerung rot", "active_state": 1,
+     "source": {"file": "05_Symboltabelle_FB-01.sdf", "page": null, "chunk": "Symboltabelle", "quote": "Meldeleuchte -H2 Stoerung rot"}, "confidence": 0.98, "assumption": false}
+  ],
+  "steps": [
+    {"id": "S0", "name": "Grundstellung", "initial": true,
+     "actions": [{"io": "A4.0", "state": 0, "note": ""}, {"io": "A4.1", "state": 0, "note": ""}, {"io": "A4.2", "state": 0, "note": ""}],
+     "transitions": [
+       {"target": "S1", "conditions": [{"io": "E0.3", "state": 1, "edge": null}, {"io": "E0.2", "state": 1, "edge": null}], "timer_s": null, "expression": "NotHalt_OK UND MSS_OK",
+        "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "Not-Halt -S3 entriegeln. Sicherheitsrelais -K3 zieht an"}, "confidence": 0.9, "assumption": false}
+     ],
+     "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "SPS -A1 laeuft hoch"}, "confidence": 0.85, "assumption": false},
+    {"id": "S1", "name": "Bereit", "initial": false,
+     "actions": [],
+     "transitions": [
+       {"target": "S2", "conditions": [{"io": "E0.0", "state": 1, "edge": "rising"}, {"io": "E0.1", "state": 1, "edge": null}], "timer_s": null, "expression": "Start-Flanke UND NICHT Stop",
+        "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "Start -S1 druecken. FB10 Netzwerk 1 setzt die Freigabe"}, "confidence": 0.9, "assumption": false}
+     ],
+     "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "Not-Halt -S3 entriegeln"}, "confidence": 0.8, "assumption": true},
+    {"id": "S2", "name": "Band vorwaerts", "initial": false,
+     "actions": [{"io": "A4.0", "state": 1, "note": "-K1 zieht an"}, {"io": "A4.2", "state": 1, "note": "-H1 leuchtet"}],
+     "transitions": [
+       {"target": "S0", "conditions": [{"io": "E0.1", "state": 0, "edge": null}], "timer_s": null, "expression": "Stop betaetigt",
+        "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 4", "quote": "Stop -S2 druecken. Die Freigabe faellt ab, -K1 faellt ab"}, "confidence": 0.9, "assumption": false},
+       {"target": "S3", "conditions": [{"io": "E0.2", "state": 0, "edge": null}], "timer_s": null, "expression": "Motorschutz ausgeloest",
+        "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 6", "quote": "Motorschutz -F2 ausgeloest"}, "confidence": 0.7, "assumption": true}
+     ],
+     "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 3", "quote": "-K1 zieht an (A4.0), -H1 leuchtet"}, "confidence": 0.95, "assumption": false},
+    {"id": "S3", "name": "Stoerung", "initial": false,
+     "actions": [{"io": "A4.0", "state": 0, "note": ""}, {"io": "A4.2", "state": 0, "note": ""}, {"io": "A4.3", "state": 1, "note": "-H2 rot"}],
+     "transitions": [
+       {"target": "S0", "conditions": [{"io": "E0.2", "state": 1, "edge": null}], "timer_s": null, "expression": "Motorschutz zurueckgesetzt",
+        "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 6", "quote": "-F2 pruefen"}, "confidence": 0.6, "assumption": true}
+     ],
+     "source": {"file": "06_Betriebsanleitung_FB-01.md", "page": null, "chunk": "Kap. 2", "quote": "Leuchte rot | -H2 | Stoerung (A4.3)"}, "confidence": 0.8, "assumption": false}
+  ],
+  "layout": {
+    "title": "Foerderband FB-01, Draufsicht (Lage geschaetzt)",
+    "elements": [
+      {"io": "E0.4", "x": 0.2, "y": 0.5, "shape": "circle", "assumption": true},
+      {"io": "E0.5", "x": 0.8, "y": 0.5, "shape": "circle", "assumption": true},
+      {"io": "A4.0", "x": 0.5, "y": 0.5, "shape": "arrow", "assumption": true},
+      {"io": "A4.1", "x": 0.5, "y": 0.62, "shape": "arrow", "assumption": true},
+      {"io": "E0.0", "x": 0.1, "y": 0.15, "shape": "rect", "assumption": true},
+      {"io": "E0.1", "x": 0.2, "y": 0.15, "shape": "rect", "assumption": true},
+      {"io": "A4.2", "x": 0.3, "y": 0.15, "shape": "circle", "assumption": true},
+      {"io": "A4.3", "x": 0.4, "y": 0.15, "shape": "circle", "assumption": true}
+    ]
+  },
+  "open_questions": [
+    "Wann laeuft das Band rueckwaerts (-K2, A4.1)? Die Betriebsanleitung nennt keinen Rueckwaertsbetrieb.",
+    "Reagiert die Steuerung auf die Lichtschranken (E0.4, E0.5) oder sind sie nur Meldung?"
+  ],
+  "meta": {
+    "schema_version": "1.0",
+    "prompt_version": "example",
+    "cache_key": "0000000000000000000000000000000000000000000000000000000000000000",
+    "document_sha256": {"05_Symboltabelle_FB-01.sdf": "00", "06_Betriebsanleitung_FB-01.md": "00"},
+    "trace_id": null,
+    "models": {"small": "hand", "strong": "hand"},
+    "phases": [],
+    "total": {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0, "latency_ms": 0},
+    "extracted_at": "2026-09-27T00:00:00Z",
+    "cached": false
+  }
+}

@@ -11,6 +11,7 @@ from app.api import (
     chat,
     diagnosis,
     facts,
+    flow,
     layout,
     onboarding,
     orders,
@@ -67,6 +68,7 @@ app.include_router(site.router)
 app.include_router(planning.router)
 app.include_router(search.router)
 app.include_router(orders.router)
+app.include_router(flow.router)
 
 
 @app.get("/api/health")

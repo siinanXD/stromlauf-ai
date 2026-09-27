@@ -160,6 +160,16 @@ python scripts/extract_flow.py examples/foerderband/06_Betriebsanleitung_FB-01.m
   Lauf hier eintragen.
 - Latenzbudget 30 s: Phase A parallel, `meta.total.latency_ms` und Log-Feld `over_budget` zeigen Verstöße.
 
+**Anzeige** (Tab **Ablauf** auf der Maschinenseite): eine eigenständige Seite `frontend/public/ablauf/index.html`,
+SVG plus Vanilla JS ohne Bibliotheken, per iframe eingebettet. Sie lädt nur das JSON (`GET /api/machines/{id}/flow`
+aus dem Cache, in der Regel unter 30 ms) und simuliert die Schrittkette: Draufsicht mit aktiven Aktoren grün,
+ausgelösten Sensoren gelb, unterbrochenem Sicherheitskreis rot; GRAFCET-Leiste mit aktuellem Schritt und
+Bedingungen; Abspielen, Pause, Einzelschritt, Geschwindigkeit; DI/DO-Tabelle, Klick auf eine DI-Zeile schaltet
+den Eingang (Störung von Hand auslösen). Klick auf Sensor, Aktor, Schritt oder Transition zeigt das Zitat mit
+Datei und Seite. Gestrichelt = Lage geschätzt. Der Knopf „Ablauf extrahieren“ ruft `POST
+/api/machines/{id}/flow/extract` (kostet Tokens, einmal je Dokumentstand). Simulationskern
+`public/ablauf/sim.js`, Tests `src/lib/ablauf.test.ts`. Demo ohne Backend: `/ablauf/index.html?src=/ablauf/example.json`.
+
 ## Steckbrief je Wissensquelle (ohne KI-Kosten)
 
 Nach dem Upload zeigt `/quelle/{id}` (Link im Quellen-Panel, im Tab „Dokumente“ der Maschine und in

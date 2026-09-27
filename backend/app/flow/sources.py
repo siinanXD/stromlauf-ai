@@ -130,9 +130,13 @@ def _lines_to_passages(file: str, lines: list[str], size: int = 40) -> list[Pass
     ]
 
 
-def load_document(path: Path, doc_type: str | None = None) -> DocText:
-    """Text je Seite/Abschnitt; Typ aus Inhalt (doctype.py), wenn nicht vorgegeben."""
+def load_document(path: Path, doc_type: str | None = None, name: str | None = None) -> DocText:
+    """Text je Seite/Abschnitt; Typ aus Inhalt (doctype.py), wenn nicht vorgegeben.
+
+    name: Anzeigename fuer source.file und Cache-Schluessel (Uploads liegen als <uuid>.pdf auf der Platte).
+    """
     resolved = doc_type or doctype.detect(path.name, path).doc_type
+    shown = name or path.name
     suffix = path.suffix.lower()
     if resolved == DocType.PLC_PROGRAM or suffix == ".awl":
         passages = _awl_passages(path)
@@ -146,7 +150,9 @@ def load_document(path: Path, doc_type: str | None = None) -> DocText:
         passages = _csv_passages(path)
     else:
         passages = _text_passages(path)
-    return DocText(path.name, str(resolved), sha256_of(path), passages)
+    for passage in passages:
+        passage.file = shown
+    return DocText(shown, str(resolved), sha256_of(path), passages)
 
 
 def render(docs: list[DocText], doc_types: set[str] | None = None, max_chars: int = 120_000) -> str:
