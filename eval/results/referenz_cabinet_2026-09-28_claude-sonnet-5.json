@@ -1,0 +1,313 @@
+{
+ "summary": {
+  "labels": 15,
+  "treffer": 15,
+  "anteil": 1.0,
+  "iou_mittel": 0.902,
+  "kennzeichen_ok": 1.0
+ },
+ "rows": [
+  {
+   "tag": "-Q1",
+   "iou": 0.944,
+   "tag_ok": true,
+   "detected_tag": "-Q1"
+  },
+  {
+   "tag": "-F1",
+   "iou": 0.869,
+   "tag_ok": true,
+   "detected_tag": "-F1"
+  },
+  {
+   "tag": "-F2",
+   "iou": 0.873,
+   "tag_ok": true,
+   "detected_tag": "-F2"
+  },
+  {
+   "tag": "-F3",
+   "iou": 0.822,
+   "tag_ok": true,
+   "detected_tag": "-F3"
+  },
+  {
+   "tag": "-T1",
+   "iou": 0.892,
+   "tag_ok": true,
+   "detected_tag": "-T1"
+  },
+  {
+   "tag": "-A1",
+   "iou": 0.959,
+   "tag_ok": true,
+   "detected_tag": "-A1"
+  },
+  {
+   "tag": "-A1.1",
+   "iou": 0.903,
+   "tag_ok": true,
+   "detected_tag": "-A1.1"
+  },
+  {
+   "tag": "-A1.2",
+   "iou": 0.888,
+   "tag_ok": true,
+   "detected_tag": "-A1.2"
+  },
+  {
+   "tag": "-K3",
+   "iou": 0.857,
+   "tag_ok": true,
+   "detected_tag": "-K3"
+  },
+  {
+   "tag": "-K1",
+   "iou": 0.942,
+   "tag_ok": true,
+   "detected_tag": "-K1"
+  },
+  {
+   "tag": "-K2",
+   "iou": 0.925,
+   "tag_ok": true,
+   "detected_tag": "-K2"
+  },
+  {
+   "tag": "-X1",
+   "iou": 0.947,
+   "tag_ok": true,
+   "detected_tag": "-X1"
+  },
+  {
+   "tag": "-X2",
+   "iou": 0.941,
+   "tag_ok": true,
+   "detected_tag": "-X2"
+  },
+  {
+   "tag": "-X3",
+   "iou": 0.945,
+   "tag_ok": true,
+   "detected_tag": "-X3"
+  },
+  {
+   "tag": "-X4",
+   "iou": 0.821,
+   "tag_ok": true,
+   "detected_tag": "-X4"
+  }
+ ],
+ "detected": [
+  {
+   "id": "8a4206e3a1bc423f84bb1d8e11636db0",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-A1",
+   "label": "SPS CPU",
+   "kind": "SPS-CPU",
+   "x": 0.08,
+   "y": 0.345,
+   "w": 0.104,
+   "h": 0.124,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "f61156233a1e4e909f5a6ab1b6f662cf",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-A1.1",
+   "label": "DI 16",
+   "kind": "SPS-Baugruppe (DI)",
+   "x": 0.203,
+   "y": 0.345,
+   "w": 0.055,
+   "h": 0.124,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "62b552cff64e4ece97895ffa1c438b00",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-A1.2",
+   "label": "DO 16",
+   "kind": "SPS-Baugruppe (DO)",
+   "x": 0.277,
+   "y": 0.345,
+   "w": 0.056,
+   "h": 0.124,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "97c42cb9db204b0d8126b74000c0d285",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-F1",
+   "label": "LS B8",
+   "kind": "Leitungsschutzschalter",
+   "x": 0.17,
+   "y": 0.145,
+   "w": 0.04,
+   "h": 0.123,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "f3ec592dc22d4dc39dc4bea41967534a",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-F2",
+   "label": "MSS 2,5-",
+   "kind": "Motorschutzschalter",
+   "x": 0.228,
+   "y": 0.145,
+   "w": 0.056,
+   "h": 0.123,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "9e4b8e424f6c44fcaa85f5578bee89fc",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-F3",
+   "label": "LS B4",
+   "kind": "Leitungsschutzschalter",
+   "x": 0.303,
+   "y": 0.145,
+   "w": 0.048,
+   "h": 0.123,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "9e741826db6f4f8c812c6ff7aef87b0f",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-K1",
+   "label": "Schuetz",
+   "kind": "Schuetz",
+   "x": 0.08,
+   "y": 0.544,
+   "w": 0.056,
+   "h": 0.124,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "bfc1647d9d8840c2b988d31e20346c1b",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-K2",
+   "label": "Schuetz",
+   "kind": "Schuetz",
+   "x": 0.155,
+   "y": 0.544,
+   "w": 0.055,
+   "h": 0.124,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "a1fbf90c5c264018a9b83c88ac781a70",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-K3",
+   "label": "Sicherheitsrelais",
+   "kind": "Sicherheitsrelais",
+   "x": 0.351,
+   "y": 0.345,
+   "w": 0.056,
+   "h": 0.124,
+   "confidence": 0.75,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "177b23cbea82468b89218251222c7771",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-Q1",
+   "label": "Hauptschalter",
+   "kind": "Hauptschalter",
+   "x": 0.08,
+   "y": 0.145,
+   "w": 0.072,
+   "h": 0.123,
+   "confidence": 0.9,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "c2dd685b02e8401ea2b5cf131d00a5cd",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-T1",
+   "label": "Netzteil 24V",
+   "kind": "Trafo/Netzteil",
+   "x": 0.361,
+   "y": 0.145,
+   "w": 0.088,
+   "h": 0.123,
+   "confidence": 0.85,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "2d56db3ca9db4ed6869f55b4f897c97b",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-X1",
+   "label": "Netz",
+   "kind": "Klemmleiste",
+   "x": 0.08,
+   "y": 0.769,
+   "w": 0.088,
+   "h": 0.074,
+   "confidence": 0.8,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "6624a12880554f099d720fc0fe6bdc3f",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-X2",
+   "label": "24V",
+   "kind": "Klemmleiste",
+   "x": 0.187,
+   "y": 0.769,
+   "w": 0.104,
+   "h": 0.074,
+   "confidence": 0.8,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "0c92232fc2514f6eb1a95432f7e0b365",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-X3",
+   "label": "Feld",
+   "kind": "Klemmleiste",
+   "x": 0.309,
+   "y": 0.769,
+   "w": 0.233,
+   "h": 0.074,
+   "confidence": 0.8,
+   "origin": "vision",
+   "confirmed": false
+  },
+  {
+   "id": "d3433a7d59e14c698755093245ec2b5c",
+   "cabinet_id": "a7f4709e442345e9917fadac4fcc6be7",
+   "tag": "-X4",
+   "label": "Motor",
+   "kind": "Klemmleiste",
+   "x": 0.56,
+   "y": 0.769,
+   "w": 0.072,
+   "h": 0.074,
+   "confidence": 0.8,
+   "origin": "vision",
+   "confirmed": false
+  }
+ ]
+}
