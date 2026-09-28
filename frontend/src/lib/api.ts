@@ -169,6 +169,66 @@ export interface ChatMessage {
   error?: string;
   /** Kosten dieser Antwort in Cent (Summe der usage-Events; nur fuer live gestreamte Antworten). */
   cost_cents?: number;
+  /** Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - kommt als letztes SSE-Event. */
+  meta?: AnswerMeta;
+}
+
+export interface PageEvidence {
+  kind: "page";
+  document_id: string;
+  filename: string;
+  doc_type: string;
+  page: number;
+  label: string;
+}
+
+export interface CabinetEvidence {
+  kind: "cabinet";
+  cabinet_id: string;
+  cabinet_title: string;
+  hotspot_id: string;
+  tag: string;
+  label: string;
+  box: { x: number; y: number; w: number; h: number };
+  confirmed: boolean;
+}
+
+export type Evidence = PageEvidence | CabinetEvidence;
+
+export interface AnswerMeta {
+  referenced_tags: string[];
+  citations: SourceRef[];
+  evidence: Evidence[];
+}
+
+// --- Maschinenmodell "Schema" (GET /api/machines/{id}/map) ---------------------------------
+
+export interface MapPart {
+  tag: string;
+  label: string;
+  kind: string;
+  source: "bom" | "layout" | "index";
+}
+
+export interface MapZone {
+  id: string;
+  code: string;
+  name: string;
+  parts: MapPart[];
+}
+
+export interface MapConnector {
+  source: string;
+  target: string;
+  label: string;
+}
+
+export interface MachineMap {
+  machine_id: string;
+  source_id: string | null;
+  zones: MapZone[];
+  connectors: MapConnector[];
+  part_count: number;
 }
 
 export interface Health {
@@ -281,6 +341,7 @@ export type ChatEvent =
   | { event: "tool_end"; data: { name: string } }
   | { event: "sources"; data: SourceRef[] }
   | { event: "usage"; data: { input_tokens: number; output_tokens: number; model: string; cost_cents: number } }
+  | { event: "meta"; data: AnswerMeta }
   | { event: "error"; data: { message: string } }
   | { event: "done"; data: Record<string, never> };
 
@@ -541,6 +602,7 @@ export const plant = {
   createMachine: (hallId: string, body: { name: string; machine_type: MachineType; pos_x?: number; pos_y?: number; line?: string }) =>
     request<Machine>(`/api/halls/${hallId}/machines`, json(body)),
   getMachine: (id: string) => request<MachineDetail>(`/api/machines/${id}`),
+  machineMap: (id: string) => request<MachineMap>(`/api/machines/${id}/map`),
   updateMachine: (
     id: string,
     body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "pos_x" | "pos_y" | "order_index" | "line">> & { clear_source?: boolean },

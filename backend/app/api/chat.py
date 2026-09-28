@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import ledger
+from app.api.answer_meta import build_meta
 from app.config import get_settings
 from app.db import get_session, session_scope
 from app.models import Conversation, KnowledgeSource, Machine
@@ -180,6 +181,7 @@ async def chat(body: ChatRequest, request: Request):
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
         refs: list[dict] = []
+        answer_parts: list[str] = []
         # Der Stream laeuft nach der Middleware weiter: Workspace fuer die Agenten-Werkzeuge erneut setzen
         workspace_token = set_workspace(workspace_id)
         try:
@@ -194,6 +196,7 @@ async def chat(body: ChatRequest, request: Request):
                     if isinstance(chunk, AIMessageChunk) and meta.get("langgraph_node") == "agent":
                         text = _text_of(chunk.content)
                         if text:
+                            answer_parts.append(text)
                             yield _sse("token", {"text": text})
                     continue
                 for update in payload.values():
@@ -222,6 +225,13 @@ async def chat(body: ChatRequest, request: Request):
                             if isinstance(message.artifact, list):
                                 refs += message.artifact
                                 yield _sse("sources", _dedupe_sources(refs))
+            # Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - deterministisch aus Index und Fundstellen
+            with session_scope() as meta_session:
+                meta = build_meta(
+                    meta_session, answer="".join(answer_parts), citations=_dedupe_sources(refs),
+                    source_ids=source_ids, machine_id=body.machine_id,
+                )
+            yield _sse("meta", meta)
             yield _sse("done", {})
         except Exception as exc:
             logger.exception("Chat fehlgeschlagen")

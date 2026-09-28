@@ -57,6 +57,27 @@ die Lade-Helfer der Router prüfen zusätzlich (fremde id → 404). `backend/tes
 prüft das gegen Postgres (CI). Planung und Leitstand (Nebenmodule im Feature-Freeze) sind noch
 werksweit, nicht je Workspace.
 
+## Maschinenansicht: Chat zuerst, Modell darüber
+
+Links die Rail mit allen Maschinen des Workspace (280 px ab 1280 px Breite, Icon-Rail auf Tablets,
+Drawer am Handy). Die Maschinenseite zeigt oben das **Modell** der Maschine und darunter den Chat mit
+festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision – Machine Assistant UI“).
+
+- **Schema** (`GET /api/machines/{id}/map`, `backend/app/ingestion/machine_map.py`): Zonen sind die
+  Einbauorte aus der Stückliste (`+ST1`, `+FE1` …), Chips die Betriebsmittel aus dem Kennzeichen-Index,
+  Verbinder die Leitungen mit zwei Orten („+ST1 -> +FE1“). Teile der Draufsicht ohne Ort bilden die Zone
+  „Anlage“, der Rest „Ohne Einbauort“. Kein Modellaufruf, alles aus den Daten.
+- **Antwort-Vertrag**: am Ende jedes Chat-Streams kommt das Event `meta` mit `referenced_tags`
+  (Betriebsmittel aus dem Antworttext, die im Index der Quelle vorkommen), `citations` und `evidence`
+  (Seiten der Zitate, Hotspots in Schaltschrankfotos). Das Frontend markiert die Bauteile amber im
+  Modell, zeigt Bauteil-Chips und Belegbilder unter der Antwort; „Im Modell zeigen“ springt zum Schema.
+- Die bisherigen Tabs (Draufsicht, Schaltschrank, Signalweg, Dokumente; Ablauf, Fehler, Kennzahlen hinter
+  „Mehr“) leben im Modell-Panel weiter. Das Panel lässt sich einklappen (Streifen) oder vergrößern.
+- Hell und dunkel: Tokens aus Figma `Foundations` in `frontend/src/app/globals.css`, Umschalter in der
+  Rail (`data-theme` am `<html>`, gespeichert unter `stromlauf:theme`, sonst Systemeinstellung).
+- E2E: `cd frontend && npx playwright test` prüft die Ansicht bei 390/768/1440 px gegen eine gemockte API
+  (`frontend/e2e/`), inklusive axe (WCAG 2 A/AA) und „kein horizontaler Body-Scroll“.
+
 ## Kostenbuch: was eine Maschine kostet
 
 Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank- und Draufsicht-Erkennung, Ablauf-Extraktion)

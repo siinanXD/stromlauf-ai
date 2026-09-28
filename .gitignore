@@ -44,3 +44,7 @@ testdata/
 
 # Eval-Ergebnisse (lokal, Referenzlauf per git add -f)
 eval/results/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
