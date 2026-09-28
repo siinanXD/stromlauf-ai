@@ -15,7 +15,8 @@ from app.db import session_scope
 from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype
 from app.ingestion.docling_parser import parse_document
-from app.ingestion.tags import extract_tags
+from app.ingestion.page_titles import page_titles
+from app.ingestion.tags import detect_folio_style, extract_tags
 from app.ingestion.vision import describe_page
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
 from app.tenancy import reset_workspace, set_workspace
@@ -38,6 +39,7 @@ class Piece:
     section: str = ""
     meta: dict = field(default_factory=dict)
     plc_loose: bool = False  # "A 1.0" mit Leerzeichen als SPS-Adresse werten
+    folio_style: bool = False  # Kennzeichen ohne Minus im Blatt-Stil (4Q1, 9K1) werten, siehe tags.detect_folio_style
 
 
 def detect_doc_type(filename: str, requested: str, path: Path | None = None) -> DocType:
@@ -60,7 +62,7 @@ def _split(piece: Piece) -> list[Piece]:
     if len(piece.content) <= get_settings().chunk_size:
         return [piece]
     return [
-        Piece(part, piece.kind, piece.page, piece.section, dict(piece.meta), piece.plc_loose)
+        Piece(part, piece.kind, piece.page, piece.section, dict(piece.meta), piece.plc_loose, piece.folio_style)
         for part in _splitter().split_text(piece.content)
     ]
 
@@ -138,7 +140,7 @@ def _symbol_pieces(path: Path) -> list[Piece]:
 
 
 def _vision_pieces(
-    document_id: str, path: Path, pages: dict[int, str], machine_id: str | None = None
+    document_id: str, path: Path, pages: dict[int, str], machine_id: str | None = None, titles: dict[int, str] | None = None
 ) -> tuple[list[Piece], list[int], list[int]]:
     """Liefert (Stuecke, fehlgeschlagene Seiten, wegen Monatslimit uebersprungene Seiten)."""
     settings = get_settings()
@@ -173,7 +175,7 @@ def _vision_pieces(
                     failed.append(page)
                 elif description.strip():
                     pieces.append(
-                        Piece(description, kind="vision", page=page, section="Vision-Analyse")
+                        Piece(description, kind="vision", page=page, section=(titles or {}).get(page, "Vision-Analyse"))
                     )
     return pieces, failed, skipped
 
@@ -189,7 +191,20 @@ def _build_pieces(
 
     _set_progress(document_id, "Docling-Analyse")
     parsed = parse_document(path)
-    pieces = [Piece(p.text, page=p.page) for p in parsed if p.text.strip()]
+    # Blatttitel als Abschnitt, Stuecklistenseiten als kind "bom", Kennzeichen-Stil je Dokument (Issue #39)
+    titles, parts_pages = page_titles(parsed)
+    folio = detect_folio_style("\n".join(p.raw_text or p.markdown for p in parsed))
+    pieces = [
+        Piece(
+            p.text,
+            kind="bom" if p.page in parts_pages else "text",
+            page=p.page,
+            section=titles.get(p.page, "") if p.page else "",
+            folio_style=folio,
+        )
+        for p in parsed
+        if p.text.strip()
+    ]
     page_count = max((p.page for p in parsed if p.page), default=None)
 
     note = ""
@@ -198,7 +213,7 @@ def _build_pieces(
             note = "Vision-Analyse uebersprungen: ANTHROPIC_API_KEY fehlt"
         else:
             page_texts = {p.page: p.raw_text or p.markdown for p in parsed if p.page}
-            vision_pieces, failed, skipped = _vision_pieces(document_id, path, page_texts, machine_id)
+            vision_pieces, failed, skipped = _vision_pieces(document_id, path, page_texts, machine_id, titles)
             pieces += vision_pieces
             notes = []
             if failed:
@@ -262,7 +277,7 @@ def ingest_document(document_id: str) -> None:
                         embedding=vector,
                     )
                 )
-                for tag in extract_tags(piece.content, plc_loose=piece.plc_loose):
+                for tag in extract_tags(piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style):
                     key = (tag.tag, tag.tag_type, piece.page, piece.section)
                     if key in seen_tags:
                         continue

@@ -31,13 +31,17 @@ _SYMBOL_ROW = re.compile(r'^"[^"\n]*",\s*"\s*(?:%?[EAIQM]\s*\d+\.\d|[EAIQM][BWD]
 _TERMINAL_HEADER = re.compile(r"klemm", re.I)
 _TERMINAL_TARGET = re.compile(r"ziel|intern|extern|anschluss|brücke|bruecke", re.I)
 _TERMINAL_ROW = re.compile(r"-X\d+:[A-Z0-9]+")
-_BOM_TAG = re.compile(r"\b(bmk|kennzeichen|betriebsmittel|artikel|pos\.?)\b", re.I)
-_BOM_QTY = re.compile(r"\b(menge|st(ü|ue)ck|stk|anzahl|bestell|hersteller|typ)\b", re.I)
-_BOM_TITLE = re.compile(r"^\W*(st(ü|ue)ckliste|bill of material|parts list|artikelliste)", re.I)
+_BOM_TAG = re.compile(r"\b(bmk|kennzeichen|betriebsmittel|artikel|pos\.?|label|designation|item)\b", re.I)
+_BOM_QTY = re.compile(r"\b(menge|st(ü|ue)ck|stk|anzahl|bestell|hersteller|typ|qty|quantity|manufacturer)\b", re.I)
+_BOM_TITLE = re.compile(
+    r"^\W*(artikelst(ü|ue)ckliste|st(ü|ue)ckliste|bauteilliste|nomenclature|bill of materials?|parts?\s*list|artikelliste)", re.I
+)
 _SHEET_FRAME = re.compile(r"\bblatt\s*\d+\s*/\s*\d+|\bsheet\s*\d+\s*(?:/|of)\s*\d+", re.I)
-_COLUMN_HEADER = re.compile(r"^\s*1\s+2\s+3\s+4\s+5\s+6\s+7\s+8\s*$", re.M)
+_FOLIO_FRAME = re.compile(r"\bfolio\s*:\s*\d+", re.I)  # QElectroTech-Schriftfeld
+_SHEET_LIST = re.compile(r"\b(folio list|sheet list|inhaltsverzeichnis|table of contents)\b", re.I)
+_COLUMN_HEADER = re.compile(r"^\s*1\s+2\s+3\s+4\s+5\s+6\s+7\s+8(?:\s+\d{1,2})*\s*$", re.M)  # Raster 1..8 oder 1..18
 _RAILS = re.compile(r"^L1\s*$\s*^L2\s*$\s*^L3\s*$", re.M)
-_SCHEMATIC_TITLE = re.compile(r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan", re.I)
+_SCHEMATIC_TITLE = re.compile(r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan|electrical cabinet", re.I)
 _CROSS_REF = re.compile(r"(?<![\w/.])/\d{1,4}\.\d{1,2}(?![\w.])")
 _MANUAL_TITLE = re.compile(r"^\W*(betriebsanleitung|bedienungsanleitung|handbuch|manual|operating instructions|datenblatt|datasheet)", re.I)
 _MANUAL_WORDS = re.compile(r"\b(wartung|inbetriebnahme|sicherheitshinweis|st(ö|oe)rung|fehlerbehebung|bestimmungsgem|instandhaltung|maintenance|troubleshooting)", re.I)
@@ -119,10 +123,14 @@ def _score(text: str) -> dict[DocType, tuple[int, list[str]]]:
             add(DocType.BOM, 10, f"Kopfzeile „{line[:60]}“")
             break
     if _BOM_TITLE.search(head):
-        add(DocType.BOM, 6, "Titel „Stückliste“")
+        add(DocType.BOM, 6, "Titel „Stückliste/Nomenclature“")
 
     if _SHEET_FRAME.search(text):
         add(DocType.SCHEMATIC, 4, "Schriftfeld „Blatt n / m“")
+    if _FOLIO_FRAME.search(text):
+        add(DocType.SCHEMATIC, 4, "Schriftfeld „Folio : n“")
+    if _SHEET_LIST.search(text):
+        add(DocType.SCHEMATIC, 2, "Blattliste/Inhaltsverzeichnis")
     if _COLUMN_HEADER.search(text):
         add(DocType.SCHEMATIC, 4, "Spaltenkopf 1 … 8")
     if _RAILS.search(text):
