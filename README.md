@@ -125,6 +125,7 @@ Frontend auf Vercel (Projekt `stromlauf-ai`, Root Directory `frontend`). Railway
    `CHECKPOINTER=postgres`, `EMBEDDING_PROVIDER=voyage` + `VOYAGE_API_KEY` (oder `local`, dann
    mindestens 3 GB RAM fuer bge-m3), optional `LANGFUSE_*`, `OCR_ENABLED`.
 5. Vercel: `NEXT_PUBLIC_API_URL=https://<railway-domain>`, `NEXT_PUBLIC_API_KEY=<API_KEY>`.
+6. Abnahme auf Staging: Ablauf und Skripte in `docs/product/ACCEPTANCE.md` (Abschnitt „Teil 2“).
 
 Beim Start laeuft `alembic upgrade head`; mit `CHECKPOINTER=postgres` legt der Agent seine
 Verlaufstabellen selbst an. `EMBEDDING_PROVIDER` wechseln heisst: alle Dokumente neu verarbeiten

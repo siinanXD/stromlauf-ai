@@ -32,6 +32,12 @@ dem Lauf werden `fakten`, `quellen_ok` und `sauber` als Scores an die Session de
   `eval`), optional `LANGFUSE_*`; ohne Secret wird der Job uebersprungen.
 - **Isolation**: `backend/tests/test_isolation_eval.py` stellt fuenf Retrieval-Fragen ueber Workspaces hinweg
   (Kennzeichen, Befundkarte, Suche, Maschinen-Tag, Signalweg) und erwartet keine fremden Inhalte.
+- **Abnahme-Nachweise** (`docs/product/ACCEPTANCE.md`) im selben Job wie das Retrieval-Gate: `scripts/acceptance.py --load`
+  laedt FB-01, misst Kaltstart und Ingestion-Dauer, zaehlt Baugruppen, Teile und Fundstellen des Modells, liest Kostenbuch
+  und Schaetzung (kein Gate ohne `--strict`; Ergebnis `acceptance_<zeit>.json/.md`). Danach baut der Job das Frontend und
+  `frontend/scripts/lighthouse-a11y.mjs` prueft Lighthouse Accessibility >= 90 auf der Maschinenansicht (Gate). Alles
+  landet im Artefakt `abnahme-nachweise`. Gegen ein echtes Backend ohne Mocks: `E2E_API_URL=... npx playwright test
+  e2e/staging.spec.ts` (Frage nur mit `E2E_ASK=1`, kostet eine Antwort).
 
 ## Fragen
 
@@ -106,6 +112,9 @@ python eval/rescore.py eval/results/referenz_2026-09-26.json --out eval/results/
 python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet Tokens
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 python eval/run_eval.py --resume eval/results/2026-09-27_10-12-33.json   # abgebrochenen Lauf fortsetzen
+
+python scripts/acceptance.py [--api ...] [--load] [--strict]              # Abnahme-Nachweise, kein Modellaufruf
+node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010   # Accessibility >= 90
 ```
 
 Ergebnisse landen in `eval/results/` (ignoriert in Git bis auf die Referenzdateien, `git add -f`).
