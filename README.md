@@ -64,8 +64,8 @@ Drawer am Handy). Die Maschinenseite zeigt oben das **Modell** der Maschine und 
 festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision – Machine Assistant UI“).
 
 - **Schema** (`GET /api/machines/{id}/map`, `backend/app/ingestion/machine_map.py`): Zonen sind die
-  Einbauorte aus der Stückliste (`+ST1`, `+FE1` …), Chips die Betriebsmittel aus dem Kennzeichen-Index,
-  Verbinder die Leitungen mit zwei Orten („+ST1 -> +FE1“). Teile der Draufsicht ohne Ort bilden die Zone
+  Einbauorte aus der Stückliste (`+ST1`, `+BP1`, `+AN1` …), Chips die Betriebsmittel aus dem Kennzeichen-Index,
+  Verbinder die Leitungen mit zwei Orten („+ST1 -> +AN1“). Teile der Draufsicht ohne Ort bilden die Zone
   „Anlage“, der Rest „Ohne Einbauort“. Kein Modellaufruf, alles aus den Daten.
 - **Antwort-Vertrag**: am Ende jedes Chat-Streams kommt das Event `meta` mit `referenced_tags`
   (Betriebsmittel aus dem Antworttext, die im Index der Quelle vorkommen), `citations` und `evidence`
@@ -421,7 +421,7 @@ Ein Klick auf einen Stromlaufplan-Verweis wie `/3.8` oeffnet rechts Blatt 3 und 
 Blatt und Spalten liest das Backend aus der PDF-Textebene (`GET /api/documents/{id}/locate`),
 ohne Vision. Nennt die Frage ein Betriebsmittel (-K1), zeigt eine **Befundkarte** Einbauort,
 Stromlaufplan-Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`), nicht
-vom Modell. Der **Einbauort** kommt aus der Einbauort-Spalte der Stückliste (`+ST1`, `+FE1`), den
+vom Modell. Der **Einbauort** kommt aus der Einbauort-Spalte der Stückliste (`+ST1`, `+BP1`, `+AN1` …), den
 Klartext („Schaltschrank +ST1") liefert die Kopfzeile derselben Datei; Leitungen tragen beide Orte.
 Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 

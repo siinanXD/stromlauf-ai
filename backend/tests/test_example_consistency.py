@@ -72,3 +72,40 @@ def test_example_has_references():
 def test_reference_points_to_drawn_column(tag, ref):
     sheet, column = map(int, REF.match(ref).groups())
     assert column in _columns_of(tag, sheet), f"{tag} {ref}: im Plan in Spalten {_columns_of(tag, sheet)}"
+
+
+def _bom_rows() -> list[tuple]:
+    sheet = openpyxl.load_workbook(EXAMPLE / "02_Stueckliste_FB-01.xlsx").active
+    return [row for row in sheet.iter_rows(values_only=True) if isinstance(row[0], str) and row[0].startswith("-")]
+
+
+def test_example_meets_model_criterion_in_the_parts_list():
+    """contract.md Abschnitt 5, Kriterium 2: >= 5 Einbauorte und >= 20 Teile (ohne Leitungen und Klemmleisten)."""
+    rows = _bom_rows()
+    devices = [row for row in rows if not row[0].startswith(("-W", "-X"))]
+    locations = {row[4] for row in rows if isinstance(row[4], str) and "->" not in row[4]}
+    assert len(locations) >= 5, sorted(locations)
+    assert len(devices) >= 20, len(devices)
+
+
+def test_example_model_from_parts_list_has_five_zones_and_twenty_parts():
+    """Wie die Ingestion: Stuecklistenzeilen als Markdown-Tabelle -> Kennzeichen-Index -> Modell (build_map)."""
+    from app.ingestion.machine_map import build_map
+    from app.ingestion.tags import TagType, extract_tags
+
+    sheet = openpyxl.load_workbook(EXAMPLE / "02_Stueckliste_FB-01.xlsx").active
+    lines, legend = [], ""
+    for row in sheet.iter_rows(values_only=True):
+        cells = ["" if value is None else str(value) for value in row]
+        if cells[0].startswith("Anlage"):
+            legend = cells[0]
+        if cells[0].startswith("-") or cells[0] == "BMK":
+            lines.append("| " + " | ".join(cells) + " |")
+    table = chr(10).join(lines)  # Zeile je Stuecklistenzeile, wie Docling eine Tabelle ausgibt
+    bom_rows = [(t.tag, t.context) for t in extract_tags(table) if t.tag_type == TagType.DEVICE]
+    result = build_map(bom_rows, legend=legend).as_dict()
+    named = [z for z in result["zones"] if z["code"] != "?"]
+    assert len(named) >= 5, [z["code"] for z in result["zones"]]
+    assert all(z["name"] for z in named), [(z["code"], z["name"]) for z in named]
+    assert result["part_count"] >= 20 and not any(z["code"] == "?" for z in result["zones"]), result
+
