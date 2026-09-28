@@ -13,6 +13,7 @@ from app import ledger
 from app.api.answer_meta import build_meta
 from app.config import get_settings
 from app.db import get_session, session_scope
+from app.llm import PROVIDER_ENV, api_key_for, split_model
 from app.models import Conversation, KnowledgeSource, Machine
 from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
 from app.tenancy import current_workspace_id, reset_workspace, same_workspace, set_workspace
@@ -47,11 +48,26 @@ def _dedupe_sources(refs: list[dict]) -> list[dict]:
     return unique
 
 
-def _thread_config(conversation_id: str, source_ids: list[str], machine: dict | None = None) -> dict:
+def _thread_config(conversation_id: str, source_ids: list[str], machine: dict | None = None, model: str | None = None) -> dict:
     configurable = {"thread_id": conversation_id, "source_ids": source_ids}
     if machine:
         configurable["machine"] = machine
+    if model:
+        configurable["model"] = model
     return {"configurable": configurable, "recursion_limit": 60}
+
+
+def effective_model(requested: str | None) -> str:
+    """Modell dieser Anfrage: Wunsch aus dem Body (Evals) oder CHAT_MODEL; 400 bei unbekanntem Namen oder fehlendem Schluessel."""
+    settings = get_settings()
+    name = (requested or "").strip() or settings.chat_model
+    try:
+        provider, _ = split_model(name)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if not api_key_for(provider, settings):
+        raise HTTPException(400, f"{PROVIDER_ENV[provider]} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten.")
+    return name
 
 
 def machine_scope(session: Session, machine_id: str) -> tuple[list[str], dict]:
@@ -147,8 +163,7 @@ async def get_messages(conversation_id: str, request: Request, session: Session 
 
 @router.post("/chat")
 async def chat(body: ChatRequest, request: Request):
-    if not get_settings().anthropic_api_key:
-        raise HTTPException(400, "ANTHROPIC_API_KEY fehlt. In .env eintragen und Backend neu starten.")
+    model = effective_model(body.model)
     graph = request.app.state.graph
 
     workspace_id = current_workspace_id()
@@ -175,8 +190,8 @@ async def chat(body: ChatRequest, request: Request):
         session.flush()
         conversation_id, title = conversation.id, conversation.title
 
-    config = _thread_config(conversation_id, source_ids, machine)
-    config.update(trace_config(conversation_id, body.trace_tags, get_settings().chat_model))
+    config = _thread_config(conversation_id, source_ids, machine, model)
+    config.update(trace_config(conversation_id, body.trace_tags, model))
 
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
@@ -202,7 +217,7 @@ async def chat(body: ChatRequest, request: Request):
                 for update in payload.values():
                     for message in (update or {}).get("messages", []):
                         if isinstance(message, AIMessage):
-                            usage = ledger.usage_of(message, get_settings().chat_model)
+                            usage = ledger.usage_of(message, model)
                             if usage is not None:
                                 # jede Modellantwort (auch Werkzeugrunden) wird der Maschine zugebucht
                                 with session_scope() as booking:

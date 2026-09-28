@@ -110,6 +110,23 @@ Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht 
   Provider gerufen wird; die Ingestion laeuft ohne Vision-Seiten weiter, Cache-Treffer der
   Ablauf-Extraktion bleiben moeglich. Die Oberflaeche zeigt ein Banner mit „Limit erhoehen“.
 
+## Modelle und Provider
+
+Zwei Provider: **Anthropic** (Standard) und **OpenAI**. Ein Modellname gilt mit Präfix (`openai:gpt-5-mini`,
+`anthropic:claude-sonnet-5`) oder ohne (`claude-*` = Anthropic, `gpt-*`/`o3*` = OpenAI). Der Schlüssel des
+Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), sonst antwortet `/api/chat` mit 400.
+
+- `CHAT_MODEL` und `VISION_MODEL` sind die Standards für Chat bzw. Seitenanalyse, Schaltschrank und Draufsicht
+  (`app/llm.py`, `make_chat_model`).
+- Je Anfrage: `POST /api/chat` nimmt `model` entgegen. `python eval/run_eval.py --model openai:gpt-5-mini
+  --only "Foerderband FB-01" --max-cost 1.00` fährt denselben Fragensatz mit einem anderen Modell; Kosten je
+  Antwort kommen aus `app/flow/pricing.py` (beide Provider).
+- Embeddings: `EMBEDDING_PROVIDER=openai` nutzt `text-embedding-3-small` mit `dimensions = EMBEDDING_DIM`. Ein
+  Wechsel des Embedders heißt: alle Dokumente neu verarbeiten, sonst passen die Vektoren nicht zusammen.
+- Nightly-Eval (`eval.yml`) per Hand starten mit `chat_model` und `vision_model` als Eingabe; die Schlüssel liegen
+  als Repository-Secrets (`OPEN_API_KEY` wird als `OPENAI_API_KEY` durchgereicht).
+- Nicht umgestellt: die Ablauf-Extraktion (`FLOW_MODEL_*`) nutzt das Anthropic-SDK direkt (strukturierte Ausgabe).
+
 ## Deployment (Railway)
 
 Backend als Container (`backend/Dockerfile`, Build-Kontext `backend/`), Datenbank Postgres mit pgvector,

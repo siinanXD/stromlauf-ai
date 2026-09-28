@@ -53,12 +53,21 @@ def _auth_headers() -> dict[str, str]:
     return {"X-API-Key": key} if key else {}
 
 
+def chat_body(message: str, source_ids: list[str], tags: list[str], model: str | None) -> dict:
+    """Anfrage an /api/chat; mit --model faehrt der Lauf ein anderes Modell (Provider) und taggt es in Langfuse."""
+    body = {"message": message, "source_ids": source_ids, "trace_tags": list(tags)}
+    if model:
+        body["model"] = model
+        body["trace_tags"].append(f"model:{model}")
+    return body
+
+
 def ask(
-    client: httpx.Client, message: str, source_ids: list[str], tags: list[str]
+    client: httpx.Client, message: str, source_ids: list[str], tags: list[str], model: str | None = None
 ) -> tuple[str, list[dict], list[str], float, dict]:
     """Eine Frage stellen: (Antwort, Quellen, Werkzeuge, Sekunden, Lauf-Infos mit Verbrauch und Kosten)."""
     started = time.time()
-    body = {"message": message, "source_ids": source_ids, "trace_tags": tags}
+    body = chat_body(message, source_ids, tags, model)
     with client.stream("POST", "/api/chat", json=body) as response:
         response.raise_for_status()
         answer, sources, tools, meta = evallib.parse_sse(response.iter_lines())
@@ -95,6 +104,7 @@ def main() -> int:
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
     parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
     parser.add_argument("--max-cost", type=float, default=0.0, help="Kostendeckel in USD: keine weitere Frage, sobald die Summe darueber liegt")
+    parser.add_argument("--model", help="Modell fuer diesen Lauf, z. B. openai:gpt-5-mini oder claude-sonnet-5 (leer = CHAT_MODEL des Backends)")
     args = parser.parse_args()
 
     questions = [q for q in evallib.load_questions(QUESTIONS, args.only) if q.get("agent", True)]
@@ -138,7 +148,7 @@ def main() -> int:
             tags = [f"eval:{run}", f"q:{q['id']}"]
             meta: dict = {}
             try:
-                answer, cited, tools, seconds, meta = ask(client, q["question"], [by_name[q["source"]]], tags)
+                answer, cited, tools, seconds, meta = ask(client, q["question"], [by_name[q["source"]]], tags, args.model)
             except Exception as exc:  # Netz, Timeout
                 answer, cited, tools, seconds = f"{evallib.ERROR_PREFIX} {type(exc).__name__}: {exc}", [], [], 0.0
             result = evallib.score(q, answer, cited, tools)
