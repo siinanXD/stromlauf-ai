@@ -18,7 +18,7 @@ läuft (Freigabe des Owners, kostenpflichtig). Bis dahin gilt: **Preview (Vercel
 | # | Kriterium | Evidenz | Stand |
 | --- | --- | --- | --- |
 | 1 | Maschine anlegen, ≥ 3 Dokumente inkl. Stromlaufplan-PDF und Schaltschrankfoto; ≤ 300 Seiten in < 15 min; Kostenbuch zeigt die Kosten | `scripts/acceptance.py --load` lädt die 6 Dokumente + Aufbauplan wie `load_example.py`, misst Kaltstart und Ingestion-Dauer und liest `GET /api/machines/{id}/costs` (MB-3); im CI-Job „Retrieval-Gate“ (`eval.yml`), Ergebnis `acceptance_<zeit>.md` im Artefakt | CI: Dauer im Artefakt (FB-01 hat 7 PDF-Seiten, nicht 300); Kostenzeilen erst mit Provider-Lauf (Staging) |
-| 2 | Modell zeigt ≥ 5 Baugruppen und ≥ 20 Teile mit Kennzeichen, je ≥ 1 Zitat; Korrektur bleibt nach Re-Ingestion | `GET /api/machines/{id}/map` aus Stückliste + Index (MB-4), Fundstelle je Teil über `GET /api/machines/{id}/tags/{tag}` (`scripts/acceptance.py`); Hotspot-Korrektur `PATCH /api/hotspots` mit `origin=manual` (MB-5) | Lokal 2026-09-28 (Ingestion-Stand vom 26.09.): 23 Teile (22 Stückliste, 1 Draufsicht), alle 22 dokumentierten Teile mit Fundstelle, aber nur **2 benannte Baugruppen** (+ST1, Anlage), 18 Teile „ohne Einbauort“ → **Kriterium ≥ 5 offen**; frischer Wert im CI-Artefakt |
+| 2 | Modell zeigt ≥ 5 Baugruppen und ≥ 20 Teile mit Kennzeichen, je ≥ 1 Zitat; Korrektur bleibt nach Re-Ingestion | `GET /api/machines/{id}/map` aus Stückliste + Index (MB-4), Fundstelle je Teil über `GET /api/machines/{id}/tags/{tag}` (`scripts/acceptance.py`); Hotspot-Korrektur `PATCH /api/hotspots` mit `origin=manual` (MB-5) | Nach Fix #38 (Kontext = ganze Stücklistenzeile), lokal 2026-09-28 nach „Neu verarbeiten“ der Stückliste: Zonen **+ST1 Schaltschrank (10 Teile)**, **+FE1 Feld (8)**, Anlage (1), keine Zone „ohne Einbauort“ mehr; 4 Leitungen -W1…-W4 als Verbinder +ST1→+FE1; alle Teile mit Fundstelle. Damit **19 Teile** (Leitungen zählen nicht als Teile) und **2 benannte Baugruppen**: FB-01 hat als Beispielanlage nur zwei Einbauorte, Kriterium ≥ 5 braucht mehr Einbauorte im Beispiel oder eine andere Demo-Maschine (Entscheidung Owner); frischer Wert im CI-Artefakt |
 | 3 | Golden-Set 20 Fragen: Groundedness ≥ 0,90, gültige Zitate ≥ 95 %, Referenzteil-Präzision ≥ 0,85 in CI | Retrieval-Gate (`run_retrieval.py --min 0.9 --min-sources 0.9`, FB-01) bei jedem PR; Nightly `run_eval.py --min 0.8 --max-cost` mit Langfuse-Scores | Retrieval-Gate erstmals grün: [Lauf 36360152510](https://github.com/siinanXD/stromlauf-ai/actions/runs/36360152510) (FB-01 mit bge-m3 in CI, Modellcache 3,2 GB); Agentenlauf: Nightly mit Secret |
 | 4 | Referenzierte Teile werden im Modell markiert, Chips öffnen ein Sheet mit Datenblattseite | `meta`-Event + `SchemaMap` (MB-4), `PartSheet` (MB-5); Playwright `machine.spec.ts`, `part-sheet.spec.ts` (gemockte API); `staging.spec.ts` ohne Mocks gegen ein echtes Backend: Login → Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto, Frage nur mit `E2E_ASK=1` | CI: E2E-Job grün; `staging.spec.ts` lokal gegen das echte Backend grün am 2026-09-28 (390 px und 1440 px, ohne bezahlte Frage); Lauf gegen Preview + Staging offen |
 | 5 | 10 gelabelte Schaltschrankteile: IoU ≥ 0,5 in ≥ 80 % | `eval/run_cabinet.py` gegen `07_Schaltschrank_Hotspots_FB-01.json` (14 Labels) | Nightly (ein Vision-Aufruf) |
@@ -47,9 +47,11 @@ Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jede
 ## Bekannte Grenzen (Stand dieses Entwurfs)
 
 - Railway-Staging, Kaltstart- und Kostenmessung (MB-1/MB-3-Abnahme) warten auf die Freigabe des Owners.
-- Kriterium 2: Das FB-01-Modell zeigt lokal nur 2 benannte Baugruppen; für 18 von 23 Stücklistenteilen fehlt der Einbauort
-  (Zone „?“). Ob Parser (`ingestion/machine_map.py`, `locations_in`) oder Stückliste die Ursache ist, klärt ein Folge-Issue;
-  der frische CI-Wert steht im Artefakt `abnahme-nachweise`.
+- Kriterium 2: Einbauorte werden seit #38 aus der eigenen Stücklistenzeile gelesen (vorher schnitt das 80-Zeichen-Fenster
+  die Zelle ab). FB-01 hat trotzdem nur die Einbauorte +ST1 und +FE1 (2 Baugruppen) und 19 Teile plus 4 Leitungen; für
+  „≥ 5 Baugruppen, ≥ 20 Teile“ muss die Beispielanlage wachsen (z. B. Bedienpult, Motorfeld, Sensorik als eigene
+  Einbauorte im Generator `scripts/example_docs`) oder eine andere Demo-Maschine herhalten. Bestehende Quellen brauchen
+  „Neu verarbeiten“, damit der Index die vollständigen Zeilen enthält. Modelle ohne Stücklisten-Datei: #39.
 - Planung und Leitstand (Nebenmodule) sind noch nicht workspace-scoped (`contract.md`, Known limitations).
 - Kosten je Antwort erscheinen nur für live gestreamte Antworten; der Verlauf trägt keine Kosten.
 - Figma enthält nur noch die Seite `Foundations`; Screens folgen `ux-spec.md`.

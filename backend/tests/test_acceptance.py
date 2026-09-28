@@ -108,7 +108,16 @@ def test_map_evidence_zaehlt_zonen_ohne_unbekannt_und_prueft_fundstellen():
     assert evidence["parts_by_source"] == {"bom": 2, "layout": 1, "index": 1}
     assert evidence["parts_without_hit"] == ["-B7"]
     assert evidence["layout_parts"] == ["-M1"]
+    assert evidence["connectors"] == 0
     assert evidence["cited_share"] == pytest.approx(0.667, abs=1e-3)  # -M1 aus der Draufsicht zaehlt nicht mit
+
+
+def test_map_evidence_zaehlt_leitungen_als_verbinder_nicht_als_teile():
+    with_cable = {**MAP, "connectors": [{"source": "+ST1", "target": "+FE1", "label": "-W3"}]}
+    evidence = acceptance.map_evidence(with_cable, lookup_all_but_b7)
+    assert evidence["connectors"] == 1 and evidence["parts"] == 4
+    checks = {c["id"]: c for c in acceptance.evaluate(_evidence(map={**evidence, "zones": 2, "zone_codes": ["+ST1", "+FE1"]}), acceptance.Thresholds())}
+    assert "1 Leitungen als Verbinder" in checks["teile"]["note"]
 
 
 def test_map_evidence_fragt_jedes_dokumentierte_kennzeichen_nur_einmal():

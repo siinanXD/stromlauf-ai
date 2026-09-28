@@ -117,6 +117,7 @@ def map_evidence(map_json: dict, lookup: Callable[[str], dict]) -> dict:
         "parts_by_source": dict(Counter(part.get("source", "") for part in parts)),
         "parts_without_hit": without_hit,
         "layout_parts": [part["tag"] for part in parts if part.get("source") == "layout" and part.get("tag")],
+        "connectors": len(map_json.get("connectors", [])),  # Leitungen mit zwei Orten zaehlen nicht als Teile
         "cited_share": round(cited_share, 3),
     }
 
@@ -157,7 +158,8 @@ def evaluate(evidence: dict, thresholds: Thresholds) -> list[dict]:
          "ok": map_["zones"] >= thresholds.min_zones, "note": ", ".join(map_["zone_codes"])},
         {"id": "teile", "label": "Teile mit Kennzeichen", "value": map_["parts"], "threshold": f">= {thresholds.min_parts}",
          "ok": map_["parts"] >= thresholds.min_parts,
-         "note": ", ".join(f"{source} {count}" for source, count in sorted(map_["parts_by_source"].items()))},
+         "note": ", ".join(f"{source} {count}" for source, count in sorted(map_["parts_by_source"].items()))
+         + (f"; dazu {map_['connectors']} Leitungen als Verbinder" if map_.get("connectors") else "")},
         {"id": "fundstellen", "label": "Teile mit mindestens einer Fundstelle", "value": map_["cited_share"],
          "threshold": "100 %", "ok": map_["parts"] > 0 and not map_["parts_without_hit"],
          "note": "; ".join(filter(None, [

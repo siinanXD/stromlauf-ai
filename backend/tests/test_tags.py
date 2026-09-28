@@ -81,3 +81,27 @@ def test_search_prefixes_cover_partial_input():
     assert "-K" in search_prefixes("k")
     assert "-K1" in search_prefixes("k1")
     assert search_prefixes("  - ") == []
+
+
+BOM_TABLE = """| BMK | Bezeichnung | Typ / Kenndaten | Menge | Einbauort | Blatt |
+|---|---|---|---|---|---|
+| -B1 | Lichtschranke Einlauf, Reflexionslichtschranke mit Reflektor, Schaltabstand 2 m | Reflexionslichtschranke 24 V DC, PNP, M18 | 1 | +FE1 | /4.2 |
+| -K1 | Schuetz Foerdermotor vorwaerts, Hauptstromkreis mit Hilfskontaktblock 1S1OE | Leistungsschuetz 4 kW, Spule 24 V DC, 3RT2015 | 1 | +ST1 | /3.2 |
+| -M1 | Foerdermotor 3~ 1,5 kW, 1420 1/min | Drehstrommotor 1,5 kW, IE3 | 1 | +FE1 | /3.3 |
+"""
+
+
+def test_kontext_einer_tabellenzeile_ist_die_ganze_eigene_zeile():
+    """Issue #38: das 80-Zeichen-Fenster schnitt die Einbauort-Zelle der eigenen Zeile ab und zeigte die Vorgaengerzeile."""
+    by_tag = {t.tag: t for t in extract_tags(BOM_TABLE) if t.tag_type == TagType.DEVICE}
+    k1 = by_tag["-K1"].context
+    assert k1.startswith("| -K1 |") and k1.endswith("| /3.2 |")
+    assert "+ST1" in k1 and "+FE1" not in k1
+    assert "+FE1" in by_tag["-M1"].context and "+ST1" not in by_tag["-M1"].context
+
+
+def test_kontext_im_fliesstext_bleibt_ein_fenster():
+    text = "x" * 300 + " Schuetz -K1 zieht an " + "y" * 300
+    (k1,) = [t for t in extract_tags(text) if t.tag == "-K1"]
+    assert "-K1" in k1.context and len(k1.context) <= 80 + len("-K1") + 80 + 2
+
