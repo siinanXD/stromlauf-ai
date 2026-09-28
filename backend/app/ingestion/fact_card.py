@@ -7,6 +7,7 @@ ausgewertet wird nur die Tabellenzeile, in der das Betriebsmittel selbst vorkomm
 
 import re
 
+from app.ingestion.page_titles import is_parts_list
 from app.ingestion.tags import extract_tags
 from app.models import TagType
 
@@ -41,6 +42,16 @@ def _rows(context: str) -> list[list[str]]:
 
 def _mentions(cells: list[str], tag: str) -> bool:
     return re.search(rf"(?<![\w-]){re.escape(tag)}(?![\d.])", " ".join(cells)) is not None
+
+
+def _is_bom(hit: dict) -> bool:
+    """Stuecklisten-Datei oder Stuecklistenseite einer PDF (Abschnitt = Seitentitel "Nomenclature", "Stueckliste")."""
+    return hit["doc_type"] == "bom" or is_parts_list(hit.get("section"))
+
+
+def _after(text: str, tag: str) -> str:
+    parts = re.split(rf"(?<![\w-]){re.escape(tag)}(?![\w])", text, maxsplit=1)
+    return parts[1].strip(" |:-\t")[:80] if len(parts) == 2 else ""
 
 
 def _value(text: str, hit: dict | None, ref: str, with_page: bool = True) -> dict:
@@ -78,32 +89,35 @@ def build_fact_card(tag: str, hits: list[dict], legend: str = "") -> dict | None
     # Kopfzeile steht in einer eigenen Zeile, nicht in der des Betriebsmittels: vorab einsammeln
     names = location_names(legend)
     for hit in hits:
-        if hit["doc_type"] == "bom":
+        if _is_bom(hit):
             names.update(location_names(hit["context"]))
     sheet_refs: list[str] = []
     terminals: list[tuple[str, dict]] = []
     addresses: list[tuple[str, dict]] = []
 
     for hit in hits:
+        is_bom = _is_bom(hit)
         for cells in _rows(hit["context"]):
             if not _mentions(cells, tag):
                 continue
             found = extract_tags(" ".join(cells), plc_loose=hit["doc_type"] in PLC_DOC_TYPES)
-            if hit["doc_type"] == "bom":
+            if is_bom:
                 locations += [code for cell in cells for code in locations_in(cell)]
                 bom_hit = bom_hit or hit
-            if hit["doc_type"] == "bom" and title is None:
+            if is_bom and title is None:
                 bom_line = " | ".join(cells)
                 if tag in cells and cells.index(tag) + 1 < len(cells):
                     title = cells[cells.index(tag) + 1]
-            if hit["doc_type"] in {"bom", "terminal_plan"}:
+                elif len(cells) == 1:  # freie Zeile einer Stuecklistenseite: Text hinter dem Kennzeichen
+                    title = _after(cells[0], tag) or None
+            if is_bom or hit["doc_type"] == "terminal_plan":
                 sheet_refs += [t.tag for t in found if t.tag_type == TagType.CROSS_REF]
             if hit["doc_type"] == "terminal_plan":
                 terminals += [(t.tag, hit) for t in found if t.tag_type == TagType.TERMINAL and t.tag.startswith("-X") and ":" in t.tag]
             if hit["doc_type"] in PLC_DOC_TYPES:
                 addresses += [(t.tag, hit) for t in found if t.tag_type == TagType.PLC_ADDRESS]
 
-    schematic_hits = [h for h in hits if h["doc_type"] == "schematic"]
+    schematic_hits = [h for h in hits if h["doc_type"] == "schematic" and not _is_bom(h)]
     schematic = schematic_hits[0] if schematic_hits else None
     sheets = {int(ref.lstrip("/").split(".")[0]) for ref in sheet_refs if re.fullmatch(r"/\d+\.\d+", ref)}
     schematic_values = [_value(ref, schematic, ref, with_page=False) for ref in dict.fromkeys(sheet_refs)]

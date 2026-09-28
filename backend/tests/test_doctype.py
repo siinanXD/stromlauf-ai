@@ -63,3 +63,46 @@ def test_unknown_text_stays_other():
     found = guess_doc_type("Protokoll vom Montag\nAnwesend: alle\n")
     assert found.doc_type == DocType.OTHER
     assert guess_doc_type("   ").source == "none"
+
+
+QET_SAMPLE = """1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+A
+B
+C
+DATE 21/06/2020
+References Page
+Example project
+Folio : 1
+QET 0.8 Intake Gate Control Electrical Cabinet
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18
+DATE
+Folio list 1
+Folio : 2
+4 Mains Power Supply IM -IGC 1.0 01/09/2018
+5 Auxiliary Power Supply IM -IGC 1.0 01/09/2018
+6 Emergency Stop Circuit IM -IGC 1.0 01/09/2018
+33 TB1 Terminal Bord IM -IGC 1.0 01/09/2018
+41 Nomenclature IM -IGC 1.0 21/06/2020
+"""
+
+
+def test_englischer_stromlaufplan_mit_folio_schriftfeld():
+    """Issue #39: QElectroTech-/englische Exporte haben "Folio : n" und ein Raster 1..18 statt "Blatt n / m"."""
+    found = guess_doc_type(QET_SAMPLE)
+    assert found.doc_type == DocType.SCHEMATIC, found
+    assert "Folio" in found.reason and found.confidence >= 0.5
+
+
+def test_englische_stueckliste_heisst_nomenclature_oder_parts_list():
+    for title in ("Nomenclature", "Parts List", "Bill of Materials"):
+        text = chr(10).join([title, "Folio Title Label Designation Manufacturer Qty", "4 Mains Power Supply 4Q1 80A Schneider Electric 1"])
+        found = guess_doc_type(text)
+        assert found.doc_type == DocType.BOM, (title, found)
+
+QET_PDF = Path(__file__).resolve().parents[2] / "testdata" / "qelectrotech" / "QET_Beispielprojekt_industrial_50S.pdf"
+
+
+@pytest.mark.skipif(not QET_PDF.exists(), reason="QElectroTech-Testdaten liegen nur lokal")
+def test_echte_qet_pdf_wird_als_stromlaufplan_erkannt():
+    found = detect(QET_PDF.name, QET_PDF)
+    assert found.doc_type == DocType.SCHEMATIC and found.source == "content", found

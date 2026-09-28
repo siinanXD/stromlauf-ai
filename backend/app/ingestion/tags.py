@@ -19,6 +19,11 @@ _DEVICE_RE = re.compile(
     r"(?![\w])"
 )
 
+# QElectroTech-/franzoesischer Stil ohne Minus: Blattnummer + Kennbuchstabe(n) + Zaehler (4Q1, 9K1, 6KEP1, 5F31).
+# Nur wenn ein Dokument diesen Stil durchgaengig nutzt (detect_folio_style), sonst faengt er Bestellnummern wie 6ES7.
+_FOLIO_DEVICE_RE = re.compile(r"(?<![\w.:/+=\-])(?P<folio>\d{1,2})(?P<letters>[A-Z]{1,3})(?P<number>\d{1,3})(?![\w.:])")
+FOLIO_MIN_HITS = 10
+
 # Bit-Adressen: E 0.0 / I0.0 / %I0.0 / %IX0.0 (deutsche und internationale Mnemonik)
 _PLC_BIT_RE = re.compile(r"(?<![\w.])%?(?P<area>[EAIQM])X?[ \t]{0,8}(?P<byte>\d{1,5})\.(?P<bit>[0-7])(?![\w.])")
 # Byte/Wort/Doppelwort: EB 4, MW 100, %QW20, PEW 256, PAW 256
@@ -91,18 +96,40 @@ def _snippet(text: str, start: int, end: int, width: int = 80) -> str:
         line_end = len(text)
     line = text[line_start:line_end].strip()
     if line.startswith("|") and line.endswith("|") and len(line) <= _TABLE_ROW_MAX:
-        return " ".join(line.split())
+        return _table_row(line)
     left = max(0, start - width)
     right = min(len(text), end + width)
     return " ".join(text[left:right].split())
 
 
-def extract_tags(text: str, *, plc_loose: bool = False) -> list[Tag]:
+def _table_row(line: str) -> str:
+    """Tabellenzeile bereinigt: leere Zellen raus, verbundene Zellen (Docling wiederholt sie: "| 6 | 6 |") nur einmal."""
+    cells: list[str] = []
+    for cell in line.strip("|").split("|"):
+        cell = " ".join(cell.split())
+        if cell and (not cells or cells[-1] != cell):
+            cells.append(cell)
+    return "| " + " | ".join(cells) + " |" if cells else "|"
+
+
+def detect_folio_style(text: str) -> bool:
+    """Schreibt das Dokument Kennzeichen ohne Minus (QET-Stil: 4Q1, 9K1)?
+
+    Erst ab FOLIO_MIN_HITS verschiedenen Treffern und nur, wenn sie die Minus-Kennzeichen deutlich ueberwiegen;
+    deutsche Plaene mit Bestellnummern (6ES7 214) bleiben so beim Minus-Stil.
+    """
+    folio = len({m.group(0) for m in _FOLIO_DEVICE_RE.finditer(text)})
+    dash = len({m.group(0) for m in _DEVICE_RE.finditer(text)})
+    return folio >= FOLIO_MIN_HITS and folio > 2 * dash
+
+
+def extract_tags(text: str, *, plc_loose: bool = False, folio_style: bool = False) -> list[Tag]:
     """Findet alle Kennzeichen im Text.
 
     plc_loose=True akzeptiert auch "A 1.0" mit Leerzeichen in Fliesstext (AWL, Symboltabellen).
     In Plaenen/Handbuechern werden Bit-Adressen mit Leerzeichen nur fuer E/I/Q/M akzeptiert,
     weil "A 1.0" dort meist eine Stromangabe o.ae. ist.
+    folio_style=True nimmt zusaetzlich Kennzeichen ohne Minus im Blatt-Stil (4Q1, 9K1), so wie sie dastehen.
     """
     found: dict[tuple[str, str], Tag] = {}
 
@@ -120,6 +147,10 @@ def extract_tags(text: str, *, plc_loose: bool = False) -> list[Tag]:
             add(f"{m['prefix']}{base}", tag_type, m)
         if m["pin"] and is_terminal:
             add(f"{base}:{m['pin']}", TagType.TERMINAL, m)
+
+    if folio_style:
+        for m in _FOLIO_DEVICE_RE.finditer(text):
+            add(m.group(0), TagType.DEVICE, m)
 
     for m in _PLC_BIT_RE.finditer(text):
         has_space = " " in m.group(0) or "\t" in m.group(0)

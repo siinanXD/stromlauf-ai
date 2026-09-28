@@ -6,7 +6,7 @@ from pathlib import Path
 import openpyxl
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.plant import _get, _machine_out
@@ -15,7 +15,17 @@ from app.db import get_session
 from app.ingestion.awl_parser import read_text
 from app.ingestion.onboarding import fault_rows_from_markdown, guess_machine
 from app.ingestion.tags import normalize_tag
-from app.models import Chunk, Document, FaultEntry, Hall, KnowledgeSource, Machine, MachineType
+from app.models import (
+    Chunk,
+    Document,
+    FaultEntry,
+    Hall,
+    KnowledgeSource,
+    Machine,
+    MachineType,
+    TagOccurrence,
+    TagType,
+)
 from app.schemas import FaultIn, MachineOut
 
 router = APIRouter(prefix="/api", tags=["onboarding"])
@@ -86,6 +96,12 @@ def onboarding_proposal(source_id: str, session: Session = Depends(get_session))
             devices += len(_bom_rows(Path(bom.storage_path)))
         except Exception:  # noqa: BLE001 - kaputte Stueckliste: nicht zaehlen
             continue
+    if not boms:  # keine Stuecklisten-Datei: Betriebsmittel aus dem Kennzeichen-Index der uebrigen Dokumente (Issue #39)
+        devices = session.scalar(
+            select(func.count(func.distinct(TagOccurrence.tag))).where(
+                TagOccurrence.source_id == source.id, TagOccurrence.tag_type == TagType.DEVICE
+            )
+        ) or 0
     name, machine_type = guess_machine([bom_title, source.name])
 
     faults: list[dict] = []

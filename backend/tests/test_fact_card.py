@@ -164,3 +164,13 @@ def test_einbauort_kommt_aus_der_eigenen_zeile_auch_wenn_sie_lang_ist():
     card = build_fact_card("-K1", [hit("bom", k1.context)], legend="Anlage =FB1, Schaltschrank +ST1, Feld +FE1")
     assert rows(card)["Einbauort"] == ["Schaltschrank +ST1"]  # Klartext aus der Kopfzeile, nicht +FE1 der Vorgaengerzeile
     assert card["title"] == "Schuetz Foerdermotor vorwaerts, Hauptstromkreis mit Hilfskontaktblock 1S1OE"
+
+
+def test_stuecklistenseite_im_stromlaufplan_liefert_titel():
+    """Issue #39: Zeile der Seite "Nomenclature" (doc_type schematic, Abschnitt = Seitentitel) wirkt wie eine Stuecklistenzeile."""
+    nomenclature = hit("schematic", "6 Emergency Stop Circuit 6KE1 Emergency Contactor Emergency Contactor 1 Schneider Electric",
+                       page=41, section="Nomenclature", filename="QET.pdf")
+    circuit = hit("schematic", "6KE1 A1 A2 6S1 E-Stop", page=6, section="Emergency Stop Circuit", filename="QET.pdf")
+    card = build_fact_card("6KE1", [circuit, nomenclature])
+    assert card["title"] == "Emergency Contactor Emergency Contactor 1 Schneider Electric"
+    assert rows(card)["Stromlaufplan"] == ["S. 6"]  # die Stuecklistenseite ist keine Planseite

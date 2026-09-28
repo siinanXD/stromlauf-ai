@@ -71,3 +71,70 @@ def test_einbauort_aus_der_eigenen_zeile_auch_bei_langen_stuecklistenzeilen():
     bom_rows = [(t.tag, t.context) for t in extract_tags(LONG_BOM_TABLE) if t.tag_type == TagType.DEVICE]
     zones = {z["code"]: [p["tag"] for p in z["parts"]] for z in build_map(bom_rows, legend=LEGEND).as_dict()["zones"]}
     assert zones == {"+FE1": ["-M1", "-B1"], "+ST1": ["-K1"]}  # je Zone nach Art sortiert (Motor < Sensor)
+
+
+def test_index_fallback_gruppiert_teile_nach_blatt_und_titel():
+    """Issue #39: ohne Stueckliste entstehen die Zonen aus den Blaettern des Stromlaufplans."""
+    hits = [
+        ("9QF1", 9, "V1 Gate Control Circuit"),
+        ("9K1", 9, "V1 Gate Control Circuit"),
+        ("4Q1", 4, "Mains Power Supply"),
+        ("6KE1", 6, "Emergency Stop Circuit"),
+        ("9K1", 41, "Nomenclature"),  # zweite Fundstelle auf der Stuecklistenseite zaehlt nicht fuer die Zone
+        ("5T1", 41, "Nomenclature"),  # nur auf der Stuecklistenseite: kein Blatt bekannt
+    ]
+    result = build_map([], index_hits=hits).as_dict()
+    codes = [z["code"] for z in result["zones"]]
+    assert codes == ["Blatt 4", "Blatt 6", "Blatt 9", "?"]
+    zones = {z["code"]: z for z in result["zones"]}
+    assert zones["Blatt 9"]["name"] == "V1 Gate Control Circuit" and zones["Blatt 9"]["id"] == "blatt-9"
+    assert {p["tag"] for p in zones["Blatt 9"]["parts"]} == {"9K1", "9QF1"}
+    assert all(p["source"] == "index" for z in result["zones"] for p in z["parts"])
+    assert [p["tag"] for p in zones["?"]["parts"]] == ["5T1"]
+    assert result["part_count"] == 5
+
+
+def test_stuecklistenzeile_ohne_ort_gibt_bezeichnung_und_blatt_zone():
+    """Stuecklistenseite in der PDF (freie Zeile statt Tabelle) liefert die Bezeichnung, das Blatt die Zone."""
+    bom_rows = [("6KE1", "6 Emergency Stop Circuit 6KE1 Emergency Contactor Emergency Contactor 1 Schneider Electric")]
+    result = build_map(bom_rows, index_hits=[("6KE1", 6, "Emergency Stop Circuit")]).as_dict()
+    (zone,) = result["zones"]
+    assert zone["code"] == "Blatt 6"
+    assert zone["parts"] == [{"tag": "6KE1", "label": "Emergency Contactor Emergency Contactor 1 Schneider Electric",
+                              "kind": "Schuetz/Relais", "source": "bom"}]
+
+
+def test_einbauort_schlaegt_blatt_zone():
+    bom_rows = [("-K1", "| -K1 | Schuetz Hauptantrieb | 3RT2015 | +ST1 |")]
+    result = build_map(bom_rows, index_hits=[("-K1", 3, "Hauptstromkreis")], legend=LEGEND).as_dict()
+    assert [z["code"] for z in result["zones"]] == ["+ST1"]
+
+
+def test_kind_of_kennt_folio_stil_und_zweibuchstabige_kennbuchstaben():
+    assert kind_of("9K1") == kind_of("-K1") == "Schuetz/Relais"
+    assert kind_of("4Q1") == kind_of("-Q1") == "Schalter"
+    assert kind_of("9QF1") == kind_of("-QF1") == "Schutz" and kind_of("-KM1") == "Schuetz/Relais"
+    assert kind_of("9EV1") == "Ventil" and kind_of("24V1") == "" and kind_of("-E1") == "Heizung/Leuchte"
+
+
+def test_index_fallback_laesst_leitungen_klemmen_und_potentiale_weg():
+    """Leitungen (-W), Klemmen (-X) und Namen ohne Kennbuchstabe (24V1) sind keine Teile; Verbinder-Leitungen erst recht nicht."""
+    bom_rows = [("-W3", "| -W3 | Motorleitung | +ST1 -> +FE1 |")]
+    hits = [("-W3", 3, "Hauptstromkreis"), ("-W9", 3, "Hauptstromkreis"), ("24V1", 5, "Auxiliary Power Supply"),
+            ("9EV1", 9, "V1 Gate Control Circuit"), ("9QF1", 9, "V1 Gate Control Circuit"), ("-X3", 7, "Klemmenplan")]
+    result = build_map(bom_rows, index_hits=hits, legend=LEGEND).as_dict()
+    assert [z["code"] for z in result["zones"]] == ["+FE1", "+ST1", "Blatt 9"]  # +FE1/+ST1 nur wegen des Verbinders -W3
+    assert {p["tag"]: p["kind"] for z in result["zones"] for p in z["parts"]} == {"9EV1": "Ventil", "9QF1": "Schutz"}
+
+
+def test_bezeichnung_steht_hinter_dem_kennzeichen_auch_in_stuecklistenseiten_der_pdf():
+    """QET-Nomenclature als Tabelle: Folio | Blatttitel | Kennzeichen | Bezeichnung | ... - nicht der Blatttitel davor."""
+    rows = [
+        ("6KE1", "| 6 | Emergency Stop Circuit | 6KE1 | Emergency Contactor | Emergency Contactor 1 | Schneider Electric |"),
+        ("4Q1", "| 4 | Mains Power Supply | 4Q1 | 80A |"),
+        ("-K1", "| -K1 | Schuetz Hauptantrieb | 3RT2015 | +ST1 |"),
+        ("8F1", "| 8 | VX Gate Control Circuit | 8F1 |"),  # ohne Bezeichnung: der Blatttitel davor ist keine
+    ]
+    hits = [("6KE1", 6, "Emergency Stop Circuit"), ("4Q1", 4, "Mains Power Supply"), ("8F1", 8, "VX Gate Control Circuit")]
+    labels = {p["tag"]: p["label"] for z in build_map(rows, index_hits=hits, legend=LEGEND).as_dict()["zones"] for p in z["parts"]}
+    assert labels == {"6KE1": "Emergency Contactor", "4Q1": "80A", "-K1": "Schuetz Hauptantrieb", "8F1": ""}

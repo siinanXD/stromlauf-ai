@@ -423,6 +423,14 @@ ohne Vision. Nennt die Frage ein Betriebsmittel (-K1), zeigt eine **Befundkarte*
 Stromlaufplan-Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET /api/facts`), nicht
 vom Modell. Der **Einbauort** kommt aus der Einbauort-Spalte der Stückliste (`+ST1`, `+BP1`, `+AN1` …), den
 Klartext („Schaltschrank +ST1") liefert die Kopfzeile derselben Datei; Leitungen tragen beide Orte.
+
+Kommt die Dokumentation als **eine PDF** (EPLAN-, QElectroTech-Export mit Deckblatt, Inhaltsverzeichnis, Plan,
+Klemmenplan und Stückliste), gibt es keine Stücklisten-Datei. Dann entsteht das Modell aus dem Kennzeichen-Index:
+Teile sind die Betriebsmittel der Planseiten, Zonen die Blätter, auf denen sie zuerst vorkommen („Blatt 4 · Mains
+Power Supply“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld; Seiten mit Titel
+„Stückliste“, „Nomenclature“ oder „Parts list“ liefern die Bezeichnungen. Kennzeichen ohne Minus im Blatt-Stil
+(`4Q1`, `9K1`) werden erkannt, wenn ein Dokument diesen Stil durchgängig nutzt. Bestehende Quellen brauchen dafür
+„Neu verarbeiten“.
 Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 
 ## Architektur
