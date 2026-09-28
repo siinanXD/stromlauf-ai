@@ -146,3 +146,21 @@ def test_einbauort_und_kopfzeile_passen_zur_echten_stueckliste():
     cells = {row[column] for row in table if row[0].startswith("-") and row[column]}
     assert {"+ST1", "+FE1"} <= cells
     assert all(locations_in(cell) for cell in cells)  # jede Zelle ist als Ort erkennbar
+
+
+LONG_BOM_TABLE = """| BMK | Bezeichnung | Typ / Kenndaten | Menge | Einbauort | Blatt |
+|---|---|---|---|---|---|
+| -B1 | Lichtschranke Einlauf, Reflexionslichtschranke mit Reflektor, Schaltabstand 2 m | Reflexionslichtschranke 24 V DC, PNP, M18 | 1 | +FE1 | /4.2 |
+| -K1 | Schuetz Foerdermotor vorwaerts, Hauptstromkreis mit Hilfskontaktblock 1S1OE | Leistungsschuetz 4 kW, Spule 24 V DC, 3RT2015 | 1 | +ST1 | /3.2 |
+| -M1 | Foerdermotor 3~ 1,5 kW, 1420 1/min | Drehstrommotor 1,5 kW, IE3 | 1 | +FE1 | /3.3 |
+"""
+
+
+def test_einbauort_kommt_aus_der_eigenen_zeile_auch_wenn_sie_lang_ist():
+    """Issue #38: Kontext aus extract_tags; die Einbauort-Zelle steht weit hinter dem Kennzeichen."""
+    from app.ingestion.tags import TagType, extract_tags
+
+    (k1,) = [t for t in extract_tags(LONG_BOM_TABLE) if t.tag == "-K1" and t.tag_type == TagType.DEVICE]
+    card = build_fact_card("-K1", [hit("bom", k1.context)], legend="Anlage =FB1, Schaltschrank +ST1, Feld +FE1")
+    assert rows(card)["Einbauort"] == ["Schaltschrank +ST1"]  # Klartext aus der Kopfzeile, nicht +FE1 der Vorgaengerzeile
+    assert card["title"] == "Schuetz Foerdermotor vorwaerts, Hauptstromkreis mit Hilfskontaktblock 1S1OE"

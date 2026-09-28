@@ -54,3 +54,20 @@ def test_art_aus_kennbuchstabe():
     assert kind_of("-X1") == "Klemme"
     assert kind_of("Q") == "Schalter"
     assert kind_of("") == ""
+
+
+LONG_BOM_TABLE = """| BMK | Bezeichnung | Typ / Kenndaten | Menge | Einbauort | Blatt |
+|---|---|---|---|---|---|
+| -B1 | Lichtschranke Einlauf, Reflexionslichtschranke mit Reflektor, Schaltabstand 2 m | Reflexionslichtschranke 24 V DC, PNP, M18 | 1 | +FE1 | /4.2 |
+| -K1 | Schuetz Foerdermotor vorwaerts, Hauptstromkreis mit Hilfskontaktblock 1S1OE | Leistungsschuetz 4 kW, Spule 24 V DC, 3RT2015 | 1 | +ST1 | /3.2 |
+| -M1 | Foerdermotor 3~ 1,5 kW, 1420 1/min | Drehstrommotor 1,5 kW, IE3 | 1 | +FE1 | /3.3 |
+"""
+
+
+def test_einbauort_aus_der_eigenen_zeile_auch_bei_langen_stuecklistenzeilen():
+    """Issue #38: Kontext aus extract_tags, Zeilen laenger als das alte 80-Zeichen-Fenster."""
+    from app.ingestion.tags import TagType, extract_tags
+
+    bom_rows = [(t.tag, t.context) for t in extract_tags(LONG_BOM_TABLE) if t.tag_type == TagType.DEVICE]
+    zones = {z["code"]: [p["tag"] for p in z["parts"]] for z in build_map(bom_rows, legend=LEGEND).as_dict()["zones"]}
+    assert zones == {"+FE1": ["-M1", "-B1"], "+ST1": ["-K1"]}  # je Zone nach Art sortiert (Motor < Sensor)

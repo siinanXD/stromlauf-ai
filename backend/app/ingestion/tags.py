@@ -76,7 +76,22 @@ def search_prefixes(query: str) -> list[str]:
     return list(dict.fromkeys(c for c in candidates if re.search(r"[A-Z0-9]", c)))
 
 
+_TABLE_ROW_MAX = 600  # Zeichen; laengere "Zeilen" sind keine Tabellenzeilen mehr, sondern Fliesstext mit Strichen
+
+
 def _snippet(text: str, start: int, end: int, width: int = 80) -> str:
+    """Kontext einer Fundstelle: in einer Markdown-Tabelle die ganze eigene Zeile, sonst ein Fenster von `width` Zeichen.
+
+    Die ganze Zeile brauchen Befundkarte und Maschinenmodell fuer den Einbauort (Issue #38): das Fenster schnitt die
+    Zelle am Zeilenende ab und zeigte stattdessen das Ende der Vorgaengerzeile mit deren Einbauort.
+    """
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    if line_end == -1:
+        line_end = len(text)
+    line = text[line_start:line_end].strip()
+    if line.startswith("|") and line.endswith("|") and len(line) <= _TABLE_ROW_MAX:
+        return " ".join(line.split())
     left = max(0, start - width)
     right = min(len(text), end + width)
     return " ".join(text[left:right].split())
