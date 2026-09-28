@@ -113,6 +113,7 @@ python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet 
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 python eval/run_eval.py --resume eval/results/2026-09-27_10-12-33.json   # abgebrochenen Lauf fortsetzen
 python eval/run_eval.py --model openai:gpt-5-mini --only "Foerderband FB-01" --max-cost 1.00   # anderer Provider, gleiche Fragen
+python eval/compare_runs.py eval/results/referenz_2026-09-28_claude-sonnet-5.json eval/results/referenz_2026-09-28_gpt-5-mini.json --out eval/results/vergleich_2026-09-28.md   # zwei Laeufe nebeneinander, ohne Kosten
 
 python scripts/acceptance.py [--api ...] [--load] [--strict]              # Abnahme-Nachweise, kein Modellaufruf
 node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010   # Accessibility >= 90
