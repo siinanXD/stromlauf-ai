@@ -2,9 +2,10 @@
 
 import type { PageTarget } from "@/components/PageViewer";
 import { api, plant, type Evidence } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 /** Belegbilder unter der Antwort: Seitenausschnitte der Zitate und Schaltschrankfotos mit Rahmen um das Bauteil. */
-export function EvidenceRow({ evidence, onOpen }: { evidence: Evidence[]; onOpen: (target: PageTarget) => void }) {
+export function EvidenceRow({ evidence, onOpen, onOpenPart }: { evidence: Evidence[]; onOpen: (target: PageTarget) => void; onOpenPart?: (tag: string) => void }) {
   return (
     <ul className="scroll-contain flex w-0 min-w-full snap-x gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]" aria-label="Belegbilder">
       {evidence.map((item) =>
@@ -23,7 +24,14 @@ export function EvidenceRow({ evidence, onOpen }: { evidence: Evidence[]; onOpen
           </li>
         ) : (
           <li key={item.hotspot_id} className="w-40 shrink-0 snap-start" data-testid="evidence-cabinet">
-            <figure className="overflow-hidden rounded-xl border border-border bg-card">
+            <figure
+              role={onOpenPart ? "button" : undefined}
+              tabIndex={onOpenPart ? 0 : undefined}
+              aria-label={onOpenPart ? `Bauteil ${item.tag} öffnen (Foto ${item.cabinet_title})` : undefined}
+              onClick={onOpenPart ? () => onOpenPart(item.tag) : undefined}
+              onKeyDown={onOpenPart ? (e) => (e.key === "Enter" || e.key === " ") && onOpenPart(item.tag) : undefined}
+              className={cn("overflow-hidden rounded-xl border border-border bg-card", onOpenPart && "cursor-pointer hover:border-primary focus-visible:ring-2 focus-visible:ring-primary")}
+            >
               <div className="relative aspect-[4/3] w-full overflow-hidden bg-secondary">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={plant.cabinetImageUrl(item.cabinet_id)} alt={`${item.cabinet_title}: ${item.tag} markiert`} className="absolute inset-0 size-full object-cover" loading="lazy" />

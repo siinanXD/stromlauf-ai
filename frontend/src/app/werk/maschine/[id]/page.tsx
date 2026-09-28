@@ -19,6 +19,8 @@ import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
 import { MachineChatTab } from "@/components/machine/MachineChatTab";
 import { MachineCostChip } from "@/components/machine/MachineCostChip";
 import { PartPanel } from "@/components/machine/PartPanel";
+import { CabinetLightbox } from "@/components/part/CabinetLightbox";
+import { PartSheet } from "@/components/part/PartSheet";
 import { SpecsTab } from "@/components/machine/SpecsTab";
 import { SchemaMap } from "@/components/model/SchemaMap";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
@@ -81,6 +83,8 @@ export default function MachinePage() {
   const [signalTag, setSignalTag] = useState<string>(urlTag ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(urlTag);
+  const [sheetTag, setSheetTag] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ cabinetId: string; hotspotId: string | null } | null>(null);
   const [referencedTags, setReferencedTags] = useState<string[]>([]);
   const [faultFilter, setFaultFilter] = useState<string | null>(null);
   const [activeFault, setActiveFault] = useState<Fault | null>(null);
@@ -157,11 +161,12 @@ export default function MachinePage() {
   const hits = activeFault ? faultHits(activeFault, layout, machine?.cabinets ?? []) : null;
   const highlightTags = useMemo(() => [...(activeFault?.tags ?? []), ...referencedTags], [activeFault, referencedTags]);
 
-  /** Bauteil aus Modell, Antwort-Chip oder Fehlerliste oeffnen: markieren und die beste Ansicht zeigen (MB-5 bringt das Datenblatt). */
+  /** Bauteil aus Modell, Antwort-Chip, Belegbild oder Fehlerliste oeffnen: Datenblatt-Sheet, markieren und die beste Ansicht zeigen. */
   const openPart = useCallback(
     (tag: string) => {
       setSelectedTag(tag);
       setSignalTag(tag);
+      setSheetTag(tag);
       const inLayout = layout?.parts.find((p) => sameTag(p.tag, tag));
       const inCabinet = (machine?.cabinets ?? []).some((c) => c.hotspots.some((h) => sameTag(h.tag, tag)));
       if (inLayout) {
@@ -477,6 +482,42 @@ export default function MachinePage() {
 
       <FaultDialog fault={editing} onClose={() => setEditing(null)} onSave={saveFault} />
       {pageTarget && <PageViewer target={pageTarget} onClose={() => setPageTarget(null)} />}
+      {sheetTag && !lightbox && (
+        <PartSheet
+          tag={sheetTag}
+          machine={machine}
+          map={map}
+          onClose={() => setSheetTag(null)}
+          onOpenPage={(target) => {
+            setSheetTag(null);
+            setPageTarget(target);
+          }}
+          onOpenPart={(tag) => {
+            setSelectedTag(tag);
+            setSignalTag(tag);
+            setSheetTag(tag);
+          }}
+          onShowPhoto={(cabinetId, hotspotId) => setLightbox({ cabinetId, hotspotId })}
+          onShowSignal={(tag) => {
+            setSheetTag(null);
+            setSignalTag(tag);
+            selectTab("signalweg");
+          }}
+          onUploadDatasheet={() => {
+            setSheetTag(null);
+            selectTab("dokumente");
+          }}
+        />
+      )}
+      {lightbox && machine.cabinets.some((c) => c.id === lightbox.cabinetId) && (
+        <CabinetLightbox
+          cabinet={machine.cabinets.find((c) => c.id === lightbox.cabinetId)!}
+          hotspotId={lightbox.hotspotId}
+          referencedTags={highlightTags}
+          onClose={() => setLightbox(null)}
+          onChanged={loadMachine}
+        />
+      )}
     </AppShell>
   );
 }

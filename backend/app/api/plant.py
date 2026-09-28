@@ -435,6 +435,10 @@ def update_hotspot(hotspot_id: str, body: HotspotUpdate, session: Session = Depe
         data["tag"] = normalize_tag(data["tag"]) if (data["tag"] or "").strip() else ""
     for key, value in data.items():
         setattr(hotspot, key, value)
+    if {"x", "y", "w", "h"} & data.keys():
+        # Rahmen von Hand korrigiert: gilt als bestaetigt und stammt nicht mehr von der Vision
+        hotspot.origin = "manual"
+        hotspot.confirmed = True
     session.commit()
     return HotspotOut.model_validate(hotspot)
 

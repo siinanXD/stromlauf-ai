@@ -78,6 +78,21 @@ festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision
 - E2E: `cd frontend && npx playwright test` prüft die Ansicht bei 390/768/1440 px gegen eine gemockte API
   (`frontend/e2e/`), inklusive axe (WCAG 2 A/AA) und „kein horizontaler Body-Scroll“.
 
+## Bauteil-Datenblatt und Schaltschrankfoto
+
+Ein Tipp auf ein Bauteil (Chip unter der Antwort, Chip im Modell, Belegbild) öffnet sein **Datenblatt**
+(`frontend/src/components/part/PartSheet.tsx`): rechter Drawer ab 768 px, Bottom Sheet am Handy; Esc,
+Wisch nach unten und der Fokus-Rücksprung kommen von Radix Dialog. Inhalt: Einbauort (Zone des Modells),
+Datenblattseite (erste PDF-Fundstelle in Handbuch/Sonstiges, sonst „Datenblatt hochladen“), Befundkarte
+(Stromlaufplan-Stellen, Klemmen, SPS-Adressen), verbundene Bauteile aus dem Signalgraph (Verb aus dem
+Kennbuchstaben: schützt / schaltet / steuert / versorgt), Belege und die Fotos, in denen es markiert ist.
+
+„Im Foto zeigen“ öffnet die **Lightbox** (`CabinetLightbox.tsx`): referenzierte Rahmen amber und gefüllt,
+andere als Umriss, Seitenliste mit Konfidenz. „Markierung korrigieren“ macht den gewählten Rahmen zieh-
+und skalierbar (Ecken, Pfeiltasten, Shift+Pfeile = Größe), Enter speichert per `PATCH /api/hotspots/{id}`;
+ein korrigierter Rahmen gilt als `origin=manual`, `confirmed=true` und landet so im Beleg der nächsten
+Antwort. `frontend/e2e/part-sheet.spec.ts` prüft Öffnen/Schließen/Fokus und den Box-Roundtrip.
+
 ## Kostenbuch: was eine Maschine kostet
 
 Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank- und Draufsicht-Erkennung, Ablauf-Extraktion)
