@@ -66,20 +66,42 @@ jobs:
           nohup python -m uvicorn app.main:app --port 8010 > /tmp/backend.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:8010/api/health && break; sleep 2; done
           curl -sf http://localhost:8010/api/health
-      - name: Demo-Maschine FB-01 laden (Ingestion ohne Vision)
-        run: python scripts/load_example.py --api http://localhost:8010
+      - name: Demo-Maschine FB-01 laden und Abnahme-Nachweise sammeln (Ingestion ohne Vision, kein Gate)
+        run: python scripts/acceptance.py --api http://localhost:8010 --load --out eval/results
       - name: Retrieval-Eval mit Schwellwerten
         run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.9 --min-sources 0.9
-      - name: Backend-Log bei Fehler
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend als Produktions-Build gegen das lokale Backend starten
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8010
+        run: |
+          npm ci
+          npm run build
+          nohup npm run start > /tmp/frontend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3100/login && break; sleep 2; done
+          curl -sf -o /dev/null http://localhost:3100/login
+      - name: Lighthouse Accessibility >= 90 auf der Maschinenansicht (contract.md §5)
+        run: node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010 --out eval/results
+      - name: Logs bei Fehler
         if: failure()
         run: |
           grep -nE "Traceback|Error|failed|Fehler" /tmp/backend.log | tail -n 60 || true
           tail -n 120 /tmp/backend.log
+          tail -n 40 /tmp/frontend.log || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: retrieval-results
-          path: eval/results/retrieval_*.json
+          name: abnahme-nachweise
+          path: |
+            eval/results/retrieval_*.json
+            eval/results/acceptance_*.json
+            eval/results/acceptance_*.md
+            eval/results/lighthouse-a11y.report.*
           retention-days: 14
 
   nightly:
