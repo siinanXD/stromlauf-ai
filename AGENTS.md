@@ -96,6 +96,8 @@ backend/.venv/Scripts/python scripts/check.py   # alles: ruff, pytest, eslint, t
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
 python eval/run_retrieval.py      # Eval ohne Kosten; eval/run_eval.py kostet Tokens je Frage
+python scripts/acceptance.py [--load]   # Abnahme-Nachweise (contract §5) ohne Modellaufruf; Lighthouse: node frontend/scripts/lighthouse-a11y.mjs
+E2E_API_URL=http://127.0.0.1:8010 npx playwright test e2e/staging.spec.ts   # E2E gegen echtes Backend (Frage nur mit E2E_ASK=1)
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
