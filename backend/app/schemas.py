@@ -80,6 +80,8 @@ class ChatRequest(BaseModel):
     trace_tags: list[str] = []  # Tags am Langfuse-Trace, z. B. eval:2026-09-27, q:fb01-e03
     # Maschinen-Chat: Scope ist fest die Wissensquelle der Maschine; source_ids werden dann ignoriert
     machine_id: str | None = None
+    # Modell nur fuer diese Anfrage, z. B. "openai:gpt-5-mini" (Evals vergleichen Provider); leer = CHAT_MODEL
+    model: str | None = None
 
 
 # --- Werk: Halle / Maschine / Fehlerliste / Schaltschrank ------------------------------------

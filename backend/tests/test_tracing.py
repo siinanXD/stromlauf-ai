@@ -73,11 +73,11 @@ def _vision_settings() -> SimpleNamespace:
 
 
 class _FakeLLM:
-    """Ersetzt ChatAnthropic: merkt sich die Konfiguration des Aufrufs."""
+    """Ersetzt make_chat_model(name, **kwargs): merkt sich die Konfiguration des Aufrufs."""
 
     last_config: object = "nicht aufgerufen"
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass
 
     def invoke(self, messages, config=None):
@@ -87,7 +87,7 @@ class _FakeLLM:
 
 def test_describe_page_gibt_die_trace_konfiguration_weiter(monkeypatch):
     monkeypatch.setattr(vision, "get_settings", _vision_settings)
-    monkeypatch.setattr(vision, "ChatAnthropic", _FakeLLM)
+    monkeypatch.setattr(vision, "make_chat_model", _FakeLLM)
     monkeypatch.setattr(vision, "render_page_png", lambda path, page: b"png")
     vision.describe_page(Path("plan.pdf"), 1, "", trace={"callbacks": ["H"]})
     assert _FakeLLM.last_config == {"callbacks": ["H"]}
@@ -95,7 +95,7 @@ def test_describe_page_gibt_die_trace_konfiguration_weiter(monkeypatch):
 
 def test_describe_page_ohne_trace_uebergibt_nichts(monkeypatch):
     monkeypatch.setattr(vision, "get_settings", _vision_settings)
-    monkeypatch.setattr(vision, "ChatAnthropic", _FakeLLM)
+    monkeypatch.setattr(vision, "make_chat_model", _FakeLLM)
     monkeypatch.setattr(vision, "render_page_png", lambda path, page: b"png")
     vision.describe_page(Path("plan.pdf"), 1)
     assert _FakeLLM.last_config is None
@@ -103,14 +103,14 @@ def test_describe_page_ohne_trace_uebergibt_nichts(monkeypatch):
 
 def test_detect_layout_gibt_die_trace_konfiguration_weiter(monkeypatch):
     monkeypatch.setattr(layout_vision, "get_settings", _vision_settings)
-    monkeypatch.setattr(layout_vision, "ChatAnthropic", _FakeLLM)
+    monkeypatch.setattr(layout_vision, "make_chat_model", _FakeLLM)
     layout_vision.detect_layout(b"png", ["-M1"], trace={"callbacks": ["H"]})
     assert _FakeLLM.last_config == {"callbacks": ["H"]}
 
 
 def test_detect_components_gibt_die_trace_konfiguration_weiter(monkeypatch):
     monkeypatch.setattr(cabinet_vision, "get_settings", _vision_settings)
-    monkeypatch.setattr(cabinet_vision, "ChatAnthropic", _FakeLLM)
+    monkeypatch.setattr(cabinet_vision, "make_chat_model", _FakeLLM)
     monkeypatch.setattr(cabinet_vision, "load_png", lambda path: (b"png", 100, 80))
     cabinet_vision.detect_components(Path("schrank.png"), ["-K1"], trace={"callbacks": ["H"]})
     assert _FakeLLM.last_config == {"callbacks": ["H"]}

@@ -1,15 +1,15 @@
 """Schaltplanseiten als Bild rendern und per Claude Vision strukturiert beschreiben."""
 
-import base64
 import io
 from pathlib import Path
 
 import pypdfium2 as pdfium
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 
 from app.config import get_settings
 from app.ingestion.docling_parser import pdfium_lock
+from app.llm import image_block as standard_image_block
+from app.llm import make_chat_model
 
 VISION_PROMPT = """Du bist Elektrokonstrukteur und analysierst eine Seite eines industriellen \
 Stromlaufplans (meist EPLAN, IEC 81346). Beschreibe die Seite so, dass ein Instandhalter \
@@ -63,24 +63,13 @@ def render_page_png(path: Path, page: int, max_edge: int | None = None) -> bytes
 
 
 def image_block(png: bytes) -> dict:
-    return {
-        "type": "image",
-        "source": {
-            "type": "base64",
-            "media_type": "image/png",
-            "data": base64.standard_b64encode(png).decode("ascii"),
-        },
-    }
+    """Bildblock im LangChain-Standardformat (Anthropic und OpenAI); auch der Chat-Agent (agent/tools.py) nutzt ihn."""
+    return standard_image_block(png)
 
 
 def describe_page(path: Path, page: int, extracted_text: str = "", trace: dict | None = None) -> str:
     settings = get_settings()
-    llm = ChatAnthropic(
-        model=settings.vision_model,
-        api_key=settings.anthropic_api_key,
-        max_tokens=8000,
-        max_retries=3,
-    )
+    llm = make_chat_model(settings.vision_model, max_tokens=8000, max_retries=3)
     hint = ""
     if extracted_text.strip():
         hint = (

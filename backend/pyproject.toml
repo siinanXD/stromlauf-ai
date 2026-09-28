@@ -15,6 +15,7 @@ dependencies = [
     "langchain>=0.3",
     "langchain-core>=0.3",
     "langchain-anthropic>=0.3",
+    "langchain-openai>=1.6",  # zweiter Provider fuer Chat/Vision (app/llm.py), Embeddings laufen ueber httpx
     "langchain-text-splitters>=0.3",
     "langgraph>=0.2.60",
     "langgraph-checkpoint-sqlite>=2.0",

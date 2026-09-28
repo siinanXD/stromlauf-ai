@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     voyage_api_key: str | None = None
     voyage_model: str = "voyage-4"
     voyage_api_url: str = "https://api.voyageai.com/v1/embeddings"
+    # openai = OpenAI-Embeddings (text-embedding-3-*, dimensions = EMBEDDING_DIM). Wechsel = neu indexieren.
+    # OPENAI_API_KEY gilt auch fuer Chat- und Vision-Modelle mit Praefix "openai:" (app/llm.py).
+    openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_api_url: str = "https://api.openai.com/v1"
     # e5-Modelle erwarten "query: " / "passage: " Praefixe, bge-m3 nicht.
     embedding_query_prefix: str = ""
     embedding_passage_prefix: str = ""

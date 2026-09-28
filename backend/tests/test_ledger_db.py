@@ -88,7 +88,7 @@ def test_jeder_vision_aufruf_erzeugt_genau_eine_zeile(client, machine, monkeypat
             AIMessage(content="Seite 2: Motor -M1", usage_metadata={"input_tokens": 1400, "output_tokens": 500, "total_tokens": 1900}),
         ]
     )
-    monkeypatch.setattr(vision, "ChatAnthropic", lambda **_kwargs: fake)
+    monkeypatch.setattr(vision, "make_chat_model", lambda *_args, **_kwargs: fake)
     monkeypatch.setattr(vision, "render_page_png", lambda _path, _page: b"png")
     monkeypatch.setattr(pipeline, "_set_progress", lambda *_args: None)
 

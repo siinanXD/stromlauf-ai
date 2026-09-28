@@ -13,6 +13,12 @@ on:
       max_cost_usd:
         description: Kostendeckel fuer den Agentenlauf (USD)
         default: "2.00"
+      chat_model:
+        description: "Chat-Modell fuer diesen Lauf, z. B. openai:gpt-5-mini oder claude-sonnet-5 (leer = Variable EVAL_CHAT_MODEL)"
+        default: ""
+      vision_model:
+        description: "Vision-Modell fuer die Schaltschrank-IoU, z. B. openai:gpt-5 (leer = Variable EVAL_VISION_MODEL)"
+        default: ""
 
 concurrency:
   group: eval-${{ github.ref }}
@@ -123,18 +129,26 @@ jobs:
           --health-cmd "pg_isready -U stromlauf -d stromlauf"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
+      # Secrets liegen als Repository-Secrets (Settings -> Secrets and variables -> Actions); OPEN_API_KEY ist der
+      # dort gewaehlte Name fuer den OpenAI-Schluessel, LANGFUSE_BASE_URL der fuer den Langfuse-Host.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPEN_API_KEY }}
       LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
       LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
-      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST || 'https://cloud.langfuse.com' }}
-      CHAT_MODEL: ${{ vars.EVAL_CHAT_MODEL || 'claude-sonnet-5' }}
-      VISION_MODEL: ${{ vars.EVAL_VISION_MODEL || 'claude-sonnet-5' }}
+      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST || secrets.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com' }}
+      CHAT_MODEL: ${{ github.event.inputs.chat_model || vars.EVAL_CHAT_MODEL || 'claude-sonnet-5' }}
+      VISION_MODEL: ${{ github.event.inputs.vision_model || vars.EVAL_VISION_MODEL || 'claude-sonnet-5' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Secret vorhanden?
+      - name: Schluessel fuer das gewaehlte Chat-Modell vorhanden?
         id: secret
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "ANTHROPIC_API_KEY fehlt: Nightly uebersprungen"; fi
+          case "$CHAT_MODEL" in
+            openai:*|gpt-*|o1*|o3*|o4*) key="$OPENAI_API_KEY"; name="OPENAI_API_KEY" ;;
+            *) key="$ANTHROPIC_API_KEY"; name="ANTHROPIC_API_KEY" ;;
+          esac
+          if [ -z "$key" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "$name fehlt fuer CHAT_MODEL=$CHAT_MODEL: Nightly uebersprungen"; fi
+          echo "Chat-Modell: $CHAT_MODEL, Vision-Modell: $VISION_MODEL"
       - uses: actions/setup-python@v5
         if: steps.secret.outputs.skip != 'true'
         with:

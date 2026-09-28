@@ -93,13 +93,56 @@ class VoyageEmbeddings(Embeddings):
         return self._post([text], "query")[0]
 
 
+class OpenAIEmbeddings(Embeddings):
+    """OpenAI-Embeddings (text-embedding-3-*) ueber HTTP; `dimensions` = EMBEDDING_DIM, damit die Vektorspalte passt."""
+
+    def __init__(self, transport=None) -> None:
+        self._transport = transport  # Tests: httpx.MockTransport
+
+    def _post(self, texts: list[str]) -> list[list[float]]:
+        import httpx
+
+        settings = get_settings()
+        if not settings.openai_api_key:
+            raise RuntimeError("EMBEDDING_PROVIDER=openai, aber OPENAI_API_KEY fehlt")
+        url = settings.openai_api_url.rstrip("/") + "/embeddings"
+        headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+        vectors: list[list[float]] = []
+        with httpx.Client(timeout=60.0, transport=self._transport) as client:
+            for start in range(0, len(texts), 128):
+                payload = {
+                    "input": texts[start : start + 128],
+                    "model": settings.openai_embedding_model,
+                    "dimensions": settings.embedding_dim,
+                }
+                for attempt in range(3):
+                    response = client.post(url, json=payload, headers=headers)
+                    if response.status_code in (429, 500, 502, 503, 504) and attempt < 2:
+                        continue
+                    response.raise_for_status()
+                    break
+                data = sorted(response.json()["data"], key=lambda item: item["index"])
+                vectors += [item["embedding"] for item in data]
+        if vectors and len(vectors[0]) != settings.embedding_dim:
+            raise RuntimeError(f"EMBEDDING_DIM={settings.embedding_dim}, aber OpenAI liefert {len(vectors[0])}.")
+        return vectors
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._post(texts) if texts else []
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._post([text])[0]
+
+
 def make_embeddings() -> Embeddings:
     provider = get_settings().embedding_provider.lower()
     if provider == "voyage":
         return VoyageEmbeddings()
+    if provider == "openai":
+        return OpenAIEmbeddings()
     if provider == "local":
         return LocalEmbeddings()
-    raise RuntimeError(f"EMBEDDING_PROVIDER={provider!r}: erlaubt sind local oder voyage")
+    raise RuntimeError(f"EMBEDDING_PROVIDER={provider!r}: erlaubt sind local, voyage oder openai")
 
 
 embeddings = make_embeddings()
