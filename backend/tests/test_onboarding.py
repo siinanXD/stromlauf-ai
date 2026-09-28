@@ -7,7 +7,7 @@ MANUAL = (Path(__file__).resolve().parents[2] / "examples" / "foerderband" / "06
 
 def test_fault_table_of_the_manual_becomes_fault_entries():
     faults = fault_rows_from_markdown(MANUAL, "Betriebsanleitung")
-    assert len(faults) == 7
+    assert len(faults) == 8  # sieben Zeilen plus Reparaturschalter -Q2
     first = faults[0]
     assert first["symptom"].startswith("-H2 leuchtet, Band steht")
     assert first["cause"].startswith("Motorschutz -F2 ausgeloest")

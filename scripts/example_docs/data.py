@@ -7,18 +7,43 @@ Klemmen und SPS-Adressen ueberall identisch sind.
 
 PLANT = "=FB1"
 LOC_CABINET = "+ST1"  # Schaltschrank
-LOC_FIELD = "+FE1"  # Feld / Anlage
+
+# Einbauorte nach IEC 81346: Code -> Klartext. Steht so in der Kopfzeile der Stueckliste, im Deckblatt
+# und in der Anleitung; daraus liest das Maschinenmodell die Baugruppen (contract.md Abschnitt 5, Kriterium 2).
+LOCATIONS = {
+    "+ST1": "Schaltschrank",
+    "+BP1": "Bedienpult",
+    "+AN1": "Antrieb",
+    "+SE1": "Einlauf",
+    "+SA1": "Auslauf",
+}
+LOCATIONS_TEXT = ", ".join(f"{name} {code}" for code, name in LOCATIONS.items())
+
+# Einbauort je Betriebsmittel ausserhalb des Schaltschranks; alles andere sitzt in +ST1
+LOCATION_OF = {
+    "-S1": "+BP1", "-S2": "+BP1", "-S3": "+BP1", "-H1": "+BP1", "-H2": "+BP1", "-H3": "+BP1", "-P1": "+BP1",
+    "-M1": "+AN1", "-Q2": "+AN1",
+    "-B1": "+SE1",
+    "-B2": "+SA1",
+}
+
+
+def location_of(bmk: str) -> str:
+    return LOCATION_OF.get(bmk, LOC_CABINET)
+
 
 # BMK, Bezeichnung, Typ (neutral, kein Hersteller), Menge, Blatt/Spalte im Plan
 DEVICES = [
     ("-Q1", "Hauptschalter 3-polig, 25 A", "Lasttrennschalter 3P 25A", 1, "/2.2"),
     ("-F1", "Leitungsschutzschalter Steuerspannung 230 V", "LS-Schalter 1P+N B6", 1, "/2.4"),
     ("-F2", "Motorschutzschalter Foerdermotor 2,5-4 A", "MSS 3P 2,5-4A + Hilfskontakt 1S1OE", 1, "/3.2"),
+    ("-F3", "Leitungsschutzschalter 24 V Steuerkreis Bedienpult", "LS-Schalter 1P B4 (DC)", 1, "/2.6"),
     ("-T1", "Netzteil 230 V AC / 24 V DC, 5 A", "Schaltnetzteil 24V/5A", 1, "/2.6"),
     ("-K1", "Schuetz Foerdermotor vorwaerts", "Leistungsschuetz 4 kW, Spule 24 V DC", 1, "/3.4"),
     ("-K2", "Schuetz Foerdermotor rueckwaerts", "Leistungsschuetz 4 kW, Spule 24 V DC", 1, "/3.6"),
     ("-K3", "Sicherheitsrelais Not-Halt, 2-kanalig", "Sicherheitsschaltgeraet Kat. 3 / PL d", 1, "/4.2"),
     ("-M1", "Foerdermotor 3~ 1,5 kW, 1420 1/min", "Drehstrommotor 1,5 kW, IE3", 1, "/3.5"),
+    ("-Q2", "Reparaturschalter Foerdermotor, 3-polig, abschliessbar", "Lasttrennschalter 3P 16A im Gehaeuse", 1, "/3.5"),
     ("-S1", "Taster Start (Schliesser)", "Drucktaster gruen 1S", 1, "/4.6"),
     ("-S2", "Taster Stop (Oeffner)", "Drucktaster rot 1OE", 1, "/4.7"),
     ("-S3", "Not-Halt-Taster, 2 Oeffner, rastend", "Pilzdrucktaster 2OE", 1, "/4.2"),
@@ -26,13 +51,23 @@ DEVICES = [
     ("-B2", "Lichtschranke Auslauf", "Reflexionslichtschranke 24 V DC PNP", 1, "/5.5"),
     ("-H1", "Meldeleuchte Betrieb (gruen)", "LED-Leuchtmelder 24 V DC gruen", 1, "/6.5"),
     ("-H2", "Meldeleuchte Stoerung (rot)", "LED-Leuchtmelder 24 V DC rot", 1, "/6.5"),
+    ("-H3", "Meldeleuchte Not-Halt betaetigt (gelb)", "LED-Leuchtmelder 24 V DC gelb", 1, "/4.8"),
+    ("-P1", "Betriebsstundenzaehler Foerderband", "Betriebsstundenzaehler 24 V DC, 7-stellig", 1, "/6.6"),
     ("-A1", "SPS CPU, kompakt, PROFIBUS DP", "SPS-Zentralbaugruppe", 1, "/5.1"),
     ("-A1.1", "Digitaleingabe 16 x 24 V DC", "DI-Baugruppe 16 DI", 1, "/5.2"),
     ("-A1.2", "Digitalausgabe 16 x 24 V DC / 0,5 A", "DO-Baugruppe 16 DO", 1, "/6.2"),
     ("-X1", "Klemmleiste Netzeinspeisung", "Reihenklemme 4 mm2", 5, "/2.1"),
     ("-X2", "Klemmleiste 24 V Steuerspannung", "Reihenklemme 2,5 mm2", 6, "/2.7"),
-    ("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster)", "Reihenklemme 2,5 mm2", 14, "/5.3"),
+    ("-X3", "Klemmleiste Feldgeraete (Sensoren, Taster, Leuchten)", "Reihenklemme 2,5 mm2", 15, "/5.3"),
     ("-X4", "Klemmleiste Motorabgang", "Reihenklemme 4 mm2", 4, "/3.5"),
+]
+
+# Leitungen: BMK, Bezeichnung, Typ, von, nach, Blatt
+CABLES = [
+    ("-W1", "Steuerleitung Bedienpult", "12 x 0,75 mm2, 8 m", "+ST1", "+BP1", "/4.6"),
+    ("-W2", "Sensorleitung Lichtschranke Einlauf", "4 x 0,5 mm2, 6 m", "+ST1", "+SE1", "/5.5"),
+    ("-W3", "Sensorleitung Lichtschranke Auslauf", "4 x 0,5 mm2, 9 m", "+ST1", "+SA1", "/5.5"),
+    ("-W4", "Motorleitung", "4G2,5 mm2, 7 m", "+ST1", "+AN1", "/3.5"),
 ]
 
 # SPS-Eingaenge: Adresse, Symbol, Kommentar, Feldgeraet, Klemme -X3
@@ -71,10 +106,11 @@ TERMINALS_X3 = [
     ("-X3:8", "-X2:2 (0V)", "-B1:3 (BU), -B2:3 (BU)", "0 V Sensoren", "/5.4"),
     ("-X3:9", "-A1.2:1 (A4.0)", "-K1:A1", "Schuetz vorwaerts", "/6.3"),
     ("-X3:10", "-A1.2:2 (A4.1)", "-K2:A1", "Schuetz rueckwaerts", "/6.3"),
-    ("-X3:11", "-A1.2:3 (A4.2)", "-H1:X1", "Meldeleuchte Betrieb", "/6.3"),
+    ("-X3:11", "-A1.2:3 (A4.2)", "-H1:X1, -P1:1", "Meldeleuchte Betrieb, Betriebsstundenzaehler", "/6.3"),
     ("-X3:12", "-A1.2:4 (A4.3)", "-H2:X1", "Meldeleuchte Stoerung", "/6.3"),
     ("-X3:13", "-X2:2 (0V)", "-K1:A2, -K2:A2", "0 V Schuetzspulen", "/6.6"),
-    ("-X3:14", "-X2:2 (0V)", "-H1:X2, -H2:X2", "0 V Meldeleuchten", "/6.6"),
+    ("-X3:14", "-X2:2 (0V)", "-H1:X2, -H2:X2, -H3:X2, -P1:2", "0 V Meldeleuchten, Zaehler", "/6.6"),
+    ("-X3:15", "-K3:32", "-H3:X1", "Not-Halt betaetigt (Meldekontakt 31/32)", "/4.8"),
 ]
 
 TERMINALS_X4 = [

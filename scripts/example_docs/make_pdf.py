@@ -5,7 +5,7 @@ from pathlib import Path
 from data import (
     INPUTS,
     LOC_CABINET,
-    LOC_FIELD,
+    LOCATIONS_TEXT,
     OUTPUTS,
     PAGES,
     PLANT,
@@ -119,7 +119,7 @@ class Sheet:
 
 def page_1(s: Sheet):
     s.text(W / 2, H - 120, "Stromlaufplan Foerderband FB-01", 20, bold=True, align="c")
-    s.text(W / 2, H - 145, f"Anlage {PLANT}   Schaltschrank {LOC_CABINET}   Feld {LOC_FIELD}", 11, align="c")
+    s.text(W / 2, H - 145, f"Anlage {PLANT}: {LOCATIONS_TEXT}", 11, align="c")
     s.text(W / 2, H - 165, "Beispielanlage fuer Stromlauf AI: frei erfunden, ohne Herstellerbezug, frei verwendbar.", 9, align="c")
     y = H - 210
     s.text(MARGIN + 40, y, "Inhaltsverzeichnis", 11, bold=True)
@@ -137,6 +137,8 @@ def page_1(s: Sheet):
         "Die Steuerung uebernimmt die SPS -A1 mit der Eingabebaugruppe -A1.1 (E0.0 bis E0.5) und der Ausgabebaugruppe -A1.2 (A4.0 bis A4.3).",
         "Der Not-Halt -S3 wirkt zweikanalig auf das Sicherheitsrelais -K3, dessen Freigabekontakt die Schuetzspulen -K1/-K2 versorgt",
         "und ueber E0.3 an die SPS gemeldet wird. Motorschutz -F2 meldet ueber Hilfskontakt 13/14 an E0.2.",
+        "Der Reparaturschalter -Q2 am Antrieb +AN1 trennt den Motor fuer Wartungsarbeiten. Am Bedienpult +BP1 zeigt -H3 einen betaetigten",
+        "Not-Halt (Meldekontakt -K3 31/32), -P1 zaehlt die Betriebsstunden parallel zu -H1. -F3 sichert den 24-V-Steuerkreis zum Bedienpult.",
         "Zugehoerige Dokumente: Stueckliste FB-01, Klemmenplan FB-01, SPS-Programm FB-01 (AWL), Betriebsanleitung FB-01.",
     ]
     for line in lines:
@@ -181,7 +183,13 @@ def page_2(s: Sheet):
     s.wire(xf - 10, yT - 20, xf - 10, y0)
     s.terminal(col_x(5), y24, "-X2:1  +24 V")
     s.terminal(col_x(5), y0, "-X2:2  0 V")
-    s.terminal(col_x(6), y24, "-X2:3  +24 V -> /4.1 Not-Halt")
+    # -F3 sichert den Abgang zum Bedienpult (Not-Halt-Kreis, Taster, Leuchten): Abzweig nach oben von der 24-V-Schiene
+    xf3 = col_x(6)
+    s.wire(xf3, y24, xf3, y24 + 10)
+    s.contact(xf3, y24 + 28, "-F3", ("1", "2"))
+    s.text(xf3 + 5, y24 + 52, "B4 A, Steuerkreis Bedienpult +BP1", 6)
+    s.wire(xf3, y24 + 46, xf3, y24 + 62)
+    s.terminal(xf3, y24 + 66, "-X2:3  +24 V -> /4.1 Not-Halt")
     s.terminal(col_x(6), y0, "-X2:4  0 V")
     s.terminal(col_x(7), y24, "-X2:5  +24 V -> /5.1 SPS")
     s.terminal(col_x(7), y0, "-X2:6  0 V -> /5.1 SPS")
@@ -223,17 +231,22 @@ def page_3(s: Sheet):
     for dx in (-12, 0, 12):  # Phasen U, V, W
         s.wire(xm + dx, yK - 40, xm + dx, yX + 4)
         s.terminal(xm + dx, yX, "")
-    s.text(xm + 20, yX - 3, "-X4:U  -X4:V  -X4:W  (Kabel 4G2,5 zum Feld +FE1)", 7)
+    s.text(xm + 20, yX - 3, "-X4:U  -X4:V  -X4:W  (Leitung -W4 4G2,5 zum Antrieb +AN1)", 7)
     s.terminal(xm + 26, yX, "")
     s.text(xm + 26 + 6, yX - 12, "-X4:PE", 6)
-    yM = H - 410
+    # -Q2 Reparaturschalter am Antrieb, zwischen -X4 und Motor
+    yQ = H - 372
     for dx in (-12, 0, 12):
-        s.wire(xm + dx, yX - 4, xm + dx, yM + 22)
+        s.wire(xm + dx, yX - 4, xm + dx, yQ + 14)
+    s.device(xm, yQ, "-Q2", "Reparaturschalter 3-polig, abschliessbar", w=40, h=28, extra="Ort +AN1, 1/2 3/4 5/6")
+    yM = H - 420
+    for dx in (-12, 0, 12):
+        s.wire(xm + dx, yQ - 14, xm + dx, yM + 22)
     s.c.circle(xm, yM, 22)
     s.text(xm, yM - 4, "M", 11, bold=True, align="c")
     s.text(xm, yM - 14, "3~", 8, align="c")
     s.text(xm + 28, yM + 4, "-M1  Foerdermotor 1,5 kW  400 V  3,5 A  1420 1/min", 8, bold=True)
-    s.text(xm + 28, yM - 8, "Anschluss U1 V1 W1 PE, Schaltung Stern, Ort +FE1", 7)
+    s.text(xm + 28, yM - 8, "Anschluss U1 V1 W1 PE, Schaltung Stern, Ort +AN1", 7)
     s.text(col_x(1) - 30, H - 470, "Hinweis: Motorschutz -F2 loest bei Ueberlast aus, Hilfskontakt 13/14 oeffnet, SPS meldet Stoerung -H2 (siehe Betriebsanleitung Kap. 6).", 8)
 
 
@@ -248,7 +261,7 @@ def page_4(s: Sheet):
     for x, pins in ((x1, ("11", "12")), (x2, ("21", "22"))):
         s.wire(x, y24, x, yS + 18)
         s.contact(x, yS, "-S3" if x == x1 else "", pins, kind="NC")
-    s.text(col_x(2) - 40, yS - 30, "-S3 Not-Halt, 2 Oeffner, Ort +FE1 Bedienpult", 7)
+    s.text(col_x(2) - 40, yS - 30, "-S3 Not-Halt, 2 Oeffner, Ort +BP1 Bedienpult", 7)
     yK3 = H - 260
     s.device(col_x(2), yK3, "-K3", "Sicherheitsrelais 2-kanalig", w=70, h=50, extra="S11 S12 S21 S22 / 13-14 23-24")
     s.wire(x1, yS - 18, x1, yK3 + 25)
@@ -272,6 +285,19 @@ def page_4(s: Sheet):
     s.terminal(xr2, yR - 66, "")
     s.text(xr2, yR - 80, "-X3:4", 7, bold=True, align="c")
     s.text(xr2, yR - 90, "E0.3 NotHalt_OK /5.5", 6, align="c")
+    # Meldekontakt -K3 31/32 (Oeffner) in Spalte 8: -H3 leuchtet, solange der Not-Halt nicht entriegelt ist
+    xh = col_x(8)
+    s.wire(xh, y24, xh, yR + 18)
+    s.contact(xh, yR, "-K3", ("31", "32"), kind="NC")
+    s.wire(xh, yR - 18, xh, yR - 60)
+    s.terminal(xh, yR - 66, "")
+    s.text(xh, yR - 80, "-X3:15", 7, bold=True, align="c")
+    s.wire(xh, yR - 70, xh, yR - 111)
+    s.c.circle(xh, yR - 120, 9)
+    s.text(xh - 12, yR - 122, "-H3", 8, bold=True, align="r")
+    s.text(xh - 12, yR - 132, "Not-Halt betaetigt (gelb)", 6, align="r")
+    s.text(xh - 12, yR - 141, "0 V ueber -X3:14", 6, align="r")
+    s.wire(xh, yR - 129, xh, y0)
     # Taster S1 S2 an SPS
     xs1, xs2 = col_x(6), col_x(7)
     yT = H - 160
@@ -287,8 +313,10 @@ def page_4(s: Sheet):
     s.terminal(xs2, yT - 66, "")
     s.text(xs2, yT - 80, "-X3:2", 7, bold=True, align="c")
     s.text(xs2, yT - 90, "E0.1 Stop /5.4", 6, align="c")
-    s.text(col_x(4) - 30, H - 300, "Alle Taster und der Not-Halt sitzen im Bedienpult +FE1. Leitung 12x0,75 mm2 zum Schaltschrank +ST1, Klemmleiste -X3.", 8)
-    s.text(col_x(4) - 30, H - 314, "Sicherheitsfunktion: Not-Halt Kat. 3 / PL d. Ruecksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10).", 8)
+    s.text(col_x(4) - 30, H - 300, "Taster, Leuchten -H1/-H2/-H3, Zaehler -P1 und Not-Halt: Bedienpult +BP1.", 8)
+    s.text(col_x(4) - 30, H - 314, "Leitung -W1 12x0,75 mm2 zur Klemmleiste -X3 im Schaltschrank +ST1.", 8)
+    s.text(col_x(4) - 30, H - 328, "Sicherheitsfunktion: Not-Halt Kat. 3 / PL d.", 8)
+    s.text(col_x(4) - 30, H - 342, "Ruecksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10).", 8)
 
 
 def page_5(s: Sheet):
@@ -310,7 +338,7 @@ def page_5(s: Sheet):
     yo = H - 180 - 6 * 40
     s.text(xcard - 25, yo - 2, "E0.6 .. E1.7", 8)
     s.text(xcard + 50, yo - 2, "Reserve", 7)
-    s.text(col_x(3) - 10, H - 460, "-X3:7 (+24 V) und -X3:8 (0 V) versorgen die Lichtschranken -B1/-B2 (BN/BU), Schaltausgang BK auf -X3:5 bzw. -X3:6.", 8)
+    s.text(col_x(3) - 10, H - 460, "-X3:7 (+24 V) und -X3:8 (0 V) versorgen die Lichtschranken -B1/-B2 (BN/BU) am Einlauf +SE1 / Auslauf +SA1, Schaltausgang BK auf -X3:5 bzw. -X3:6.", 8)
     s.text(col_x(3) - 10, H - 474, "Programm: OB1 ruft FB10 \"Foerderband\" mit Instanz DB10. Symbole siehe Symboltabelle FB-01.", 8)
 
 
@@ -337,6 +365,13 @@ def page_6(s: Sheet):
             s.text(col_x(5) + 12, y - 2, dev, 8, bold=True)
             s.text(col_x(5) + 30, y + 8, "X1/X2, 0 V ueber -X3:14", 7)
         s.text(col_x(6) + 10, y - 2, f"{sym}: {comment}", 7)
+        if dev == "-H1":  # Betriebsstundenzaehler -P1 haengt parallel zur Betriebsleuchte
+            yp = y - 24
+            s.wire(col_x(5) - 20, y, col_x(5) - 20, yp)
+            s.wire(col_x(5) - 20, yp, col_x(6) - 9, yp)
+            s.c.circle(col_x(6), yp, 9)
+            s.text(col_x(6) + 12, yp - 2, "-P1", 8, bold=True)
+            s.text(col_x(6) + 12, yp + 8, "Betriebsstundenzaehler parallel zu -H1, 0 V ueber -X3:14", 6)
     yo = H - 180 - 4 * 45
     s.text(xcard - 25, yo - 2, "A4.4 .. A5.7", 8)
     s.text(xcard + 50, yo - 2, "Reserve", 7)
@@ -356,7 +391,7 @@ def page_7(s: Sheet):
         y -= 14
         for x, cell in zip(cols, row, strict=True):
             s.text(x, y, cell, 8)
-    s.text(col_x(1) - 30, y - 30, "Leitungen: -X3 -> Bedienpult 12x0,75 mm2 (Leitung -W1), -X3 -> Lichtschranken 4x0,5 mm2 (-W2, -W3), -X4 -> -M1 4G2,5 mm2 (-W4).", 8)
+    s.text(col_x(1) - 30, y - 30, "Leitungen: -W1 -X3 -> Bedienpult +BP1 12x0,75 mm2, -W2/-W3 -X3 -> Lichtschranken +SE1/+SA1 4x0,5 mm2, -W4 -X4 -> Antrieb +AN1 4G2,5 mm2.", 8)
 
 
 def build(out: Path):

@@ -1,16 +1,17 @@
 # Betriebsanleitung Foerderband FB-01
 
-Anlage =FB1, Schaltschrank +ST1, Feld +FE1. Beispielanlage fuer Stromlauf AI,
+Anlage =FB1: Schaltschrank +ST1, Bedienpult +BP1, Antrieb +AN1, Einlauf +SE1, Auslauf +SA1. Beispielanlage fuer Stromlauf AI,
 frei erfunden. Zugehoerige Dokumente: Stromlaufplan FB-01-E-001 (7 Blaetter), Stueckliste FB-01,
 Klemmenplan FB-01, SPS-Programm FB-01 (AWL, FB10/DB10/OB1), Symboltabelle FB-01.
 
 ## 1. Bestimmungsgemaesse Verwendung
 
-Das Foerderband FB-01 transportiert Werkstuecke bis 25 kg vom Einlauf zum Auslauf. Der
-Foerdermotor -M1 (1,5 kW, 400 V, 3,5 A) laeuft im Normalbetrieb vorwaerts. Rueckwaertsbetrieb
-ist nur fuer Wartungsarbeiten vorgesehen (Merker M20.0 ueber Bedienpanel).
+Das Foerderband FB-01 transportiert Werkstuecke bis 25 kg vom Einlauf (+SE1) zum Auslauf (+SA1). Der
+Foerdermotor -M1 (1,5 kW, 400 V, 3,5 A) am Antrieb +AN1 laeuft im Normalbetrieb vorwaerts. Rueckwaertsbetrieb
+ist nur fuer Wartungsarbeiten vorgesehen (Merker M20.0 ueber Bedienpanel). Der Reparaturschalter -Q2 am
+Antrieb trennt den Motor allpolig fuer Arbeiten am Band.
 
-## 2. Bedienelemente am Bedienpult (+FE1)
+## 2. Bedienelemente am Bedienpult (+BP1)
 
 | Element | BMK | Funktion |
 | --- | --- | --- |
@@ -19,14 +20,18 @@ ist nur fuer Wartungsarbeiten vorgesehen (Merker M20.0 ueber Bedienpanel).
 | Pilztaster rot | -S3 | Not-Halt, rastend, 2 Oeffner auf Sicherheitsrelais -K3 |
 | Leuchte gruen | -H1 | Betrieb (A4.2) |
 | Leuchte rot | -H2 | Stoerung (A4.3) |
+| Leuchte gelb | -H3 | Not-Halt betaetigt, Meldekontakt -K3 31/32 (Blatt /4.8), ohne SPS |
+| Zaehlwerk | -P1 | Betriebsstundenzaehler, laeuft parallel zu -H1 (Blatt /6.6) |
 
 ## 3. Einschalten
 
-1. Hauptschalter -Q1 im Schaltschrank +ST1 einschalten (Blatt /2.2).
-2. Netzteil -T1 liefert 24 V DC an -X2 (Blatt /2.5). SPS -A1 laeuft hoch.
+1. Hauptschalter -Q1 im Schaltschrank +ST1 einschalten (Blatt /2.2). Reparaturschalter -Q2 am Antrieb +AN1
+   muss eingeschaltet sein (Blatt /3.5).
+2. Netzteil -T1 liefert 24 V DC an -X2 (Blatt /2.5); -F3 sichert den Steuerkreis zum Bedienpult (Blatt /2.6).
+   SPS -A1 laeuft hoch.
 3. Not-Halt -S3 entriegeln. Sicherheitsrelais -K3 zieht an, Freigabekontakt 13/14 versorgt
-   die Schuetzspulen, Kontakt 23/24 meldet E0.3 = 1 an die SPS (Blatt /4.4).
-4. Start -S1 druecken. FB10 Netzwerk 1 setzt die Freigabe, -K1 zieht an (A4.0), -H1 leuchtet.
+   die Schuetzspulen, Kontakt 23/24 meldet E0.3 = 1 an die SPS (Blatt /4.4), -H3 erlischt.
+4. Start -S1 druecken. FB10 Netzwerk 1 setzt die Freigabe, -K1 zieht an (A4.0), -H1 leuchtet, -P1 zaehlt.
 
 ## 4. Ausschalten
 
@@ -57,7 +62,8 @@ Eingabebaugruppe -A1.1 (Blatt /5), Ausgabebaugruppe -A1.2 (Blatt /6):
 | --- | --- | --- |
 | -H2 leuchtet, Band steht, Start ohne Wirkung | Motorschutz -F2 ausgeloest (E0.2 = 0) | -F2 am Schaltschrank pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A, Einstellung 3,6 A). Nach Abkuehlen -F2 einschalten, mit Start -S1 quittieren (FB10 Netzwerk 4). |
 | -H2 leuchtet nach ca. 20 s Betrieb | Blockade: Teil am Einlauf -B1 erkannt, aber nicht am Auslauf -B2 (Timer T5, FB10 Netzwerk 5) | Band auf Verklemmung pruefen. Lichtschranke -B2 auf Verschmutzung und Ausrichtung pruefen (Klemme -X3:6, E0.5). |
-| Start ohne Wirkung, -H1 aus, -H2 aus | Not-Halt nicht entriegelt oder -K3 ohne Freigabe (E0.3 = 0) | -S3 entriegeln. An -X3:4 muessen 24 V anliegen. Beide Kanaele -S3 11/12 und 21/22 pruefen (Blatt /4.2). |
+| Start ohne Wirkung, -H1 aus, -H2 aus, -H3 leuchtet | Not-Halt nicht entriegelt oder -K3 ohne Freigabe (E0.3 = 0) | -S3 entriegeln. An -X3:4 muessen 24 V anliegen. Beide Kanaele -S3 11/12 und 21/22 pruefen (Blatt /4.2). |
+| -K1 zieht an, -H1 leuchtet, Motor steht ohne Brummen | Reparaturschalter -Q2 am Antrieb ausgeschaltet | Stellung -Q2 pruefen (Blatt /3.5); nur einschalten, wenn niemand am Band arbeitet. |
 | Start ohne Wirkung, E0.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) | Leitung -W1 Ader zu -S2:11/12 pruefen, Klemme -X3:2. |
 | Band laeuft, Stueckzahl MW100 zaehlt nicht | Lichtschranke -B1/-B2 defekt oder Versorgung fehlt | 24 V an -X3:7, 0 V an -X3:8 pruefen. Schaltausgang BK an -X3:5 bzw. -X3:6 (E0.4, E0.5) beobachten. |
 | -K1 zieht an, Motor brummt, dreht nicht | Phase fehlt am Motorabgang | Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und Klemmen -M1:U1/V1/W1 (Blatt /3.5). |
@@ -65,7 +71,8 @@ Eingabebaugruppe -A1.1 (Blatt /5), Ausgabebaugruppe -A1.2 (Blatt /6):
 
 ## 7. Wartung
 
-- Monatlich: Lichtschranken -B1, -B2 reinigen, Reflektoren pruefen.
+- Vor jeder Arbeit am Band: Reparaturschalter -Q2 am Antrieb +AN1 ausschalten und abschliessen.
+- Monatlich: Lichtschranken -B1 (+SE1) und -B2 (+SA1) reinigen, Reflektoren pruefen.
 - Halbjaehrlich: Not-Halt-Funktion pruefen (-S3 betaetigen, -K3 muss abfallen, -K1/-K2 stromlos).
 - Jaehrlich: Motorstrom -M1 messen und mit Einstellung -F2 vergleichen, Klemmen -X4 nachziehen,
   Pruefung der elektrischen Anlage nach DGUV Vorschrift 3.

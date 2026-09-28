@@ -140,11 +140,11 @@ def test_einbauort_und_kopfzeile_passen_zur_echten_stueckliste():
     table = [["" if cell is None else str(cell) for cell in row] for row in sheet.iter_rows(values_only=True)]
 
     legend = next(row[0] for row in table if row[0].startswith("Anlage"))
-    assert location_names(legend) == {"+ST1": "Schaltschrank", "+FE1": "Feld"}
+    assert location_names(legend) == {"+ST1": "Schaltschrank", "+BP1": "Bedienpult", "+AN1": "Antrieb", "+SE1": "Einlauf", "+SA1": "Auslauf"}
 
     column = next(row for row in table if row[0] == "BMK").index("Einbauort")
     cells = {row[column] for row in table if row[0].startswith("-") and row[column]}
-    assert {"+ST1", "+FE1"} <= cells
+    assert {"+ST1", "+BP1", "+AN1", "+SE1", "+SA1"} <= cells
     assert all(locations_in(cell) for cell in cells)  # jede Zelle ist als Ort erkennbar
 
 

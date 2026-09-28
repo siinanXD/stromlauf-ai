@@ -9,10 +9,11 @@ Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
 -X3;-X3:8;-X2:2 (0V);-B1:3 (BU), -B2:3 (BU);0 V Sensoren;/5.4
 -X3;-X3:9;-A1.2:1 (A4.0);-K1:A1;Schuetz vorwaerts;/6.3
 -X3;-X3:10;-A1.2:2 (A4.1);-K2:A1;Schuetz rueckwaerts;/6.3
--X3;-X3:11;-A1.2:3 (A4.2);-H1:X1;Meldeleuchte Betrieb;/6.3
+-X3;-X3:11;-A1.2:3 (A4.2);-H1:X1, -P1:1;Meldeleuchte Betrieb, Betriebsstundenzaehler;/6.3
 -X3;-X3:12;-A1.2:4 (A4.3);-H2:X1;Meldeleuchte Stoerung;/6.3
 -X3;-X3:13;-X2:2 (0V);-K1:A2, -K2:A2;0 V Schuetzspulen;/6.6
--X3;-X3:14;-X2:2 (0V);-H1:X2, -H2:X2;0 V Meldeleuchten;/6.6
+-X3;-X3:14;-X2:2 (0V);-H1:X2, -H2:X2, -H3:X2, -P1:2;0 V Meldeleuchten, Zaehler;/6.6
+-X3;-X3:15;-K3:32;-H3:X1;Not-Halt betaetigt (Meldekontakt 31/32);/4.8
 -X4;-X4:U;-K1:2 / -K2:6;-M1:U1;Motor Phase U;/3.5
 -X4;-X4:V;-K1:4 / -K2:4;-M1:V1;Motor Phase V;/3.5
 -X4;-X4:W;-K1:6 / -K2:2;-M1:W1;Motor Phase W;/3.6
