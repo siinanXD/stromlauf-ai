@@ -41,6 +41,14 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`
   nachgeladen). Kein Modell, kein Raten: fehlt die Kopfzeile, steht nur das Ortskennzeichen da.
+- Modell ohne Stuecklisten-Datei (Issue #39): `api/machine_map.py::split_rows` trennt Stuecklistenzeilen von
+  Plan-Fundstellen, `ingestion/machine_map.py::build_map` nimmt Teile aus dem Kennzeichen-Index und bildet Zonen aus
+  dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Blatttitel liefert
+  `ingestion/page_titles.py` (Inhaltsverzeichnis/Folio-Liste + Schriftfeld) und die Pipeline schreibt sie als
+  `section` an Chunks und Fundstellen; Seiten mit Titel „Stueckliste/Nomenclature/Parts list“ (Chunk-`kind` `bom`)
+  zaehlen als Stuecklistenzeilen (Bezeichnung, kein Blatt). Kennzeichen ohne Minus im Blatt-Stil (`4Q1`, `9K1`,
+  QElectroTech) erkennt `tags.detect_folio_style` je Dokument, damit Bestellnummern (`6ES7`) in deutschen Plaenen
+  keine Treffer werden. Testdaten dafuer: `testdata/qelectrotech/` (lokal, siehe `testdata/README.md`).
 - Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken

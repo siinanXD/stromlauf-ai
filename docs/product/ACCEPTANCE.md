@@ -50,7 +50,10 @@ Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jede
 - Kriterium 2 ist mit der erweiterten Beispielanlage rechnerisch erfüllt (5 Baugruppen, 22 Teile); der Wert auf einer
   laufenden Umgebung steht im CI-Artefakt und später auf Staging. Lokale Installationen laden die neuen Dokumente mit
   `python scripts/load_example.py --refresh` (Dokument-IDs ändern sich, alte Chat-Belege zeigen dann ins Leere).
-  Reale Dokumentation ohne eigene Stücklisten-Datei bekommt noch kein Modell: #39.
+  Reale Dokumentation ohne eigene Stücklisten-Datei bekommt seit #39 ein Modell aus dem Kennzeichen-Index (Zonen je
+  Blatt mit Titel, Bezeichnungen von Stücklistenseiten in der PDF). Nachweis mit dem QElectroTech-Beispielprojekt
+  (50 Seiten, eine PDF, Kennzeichen ohne Minus): 23 Blatt-Zonen, 105 Teile, davon 101 mit Bezeichnung, alle mit
+  Fundstelle; Onboarding zählt 129 Betriebsmittel. Kein Schaltschrankfoto in dieser Doku, daher dort keine Hotspots.
 - Planung und Leitstand (Nebenmodule) sind noch nicht workspace-scoped (`contract.md`, Known limitations).
 - Kosten je Antwort erscheinen nur für live gestreamte Antworten; der Verlauf trägt keine Kosten.
 - Figma enthält nur noch die Seite `Foundations`; Screens folgen `ux-spec.md`.
