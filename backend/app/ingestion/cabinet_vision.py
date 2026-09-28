@@ -4,18 +4,17 @@ Liefert Rechtecke (relativ 0..1) mit Bauteilart, gelesenem BMK und Sicherheit. D
 werden als unbestaetigte Hotspots gespeichert; der Nutzer bestaetigt oder korrigiert sie.
 """
 
-import base64
 import io
 import json
 import re
 from pathlib import Path
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from PIL import Image
 
 from app.config import get_settings
 from app.ingestion.tags import normalize_tag
+from app.llm import image_block, make_chat_model
 
 MAX_EDGE = 2000
 
@@ -61,18 +60,8 @@ def detect_components(path: Path, known_tags: list[str] | None = None, trace: di
             "\nIn der Stueckliste dieser Maschine kommen diese BMK vor, bevorzuge sie bei "
             f"unsicherer Lesung: {', '.join(sorted(known_tags)[:80])}\n"
         )
-    llm = ChatAnthropic(
-        model=settings.vision_model, api_key=settings.anthropic_api_key, max_tokens=4000, max_retries=2
-    )
-    message = HumanMessage(
-        content=[
-            {
-                "type": "image",
-                "source": {"type": "base64", "media_type": "image/png", "data": base64.b64encode(png).decode()},
-            },
-            {"type": "text", "text": DETECT_PROMPT.format(known=known)},
-        ]
-    )
+    llm = make_chat_model(settings.vision_model, max_tokens=4000, max_retries=2)
+    message = HumanMessage(content=[image_block(png), {"type": "text", "text": DETECT_PROMPT.format(known=known)}])
     response = llm.invoke([message], trace or None)
     content = response.content
     text = content if isinstance(content, str) else "".join(
