@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger("flow")
 
 PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
+    # Anthropic (claude-api-Skill, 2026-06)
     "claude-haiku-4-5": (1.0, 5.0),
     "claude-sonnet-5": (2.0, 10.0),
     "claude-sonnet-4-6": (3.0, 15.0),
@@ -15,17 +16,42 @@ PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
     "claude-opus-4-8": (5.0, 25.0),
     "claude-opus-4-7": (5.0, 25.0),
     "claude-opus-4-6": (5.0, 25.0),
+    # OpenAI (developers.openai.com/api/docs/pricing, Stand 2026-09-28), Embeddings nur Eingabe
+    "gpt-5": (1.25, 10.0),
+    "gpt-5-mini": (0.25, 2.0),
+    "gpt-5-nano": (0.05, 0.40),
+    "gpt-5.1": (1.25, 10.0),
+    "gpt-5.2": (1.75, 14.0),
+    "gpt-5.4": (2.50, 15.0),
+    "gpt-5.4-mini": (0.75, 4.50),
+    "gpt-5.4-nano": (0.20, 1.25),
+    "gpt-4.1": (2.0, 8.0),
+    "gpt-4.1-mini": (0.40, 1.60),
+    "gpt-4.1-nano": (0.10, 0.40),
+    "o3": (2.0, 8.0),
+    "o3-mini": (1.10, 4.40),
+    "text-embedding-3-small": (0.02, 0.0),
+    "text-embedding-3-large": (0.13, 0.0),
 }
 
 
+def _bare(model: str) -> str:
+    """"openai:gpt-5-mini" -> "gpt-5-mini"; ohne Praefix unveraendert."""
+    return model.split(":", 1)[1] if ":" in model else model
+
+
 def prices_for(model: str) -> tuple[float, float] | None:
-    """Eintrag zum Modell; die API liefert datierte IDs (claude-sonnet-5-20260115)."""
+    """Eintrag zum Modell; die API liefert datierte IDs (claude-sonnet-5-20260115, gpt-5-mini-2026-03-01).
+
+    Bei datierten IDs gewinnt der laengste passende Eintrag, sonst wuerde gpt-5 den Preis von gpt-5-mini verdecken.
+    """
+    model = _bare(model)
     if model in PRICES_PER_MTOK:
         return PRICES_PER_MTOK[model]
-    for name, prices in PRICES_PER_MTOK.items():
-        if model.startswith(name):
-            return prices
-    return None
+    matches = [name for name in PRICES_PER_MTOK if model.startswith(name)]
+    if not matches:
+        return None
+    return PRICES_PER_MTOK[max(matches, key=len)]
 
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:

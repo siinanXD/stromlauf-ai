@@ -91,6 +91,6 @@ def test_provider_auswahl(monkeypatch):
     assert isinstance(emb.make_embeddings(), emb.VoyageEmbeddings)
     monkeypatch.setattr(emb, "get_settings", lambda: _settings(embedding_provider="local"))
     assert isinstance(emb.make_embeddings(), emb.LocalEmbeddings)
-    monkeypatch.setattr(emb, "get_settings", lambda: _settings(embedding_provider="openai"))
+    monkeypatch.setattr(emb, "get_settings", lambda: _settings(embedding_provider="cohere"))
     with pytest.raises(RuntimeError):
         emb.make_embeddings()
