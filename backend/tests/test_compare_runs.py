@@ -13,21 +13,49 @@ sys.modules[_spec.name] = compare_runs
 _spec.loader.exec_module(compare_runs)
 
 
-def _run(model: str, facts: list[float], cost: list[float], seconds: list[float], sources_ok: bool = True) -> dict:
+def _run(
+    model: str, facts: list[float], cost: list[float], seconds: list[float], sources_ok: bool = True
+) -> dict:
     rows = []
     for i, (f, c, s) in enumerate(zip(facts, cost, seconds, strict=True), 1):
-        rows.append({
-            "id": f"q{i}", "source": "Foerderband FB-01", "question": f"Frage {i}?", "answer": "…", "sources": [], "tools": [],
-            "dauer_s": s,
-            "score": {"fakten": f, "quellen_ok": sources_ok, "sauber": True, "werkzeug_ok": None},
-            "usage": {"input_tokens": 1000, "output_tokens": 100, "calls": 2, "model": model, "cost_usd": c},
-        })
+        rows.append(
+            {
+                "id": f"q{i}",
+                "source": "Foerderband FB-01",
+                "question": f"Frage {i}?",
+                "answer": "…",
+                "sources": [],
+                "tools": [],
+                "dauer_s": s,
+                "score": {
+                    "fakten": f,
+                    "quellen_ok": sources_ok,
+                    "sauber": True,
+                    "werkzeug_ok": None,
+                },
+                "usage": {
+                    "input_tokens": 1000,
+                    "output_tokens": 100,
+                    "calls": 2,
+                    "model": model,
+                    "cost_usd": c,
+                },
+            }
+        )
     summary = {
-        "fragen": len(rows), "bewertet": len(rows), "nicht_bewertet_fehler": 0,
-        "fakten_mittel": round(sum(facts) / len(facts), 3), "quellen_ok": 1.0 if sources_ok else 0.0, "sauber": 1.0,
-        "werkzeug_ok": None, "voll_bestanden": sum(1 for f in facts if f == 1.0 and sources_ok),
+        "fragen": len(rows),
+        "bewertet": len(rows),
+        "nicht_bewertet_fehler": 0,
+        "fakten_mittel": round(sum(facts) / len(facts), 3),
+        "quellen_ok": 1.0 if sources_ok else 0.0,
+        "sauber": 1.0,
+        "werkzeug_ok": None,
+        "voll_bestanden": sum(1 for f in facts if f == 1.0 and sources_ok),
         "dauer_mittel_s": round(sum(seconds) / len(seconds), 1),
-        "tokens_ein": 1000 * len(rows), "tokens_aus": 100 * len(rows), "modellaufrufe": 2 * len(rows), "kosten_usd": round(sum(cost), 4),
+        "tokens_ein": 1000 * len(rows),
+        "tokens_aus": 100 * len(rows),
+        "modellaufrufe": 2 * len(rows),
+        "kosten_usd": round(sum(cost), 4),
     }
     return {"summary": summary, "results": rows}
 
@@ -51,8 +79,28 @@ def test_vergleich_stellt_kennzahlen_und_fragen_nebeneinander():
     assert metrics["dauer_mittel_s"] == (12.0, 20.0)
     assert comparison["modelle"] == ("claude-sonnet-5-20260115", "gpt-5-mini-2025-08-07")
     questions = {row["id"]: row for row in comparison["fragen"]}
-    assert questions["q2"]["fakten"] == (1.0, 0.5) and questions["q2"]["kosten_usd"] == (0.05, 0.005)
+    assert questions["q2"]["fakten"] == (1.0, 0.5) and questions["q2"]["kosten_usd"] == (
+        0.05,
+        0.005,
+    )
     assert questions["q2"]["unterschied"] is True and questions["q1"]["unterschied"] is False
+
+
+def test_zitate_zaehlen_als_kennzahl_und_als_unterschied_je_frage():
+    a, b = json.loads(json.dumps(CLAUDE)), json.loads(json.dumps(GPT))
+    a["summary"]["zitate_gueltig"], b["summary"]["zitate_gueltig"] = 0.947, 0.907
+    a["results"][0]["score"]["zitate_gueltig"], b["results"][0]["score"]["zitate_gueltig"] = (
+        1.0,
+        0.667,
+    )
+    comparison = compare_runs.compare(a, b)
+    metrics = {row["kennzahl"]: (row["a"], row["b"]) for row in comparison["kennzahlen"]}
+    assert metrics["zitate_gueltig"] == (0.947, 0.907)
+    questions = {row["id"]: row for row in comparison["fragen"]}
+    assert (
+        questions["q1"]["zitate_gueltig"] == (1.0, 0.667) and questions["q1"]["unterschied"] is True
+    )
+    assert "| zitate_gueltig | 0.947 | 0.907 |" in compare_runs.render_markdown(comparison)
 
 
 def test_markdown_hat_beide_modelle_und_je_frage_eine_zeile():

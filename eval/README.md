@@ -18,7 +18,8 @@ Antworten gehen nicht verloren. Referenzdateien (`referenz*.json`) werden dabei 
 Tokens, Modellaufrufe und Kosten stehen je Frage unter `usage` und summiert in der Zusammenfassung
 (`tokens_ein`, `tokens_aus`, `modellaufrufe`, `kosten_usd`; Preise aus `backend/app/flow/pricing.py`).
 Mit Langfuse-Schluesseln in der `.env` bekommt jede Frage die Tags `eval:<lauf>` und `q:<id>`, und nach
-dem Lauf werden `fakten`, `quellen_ok` und `sauber` als Scores an die Session des Chats geschrieben.
+dem Lauf werden `fakten`, `quellen_ok`, `sauber` und (bei Antworten mit Belegen) `zitate_gueltig` als Scores an
+die Session des Chats geschrieben.
 
 
 ## Gates in CI (`.github/workflows/eval.yml`)
@@ -74,7 +75,20 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 
 - `fakten_mittel`: Anteil gefundener `must_contain`-Muster, gemittelt ueber alle Fragen
 - `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden (bei `signal`,
-  `calc`, `site` gibt es keine Dateinamen, dort gilt es als erfuellt)
+  `calc`, `site` gibt es keine Dateinamen, dort gilt es als erfuellt). Prueft nur den Dateinamen, nicht
+  den Ort im Dokument.
+- `zitate_gueltig`: Anteil der **pruefbaren** Belege `[[Datei|Ort]]` ueber alle bewerteten Antworten, die der
+  Zitat-Resolver des Backends bestaetigt (`app/citations.py`, meta-Event `citation_checks`): Datei in den
+  Fundstellen der Werkzeugaufrufe UND Ort in dieser Datei (`S. n`/`Seite n`, `/Blatt.Spalte`, `/Blatt`,
+  `Blatt n` im Schriftfeld, Kennzeichen im Index, sonst AWL-Baustein/Netzwerk oder Abschnitt). Summe ueber
+  die Belege, kein Mittel je Antwort (contract.md: „valid citations >= 95 %“); nur Agentenlauf.
+  `zitate_geprueft`: Anteil der Belege, deren Ort sich pruefen liess (Dokumente ohne Seiten, Index oder
+  Abschnitte, unlesbare PDFs). Dazu `zitate_belege` (Anzahl) und `zitate_antworten` (Antworten mit Belegen),
+  damit ein Wert aus wenigen Belegen erkennbar bleibt. Ein Beleg, dessen Betriebsmittel existiert, aber nicht
+  zum zitierenden Satz passt, bleibt gueltig und traegt nur einen Hinweis (`reason`); das erkennt erst ein
+  Richter. Alte Laeufe ohne meta-Event bekommen den Wert per
+  `python eval/rescore.py <lauf> --api http://127.0.0.1:8010` nachgeliefert (kein Modellaufruf);
+  `--min-citations` und `--expect-invalid` machen daraus ein Gate (Retrieval-Job in `eval.yml`).
 - `sauber`: Anteil der Fragen ohne verbotene Angaben
 - `werkzeug_ok`: Anteil der Fragen mit `tools`, bei denen der Agent sie aufgerufen hat (nur Agentenlauf)
 - `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok, sauber und Werkzeug ok

@@ -12,7 +12,7 @@ from pathlib import Path
 RETRIEVAL_MODES = ("tag", "semantic", "keyword", "fact", "signal", "calc", "site")
 NO_FILES = {"signal", "calc", "site"}  # Retrieval-Modi ohne zitierte Dateinamen: quellen gilt als erfuellt
 ERROR_PREFIX = "[FEHLER]"
-COMPARE_KEYS = ("fakten_mittel", "quellen_ok", "sauber", "werkzeug_ok", "voll_bestanden", "dauer_mittel_s")
+COMPARE_KEYS = ("fakten_mittel", "quellen_ok", "zitate_gueltig", "zitate_geprueft", "sauber", "werkzeug_ok", "voll_bestanden", "dauer_mittel_s")
 
 
 # --- Fragen -----------------------------------------------------------------------------------
@@ -64,9 +64,9 @@ def validate_questions(rows: list[dict]) -> list[str]:
 def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
     """SSE-Strom von /api/chat: (Antwort, Quellen, Werkzeugaufrufe, Lauf-Infos).
 
-    Die Lauf-Infos enthalten die Konversations-ID (in Langfuse die Session dieses Chats) und den
-    summierten Verbrauch aus den usage-Ereignissen, eines je Modellaufruf. Ein error-Event wird an
-    die Antwort angehaengt.
+    Die Lauf-Infos enthalten die Konversations-ID (in Langfuse die Session dieses Chats), den
+    summierten Verbrauch aus den usage-Ereignissen, eines je Modellaufruf, und unter ``answer_meta``
+    das meta-Event (referenzierte Bauteile, geprueft Belege). Ein error-Event wird an die Antwort angehaengt.
     """
     answer: list[str] = []
     sources: list[dict] = []
@@ -92,6 +92,8 @@ def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
                 usage["output_tokens"] += data.get("output_tokens", 0)
                 usage["calls"] += 1
                 usage["model"] = data.get("model") or usage["model"]
+            elif event == "meta":
+                meta["answer_meta"] = data
             elif event == "error":
                 answer.append(f"\n{ERROR_PREFIX} {data.get('message')}")
             elif event == "done":
@@ -103,14 +105,23 @@ def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
 
 
 def score(question: dict, answer: str, sources: list[dict], tools: list[str] | None = None,
-          check_sources: bool = True) -> dict:
-    """Regeln statt Richter: Regex-Muster (Gross/Klein egal), zitierte Dateien, verbotene Muster, Werkzeuge."""
+          check_sources: bool = True, meta: dict | None = None) -> dict:
+    """Regeln statt Richter: Regex-Muster (Gross/Klein egal), zitierte Dateien, verbotene Muster, Werkzeuge.
+
+    ``meta`` ist das meta-Event der Antwort: seine ``citation_checks`` (Zitat-Resolver im Backend, Issue #46)
+    ergeben ``zitate_gueltig`` (Anteil gueltiger Belege) und ``zitate_geprueft`` (Anteil pruefbarer Orte);
+    ohne Belege oder ohne meta bleiben beide None.
+    """
     hits = [bool(re.search(p, answer, re.IGNORECASE)) for p in question["must_contain"]]
     forbidden = [p for p in question.get("must_not_contain", []) if re.search(p, answer, re.IGNORECASE)]
     cited = {s.get("filename", "") for s in sources}
     missing_sources = [f for f in question.get("expect_sources", []) if f not in cited] if check_sources else []
     expected_tools = question.get("tools") or []
     werkzeug_ok = None if tools is None or not expected_tools else all(t in tools for t in expected_tools)
+    checks = (meta or {}).get("citation_checks") or []
+    unchecked = [c.get("text", "") for c in checks if not c.get("checked")]
+    invalid = [c.get("text", "") for c in checks if not c.get("valid")]
+    checked_n = len(checks) - len(unchecked)
     return {
         "fakten": sum(hits) / len(hits) if hits else 1.0,
         "fakten_fehlend": [p for p, h in zip(question["must_contain"], hits, strict=True) if not h],
@@ -119,7 +130,20 @@ def score(question: dict, answer: str, sources: list[dict], tools: list[str] | N
         "sauber": not forbidden,
         "verboten_gefunden": forbidden,
         "werkzeug_ok": werkzeug_ok,
+        "zitate_belege": len(checks),
+        "zitate_gueltig": (checked_n - len(invalid)) / checked_n if checked_n else None,
+        "zitate_geprueft": checked_n / len(checks) if checks else None,
+        "zitate_ungueltig": invalid,
+        "zitate_ungeprueft": unchecked,
     }
+
+
+def below_threshold(summary: dict, minimum: float | None, key: str = "zitate_gueltig") -> bool:
+    """Gate: True, wenn die Kennzahl fehlt oder unter der Schwelle liegt; ohne Schwelle nie."""
+    if minimum is None:
+        return False
+    value = summary.get(key)
+    return value is None or value < minimum
 
 
 def passed(result: dict) -> bool:
@@ -138,12 +162,23 @@ def summarize(rows: list[dict]) -> dict:
     scored = [r for r in rows if not is_error(r)]
     n = len(scored) or 1
     with_tools = [r for r in scored if isinstance(r["score"].get("werkzeug_ok"), bool)]
+    # Belege werden ueber alle bewerteten Antworten zusammengezaehlt (contract.md: "valid citations >= 95 %"),
+    # nicht je Antwort gemittelt; gueltig zaehlt nur unter den pruefbaren Belegen
+    total = sum(r["score"].get("zitate_belege") or 0 for r in scored)
+    unchecked = sum(len(r["score"].get("zitate_ungeprueft") or []) for r in scored)
+    invalid = sum(len(r["score"].get("zitate_ungueltig") or []) for r in scored)
+    checked = total - unchecked
+
     return {
         "fragen": len(rows),
         "bewertet": len(scored),
         "nicht_bewertet_fehler": len(failed),
         "fakten_mittel": round(sum(r["score"]["fakten"] for r in scored) / n, 3),
         "quellen_ok": round(sum(r["score"]["quellen_ok"] for r in scored) / n, 3),
+        "zitate_belege": total,
+        "zitate_antworten": sum(1 for r in scored if r["score"].get("zitate_belege")),
+        "zitate_gueltig": round((checked - invalid) / checked, 3) if checked else None,
+        "zitate_geprueft": round(checked / total, 3) if total else None,
         "sauber": round(sum(r["score"]["sauber"] for r in scored) / n, 3),
         "werkzeug_ok": round(sum(r["score"]["werkzeug_ok"] for r in with_tools) / len(with_tools), 3) if with_tools else None,
         "voll_bestanden": sum(passed(r["score"]) for r in scored),
@@ -226,16 +261,19 @@ def write_result(results_dir: Path, prefix: str, summary: dict, rows: list[dict]
 def print_row(index: int, total: int, question: dict, result: dict, seconds: float | None = None) -> None:
     flag = "OK " if passed(result) else "-- "
     tools = "" if result.get("werkzeug_ok") is None else f"  werkzeug {'ja' if result['werkzeug_ok'] else 'NEIN'}"
+    cites = "" if result.get("zitate_gueltig") is None else f"  zitate {result['zitate_gueltig']:.2f}"
     time_text = f"  {seconds:.0f}s" if seconds is not None else ""
     print(f"[{index}/{total}] {question['id']}: {question['question'][:70]}", flush=True)
     print(f"      {flag} fakten {result['fakten']:.2f}  quellen {'ja' if result['quellen_ok'] else 'NEIN'}  "
-          f"sauber {'ja' if result['sauber'] else 'NEIN'}{tools}{time_text}", flush=True)
+          f"sauber {'ja' if result['sauber'] else 'NEIN'}{tools}{cites}{time_text}", flush=True)
     if result["fakten_fehlend"]:
         print(f"         fehlt: {result['fakten_fehlend']}")
     if result["quellen_fehlend"]:
         print(f"         Quelle fehlt: {result['quellen_fehlend']}")
     if result["verboten_gefunden"]:
         print(f"         verboten: {result['verboten_gefunden']}")
+    if result.get("zitate_ungueltig"):
+        print(f"         Beleg ungueltig: {result['zitate_ungueltig']}")
 
 
 def print_summary(summary: dict, baseline_path: Path | None = None) -> None:
