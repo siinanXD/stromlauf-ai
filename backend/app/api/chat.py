@@ -13,7 +13,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app import ledger
 from app.agent.prompts import PROMPT_VERSION
-from app.api.answer_meta import build_meta
+from app.api.answer_meta import build_meta, known_device_tags, tags_in_answer
 from app.citations import check_answer
 from app.config import get_settings
 from app.db import get_session, session_scope
@@ -343,7 +343,8 @@ def validate_citations(body: CitationValidateRequest, session: Session = Depends
         raise HTTPException(404, "Wissensquelle nicht gefunden")
     refs = [s.model_dump() for s in body.sources] if body.sources is not None else None
     checks, valid = check_answer(session, body.answer, body.source_ids, refs)
-    return {"citation_checks": checks, "citations_valid": valid}
+    referenced = tags_in_answer(body.answer, known_device_tags(session, body.source_ids))
+    return {"citation_checks": checks, "citations_valid": valid, "referenced_tags": referenced}
 
 
 @router.post("/chat")
