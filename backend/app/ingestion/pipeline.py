@@ -67,6 +67,43 @@ class DocumentPieces:
     page_count: int | None = None
     parsed: list[ParsedPage] = field(default_factory=list)
     titles: dict[int, str] = field(default_factory=dict)
+    # Seiten ohne lesbaren Text (Bildseite, Scan, Textobjekte ohne Zeichen); frueher still verworfen (Issue #64)
+    empty_pages: list[int] = field(default_factory=list)
+
+
+PROGRESS_MAX = 200  # Laenge der Spalte documents.progress
+
+
+def page_ranges(pages: list[int]) -> str:
+    """[2, 3, 4, 5, 7] -> "2–5, 7"."""
+    runs: list[list[int]] = []
+    for page in sorted(pages):
+        if runs and page == runs[-1][-1] + 1:
+            runs[-1].append(page)
+        else:
+            runs.append([page])
+    return ", ".join(f"{run[0]}–{run[-1]}" if len(run) > 1 else str(run[0]) for run in runs)
+
+
+def empty_pages_note(pages: list[int], page_count: int | None) -> str:
+    """Hinweis fuer das Dokument, z. B. "1 von 7 Seiten ohne Text: 3"; leer, wenn keine Seite fehlt."""
+    return f"{len(pages)} von {page_count} Seiten ohne Text: {page_ranges(pages)}" if pages else ""
+
+
+def scan_message(page_count: int, ocr_enabled: bool) -> str:
+    """Fehlertext fuer ein PDF, in dem keine einzige Seite lesbaren Text hat."""
+    if ocr_enabled:
+        return (
+            f"Scan ohne Textebene ({page_count} von {page_count} Seiten), "
+            "auch die Texterkennung (OCR_ENABLED) fand keinen Text"
+        )
+    return f"Scan ohne Textebene ({page_count} von {page_count} Seiten), Texterkennung noch nicht aktiv"
+
+
+def progress_text(chunks: int, tags: int, note: str) -> str:
+    """Abschlusstext am Dokument: Zaehler, dann Hinweise; passt immer in die Spalte."""
+    text = " · ".join(part for part in (f"{chunks} Abschnitte, {tags} Kennzeichen", note) if part)
+    return text if len(text) <= PROGRESS_MAX else text[: PROGRESS_MAX - 1] + "…"
 
 
 def detect_doc_type(filename: str, requested: str, path: Path | None = None) -> DocType:
@@ -285,13 +322,18 @@ def document_pieces(
         if p.text.strip()
     ]
     page_count = max((p.page for p in parsed if p.page), default=None)
-    return DocumentPieces(pieces, page_count, parsed, titles)
+    empty_pages = [p.page for p in parsed if p.page and not p.text.strip()]
+    return DocumentPieces(pieces, page_count, parsed, titles, empty_pages)
 
 
 def _build_pieces(
     document_id: str, path: Path, doc_type: str, vision: bool, machine_id: str | None = None
 ) -> tuple[list[Piece], int | None, str]:
-    """Liefert (Stuecke, Seitenzahl, Hinweis)."""
+    """Liefert (Stuecke, Seitenzahl, Hinweis).
+
+    Seiten ohne lesbaren Text, die auch die Vision-Analyse nicht beschrieben hat, stehen im Hinweis. Hat
+    keine einzige Seite eines PDFs Text, bricht die Verarbeitung mit der Seitenzahl ab (Issue #64).
+    """
     read = document_pieces(path, doc_type, progress=lambda text: _set_progress(document_id, text))
     pieces, page_count = list(read.pieces), read.page_count
 
@@ -315,6 +357,12 @@ def _build_pieces(
                     f"Vision-Analyse ab Seite {skipped[0]} uebersprungen: KI-Monatslimit erreicht"
                 )
             note = "; ".join(notes)
+
+    covered = {piece.page for piece in pieces}
+    lost = [page for page in read.empty_pages if page not in covered]
+    if page_count and len(lost) == page_count:
+        raise ValueError(scan_message(page_count, get_settings().ocr_enabled))
+    note = " · ".join(part for part in (note, empty_pages_note(lost, page_count)) if part)
     return pieces, page_count, note
 
 
@@ -343,10 +391,8 @@ def ingest_document(document_id: str) -> None:
             document_id, path, doc_type, vision, machine_id
         )
         pieces = split_pieces(raw_pieces)
-        if not pieces:
-            raise ValueError(
-                "Kein Text im Dokument gefunden (gescanntes PDF? OCR_ENABLED=true setzen)"
-            )
+        if not pieces:  # reine Scan-PDFs meldet schon _build_pieces mit Seitenzahl
+            raise ValueError("Kein Text im Dokument gefunden")
 
         vectors: list[list[float]] = []
         for start in range(0, len(pieces), _EMBED_BATCH):
@@ -392,7 +438,7 @@ def ingest_document(document_id: str) -> None:
             document = session.get(Document, document_id)
             document.status = DocStatus.READY
             document.page_count = page_count
-            document.progress = note or f"{len(pieces)} Abschnitte, {len(rows)} Kennzeichen"
+            document.progress = progress_text(len(pieces), len(rows), note)
     except Exception as exc:
         logger.exception("Ingestion fehlgeschlagen: %s", filename)
         with session_scope() as session:

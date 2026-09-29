@@ -106,3 +106,30 @@ QET_PDF = Path(__file__).resolve().parents[2] / "testdata" / "qelectrotech" / "Q
 def test_echte_qet_pdf_wird_als_stromlaufplan_erkannt():
     found = detect(QET_PDF.name, QET_PDF)
     assert found.doc_type == DocType.SCHEMATIC and found.source == "content", found
+
+
+SCAN_PDF = EXAMPLES / "scan" / "01_Stromlaufplan_FB-01_scan.pdf"
+
+
+def test_voll_scan_meldet_scan_und_nimmt_den_typ_aus_dem_dateinamen():
+    """Issue #64: leere Textprobe eines PDFs mit Seiten ist ein Scan, kein 'nicht erkannt'."""
+    found = detect(SCAN_PDF.name, SCAN_PDF)
+    assert (found.doc_type, found.source) == (DocType.SCHEMATIC, "filename")
+    assert found.reason == f"Scan (keine Textebene); Typ aus Dateiname „{SCAN_PDF.name}“"
+
+
+def test_scan_ohne_sprechenden_namen_bleibt_sonstiges_mit_scan_hinweis(tmp_path: Path):
+    copy = tmp_path / "4711.pdf"
+    copy.write_bytes(SCAN_PDF.read_bytes())
+    found = detect(copy.name, copy)
+    assert (found.doc_type, found.source, found.reason) == (
+        DocType.OTHER,
+        "content",
+        "Scan (keine Textebene)",
+    )
+
+
+def test_teilscan_mit_textseiten_vorne_wird_am_inhalt_erkannt():
+    partial = EXAMPLES / "scan" / "01_Stromlaufplan_FB-01_teilscan.pdf"
+    found = detect(partial.name, partial)
+    assert (found.doc_type, found.source) == (DocType.SCHEMATIC, "content"), found

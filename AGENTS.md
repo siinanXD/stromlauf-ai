@@ -76,6 +76,12 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `eval/ingest_gold/*.json`. Das Gold schreibt `scripts/example_docs/make_gold.py --write` beim Zeichnen mit
   (`make_pdf.build` nimmt dafuer eine protokollierende Zeichenflaeche); nach Aenderungen an `make_pdf.py` PDF und
   Gold neu erzeugen, `test_run_ingest.py` prueft die Gleichheit. Gate im Retrieval-Job von `eval.yml` (`--min 0.95`).
+- Scans (Issue #64): `document_pieces` fuehrt Seiten ohne lesbaren Text als `empty_pages`; `_build_pieces` schreibt sie
+  als „1 von 7 Seiten ohne Text: 3“ in den Hinweis (`progress_text`, max. 200 Zeichen), ausser die Vision-Analyse hat
+  die Seite beschrieben. Hat kein Blatt eines PDFs Text, endet die Ingestion mit `scan_message` (Seitenzahl).
+  `doctype.detect` meldet „Scan (keine Textebene)“. Fixtures `examples/scan/` (Generator
+  `scripts/example_docs/make_scan.py`, gleiche Bytes je Lauf): Voll-Scan, Teil-Scan Blatt 3, Blatt 4 hochkant;
+  eigene Wissensquelle, nie zur Demo-Maschine FB-01 laden. Tests ohne Docling (`test_pipeline_scan.py`).
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =

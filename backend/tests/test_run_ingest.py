@@ -141,6 +141,35 @@ def test_cli_schreibt_json_und_markdown_und_scheitert_unter_der_schwelle(tmp_pat
     assert run_ingest.main([*args, "--min", "0.5"], measure_fn=fake_measure) == 0
 
 
+def test_cli_label_trennt_laeufe_verschiedener_fassungen_desselben_plans(tmp_path):
+    """Issue #64: Scan und Teil-Scan werden gegen dasselbe Gold gemessen und brauchen eigene Dateinamen."""
+    gold = tmp_path / "mini.json"
+    gold.write_text(
+        json.dumps(
+            {"dokument": "x.pdf", "doc_type": "schematic", "seiten": {"1": {"device": ["-K1"]}}}
+        ),
+        encoding="utf-8",
+    )
+    args = [
+        "--gold",
+        str(gold),
+        "--doc",
+        str(tmp_path / "x_scan.pdf"),
+        "--label",
+        "scan",
+        "--out",
+        str(tmp_path),
+    ]
+    assert run_ingest.main(args, measure_fn=lambda *_: ({}, 1, 1.0)) == 0
+    result = json.loads(next(tmp_path.glob("ingest_mini_scan_*.json")).read_text(encoding="utf-8"))
+    assert result["summary"]["label"] == "scan"
+    assert (
+        next(tmp_path.glob("ingest_mini_scan_*.md"))
+        .read_text(encoding="utf-8")
+        .startswith("# Ingest-Benchmark mini (scan)")
+    )
+
+
 def test_cli_lehnt_unbekannte_typen_im_gate_ab(tmp_path):
     with pytest.raises(SystemExit) as exit_info:
         run_ingest.main(
