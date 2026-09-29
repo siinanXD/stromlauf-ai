@@ -18,6 +18,7 @@ from app.ingestion.docling_parser import parse_document
 from app.ingestion.page_titles import page_titles
 from app.ingestion.tags import detect_folio_style, extract_tags
 from app.ingestion.vision import describe_page
+from app.llm import missing_key
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
 from app.tenancy import reset_workspace, set_workspace
 from app.tracing import vision_trace
@@ -62,7 +63,15 @@ def _split(piece: Piece) -> list[Piece]:
     if len(piece.content) <= get_settings().chunk_size:
         return [piece]
     return [
-        Piece(part, piece.kind, piece.page, piece.section, dict(piece.meta), piece.plc_loose, piece.folio_style)
+        Piece(
+            part,
+            piece.kind,
+            piece.page,
+            piece.section,
+            dict(piece.meta),
+            piece.plc_loose,
+            piece.folio_style,
+        )
         for part in _splitter().split_text(piece.content)
     ]
 
@@ -94,7 +103,9 @@ def _book_page(machine_id: str | None, usage: ledger.Usage | None) -> None:
 def _awl_pieces(path: Path) -> list[Piece]:
     blocks = awl_parser.parse_awl(awl_parser.read_text(path))
     if not blocks:
-        raise ValueError("Keine AWL-Bausteine gefunden (erwartet z.B. FUNCTION_BLOCK ... END_FUNCTION_BLOCK)")
+        raise ValueError(
+            "Keine AWL-Bausteine gefunden (erwartet z.B. FUNCTION_BLOCK ... END_FUNCTION_BLOCK)"
+        )
     pieces = []
     for block in blocks:
         if block.declaration:
@@ -140,7 +151,11 @@ def _symbol_pieces(path: Path) -> list[Piece]:
 
 
 def _vision_pieces(
-    document_id: str, path: Path, pages: dict[int, str], machine_id: str | None = None, titles: dict[int, str] | None = None
+    document_id: str,
+    path: Path,
+    pages: dict[int, str],
+    machine_id: str | None = None,
+    titles: dict[int, str] | None = None,
 ) -> tuple[list[Piece], list[int], list[int]]:
     """Liefert (Stuecke, fehlgeschlagene Seiten, wegen Monatslimit uebersprungene Seiten)."""
     settings = get_settings()
@@ -175,16 +190,32 @@ def _vision_pieces(
                     failed.append(page)
                 elif description.strip():
                     pieces.append(
-                        Piece(description, kind="vision", page=page, section=(titles or {}).get(page, "Vision-Analyse"))
+                        Piece(
+                            description,
+                            kind="vision",
+                            page=page,
+                            section=(titles or {}).get(page, "Vision-Analyse"),
+                        )
                     )
     return pieces, failed, skipped
+
+
+def vision_skip_note() -> str:
+    """Hinweis, wenn der Schluessel des Providers von VISION_MODEL fehlt; leer, wenn die Analyse laufen kann."""
+    settings = get_settings()
+    try:
+        missing = missing_key(settings.vision_model, settings)
+    except ValueError as exc:
+        return f"Vision-Analyse uebersprungen: {exc}"
+    return f"Vision-Analyse uebersprungen: {missing} fehlt" if missing else ""
 
 
 def _build_pieces(
     document_id: str, path: Path, doc_type: str, vision: bool, machine_id: str | None = None
 ) -> tuple[list[Piece], int | None, str]:
     """Liefert (Stuecke, Seitenzahl, Hinweis)."""
-    if doc_type == DocType.PLC_PROGRAM or path.suffix.lower() == ".awl":
+    # .scl (TIA-Quelle) laeuft durch denselben Bausteinparser: ein Chunk je Baustein, ohne Netzwerke
+    if doc_type == DocType.PLC_PROGRAM or path.suffix.lower() in {".awl", ".scl"}:
         return _awl_pieces(path), None, ""
     if doc_type == DocType.PLC_SYMBOLS or path.suffix.lower() == ".sdf":
         return _symbol_pieces(path), None, ""
@@ -209,17 +240,22 @@ def _build_pieces(
 
     note = ""
     if vision and path.suffix.lower() == ".pdf":
-        if not get_settings().anthropic_api_key:
-            note = "Vision-Analyse uebersprungen: ANTHROPIC_API_KEY fehlt"
-        else:
+        note = vision_skip_note()
+        if not note:
             page_texts = {p.page: p.raw_text or p.markdown for p in parsed if p.page}
-            vision_pieces, failed, skipped = _vision_pieces(document_id, path, page_texts, machine_id, titles)
+            vision_pieces, failed, skipped = _vision_pieces(
+                document_id, path, page_texts, machine_id, titles
+            )
             pieces += vision_pieces
             notes = []
             if failed:
-                notes.append(f"Vision-Analyse fehlgeschlagen auf Seiten {', '.join(map(str, failed))}")
+                notes.append(
+                    f"Vision-Analyse fehlgeschlagen auf Seiten {', '.join(map(str, failed))}"
+                )
             if skipped:
-                notes.append(f"Vision-Analyse ab Seite {skipped[0]} uebersprungen: KI-Monatslimit erreicht")
+                notes.append(
+                    f"Vision-Analyse ab Seite {skipped[0]} uebersprungen: KI-Monatslimit erreicht"
+                )
             note = "; ".join(notes)
     return pieces, page_count, note
 
@@ -245,10 +281,14 @@ def ingest_document(document_id: str) -> None:
         _set_progress(document_id, "wartet, anderes Dokument wird gerade verarbeitet")
         _INGEST_LOCK.acquire()
     try:
-        raw_pieces, page_count, note = _build_pieces(document_id, path, doc_type, vision, machine_id)
+        raw_pieces, page_count, note = _build_pieces(
+            document_id, path, doc_type, vision, machine_id
+        )
         pieces = [part for piece in raw_pieces for part in _split(piece)]
         if not pieces:
-            raise ValueError("Kein Text im Dokument gefunden (gescanntes PDF? OCR_ENABLED=true setzen)")
+            raise ValueError(
+                "Kein Text im Dokument gefunden (gescanntes PDF? OCR_ENABLED=true setzen)"
+            )
 
         vectors: list[list[float]] = []
         for start in range(0, len(pieces), _EMBED_BATCH):
@@ -277,7 +317,9 @@ def ingest_document(document_id: str) -> None:
                         embedding=vector,
                     )
                 )
-                for tag in extract_tags(piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style):
+                for tag in extract_tags(
+                    piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style
+                ):
                     key = (tag.tag, tag.tag_type, piece.page, piece.section)
                     if key in seen_tags:
                         continue

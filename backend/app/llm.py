@@ -18,7 +18,7 @@ _OPENAI_PREFIXES = ("gpt-", "o1", "o3", "o4")
 
 
 def split_model(name: str) -> tuple[str, str]:
-    """"provider:modell" oder ein Name, an dem der Provider erkennbar ist -> (provider, modell)."""
+    """ "provider:modell" oder ein Name, an dem der Provider erkennbar ist -> (provider, modell)."""
     name = (name or "").strip()
     if not name:
         raise ValueError("Kein Modellname angegeben")
@@ -34,12 +34,24 @@ def split_model(name: str) -> tuple[str, str]:
         return "anthropic", name
     if name.startswith(_OPENAI_PREFIXES):
         return "openai", name
-    raise ValueError(f"Modell {name!r} ohne erkennbaren Provider; schreib openai:<modell> oder anthropic:<modell>")
+    raise ValueError(
+        f"Modell {name!r} ohne erkennbaren Provider; schreib openai:<modell> oder anthropic:<modell>"
+    )
 
 
 def api_key_for(provider: str, settings=None) -> str | None:
     settings = settings or get_settings()
-    return {"anthropic": settings.anthropic_api_key, "openai": settings.openai_api_key}[provider]
+    attribute = {"anthropic": "anthropic_api_key", "openai": "openai_api_key"}[provider]
+    return getattr(settings, attribute, None)
+
+
+def missing_key(name: str, settings=None) -> str | None:
+    """Name der fehlenden Umgebungsvariable fuer das Modell (ANTHROPIC_API_KEY, OPENAI_API_KEY), sonst None.
+
+    ValueError bei einem Modellnamen ohne erkennbaren Provider (siehe split_model).
+    """
+    provider, _ = split_model(name)
+    return None if api_key_for(provider, settings) else PROVIDER_ENV[provider]
 
 
 def make_chat_model(
@@ -54,8 +66,16 @@ def make_chat_model(
     provider, model = split_model(name)
     key = api_key_for(provider)
     if not key:
-        raise RuntimeError(f"{PROVIDER_ENV[provider]} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten.")
-    kwargs = {"model_provider": provider, "api_key": key, "max_tokens": max_tokens, "max_retries": max_retries, "streaming": streaming}
+        raise RuntimeError(
+            f"{PROVIDER_ENV[provider]} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten."
+        )
+    kwargs = {
+        "model_provider": provider,
+        "api_key": key,
+        "max_tokens": max_tokens,
+        "max_retries": max_retries,
+        "streaming": streaming,
+    }
     if timeout is not None:
         kwargs["timeout"] = timeout
     return init_chat_model(model, **kwargs)
@@ -63,4 +83,8 @@ def make_chat_model(
 
 def image_block(png: bytes, mime_type: str = "image/png") -> dict:
     """Standard-Inhaltsblock fuer Bilder (LangChain v1), den Anthropic und OpenAI gleichermassen annehmen."""
-    return {"type": "image", "base64": base64.standard_b64encode(png).decode("ascii"), "mime_type": mime_type}
+    return {
+        "type": "image",
+        "base64": base64.standard_b64encode(png).decode("ascii"),
+        "mime_type": mime_type,
+    }

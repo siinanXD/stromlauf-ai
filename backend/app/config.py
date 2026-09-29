@@ -14,8 +14,14 @@ class Settings(BaseSettings):
     )
 
     anthropic_api_key: str | None = None
-    chat_model: str = "claude-opus-5"
-    vision_model: str = "claude-opus-5"
+    # Standard wie docs/product/cost-model.md: Sonnet fuer Antworten und Seitenanalyse (Referenzlaeufe und
+    # Schaltschrank-IoU 0,90 damit gemessen); Opus nur fuer die Schrittkette (flow_model_strong)
+    chat_model: str = "claude-sonnet-5"
+    vision_model: str = "claude-sonnet-5"
+    # Leitplanken je Chat-Antwort (Issue #48): Werkzeugaufrufe, Zeitlimit, Nachrichten im Modellkontext (0 = alle)
+    chat_max_tool_calls: int = 12
+    chat_timeout_s: float = 60.0
+    chat_history_messages: int = 20
 
     database_url: str = "postgresql+psycopg://stromlauf:stromlauf@localhost:5433/stromlauf"
     data_dir: Path = BACKEND_DIR / "data"

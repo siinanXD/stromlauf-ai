@@ -78,14 +78,23 @@ def hotspot_evidence(machine: Machine | None, tags: list[str]) -> list[dict]:
     return out
 
 
-def build_meta(session: Session, *, answer: str, citations: list[dict], source_ids: list[str], machine_id: str | None) -> dict:
-    known: set[str] = set()
+def known_device_tags(session: Session, source_ids: list[str]) -> set[str]:
+    """Betriebsmittel im Kennzeichen-Index der Quellen; leere Liste = alle Quellen des Workspace (wie die Werkzeuge)."""
+    query = select(TagOccurrence.tag).where(TagOccurrence.tag_type == TagType.DEVICE).distinct()
     if source_ids:
-        known = set(
-            session.scalars(
-                select(TagOccurrence.tag).where(TagOccurrence.source_id.in_(source_ids), TagOccurrence.tag_type == TagType.DEVICE).distinct()
-            )
-        )
+        query = query.where(TagOccurrence.source_id.in_(source_ids))
+    return set(session.scalars(query))
+
+
+def build_meta(
+    session: Session,
+    *,
+    answer: str,
+    citations: list[dict],
+    source_ids: list[str],
+    machine_id: str | None,
+) -> dict:
+    known = known_device_tags(session, source_ids)
     tags = tags_in_answer(answer, known)
     machine = session.get(Machine, machine_id) if machine_id else None
     checks, valid = check_answer(session, answer, source_ids, citations)

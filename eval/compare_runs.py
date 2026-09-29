@@ -24,6 +24,8 @@ METRICS = (
     "zitate_gueltig",
     "zitate_geprueft",
     "zitate_belege",
+    "teile_praezision",
+    "teile_recall",
     "sauber",
     "werkzeug_ok",
     "voll_bestanden",
@@ -33,6 +35,8 @@ METRICS = (
     "kosten_usd",
     "kosten_je_antwort_usd",
     "dauer_mittel_s",
+    "p95_s",
+    "fehlerrate",
 )
 
 

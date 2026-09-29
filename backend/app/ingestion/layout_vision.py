@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 
 from app.config import get_settings
 from app.ingestion.layout_geometry import LAYOUT_KINDS
-from app.llm import image_block, make_chat_model
+from app.llm import image_block, make_chat_model, missing_key
 
 DETECT_PROMPT = """Du bist Konstrukteur im Anlagenbau. Das Bild zeigt eine Draufsicht \
 (Vogelperspektive) einer Maschine oder Anlage: Aufstellungsplan, Skizze, Scan oder Foto.
@@ -52,11 +52,13 @@ def _positive(value) -> float | None:
     return number if number > 0 else None
 
 
-def detect_layout(png: bytes, known_tags: list[str] | None = None, trace: dict | None = None) -> dict:
+def detect_layout(
+    png: bytes, known_tags: list[str] | None = None, trace: dict | None = None
+) -> dict:
     """Ruft Claude Vision auf (kostet API-Tokens). Rueckgabe: items, floor, width_mm, depth_mm."""
     settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY fehlt")
+    if missing := missing_key(settings.vision_model, settings):
+        raise RuntimeError(f"{missing} fehlt")
     known = ""
     if known_tags:
         known = (
@@ -65,11 +67,21 @@ def detect_layout(png: bytes, known_tags: list[str] | None = None, trace: dict |
         )
     llm = make_chat_model(settings.vision_model, max_tokens=4000, max_retries=2)
     message = HumanMessage(
-        content=[image_block(png), {"type": "text", "text": DETECT_PROMPT.format(kinds=", ".join(LAYOUT_KINDS), known=known)}]
+        content=[
+            image_block(png),
+            {
+                "type": "text",
+                "text": DETECT_PROMPT.format(kinds=", ".join(LAYOUT_KINDS), known=known),
+            },
+        ]
     )
     content = llm.invoke([message], trace or None).content
-    text = content if isinstance(content, str) else "".join(
-        b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+    text = (
+        content
+        if isinstance(content, str)
+        else "".join(
+            b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+        )
     )
     data = parse_vision_json(text)
     items = data.get("items")

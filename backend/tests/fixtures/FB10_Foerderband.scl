@@ -1,0 +1,26 @@
+FUNCTION_BLOCK "FB_Foerderband"
+TITLE = Foerderband FB-01 Steuerung (SCL, TIA Portal)
+VERSION : 0.1
+   VAR_INPUT
+      Start : Bool;   // Taster -S1, E0.0
+      Stop : Bool;    // Taster -S2, E0.1
+      MSS_OK : Bool;  // Motorschutz -F2, E0.2
+   END_VAR
+   VAR_OUTPUT
+      K1_Vorwaerts : Bool;   // Schuetz -K1, A4.0
+   END_VAR
+BEGIN
+   // Selbsthaltung mit Freigabe
+   IF #Start AND #Stop AND #MSS_OK THEN
+      #K1_Vorwaerts := TRUE;
+   END_IF;
+   IF NOT #Stop OR NOT #MSS_OK THEN
+      #K1_Vorwaerts := FALSE;
+   END_IF;
+END_FUNCTION_BLOCK
+
+ORGANIZATION_BLOCK "Main"
+TITLE = "Main Program Sweep (Cycle)"
+BEGIN
+   "FB_Foerderband_DB"(Start := "Start", Stop := "Stop", MSS_OK := "MSS_OK", K1_Vorwaerts => "K1_Vorwaerts");
+END_ORGANIZATION_BLOCK
