@@ -14,7 +14,7 @@ from PIL import Image
 
 from app.config import get_settings
 from app.ingestion.tags import normalize_tag
-from app.llm import image_block, make_chat_model
+from app.llm import image_block, make_chat_model, missing_key
 
 MAX_EDGE = 2000
 
@@ -49,10 +49,12 @@ def image_size(path: Path) -> tuple[int, int]:
         return image.size
 
 
-def detect_components(path: Path, known_tags: list[str] | None = None, trace: dict | None = None) -> list[dict]:
+def detect_components(
+    path: Path, known_tags: list[str] | None = None, trace: dict | None = None
+) -> list[dict]:
     settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY fehlt")
+    if missing := missing_key(settings.vision_model, settings):
+        raise RuntimeError(f"{missing} fehlt")
     png, _, _ = load_png(path)
     known = ""
     if known_tags:
@@ -61,11 +63,17 @@ def detect_components(path: Path, known_tags: list[str] | None = None, trace: di
             f"unsicherer Lesung: {', '.join(sorted(known_tags)[:80])}\n"
         )
     llm = make_chat_model(settings.vision_model, max_tokens=4000, max_retries=2)
-    message = HumanMessage(content=[image_block(png), {"type": "text", "text": DETECT_PROMPT.format(known=known)}])
+    message = HumanMessage(
+        content=[image_block(png), {"type": "text", "text": DETECT_PROMPT.format(known=known)}]
+    )
     response = llm.invoke([message], trace or None)
     content = response.content
-    text = content if isinstance(content, str) else "".join(
-        b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+    text = (
+        content
+        if isinstance(content, str)
+        else "".join(
+            b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+        )
     )
     match = re.search(r"\{.*\}", text, re.S)
     if not match:
