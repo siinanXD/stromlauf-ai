@@ -3,16 +3,21 @@
     "fragen": 9,
     "bewertet": 9,
     "nicht_bewertet_fehler": 0,
+    "fehlerrate": 0.0,
     "fakten_mittel": 1.0,
     "quellen_ok": 1.0,
     "zitate_belege": 36,
     "zitate_antworten": 9,
     "zitate_gueltig": 0.935,
     "zitate_geprueft": 0.861,
+    "teile_antworten": 9,
+    "teile_recall": 1.0,
+    "teile_praezision": 0.917,
     "sauber": 1.0,
     "werkzeug_ok": 0.8,
     "voll_bestanden": 8,
     "dauer_mittel_s": 18.1,
+    "p95_s": 28.6,
     "tokens_ein": 184125,
     "tokens_aus": 12146,
     "modellaufrufe": 27,
@@ -96,6 +101,14 @@
       ],
       "dauer_s": 22.4,
       "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 7,
+        "teile_treffer": 1,
+        "teile_passend": 7,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -158,7 +171,16 @@
           "valid": 4,
           "checked": 3,
           "total": 4
-        }
+        },
+        "referenced_tags": [
+          "-K3",
+          "-S3",
+          "-A1.1",
+          "-K1",
+          "-K2",
+          "-S1",
+          "-H3"
+        ]
       }
     },
     {
@@ -239,6 +261,17 @@
       ],
       "dauer_s": 28.6,
       "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 8,
+        "teile_treffer": 2,
+        "teile_passend": 6,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.75,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-Q1",
+          "-Q2"
+        ],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -327,7 +360,17 @@
           "valid": 6,
           "checked": 6,
           "total": 7
-        }
+        },
+        "referenced_tags": [
+          "-H2",
+          "-B1",
+          "-B2",
+          "-F2",
+          "-S1",
+          "-M1",
+          "-Q1",
+          "-Q2"
+        ]
       }
     },
     {
@@ -378,6 +421,16 @@
       ],
       "dauer_s": 15.5,
       "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 7,
+        "teile_treffer": 1,
+        "teile_passend": 6,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.8571428571428571,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-Q1"
+        ],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -432,7 +485,16 @@
           "valid": 3,
           "checked": 2,
           "total": 3
-        }
+        },
+        "referenced_tags": [
+          "-K1",
+          "-W4",
+          "-M1",
+          "-Q2",
+          "-Q1",
+          "-F2",
+          "-K2"
+        ]
       }
     },
     {
@@ -527,6 +589,14 @@
       ],
       "dauer_s": 20.9,
       "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 2,
+        "teile_treffer": 2,
+        "teile_passend": 2,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -563,7 +633,11 @@
           "valid": 1,
           "checked": 1,
           "total": 1
-        }
+        },
+        "referenced_tags": [
+          "-K1",
+          "-K2"
+        ]
       }
     },
     {
@@ -648,6 +722,14 @@
       ],
       "dauer_s": 5.0,
       "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 1,
+        "teile_treffer": 1,
+        "teile_passend": 1,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -702,7 +784,10 @@
           "valid": 2,
           "checked": 3,
           "total": 3
-        }
+        },
+        "referenced_tags": [
+          "-F2"
+        ]
       }
     },
     {
@@ -812,6 +897,14 @@
       ],
       "dauer_s": 26.4,
       "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 7,
+        "teile_treffer": 2,
+        "teile_passend": 7,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -874,7 +967,16 @@
           "valid": 4,
           "checked": 3,
           "total": 4
-        }
+        },
+        "referenced_tags": [
+          "-S3",
+          "-K3",
+          "-K1",
+          "-K2",
+          "-M1",
+          "-H3",
+          "-S1"
+        ]
       }
     },
     {
@@ -946,6 +1048,14 @@
       ],
       "dauer_s": 9.4,
       "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 3,
+        "teile_treffer": 1,
+        "teile_passend": 3,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -998,7 +1108,12 @@
           "valid": 3,
           "checked": 3,
           "total": 3
-        }
+        },
+        "referenced_tags": [
+          "-A1",
+          "-A1.1",
+          "-A1.2"
+        ]
       }
     },
     {
@@ -1065,6 +1180,16 @@
       ],
       "dauer_s": 13.1,
       "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 7,
+        "teile_treffer": 1,
+        "teile_passend": 6,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.8571428571428571,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-Q1"
+        ],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -1135,7 +1260,16 @@
           "valid": 5,
           "checked": 4,
           "total": 5
-        }
+        },
+        "referenced_tags": [
+          "-M1",
+          "-K1",
+          "-K2",
+          "-W4",
+          "-F2",
+          "-Q2",
+          "-Q1"
+        ]
       }
     },
     {
@@ -1209,6 +1343,14 @@
       ],
       "dauer_s": 21.3,
       "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 6,
+        "teile_treffer": 2,
+        "teile_passend": 6,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
         "fakten": 1.0,
         "fakten_fehlend": [],
         "quellen_ok": true,
@@ -1285,7 +1427,15 @@
           "valid": 6,
           "checked": 6,
           "total": 6
-        }
+        },
+        "referenced_tags": [
+          "-S1",
+          "-K1",
+          "-M1",
+          "-H1",
+          "-K2",
+          "-S3"
+        ]
       }
     }
   ]
