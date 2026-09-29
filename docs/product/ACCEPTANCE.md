@@ -32,7 +32,7 @@ Gemessen mit `eval/run_ingest.py` über dieselbe Lesekette wie der Upload, ohne 
 
 | Messung | Wert | Lauf | Stand |
 | --- | --- | --- | --- |
-| Kennzeichen-Recall Text (FB-01, Issue #63) | device, terminal, plc_address: Recall **1,00** und Precision **1,00** (72, 74 und 41 Vorkommen auf 7 Seiten); cross_ref 0,95 und 0,95, nur berichtet | [`ingest_fb01_2026-09-29_22-05-00.json`](../../eval/results/ingest_fb01_2026-09-29_22-05-00.json) | Gate `--min 0.95` im Retrieval-Job bei jedem PR. Einzige Abweichung: pdfium zieht auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammen. 0,65 s je Seite lokal mit GPU |
+| Kennzeichen-Recall Text (FB-01, Issue #63) | device, terminal, plc_address: Recall **1,00** und Precision **1,00** (72, 72 und 41 Vorkommen auf 7 Seiten); cross_ref 0,95 und 0,95, nur berichtet | [`ingest_fb01_2026-09-29_23-10-12.json`](../../eval/results/ingest_fb01_2026-09-29_23-10-12.json) | Gate `--min 0.95` im Retrieval-Job bei jedem PR. Einzige Abweichung: pdfium zieht auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammen. 0,67 s je Seite lokal mit GPU |
 | Kennzeichen-Recall Scan | _ausstehend, Issues #64 bis #66_ | | |
 
 ## Teil 2: Ablauf nach Freigabe des Railway-Stagings

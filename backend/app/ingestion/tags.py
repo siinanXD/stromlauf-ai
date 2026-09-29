@@ -11,11 +11,13 @@ from dataclasses import dataclass
 from app.models import TagType
 
 # IEC 81346 / EN 61346: [=Anlage][+Ort]-Kennbuchstabe(n)Zaehlnummer[:Anschluss]
+# Im Anschluss stehen "." und "/" nur vor einem Buchstaben oder einer Ziffer (-X5:1.2, -X4:U/V/W): so bleiben
+# Satzende ("-X3:6.") und das naechste Kennzeichen ("-X3:9/-X3:10") draussen.
 _DEVICE_RE = re.compile(
     r"(?<![\w.])"
     r"(?P<prefix>(?:=[A-Z0-9][A-Z0-9.]*)?(?:\+[A-Z0-9][A-Z0-9.\-]*?)?)"
     r"-(?P<letters>[A-Z]{1,3})(?P<number>\d{1,4}(?:\.\d{1,3})?)"
-    r"(?::(?P<pin>[A-Z0-9][A-Z0-9./+\-]{0,7}))?"
+    r"(?::(?P<pin>[A-Z0-9](?:[A-Z0-9+\-]|[./](?=[A-Z0-9])){0,7}))?"
     r"(?![\w])"
 )
 
