@@ -8,6 +8,7 @@ angegebene Wissensquelle). Bewertet wird ohne LLM-Richter, nur mit Regeln (eval/
 
   fakten     Anteil der must_contain-Muster (Regex, Gross/Klein egal), die in der Antwort vorkommen
   quellen    alle expect_sources-Dateien wurden als Quelle zitiert
+  zitate     Anteil der Belege [[Datei|Ort]], die der Zitat-Resolver des Backends bestaetigt (meta-Event)
   sauber     kein must_not_contain-Muster in der Antwort (Halluzinations-Fallen)
   werkzeug   die in "tools" erwarteten Werkzeuge wurden aufgerufen (nur wenn erwartet)
 
@@ -90,6 +91,8 @@ def push_scores(run: str, rows: list[dict]) -> None:
         client.create_score(session_id=session, name="fakten", value=score["fakten"], data_type="NUMERIC")
         client.create_score(session_id=session, name="quellen_ok", value=float(score["quellen_ok"]), data_type="NUMERIC")
         client.create_score(session_id=session, name="sauber", value=float(score["sauber"]), data_type="NUMERIC")
+        if score.get("zitate_gueltig") is not None:
+            client.create_score(session_id=session, name="zitate_gueltig", value=score["zitate_gueltig"], data_type="NUMERIC")
         written += 1
     client.flush()
     print(f"Langfuse: {written} von {len(rows)} Antworten bewertet (Lauf {run}).")
@@ -101,6 +104,7 @@ def main() -> int:
     parser.add_argument("--only", help="Filter auf id oder Quellname, z. B. festo")
     parser.add_argument("--limit", type=int, help="Nur die ersten N Fragen (nach Filter)")
     parser.add_argument("--min", type=float, default=0.0, help="Exit-Code 1, wenn fakten_mittel darunter liegt")
+    parser.add_argument("--min-citations", type=float, help="Exit-Code 1, wenn zitate_gueltig darunter liegt oder fehlt")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
     parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
     parser.add_argument("--max-cost", type=float, default=0.0, help="Kostendeckel in USD: keine weitere Frage, sobald die Summe darueber liegt")
@@ -151,10 +155,13 @@ def main() -> int:
                 answer, cited, tools, seconds, meta = ask(client, q["question"], [by_name[q["source"]]], tags, args.model)
             except Exception as exc:  # Netz, Timeout
                 answer, cited, tools, seconds = f"{evallib.ERROR_PREFIX} {type(exc).__name__}: {exc}", [], [], 0.0
-            result = evallib.score(q, answer, cited, tools)
+            answer_meta = meta.get("answer_meta") or {}
+            kept_meta = {k: answer_meta[k] for k in ("referenced_tags", "citation_checks", "citations_valid") if k in answer_meta}
+            result = evallib.score(q, answer, cited, tools, meta=kept_meta)
             rows.append({"id": q["id"], "source": q["source"], "question": q["question"], "answer": answer,
                          "sources": cited, "tools": tools, "dauer_s": round(seconds, 1), "score": result,
-                         "conversation_id": meta.get("conversation_id", ""), "usage": meta.get("usage", {})})
+                         "conversation_id": meta.get("conversation_id", ""), "usage": meta.get("usage", {}),
+                         "meta": kept_meta})
             spent += float((meta.get("usage") or {}).get("cost_usd") or 0.0)
             evallib.print_row(i, len(questions), q, result, seconds)
             evallib.save_result(out, evallib.summarize(rows), rows)  # Abbruch kostet keine bezahlte Antwort
@@ -166,6 +173,9 @@ def main() -> int:
     print(f"\nErgebnis: {out}")
     if summary["fakten_mittel"] < args.min:
         print(f"Unter Schwelle {args.min}: fakten_mittel {summary['fakten_mittel']}")
+        return 1
+    if evallib.below_threshold(summary, args.min_citations):
+        print(f"Unter Schwelle {args.min_citations}: zitate_gueltig {summary.get('zitate_gueltig')}")
         return 1
     return 0
 

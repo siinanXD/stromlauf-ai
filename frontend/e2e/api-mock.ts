@@ -84,7 +84,7 @@ export const CHAT_STREAM = sse([
   ["tool_start", { name: "find_tag", args: { tag: "-K1" } }],
   ["tool_end", { name: "find_tag" }],
   ["sources", [{ document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf", doc_type: "schematic", page: 3, section: "" }]],
-  ["token", { text: "## Kurzantwort\n\nSchütz -K1 zieht nicht an, wenn der Motorschutz -F2 ausgelöst hat [[01_Stromlaufplan_FB-01.pdf|/3.4]].\n\n## Prüfen\n\n1. -F2 zurücksetzen.\n2. Spule von -K1 an A1/A2 messen." }],
+  ["token", { text: "## Kurzantwort\n\nSchütz -K1 zieht nicht an, wenn der Motorschutz -F2 ausgelöst hat [[01_Stromlaufplan_FB-01.pdf|/3.4]].\n\n## Prüfen\n\n1. -F2 zurücksetzen [[02_Stueckliste_FB-01.xlsx|-X9]].\n2. Spule von -K1 an A1/A2 messen [[01_Stromlaufplan_FB-01.pdf|S. 9]]." }],
   ["usage", { input_tokens: 1200, output_tokens: 80, model: "claude-sonnet-5", cost_cents: 0.32 }],
   [
     "meta",
@@ -95,6 +95,13 @@ export const CHAT_STREAM = sse([
         { kind: "cabinet", cabinet_id: CABINET_ID, cabinet_title: "Schaltschrank +ST1", hotspot_id: "hs1", tag: "-K1", label: "Hauptschütz", box: { x: 0.2, y: 0.3, w: 0.1, h: 0.12 }, confirmed: true },
         { kind: "page", document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf", doc_type: "schematic", page: 3, label: "01_Stromlaufplan_FB-01.pdf S. 3" },
       ],
+      // Zitat-Resolver (Issue #46): der zweite Beleg zeigt auf ein Kennzeichen, das die Stueckliste nicht kennt
+      citation_checks: [
+        { text: "[[01_Stromlaufplan_FB-01.pdf|/3.4]]", file: "01_Stromlaufplan_FB-01.pdf", locator: "/3.4", valid: true, checked: true, reason: "" },
+        { text: "[[02_Stueckliste_FB-01.xlsx|-X9]]", file: "02_Stueckliste_FB-01.xlsx", locator: "-X9", valid: false, checked: true, reason: "Kennzeichen -X9 nicht in 02_Stueckliste_FB-01.xlsx" },
+        { text: "[[01_Stromlaufplan_FB-01.pdf|S. 9]]", file: "01_Stromlaufplan_FB-01.pdf", locator: "S. 9", valid: false, checked: true, reason: "Seite 9 nicht in 01_Stromlaufplan_FB-01.pdf (7 Seiten)" },
+      ],
+      citations_valid: { valid: 1, checked: 3, total: 3 },
     },
   ],
   ["done", {}],

@@ -6,7 +6,7 @@ import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markd
 import remarkGfm from "remark-gfm";
 
 import type { PageTarget } from "@/components/PageViewer";
-import { citationLabel, deviceTagOf, parseCitations, refOf, splitSections, type Citation } from "@/lib/answer";
+import { citationCheckFor, citationLabel, citationsValidLabel, deviceTagOf, parseCitations, refOf, splitSections, type Citation } from "@/lib/answer";
 import type { ChatMessage, SourceRef, ToolCall } from "@/lib/api";
 import { costText } from "@/lib/format";
 
@@ -87,7 +87,10 @@ export function AnswerView({
       source && pdf && ref
         ? () => onOpen({ documentId: source.document_id, filename: source.filename, page, reference: ref, label, tag })
         : undefined;
-    return { label, open, active: activeReference === key, key, title: open ? `${source!.filename} öffnen` : citation.filename };
+    const check = citationCheckFor(message.meta?.citation_checks, citation);
+    const invalid = check !== undefined && !check.valid;
+    const title = check?.reason || (open ? `${source!.filename} öffnen` : citation.filename);
+    return { label, open, active: activeReference === key, key, title, invalid };
   };
 
   const components: Components = {
@@ -96,7 +99,7 @@ export function AnswerView({
         const citation = citations[Number(href.slice(5))];
         if (!citation) return <>{children}</>;
         const c = chip(citation);
-        return <CitationChip label={c.label} onClick={c.open} active={c.active} title={c.title} />;
+        return <CitationChip label={c.label} onClick={c.open} active={c.active} title={c.title} invalid={c.invalid} />;
       }
       return (
         <a href={href} target="_blank" rel="noreferrer">
@@ -221,7 +224,7 @@ export function AnswerView({
                 <dt className="text-muted-foreground">{group.label}</dt>
                 <dd className="flex flex-wrap gap-1">
                   {group.chips.map((c) => (
-                    <CitationChip key={c.key + c.label} label={c.label} onClick={c.open} active={c.active} title={c.title} />
+                    <CitationChip key={c.key + c.label} label={c.label} onClick={c.open} active={c.active} title={c.title} invalid={c.invalid} />
                   ))}
                 </dd>
               </div>
@@ -257,10 +260,39 @@ export function AnswerView({
         </section>
       )}
 
-      {!streaming && message.cost_cents !== undefined && (
-        <p className="font-mono text-[11px] text-muted-foreground" title="Aus dem Kostenbuch: alle Modellaufrufe dieser Antwort">
-          Kosten dieser Antwort: {costText(message.cost_cents)}
-        </p>
+      {!streaming && (message.cost_cents !== undefined || citationsValidLabel(message.meta?.citations_valid)) && (
+        <div className="flex flex-wrap items-start gap-x-3 font-mono text-[11px] text-muted-foreground">
+          {message.cost_cents !== undefined && (
+            <span title="Aus dem Kostenbuch: alle Modellaufrufe dieser Antwort">Kosten dieser Antwort: {costText(message.cost_cents)}</span>
+          )}
+          {citationsValidLabel(message.meta?.citations_valid) &&
+            (() => {
+              const problems = (message.meta?.citation_checks ?? []).filter((c) => !c.valid || !c.checked || c.reason);
+              const label = citationsValidLabel(message.meta?.citations_valid);
+              if (problems.length === 0) {
+                return (
+                  <span data-testid="citations-valid" title="Alle Belege in den Fundstellen gefunden">
+                    {label}
+                  </span>
+                );
+              }
+              return (
+                <details data-testid="citations-valid" className="group">
+                  <summary className="cursor-pointer list-none hover:text-foreground">
+                    <ChevronRight className="mr-0.5 inline size-3 transition-transform group-open:rotate-90" />
+                    {label}
+                  </summary>
+                  <ul className="mt-1 space-y-0.5 pl-4">
+                    {problems.map((c) => (
+                      <li key={c.text}>
+                        <span className={c.valid ? "" : "line-through decoration-muted-foreground/70"}>{c.text}</span>: {c.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              );
+            })()}
+        </div>
       )}
     </div>
   );

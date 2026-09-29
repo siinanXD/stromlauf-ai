@@ -53,6 +53,41 @@ class ConversationOut(BaseModel):
     updated_at: datetime
 
 
+class CitedFile(BaseModel):
+    filename: str
+
+
+class CitationValidateRequest(BaseModel):
+    """Gespeicherte Antwort nachpruefen (eval/rescore.py --api): Belege gegen Quellen und Fundstellen.
+
+    Deckel gegen Missbrauch: der Endpunkt kostet keine Tokens, rechnet aber je Beleg gegen die Datenbank.
+    """
+
+    answer: str = Field(max_length=50_000)
+    source_ids: list[str] = Field(default_factory=list, max_length=50)  # leer = alle Quellen des Workspace
+    sources: list[CitedFile] | None = Field(default=None, max_length=500)  # Fundstellen der Werkzeugaufrufe; None = jede Datei der Quellen gilt
+
+
+class CitationCheckOut(BaseModel):
+    text: str
+    file: str
+    locator: str
+    valid: bool
+    checked: bool
+    reason: str = ""
+
+
+class CitationsValid(BaseModel):
+    valid: int
+    checked: int
+    total: int
+
+
+class CitationValidateOut(BaseModel):
+    citation_checks: list[CitationCheckOut]
+    citations_valid: CitationsValid
+
+
 class SourceRef(BaseModel):
     document_id: str
     filename: str

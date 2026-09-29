@@ -1,6 +1,36 @@
 import { describe, expect, it } from "vitest";
 
-import { citationLabel, deviceTagOf, parseCitations, refOf, splitSections } from "./answer";
+import { citationCheckFor, citationLabel, citationsValidLabel, deviceTagOf, parseCitations, refOf, splitSections } from "./answer";
+
+const CHECKS = [
+  { text: "[[01_Stromlaufplan_FB-01.pdf|/3.2]]", file: "01_Stromlaufplan_FB-01.pdf", locator: "/3.2", valid: true, checked: true, reason: "" },
+  { text: "[[02_Stueckliste_FB-01.xlsx|-X3:3]]", file: "02_Stueckliste_FB-01.xlsx", locator: "-X3:3", valid: false, checked: true, reason: "Kennzeichen -X3:3 nicht in 02_Stueckliste_FB-01.xlsx" },
+];
+
+describe("citationCheckFor", () => {
+  it("finds the check of a parsed citation by file and locator, case-insensitive on the file", () => {
+    const { citations } = parseCitations("[[02_stueckliste_fb-01.XLSX|-X3:3]] [[01_Stromlaufplan_FB-01.pdf|/3.2]]");
+    expect(citationCheckFor(CHECKS, citations[0])?.valid).toBe(false);
+    expect(citationCheckFor(CHECKS, citations[1])?.valid).toBe(true);
+  });
+
+  it("returns undefined without checks or for an unknown citation", () => {
+    const citation = { index: 0, filename: "x.pdf", loc: "S. 1" };
+    expect(citationCheckFor(undefined, citation)).toBeUndefined();
+    expect(citationCheckFor(CHECKS, citation)).toBeUndefined();
+  });
+});
+
+describe("citationsValidLabel", () => {
+  it("counts valid among checked citations and names the unverifiable ones separately", () => {
+    expect(citationsValidLabel({ valid: 5, checked: 6, total: 6 })).toBe("Belege: 5 von 6 gültig");
+    // 6 valid = 4 geprueft gueltig + 2 ungeprueft (die zaehlen als gueltig, sind aber nicht belegt)
+    expect(citationsValidLabel({ valid: 6, checked: 4, total: 6 })).toBe("Belege: 4 von 4 geprüft gültig, 2 nicht prüfbar");
+    expect(citationsValidLabel({ valid: 1, checked: 3, total: 3 })).toBe("Belege: 1 von 3 gültig");
+    expect(citationsValidLabel({ valid: 0, checked: 0, total: 0 })).toBe("");
+    expect(citationsValidLabel(undefined)).toBe("");
+  });
+});
 
 describe("parseCitations", () => {
   it("replaces markers with numbered cite links and dedupes", () => {

@@ -8,14 +8,24 @@ from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app import ledger
 from app.api.answer_meta import build_meta
+from app.citations import check_answer
 from app.config import get_settings
 from app.db import get_session, session_scope
 from app.llm import PROVIDER_ENV, api_key_for, split_model
 from app.models import Conversation, KnowledgeSource, Machine
-from app.schemas import ChatRequest, ConversationOut, MessageOut, SourceRef, ToolCallOut
+from app.schemas import (
+    ChatRequest,
+    CitationValidateOut,
+    CitationValidateRequest,
+    ConversationOut,
+    MessageOut,
+    SourceRef,
+    ToolCallOut,
+)
 from app.tenancy import current_workspace_id, reset_workspace, same_workspace, set_workspace
 from app.tracing import trace_config
 
@@ -161,6 +171,22 @@ async def get_messages(conversation_id: str, request: Request, session: Session 
     return result
 
 
+def _meta_for(answer: str, citations: list[dict], source_ids: list[str], machine_id: str | None) -> dict:
+    with session_scope() as meta_session:
+        return build_meta(meta_session, answer=answer, citations=citations, source_ids=source_ids, machine_id=machine_id)
+
+
+@router.post("/answers/validate-citations", response_model=CitationValidateOut)
+def validate_citations(body: CitationValidateRequest, session: Session = Depends(get_session)):
+    """Belege einer (gespeicherten) Antwort deterministisch pruefen, ohne Modellaufruf (Issue #46)."""
+    visible = set(session.scalars(select(KnowledgeSource.id).where(KnowledgeSource.id.in_(body.source_ids))))
+    if visible != set(body.source_ids):
+        raise HTTPException(404, "Wissensquelle nicht gefunden")
+    refs = [s.model_dump() for s in body.sources] if body.sources is not None else None
+    checks, valid = check_answer(session, body.answer, body.source_ids, refs)
+    return {"citation_checks": checks, "citations_valid": valid}
+
+
 @router.post("/chat")
 async def chat(body: ChatRequest, request: Request):
     model = effective_model(body.model)
@@ -240,12 +266,12 @@ async def chat(body: ChatRequest, request: Request):
                             if isinstance(message.artifact, list):
                                 refs += message.artifact
                                 yield _sse("sources", _dedupe_sources(refs))
-            # Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - deterministisch aus Index und Fundstellen
-            with session_scope() as meta_session:
-                meta = build_meta(
-                    meta_session, answer="".join(answer_parts), citations=_dedupe_sources(refs),
-                    source_ids=source_ids, machine_id=body.machine_id,
-                )
+            # Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - deterministisch aus Index und Fundstellen.
+            # Im Threadpool, weil der Zitat-Resolver Blaetter per pdfium (globaler Lock) nachschlaegt und der
+            # Event-Loop sonst fuer alle Mandanten steht.
+            meta = await run_in_threadpool(
+                _meta_for, "".join(answer_parts), _dedupe_sources(refs), source_ids, body.machine_id
+            )
             yield _sse("meta", meta)
             yield _sse("done", {})
         except Exception as exc:

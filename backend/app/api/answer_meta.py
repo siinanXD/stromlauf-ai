@@ -4,6 +4,8 @@ ohne weiteren Modellaufruf (docs/product/ux-spec.md §3.2, Issue #27).
 - referenced_tags: Betriebsmittel aus dem Antworttext, die im Kennzeichen-Index der Quelle vorkommen
 - citations: die Fundstellen der Werkzeugaufrufe (dedupliziert)
 - evidence: Seiten der Zitate (fuer Belegbilder) und Hotspots in Schaltschrankfotos der Maschine
+- citation_checks / citations_valid: jeder Beleg [[Datei|Ort]] der Antwort, gegen Fundstellen und Index
+  geprueft (app/citations.py, Issue #46)
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.citations import check_answer
 from app.ingestion.tags import extract_tags
 from app.models import Machine, TagOccurrence, TagType
 
@@ -85,8 +88,11 @@ def build_meta(session: Session, *, answer: str, citations: list[dict], source_i
         )
     tags = tags_in_answer(answer, known)
     machine = session.get(Machine, machine_id) if machine_id else None
+    checks, valid = check_answer(session, answer, source_ids, citations)
     return {
         "referenced_tags": tags,
         "citations": citations,
         "evidence": [*hotspot_evidence(machine, tags), *page_evidence(citations)],
+        "citation_checks": checks,
+        "citations_valid": valid,
     }

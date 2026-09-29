@@ -21,6 +21,9 @@ METRICS = (
     "nicht_bewertet_fehler",
     "fakten_mittel",
     "quellen_ok",
+    "zitate_gueltig",
+    "zitate_geprueft",
+    "zitate_belege",
     "sauber",
     "werkzeug_ok",
     "voll_bestanden",
@@ -74,11 +77,14 @@ def compare(a: dict, b: dict) -> dict:
             "frage": ra.get("question", ""),
             "fakten": (_score(ra, "fakten"), _score(rb, "fakten")),
             "quellen_ok": (_score(ra, "quellen_ok"), _score(rb, "quellen_ok")),
+            "zitate_gueltig": (_score(ra, "zitate_gueltig"), _score(rb, "zitate_gueltig")),
             "sauber": (_score(ra, "sauber"), _score(rb, "sauber")),
             "kosten_usd": (_cost(ra), _cost(rb)),
             "dauer_s": (ra.get("dauer_s"), None if rb is None else rb.get("dauer_s")),
         }
-        entry["unterschied"] = rb is None or any(entry[key][0] != entry[key][1] for key in ("fakten", "quellen_ok", "sauber"))
+        entry["unterschied"] = rb is None or any(
+            entry[key][0] != entry[key][1] for key in ("fakten", "quellen_ok", "zitate_gueltig", "sauber")
+        )
         fragen.append(entry)
     return {"modelle": (model_of(a), model_of(b)), "kennzahlen": kennzahlen, "fragen": fragen}
 
@@ -99,13 +105,14 @@ def render_markdown(comparison: dict) -> str:
     for row in comparison["kennzahlen"]:
         money = row["kennzahl"].startswith("kosten")
         lines.append(f"| {row['kennzahl']} | {_fmt(row['a'], money)} | {_fmt(row['b'], money)} |")
-    lines += ["", "## Fragen", "", "| Frage | Fakten A / B | Quellen A / B | sauber A / B | Kosten A / B (USD) | Dauer A / B (s) | |",
-              "| --- | --- | --- | --- | --- | --- | --- |"]
+    lines += ["", "## Fragen", "",
+              "| Frage | Fakten A / B | Quellen A / B | Zitate A / B | sauber A / B | Kosten A / B (USD) | Dauer A / B (s) | |",
+              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for row in comparison["fragen"]:
         mark = "≠" if row["unterschied"] else ""
         lines.append(
-            f"| `{row['id']}` {row['frage']} | {_pair(row, 'fakten')} | {_pair(row, 'quellen_ok')} | {_pair(row, 'sauber')} | "
-            f"{_pair(row, 'kosten_usd', True)} | {_pair(row, 'dauer_s')} | {mark} |"
+            f"| `{row['id']}` {row['frage']} | {_pair(row, 'fakten')} | {_pair(row, 'quellen_ok')} | {_pair(row, 'zitate_gueltig')} | "
+            f"{_pair(row, 'sauber')} | {_pair(row, 'kosten_usd', True)} | {_pair(row, 'dauer_s')} | {mark} |"
         )
     return "\n".join(lines) + "\n"
 

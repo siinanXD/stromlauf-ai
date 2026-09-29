@@ -76,6 +76,11 @@ jobs:
         run: python scripts/acceptance.py --api http://localhost:8010 --load --out eval/results
       - name: Retrieval-Eval mit Schwellwerten
         run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.9 --min-sources 0.9
+      - name: Zitat-Resolver gegen den Referenzlauf (Issue #46, kostenlos, Regressionstest)
+        run: >-
+          python eval/rescore.py eval/results/referenz_2026-09-28_claude-sonnet-5.json --api http://localhost:8010
+          --out eval/results/rescore_gate_claude-sonnet-5.json --min-citations 0.9
+          --expect-invalid "[[02_Stueckliste_FB-01.xlsx|-X3:3]]" --expect-invalid "[[05_Symboltabelle_FB-01.sdf|-]]"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -105,6 +110,7 @@ jobs:
           name: abnahme-nachweise
           path: |
             eval/results/retrieval_*.json
+            eval/results/rescore_gate_*.json
             eval/results/acceptance_*.json
             eval/results/acceptance_*.md
             eval/results/lighthouse-a11y.report.*
@@ -173,7 +179,7 @@ jobs:
         run: python scripts/load_example.py --api http://localhost:8010
       - name: Agentenlauf FB-01 mit Kostendeckel
         if: steps.secret.outputs.skip != 'true'
-        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.8 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
+        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.8 --min-citations 0.9 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
       - name: Schaltschrank-IoU (ein Vision-Aufruf)
         if: steps.secret.outputs.skip != 'true'
         run: python eval/run_cabinet.py --api http://localhost:8010 --min-iou 0.5 --min-share 0.8
