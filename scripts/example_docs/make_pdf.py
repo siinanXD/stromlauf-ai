@@ -394,15 +394,21 @@ def page_7(s: Sheet):
     s.text(col_x(1) - 30, y - 30, "Leitungen: -W1 -X3 -> Bedienpult +BP1 12x0,75 mm2, -W2/-W3 -X3 -> Lichtschranken +SE1/+SA1 4x0,5 mm2, -W4 -X4 -> Antrieb +AN1 4G2,5 mm2.", 8)
 
 
-def build(out: Path):
-    c = canvas.Canvas(str(out), pagesize=landscape(A4))
+def build(out, canvas_factory=canvas.Canvas, sheet_factory=Sheet):
+    """Zeichnet alle Blaetter nach out (Pfad oder Datei-Objekt).
+
+    make_gold.py uebergibt eine protokollierende Zeichenflaeche und ein protokollierendes Blatt,
+    um die Ground Truth des Ingest-Benchmarks beim Zeichnen mitzuschreiben.
+    """
+    c = canvas_factory(str(out) if isinstance(out, Path) else out, pagesize=landscape(A4))
     c.setTitle("Stromlaufplan Foerderband FB-01")
     c.setAuthor("Stromlauf AI Beispielanlage")
     builders = [page_1, page_2, page_3, page_4, page_5, page_6, page_7]
     for (page, title), fn in zip(PAGES, builders, strict=True):
-        fn(Sheet(c, page, title))
+        fn(sheet_factory(c, page, title))
         c.showPage()
     c.save()
+    return c
 
 
 if __name__ == "__main__":
