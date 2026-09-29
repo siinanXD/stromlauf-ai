@@ -318,6 +318,9 @@ def test_endpunkt_prueft_gespeicherte_antworten_im_eigenen_workspace(client, wor
     data = response.json()
     assert data["citations_valid"] == {"valid": 3, "checked": 4, "total": 4}
     assert [c["valid"] for c in data["citation_checks"]] == [True, False, True, True]
+    assert data["referenced_tags"] == [
+        "-F2"
+    ]  # fuer teile_praezision/teile_recall beim Rescore (Issue #49)
     assert _ledger_rows(WS) == before
 
     # ohne Fundstellen zaehlt jede Datei der Quelle

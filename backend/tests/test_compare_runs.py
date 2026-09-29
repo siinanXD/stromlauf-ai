@@ -101,6 +101,8 @@ def test_zitate_zaehlen_als_kennzahl_und_als_unterschied_je_frage():
         questions["q1"]["zitate_gueltig"] == (1.0, 0.667) and questions["q1"]["unterschied"] is True
     )
     assert "| zitate_gueltig | 0.947 | 0.907 |" in compare_runs.render_markdown(comparison)
+    for key in ("teile_praezision", "teile_recall", "p95_s", "fehlerrate"):
+        assert key in compare_runs.METRICS
 
 
 def test_markdown_hat_beide_modelle_und_je_frage_eine_zeile():

@@ -359,6 +359,105 @@ def test_injection_questions_are_traps_with_a_free_retrieval_check():
         assert row["expect_sources"] == ["Betriebsanleitung_Presse_P-02.md"]
 
 
+def test_score_rates_referenced_parts_against_expect_tags():
+    # Vertrag: referenced-part precision >= 0,85; erwartete Teile muessen genannt sein (Recall), zusaetzlich
+    # genannte Teile sind nur richtig, wenn sie erwartet oder erlaubt sind (Praezision)
+    q = {**Q, "expect_tags": ["-F2", "-M1"], "ok_tags": ["-K1"]}
+    meta = {"referenced_tags": ["-f2", "-K1", "-X9"], "citation_checks": []}
+    r = evallib.score(q, "-K3 Blatt 4", [{"filename": "a.pdf"}], ["find_tag"], meta=meta)
+    assert r["teile_recall"] == 0.5 and r["teile_praezision"] == pytest.approx(2 / 3)
+    assert r["teile_fehlend"] == ["-M1"] and r["teile_fremd"] == ["-X9"]
+    assert (
+        r["teile_erwartet"],
+        r["teile_referenziert"],
+        r["teile_treffer"],
+        r["teile_passend"],
+    ) == (2, 3, 1, 2)
+    without_meta = evallib.score(q, "-K3 Blatt 4", [{"filename": "a.pdf"}], ["find_tag"])
+    assert without_meta["teile_recall"] is None and without_meta["teile_praezision"] is None
+    without_expectation = evallib.score(Q, "x", [], None, meta=meta)
+    assert (
+        without_expectation["teile_recall"] is None
+        and without_expectation["teile_praezision"] is None
+    )
+    nothing_referenced = evallib.score(q, "x", [], None, meta={"referenced_tags": []})
+    assert (
+        nothing_referenced["teile_recall"] == 0.0 and nothing_referenced["teile_praezision"] is None
+    )
+
+
+def test_summarize_pools_parts_and_reports_p95_and_error_rate():
+    base = {
+        "fakten": 1.0,
+        "quellen_ok": True,
+        "sauber": True,
+        "werkzeug_ok": None,
+        "zitate_belege": 0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [],
+    }
+    def parts(erwartet: int, referenziert: int, treffer: int, passend: int) -> dict:
+        return {
+            **base,
+            "teile_erwartet": erwartet,
+            "teile_referenziert": referenziert,
+            "teile_treffer": treffer,
+            "teile_passend": passend,
+        }
+
+    rows = [
+        {"answer": "a", "dauer_s": 10.0, "score": parts(2, 3, 1, 2)},
+        {"answer": "b", "dauer_s": 20.0, "score": parts(2, 2, 2, 2)},
+        {
+            "answer": "c",
+            "dauer_s": 30.0,
+            "score": {
+                **base,
+                "teile_erwartet": 0,
+                "teile_referenziert": 4,
+                "teile_treffer": 0,
+                "teile_passend": 0,
+            },
+        },  # keine Erwartung: zaehlt nicht
+        {"answer": "[FEHLER] x", "dauer_s": 0.0, "score": parts(9, 9, 0, 0)},
+    ]
+    s = evallib.summarize(rows)
+    assert s["teile_recall"] == 0.75  # 3 Treffer von 4 erwarteten
+    assert (
+        s["teile_praezision"] == 0.8
+    )  # 4 passende von 5 referenzierten (Zeile c ohne Erwartung bleibt aussen vor)
+    assert s["p95_s"] == 30.0 and s["fehlerrate"] == 0.25
+    assert evallib.summarize([rows[3]])["p95_s"] is None
+    for key in ("teile_praezision", "teile_recall", "p95_s", "fehlerrate"):
+        assert key in evallib.COMPARE_KEYS
+
+
+def test_validate_questions_checks_expect_and_ok_tags():
+    ok = {**Q, "expect_tags": ["-F2"], "ok_tags": ["-K1"]}
+    assert evallib.validate_questions([ok]) == []
+    bad = {**Q, "expect_tags": "-F2"}
+    assert any("expect_tags" in p for p in evallib.validate_questions([bad]))
+    bad_ok = {**Q, "ok_tags": [""]}
+    assert any("ok_tags" in p for p in evallib.validate_questions([bad_ok]))
+
+
+def test_fb01_golden_set_has_twenty_questions_with_expected_parts():
+    rows = [
+        r
+        for r in evallib.load_questions(ROOT / "eval" / "questions.jsonl")
+        if r["source"] == "Foerderband FB-01"
+    ]
+    assert len(rows) >= 20
+    for row in rows:
+        assert "expect_sources" in row and isinstance(row["expect_sources"], list), row["id"]
+        assert row.get("expect_tags"), row["id"]
+        assert all(t.startswith("-") for t in row["expect_tags"] + row.get("ok_tags", [])), row[
+            "id"
+        ]
+    with_retrieval = [r for r in rows if r.get("retrieval")]
+    assert len(with_retrieval) >= 18  # nur Fallenfragen ohne Retrieval-Anteil
+
+
 def test_api_checker_resolves_the_source_and_posts_answer_with_its_sources():
     import httpx
 
