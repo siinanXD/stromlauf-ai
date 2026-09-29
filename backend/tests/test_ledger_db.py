@@ -34,16 +34,20 @@ def client(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def token(client):
+    """Admin-Token fuer WS; raeumt vorher Reste frueherer Laeufe und hinterher die eigenen Zeilen weg."""
     from app.auth import issue_token
     from app.db import session_scope
     from app.models import User, Workspace, WorkspaceMember
 
     with session_scope() as session:
-        session.merge(Workspace(id=WS, name="Kostenbuch"))
+        # Limit ausdruecklich leeren: ein abgebrochener Lauf kann es gesetzt hinterlassen
+        session.merge(Workspace(id=WS, name="Kostenbuch", monthly_ai_cap_cents=None))
         session.merge(User(id="user-ledger-test", email="ledger@isolation-test.de"))
         session.merge(WorkspaceMember(workspace_id=WS, user_id="user-ledger-test", role="admin"))
     jwt, _ = issue_token(user_id="user-ledger-test", email="ledger@isolation-test.de", workspace_id=WS, role="admin", secret=SECRET, hours=1)
-    return jwt
+    _wipe_workspace()
+    yield jwt
+    _wipe_workspace()
 
 
 @pytest.fixture(scope="module")
@@ -69,6 +73,22 @@ def _in_workspace(fn):
         return fn()
     finally:
         reset_workspace(token)
+
+
+def _wipe_workspace() -> None:
+    """Kostenbuch, Hallen und Quellen von WS loeschen (Cascade raeumt die Maschinen mit)."""
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.models import AiCall, Hall, KnowledgeSource
+
+    def delete_rows():
+        with session_scope() as session:
+            for model in (AiCall, Hall, KnowledgeSource):
+                for row in session.scalars(select(model)).all():
+                    session.delete(row)
+
+    _in_workspace(delete_rows)
 
 
 def test_jeder_vision_aufruf_erzeugt_genau_eine_zeile(client, machine, monkeypatch):
