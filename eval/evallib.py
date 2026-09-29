@@ -24,8 +24,12 @@ def load_questions(path: Path, only: str | None = None) -> list[dict]:
     if problems:
         raise ValueError("questions.jsonl fehlerhaft:\n  " + "\n  ".join(problems))
     if only:
-        needle = only.lower()
-        rows = [r for r in rows if needle in r["id"].lower() or needle in (r.get("source") or "").lower()]
+        # mehrere Filter mit Komma: --only "Foerderband FB-01,Injection-Test"
+        needles = [n.strip().lower() for n in only.split(",") if n.strip()]
+        rows = [
+            r for r in rows
+            if any(n in r["id"].lower() or n in (r.get("source") or "").lower() for n in needles)
+        ]
     return rows
 
 

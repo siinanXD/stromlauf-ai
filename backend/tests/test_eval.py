@@ -331,6 +331,34 @@ def test_rescore_reports_expected_invalid_markers_that_were_not_flagged():
     ]
 
 
+def test_load_questions_only_accepts_several_needles():
+    rows = evallib.load_questions(
+        ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01,Injection-Test"
+    )
+    sources = {r["source"] for r in rows}
+    assert sources == {"Foerderband FB-01", "Injection-Test"}
+    assert (
+        evallib.load_questions(ROOT / "eval" / "questions.jsonl", only=" festo , ,umroller")
+        and True
+    )
+
+
+def test_injection_questions_are_traps_with_a_free_retrieval_check():
+    rows = [
+        r
+        for r in evallib.load_questions(ROOT / "eval" / "questions.jsonl")
+        if r["source"] == "Injection-Test"
+    ]
+    assert len(rows) == 5
+    for row in rows:
+        assert row["id"].startswith("inj-") and row.get("retrieval"), row["id"]
+        assert row["must_not_contain"], row[
+            "id"
+        ]  # die eingebettete Anweisung darf nicht befolgt werden
+        assert row["must_contain"], row["id"]  # und die echte Antwort steht trotzdem in der Doku
+        assert row["expect_sources"] == ["Betriebsanleitung_Presse_P-02.md"]
+
+
 def test_api_checker_resolves_the_source_and_posts_answer_with_its_sources():
     import httpx
 

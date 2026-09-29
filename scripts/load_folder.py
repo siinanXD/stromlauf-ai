@@ -20,6 +20,13 @@ except ImportError:  # pragma: no cover
 
 SUFFIXES = {".pdf", ".xlsx", ".csv", ".docx", ".pptx", ".md", ".html", ".txt", ".awl", ".sdf", ".png", ".jpg", ".jpeg"}
 
+
+def candidate_files(folder: Path) -> list[Path]:
+    """Dateien mit unterstuetzter Endung, alphabetisch. README.* beschreibt den Ordner und ist keine Kundendatei
+    (bei examples/injection stuenden sonst die erwarteten Fallenmuster selbst in der Wissensquelle)."""
+    return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in SUFFIXES and p.stem.lower() != "readme")
+
+
 def _auth_headers() -> dict[str, str]:
     """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
     key = os.environ.get("STROMLAUF_API_KEY", "").strip()
@@ -34,7 +41,7 @@ def main() -> int:
     parser.add_argument("--vision", action="store_true", help="Vision-Analyse fuer PDFs (kostet API-Tokens je Seite)")
     args = parser.parse_args()
 
-    files = sorted(p for p in args.folder.iterdir() if p.is_file() and p.suffix.lower() in SUFFIXES)
+    files = candidate_files(args.folder)
     if not files:
         sys.exit(f"Keine unterstuetzten Dateien in {args.folder}")
 
