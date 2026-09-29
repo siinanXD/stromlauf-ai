@@ -5,6 +5,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Message } from "@/components/Message";
 import type { PageTarget } from "@/components/PageViewer";
 import { api, streamChat, type AnswerMeta, type ChatMessage } from "@/lib/api";
+import { lastAnswerMeta } from "@/lib/chatMemory";
+
+const EMPTY_META: AnswerMeta = { referenced_tags: [], citations: [], evidence: [] };
 
 export interface ChatScope {
   /** Wissensquellen, die der Agent durchsuchen darf; leer = alle. */
@@ -64,18 +67,31 @@ export function ChatPanel({
     setInput(initialInput);
   }
 
+  const machineId = scope.machineId;
   useEffect(() => {
     if (conversationId === ownedIdRef.current) return; // vom eigenen Stream vergeben: Verlauf ist schon da
     abortRef.current?.abort();
     ownedIdRef.current = conversationId;
     let cancelled = false;
-    // null = neuer Chat: leerer Verlauf (asynchron wie das Laden, damit kein setState direkt im Effekt steht)
-    const load = conversationId ? api.getMessages(conversationId) : Promise.resolve<ChatMessage[]>([]);
-    load.then((result) => !cancelled && setMessages(result)).catch(() => !cancelled && setMessages([]));
+    // null = neuer Chat: leerer Verlauf (asynchron wie das Laden, damit kein setState direkt im Effekt steht).
+    // Der Verlauf traegt das meta je Antwort (Issue #47): die Maschinenseite markiert die letzte Antwort im Modell
+    // oder hebt eine alte Markierung auf.
+    const load = conversationId ? api.getMessages(conversationId, machineId) : Promise.resolve<ChatMessage[]>([]);
+    load
+      .then((result) => {
+        if (cancelled) return;
+        setMessages(result);
+        onMeta?.(lastAnswerMeta(result) ?? EMPTY_META);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMessages([]);
+        onMeta?.(EMPTY_META);
+      });
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [conversationId, machineId, onMeta]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });

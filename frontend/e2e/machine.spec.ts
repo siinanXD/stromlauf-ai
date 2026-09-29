@@ -44,6 +44,35 @@ test("Maschinenansicht: Rail, Modell, Chat und Composer nach Breite", async ({ p
   testInfo.annotations.push({ type: "viewport", description: `${width}px` });
 });
 
+test("Verlauf nach Reload: Chips, Belegbilder und Markierung ohne neue Frage (Issue #47)", async ({ page }) => {
+  await page.goto(`/werk/maschine/${MACHINE_ID}?tab=chat`);
+  const composer = page.getByPlaceholder(/Frag etwas zu/);
+  await composer.fill("-K1 zieht nicht an");
+  await composer.press("Enter");
+  await expect(page.getByTestId("referenced-parts")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Chatverlauf wählen" })).toHaveValue("conv-1");
+
+  await page.reload();
+  // der zuletzt geoeffnete Chat ist wieder gewaehlt, sein Verlauf kommt aus GET /messages mit meta
+  await expect(page.getByRole("combobox", { name: "Chatverlauf wählen" })).toHaveValue("conv-1");
+  await expect(page.getByTestId("referenced-parts")).toBeVisible();
+  await expect(page.getByTestId("referenced-parts").getByRole("button", { name: "Bauteil -K1 öffnen" })).toBeVisible();
+  await expect(page.getByTestId("evidence-row").locator("img")).toHaveCount(2);
+  await expect(page.getByTestId("citations-valid")).toContainText("Belege: 1 von 3 gültig");
+  const zones = page.getByRole("list", { name: "Zonen der Maschine" });
+  await expect(zones.locator('li[data-zone="+ST1"]')).toHaveAttribute("data-lit", "true");
+  await expect(zones.locator('button.part-chip[data-tag="-K1"]')).toHaveAttribute("data-referenced", "true");
+  // Kosten gibt es im Verlauf nicht (bekannte Grenze), die Antwort selbst ist vollstaendig da
+  await expect(page.getByText("Kosten dieser Antwort")).toHaveCount(0);
+  await expect(page.getByText("Spule von -K1 an A1/A2 messen")).toBeVisible();
+
+  // "Neuer Chat" vergisst die Auswahl: nach Reload wieder leer
+  await page.getByRole("button", { name: "Neuer Chat" }).click();
+  await page.reload();
+  await expect(page.getByRole("combobox", { name: "Chatverlauf wählen" })).toHaveValue("");
+  await expect(page.getByTestId("referenced-parts")).toHaveCount(0);
+});
+
 test("Antwort markiert -K1 im Modell, zeigt Belegbild, Chip löst openPart aus", async ({ page }) => {
   await page.goto(`/werk/maschine/${MACHINE_ID}?tab=chat`);
   await expect(page.getByRole("list", { name: "Zonen der Maschine" })).toBeVisible();
