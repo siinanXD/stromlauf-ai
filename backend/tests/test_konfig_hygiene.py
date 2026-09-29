@@ -30,13 +30,11 @@ def test_schaetzung_rechnet_ohne_env_mit_sonnet(monkeypatch):
     for key in MODEL_VARS:
         monkeypatch.delenv(key, raising=False)
     from app import ledger
-    from app.config import get_settings
+    from app.config import Settings
 
-    get_settings.cache_clear()
-    try:
-        result = ledger.estimate(_NoRows(), pages=10, photos=1)
-    finally:
-        get_settings.cache_clear()
+    # ohne lokale .env wie in der CI, sonst gewinnt ein dort gesetztes VISION_MODEL
+    monkeypatch.setattr(ledger, "get_settings", lambda: Settings(_env_file=None))
+    result = ledger.estimate(_NoRows(), pages=10, photos=1)
     assert (
         result["models"]["vision"] == "claude-sonnet-5"
         and result["models"]["chat"] == "claude-sonnet-5"
