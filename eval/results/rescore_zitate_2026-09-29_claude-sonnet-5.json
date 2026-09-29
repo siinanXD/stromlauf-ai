@@ -1,0 +1,1292 @@
+{
+  "summary": {
+    "fragen": 9,
+    "bewertet": 9,
+    "nicht_bewertet_fehler": 0,
+    "fakten_mittel": 1.0,
+    "quellen_ok": 1.0,
+    "zitate_belege": 36,
+    "zitate_antworten": 9,
+    "zitate_gueltig": 0.935,
+    "zitate_geprueft": 0.861,
+    "sauber": 1.0,
+    "werkzeug_ok": 0.8,
+    "voll_bestanden": 8,
+    "dauer_mittel_s": 18.1,
+    "tokens_ein": 184125,
+    "tokens_aus": 12146,
+    "modellaufrufe": 27,
+    "kosten_usd": 0.4897
+  },
+  "results": [
+    {
+      "id": "fb01-e03",
+      "source": "Foerderband FB-01",
+      "question": "Was haengt an E0.3 und wo ist das im Plan?",
+      "answer": "\n\n\n\n## Kurzantwort\nE0.3 ist der SPS-Eingang \"NotHalt_OK\" – Freigabekontakt (23/24) des zweikanaligen Sicherheitsrelais -K3, das den Not-Halt-Kreis überwacht. Im Plan auf Blatt/Seite 4 (Not-Halt-Kreis) verdrahtet, an Klemme -X3:4.\n\n## Details\n\n**Signalweg:**\n- Not-Halt-Taster -S3 (2 Öffner) → Sicherheitsrelais -K3 (2-kanalig, Kat. 3 / PL d)\n- -K3 Kontakt 23/24 (Freigabe) → Klemme -X3:4 → SPS-Eingangskarte -A1.1:4 → **E0.3**\n- Kontakt 13/14 von -K3 versorgt zusätzlich die Schützspulen -K1/-K2 (Freigabe /6.4)\n\n**Verwendung im SPS-Programm (FB 10 \"Foerderband FB-01 Steuerung\"):**\n- Symbol: `NotHalt_OK` (BOOL), Kommentar \"Sicherheitsrelais -K3 Freigabe (1 = Not-Halt entriegelt)\"\n- Aufruf in OB 1, NW 1: `NotHalt_OK := E 0.3`\n- Verwendet in **FB 10, NW 1 (Selbsthaltung Betrieb)**: `#Freigabe` wird nur gesetzt, wenn u.a. `U #NotHalt_OK` erfüllt ist – d.h. ohne Not-Halt-Freigabe kein Start/Selbsthaltung des Förderbands.\n- Wiederanlaufsperre: Nach Not-Halt-Auslösung muss erst -S3 entriegelt und dann -S1 (Start) neu gedrückt werden.\n\n**Klemmenplan-Auszug:**\n\n| Klemme | Ziel | Signal | Blatt |\n|---|---|---|---|\n| -X3:4 | -A1.1:4 (E0.3) | Not-Halt Freigabe (von -K3:24) | /5.3 |\n\n**Betriebsanleitung:** Beim Entriegeln zeigt -K3 an, Freigabekontakt 13/14 versorgt Schützspulen, Kontakt 23/24 meldet E0.3 = 1 an die SPS – Meldeleuchte -H3 erlischt [[06_Betriebsanleitung_FB-01.md|Kap. 4]].\n\nBeleg Stromlaufplan: [[01_Stromlaufplan_FB-01.pdf|/4.4]]\nBeleg AWL: [[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]\nBeleg Klemmenplan: [[03_Klemmenplan_FB-01.csv|-X3:4]]\n\n## Sicherheit\nE0.3 gehört zum Not-Halt-Kreis (Sicherheitsfunktion Kat. 3 / PL d). Arbeiten oder Änderungen an -K3, -S3 oder der Verdrahtung nach -X3:4 nur durch Elektrofachkräfte nach den 5 Sicherheitsregeln; die Sicherheitsfunktion darf nicht überbrückt oder außer Kraft gesetzt werden.",
+      "sources": [
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "35472c1d5825459aa2d9e7b5b9bcce81",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": "Not-Halt-Kreis und Bedientaster"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": "SPS -A1 Digitaleingaenge -A1.1"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_plc_block",
+        "get_page"
+      ],
+      "dauer_s": 22.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 4,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.75,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 4]]"
+        ]
+      },
+      "conversation_id": "b05e5908e5704d629735fbd962f3a10b",
+      "usage": {
+        "input_tokens": 19484,
+        "output_tokens": 1501,
+        "calls": 3,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.053978
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 4]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 4",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.4]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_FB-01.csv|-X3:4]]",
+            "file": "03_Klemmenplan_FB-01.csv",
+            "locator": "-X3:4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 4,
+          "checked": 3,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "fb01-h2-20s",
+      "source": "Foerderband FB-01",
+      "question": "Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?",
+      "answer": "\n\n\n\n## Kurzantwort\n-H2 zeigt eine Sammelstörung an, die hier vermutlich durch die Blockade-Überwachung ausgelöst wird: Wird ein Teil an Lichtschranke -B1 (Einlauf) erkannt, aber erscheint es nicht binnen 20 s an -B2 (Auslauf), setzt Timer T5 (S5T#20S) die Störung [[04_SPS_Programm_FB-01.awl|FB 10 NW 5]].\n\n## Prüfen\n1. Prüfen, ob ein Teil im Band hängt/blockiert zwischen -B1 und -B2 (Stau, Klemmung) [[01_Stromlaufplan_FB-01.pdf|/4.5]].\n2. Lichtschranken -B1/-B2 auf Verschmutzung, Ausrichtung, korrektes Schaltsignal prüfen (E0.4/E0.5) [[05_Symboltabelle_FB-01.sdf|-]].\n3. Alternativ Motorschutz -F2 kontrollieren (Hilfskontakt 13/14, E0.2) – bei Auslösung ebenfalls -H2 [[01_Stromlaufplan_FB-01.pdf|/3.8]].\n4. Nach Beseitigung Ursache mit -S1 (Start) quittieren, da Störung selbsthaltend ist [[04_SPS_Programm_FB-01.awl|FB 10 NW 4]].\n5. Motorstrom -M1 messen (Nennstrom 3,5 A) falls Verdacht auf Überlast besteht [[06_Betriebsanleitung_FB-01.md|Kap. 6]].\n\n## Details\n**Signalweg Blockade-Störung (wahrscheinlichste Ursache für \"genau nach 20 s\"):**\n\n| Netzwerk | Logik | Adresse |\n|---|---|---|\n| FB 10 NW 5 | U LS_Einlauf; U Vorwaerts; L S5T#20S; SE T5; U LS_Auslauf; R T5; U T5; S Stoerung | E0.4, E0.5, A4.3 |\n\nErklärung: Solange das Band vorwärts läuft (#Vorwaerts) und ein Teil am Einlauf (-B1, E0.4) erkannt wurde, läuft Timer T5 als Einschaltverzögerung (SE) mit 20 s an. Erscheint das Teil rechtzeitig an -B2 (Auslauf, E0.5), wird T5 zurückgesetzt (R T5) – keine Störung. Läuft der Timer ab, ohne dass -B2 anspricht, wird #Stoerung gesetzt → Ausgang A4.3 → Meldeleuchte -H2 leuchtet [[01_Stromlaufplan_FB-01.pdf|S. 6]].\n\n**Alternative Ursache (aus Fehlerliste, andere Zeitcharakteristik):**\nMotorschutz -F2 (thermisch-magnetischer Motorschutzschalter, Einstellung 3,6 A) kann bei Überlast auch verzögert – je nach Überlastgrad – innerhalb einiger Sekunden bis Minuten auslösen. Hilfskontakt 13/14 öffnet, SPS setzt über Netzwerk 4 (UN MSS_OK; S Stoerung) ebenfalls -H2 [[01_Stromlaufplan_FB-01.pdf|/3.8]]. Dieser Fall ist in der werksweiten Fehlerliste als \"-H2 leuchtet, Band steht, Start ohne Wirkung\" dokumentiert (Code E-F2), allerdings ohne feste 20-s-Zeitangabe – die Doku-Logik mit exakt S5T#20S passt daher besser zur Frage.\n\nDie Selbsthaltung der Störung wird laut Netzwerk 4 nur zurückgesetzt, wenn bei stehendem Band (Freigabe = 0) erneut Start gedrückt wird und MSS_OK wieder 1 ist.\n\n## Sicherheit\nDie Prüfung an Motorschutz, Schützen und Klemmen im Schaltschrank ist nur durch eine Elektrofachkraft nach den 5 Sicherheitsregeln durchzuführen; vor Eingriffen am Hauptstromkreis (-Q1/-Q2) freischalten und spannungsfrei prüfen.",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "35472c1d5825459aa2d9e7b5b9bcce81",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": "Not-Halt-Kreis und Bedientaster"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": "SPS -A1 Digitalausgaenge -A1.2"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "search_faults",
+        "get_plc_block",
+        "get_page"
+      ],
+      "dauer_s": 28.6,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 7,
+        "zitate_gueltig": 0.8333333333333334,
+        "zitate_geprueft": 0.8571428571428571,
+        "zitate_ungueltig": [
+          "[[05_Symboltabelle_FB-01.sdf|-]]"
+        ],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]"
+        ]
+      },
+      "conversation_id": "1e7359e9b25640b8943469362c043f94",
+      "usage": {
+        "input_tokens": 19949,
+        "output_tokens": 2466,
+        "calls": 3,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.064558
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 5]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.5]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[05_Symboltabelle_FB-01.sdf|-]]",
+            "file": "05_Symboltabelle_FB-01.sdf",
+            "locator": "-",
+            "valid": false,
+            "checked": true,
+            "reason": "Ortsangabe fehlt"
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.8]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 4]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 6",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 6]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 6,
+          "checked": 6,
+          "total": 7
+        }
+      }
+    },
+    {
+      "id": "fb01-motor-brummt",
+      "source": "Foerderband FB-01",
+      "question": "Der Motor brummt, dreht aber nicht. Welche Klemmen muss ich pruefen?",
+      "answer": "\n\n## Kurzantwort\nBekanntes Fehlerbild: „-K1 zieht an, Motor brummt, dreht nicht“ = Phase fehlt am Motorabgang. Klemmen -X4:U/V/W (Motorleitung -W4) sowie -M1:U1/V1/W1 prüfen [[06_Betriebsanleitung_FB-01.md|Kap. 7]].\n\n## Prüfen\n1. Reparaturschalter -Q2 am Antrieb +AN1 ausschalten und abschließen, spannungsfrei schalten [[06_Betriebsanleitung_FB-01.md|Kap. 7]].\n2. Spannung/Durchgang an -X4:U, -X4:V, -X4:W messen (Klemmenplan Motorabgang) [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n3. Anschlussklemmen -M1:U1/V1/W1 am Motor auf festen Sitz und Phase prüfen [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n4. Motorleitung -W4 (4G2,5) auf Aderbruch/Klemmstelle kontrollieren [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n5. Falls alle 3 Phasen an -X4 anliegen: Schützkontakte -K1 (1/2, 3/4, 5/6) auf Kontaktabbrand prüfen [[01_Stromlaufplan_FB-01.pdf|/3.4]].\n\n## Details\nSignalweg Hauptstromkreis: L1/L2/L3 → -Q1 → -F2 (Motorschutz 2,5–4 A, eingestellt 3,6 A) → -K1/-K2 (Wendeschütz) → -X4:U/V/W → Leitung -W4 (4G2,5) → -M1 (U1/V1/W1/PE).\n\nKlemmentabelle Motorabgang (-X4):\n\n| Klemme | intern | extern (Feld) | Funktion | Blatt |\n|---|---|---|---|---|\n| -X4:U | -K1:2 / -K2:6 | -M1:U1 | Motor Phase U | /3.5 |\n| -X4:V | -K1:4 / -K2:4 | -M1:V1 | Motor Phase V | /3.5 |\n| -X4:W | -K1:6 / -K2:2 | -M1:W1 | Motor Phase W | /3.6 |\n| -X4:PE | PE-Schiene | -M1:PE | Schutzleiter | /3.5 |\n\nBrummen bei stehendem Motor ist typisch für zwei- statt dreiphasigen Betrieb (fehlende Phase, z. B. durchgebrannte Motorschutz-Auslösephase, gebrochene Ader in -W4 oder oxidierter Kontakt in -K1/-K2). Motorschutz -F2 selbst hat nicht ausgelöst (Hilfskontakt 13/14 würde sonst Störung E0.2 melden, FB 10 NW 4), sonst wäre der Motor gar nicht angesteuert.\n\n## Sicherheit\nVor dem Prüfen an -X4 und -M1 den Reparaturschalter -Q2 ausschalten, abschließen und Spannungsfreiheit feststellen (5 Sicherheitsregeln). Messungen an spannungsführenden Teilen nur durch Elektrofachkraft.",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)"
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        }
+      ],
+      "tools": [
+        "search_faults",
+        "search_knowledge"
+      ],
+      "dauer_s": 15.5,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.6666666666666666,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 7]]"
+        ]
+      },
+      "conversation_id": "1bc2382be52e48bfb029ac36ec2c8a65",
+      "usage": {
+        "input_tokens": 12867,
+        "output_tokens": 1398,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.039714
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 7]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 7",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.5]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.4]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 2,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-verriegelung",
+      "source": "Foerderband FB-01",
+      "question": "Wie ist -K1 gegen -K2 verriegelt?",
+      "answer": "\n\n\n\n## Kurzantwort\n-K1/-K2 sind doppelt verriegelt: softwareseitig in FB10 (NW2/NW3, gegenseitige Abfrage) und elektromechanisch über den Hilfskontakt 21/22 des jeweils anderen Schützes in Reihe zur eigenen Spule [[01_Stromlaufplan_FB-01.pdf|/6.8]].\n\n## Details\n**Elektromechanische Verriegelung (Stromlaufplan):**\nAuf Blatt 6 steht: \"-K1 und -K2 dürfen nie gleichzeitig anziehen. Software-Verriegelung in FB10 Netzwerk 2 und 3, zusätzlich Hilfskontakt 21/22 des jeweils anderen Schützes in Reihe zur Spule (nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10).\" [[01_Stromlaufplan_FB-01.pdf|/6.8]]\n\nDas heißt: In der Spulenzuleitung von -K1 liegt der Öffner-Hilfskontakt 21/22 von -K2 in Reihe, und umgekehrt in der Spulenzuleitung von -K2 der Öffner-Hilfskontakt 21/22 von -K1. Zieht das eine Schütz an, unterbricht sein Hilfskontakt den Spulenstromkreis des anderen – auch bei einem Fehler in der SPS-Ansteuerung kann so kein Kurzschluss durch gleichzeitiges Anziehen (Phasenvertauschung) entstehen.\n\n**Software-Verriegelung (AWL, FB10):**\n\nNetzwerk 2 – Schütz vorwärts -K1 (A4.0):\n```\nU   #Freigabe;\nUN  #Richtung_Rueck;\nUN  #Rueckwaerts;\n=   #Vorwaerts;\n```\nVorwärts wird nur gesetzt, wenn Freigabe aktiv ist, kein Rückwärtsbetrieb angefordert und -K2 (Rückwärts) nicht gerade angesteuert ist.\n\nNetzwerk 3 – Schütz rückwärts -K2 (A4.1):\n```\nU   #Freigabe;\nU   #Richtung_Rueck;\nUN  #Vorwaerts;\n=   #Rueckwaerts;\n```\nRückwärts wird nur gesetzt, wenn Freigabe aktiv, Rückwärtsbetrieb angefordert und -K1 (Vorwärts) nicht angesteuert ist.\n\n**Zuordnung:**\n\n| Signal | Adresse | Symbol | Kommentar |\n|---|---|---|---|\n| Vorwärts | A4.0 | K1_Vorwaerts | Schütz -K1 |\n| Rückwärts | A4.1 | K2_Rueckwaerts | Schütz -K2 |\n\nDamit ist die Verriegelung zweikanalig ausgelegt: Software verhindert das gleichzeitige Setzen der Ausgänge, der Hilfskontakt verhindert zusätzlich hardwareseitig das gleichzeitige Anziehen der Schütze, falls die SPS-Logik versagt.",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 2 Schuetz vorwaerts -K1"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "35472c1d5825459aa2d9e7b5b9bcce81",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": "SPS -A1 Digitalausgaenge -A1.2"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "find_tag",
+        "get_page",
+        "get_plc_block"
+      ],
+      "dauer_s": 20.9,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 1,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "3ac5d2133004434ab09b5af3501bca92",
+      "usage": {
+        "input_tokens": 24218,
+        "output_tokens": 1491,
+        "calls": 3,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.063346
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/6.8]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/6.8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "fb01-f2-typ",
+      "source": "Foerderband FB-01",
+      "question": "Welchen Typ hat -F2 und auf welchen Strom ist er eingestellt?",
+      "answer": "\n\n## Kurzantwort\n-F2 ist ein Motorschutzschalter (MSS 3P, Einstellbereich 2,5–4 A) für den Fördermotor, eingestellt auf 3,6 A [[01_Stromlaufplan_FB-01.pdf|/3.2]].\n\n## Details\n- Stromlaufplan: \"Motorschutzschalter 2,5-4 A, Einstellung 3,6 A\" [[01_Stromlaufplan_FB-01.pdf|/3.2]]\n- Stückliste: MSS 3P 2,5-4A + Hilfskontakt 1S1OE, Einbauort +ST1, Verweis /3.2 [[02_Stueckliste_FB-01.xlsx|-X3:3]]\n- Hilfskontakt 13/14 meldet Motorschutz-Status über -X3:3 auf SPS-Eingang E0.2 (MSS_OK) [[01_Stromlaufplan_FB-01.pdf|/5.3]]",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "35472c1d5825459aa2d9e7b5b9bcce81",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": "SPS -A1 Digitaleingaenge -A1.1"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag"
+      ],
+      "dauer_s": 5.0,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 3,
+        "zitate_gueltig": 0.6666666666666666,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[02_Stueckliste_FB-01.xlsx|-X3:3]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "eede300caec44ecea9e2152e0a1faae5",
+      "usage": {
+        "input_tokens": 10504,
+        "output_tokens": 396,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.024968
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.2]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[02_Stueckliste_FB-01.xlsx|-X3:3]]",
+            "file": "02_Stueckliste_FB-01.xlsx",
+            "locator": "-X3:3",
+            "valid": false,
+            "checked": true,
+            "reason": "Kennzeichen -X3:3 nicht in 02_Stueckliste_FB-01.xlsx"
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/5.3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/5.3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-s3",
+      "source": "Foerderband FB-01",
+      "question": "Was passiert, wenn -S3 gedrueckt wird?",
+      "answer": "\n\n-S3 ist der Not-Halt-Taster. Ich schaue mir Blatt 4 (Sicherheitskreis mit -K3) genauer an, um den genauen Wirkpfad zu bestätigen.\n\n\n\n## Kurzantwort\n-S3 (Not-Halt) öffnet zweikanalig das Sicherheitsrelais -K3, das die Schützspulen -K1/-K2 direkt hardwareseitig abschaltet und E0.3 (NotHalt_OK) auf 0 setzt – die SPS fällt in FB10 NW1 in die Freigabe-Verriegelung, Band stoppt sofort [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n\n## Details\n**Signalweg:**\n1. -S3 (Pilzdrucktaster, 2 Öffner, rastend, +BP1) trennt bei Betätigung die beiden Kanäle S11-S12 und S21-S22 zum Sicherheitsrelais -K3 [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n2. -K3 fällt ab: Freigabekontakt 13/14 unterbricht die 24V-Versorgung der Schützspulen -K1/-K2 (Blatt /6.4) – Motor -M1 wird **hart hardwareseitig** stromlos, unabhängig von der SPS [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n3. Kontakt 23/24 von -K3 fällt ebenfalls ab → E0.3 (NotHalt_OK) = 0 an der SPS [[01_Stromlaufplan_FB-01.pdf|/4.4]].\n4. Meldekontakt 31/32 von -K3 schaltet die gelbe Leuchte -H3 \"Not-Halt betätigt\" ein – dies läuft ohne SPS-Beteiligung [[06_Betriebsanleitung_FB-01.md|Kap. 2]].\n5. Im PLC-Programm FB10 Netzwerk 1 (Selbsthaltung Betrieb) wird durch NotHalt_OK=0 (E0.3) die Merkervariable #Freigabe zurückgesetzt, wodurch A4.0 (-K1) und A4.1 (-K2) auch softwareseitig gesperrt bleiben:\n\n```\nU(\n  O #Start;\n  O #Freigabe;\n)\nU #Stop;\nU #MSS_OK;\nU #NotHalt_OK;   // muss 1 sein, sonst Reset\nUN #Stoerung;\n= #Freigabe;\n```\n[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]\n\n**Wiederanlaufsperre:** Laut Stromlaufplan wirkt die Sicherheitsfunktion nach Kat. 3 / PL d. Ein Rücksetzen ist nur durch Entriegeln von -S3 **und** anschließendes Drücken von Start -S1 möglich – reines Entriegeln reicht nicht, das Band läuft nicht automatisch wieder an [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n\n## Sicherheit\nDer Not-Halt-Kreis ist eine Sicherheitsfunktion (Kat. 3 / PL d); Eingriffe an -S3, -K3 oder der zugehörigen Verdrahtung dürfen nur durch Elektrofachkräfte erfolgen, ein Überbrücken der Sicherheitsfunktion ist unzulässig.",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": "Not-Halt-Kreis und Bedientaster"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "35472c1d5825459aa2d9e7b5b9bcce81",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": "SPS -A1 Digitaleingaenge -A1.1"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 1 Selbsthaltung Betrieb"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 10 - Instanz Foerderband FB-01"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 5 Stoerung Blockade Band"
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_page",
+        "get_page",
+        "find_tag",
+        "search_knowledge"
+      ],
+      "dauer_s": 26.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 4,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.75,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 2]]"
+        ]
+      },
+      "conversation_id": "ba20c44f16c54839b26350377f728028",
+      "usage": {
+        "input_tokens": 28747,
+        "output_tokens": 1633,
+        "calls": 4,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.073824
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.2]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.4]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 2]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 2",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 4,
+          "checked": 3,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "fb01-nicht-vorhanden",
+      "source": "Foerderband FB-01",
+      "question": "Welche Profinet-Diagnoseadresse hat die SPS -A1 im Foerderband FB-01?",
+      "answer": "\n\n## Kurzantwort\nDie Dokumentation nennt keine Profinet-Diagnoseadresse: -A1 ist laut Stückliste eine SPS-CPU mit **PROFIBUS DP**, kein Profinet-Gerät [[02_Stueckliste_FB-01.xlsx|-X4]].\n\n## Details\n- Stückliste: \"-A1 | SPS CPU, kompakt, PROFIBUS DP | SPS-Zentralbaugruppe | 1 | +ST1 | /5.1\" – es ist also ein PROFIBUS-DP-System, keine Profinet-Anbindung dokumentiert [[02_Stueckliste_FB-01.xlsx|-X4]].\n- Stromlaufpläne (Blatt 5/6) beschreiben nur die lokalen Ein-/Ausgabebaugruppen -A1.1 (DI, EB0) und -A1.2 (DO, AB4), keine Netzwerk-/Diagnoseadressen [[01_Stromlaufplan_FB-01.pdf|/5.1]] [[01_Stromlaufplan_FB-01.pdf|/6.1]].\n- Weder Klemmenplan noch Betriebsanleitung enthalten Angaben zu einer Profinet-Diagnoseadresse.\n\nFalls tatsächlich Profinet verbaut ist, wäre dies vermutlich nur im Projektierungs-Tool (z. B. STEP 7/TIA Portal, Hardwarekonfiguration) einsehbar – das liegt außerhalb der vorliegenden Dokumentation.",
+      "sources": [
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": "SPS -A1 Digitaleingaenge -A1.1"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": "SPS -A1 Digitalausgaenge -A1.2"
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "DB 10 - Instanz Foerderband FB-01"
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 - Main Program Sweep (Cycle) / NW 1 Aufruf Foerderband FB-01"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "find_tag"
+      ],
+      "dauer_s": 9.4,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "f3697b645dd54280a25d044eb35a8d09",
+      "usage": {
+        "input_tokens": 14608,
+        "output_tokens": 689,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.036106
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[02_Stueckliste_FB-01.xlsx|-X4]]",
+            "file": "02_Stueckliste_FB-01.xlsx",
+            "locator": "-X4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/5.1]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/5.1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/6.1]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/6.1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-m1-fact",
+      "source": "Foerderband FB-01",
+      "question": "Wo finde ich -M1 im Plan und an welchen Klemmen haengt der Motor?",
+      "answer": "\n\n\n\n\n\n## Kurzantwort\n-M1 (Förderbandmotor) ist im Stromlaufplan auf Blatt 3 im Hauptstromkreis dargestellt und hängt über Klemmleiste -X4 (U/V/W/PE) am Wendeschütz -K1/-K2 [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n\n## Details\n**Fundstellen -M1:**\n- Stromlaufplan Hauptstromkreis: Blatt 3 [[01_Stromlaufplan_FB-01.pdf|/3.5]]\n- Stückliste, Pos. Fördermotor 3~ 1,5 kW, +AN1: [[02_Stueckliste_FB-01.xlsx|/3.5]]\n- SPS-Programm (Ansteuerung über -K1/-K2): [[04_SPS_Programm_FB-01.awl|FB 10]]\n- Betriebsanleitung, technische Daten (1,5 kW, 400 V, 3,5 A): [[06_Betriebsanleitung_FB-01.md|Kap. 6]]\n\n**Klemmenbelegung -X4 (laut Klemmenplan, Motor am Antrieb +AN1, Kabel -W4 4G2,5):**\n\n| Klemme | Ziel intern (Schütz) | Ziel extern | Funktion |\n|---|---|---|---|\n| -X4:U | -K1:2 / -K2:6 | -M1:U1 | Motor Phase U |\n| -X4:V | -K1:4 / -K2:4 | -M1:V1 | Motor Phase V |\n| -X4:W | -K1:6 / -K2:2 | -M1:W1 | Motor Phase W |\n| -X4:PE | PE-Schiene | -M1:PE | Schutzleiter |\n\n[[03_Klemmenplan_FB-01.csv|-X4:U]]\n\nDer Motor ist im Stern geschaltet, Anschlüsse U1/V1/W1/PE am Klemmkasten, Aufstellort +AN1 [[01_Stromlaufplan_FB-01.pdf|/3.5]]. -K2 tauscht zur Drehrichtungsumkehr die Phasen L1/L3 (U/W). Vorgeschaltet sind Motorschutzschalter -F2 (2,5–4 A, Einstellung 3,6 A) und Reparaturschalter -Q2, versorgt von der Einspeisung -Q1 [[01_Stromlaufplan_FB-01.pdf|/3.5]].",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": "Deckblatt und Inhaltsverzeichnis"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_page",
+        "get_page",
+        "search_knowledge"
+      ],
+      "dauer_s": 13.1,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 5,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.8,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]"
+        ]
+      },
+      "conversation_id": "610793f08cc248c0b0172a6f60e7f396",
+      "usage": {
+        "input_tokens": 25499,
+        "output_tokens": 1266,
+        "calls": 4,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.063658
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.5]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[02_Stueckliste_FB-01.xlsx|/3.5]]",
+            "file": "02_Stueckliste_FB-01.xlsx",
+            "locator": "/3.5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 6",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[03_Klemmenplan_FB-01.csv|-X4:U]]",
+            "file": "03_Klemmenplan_FB-01.csv",
+            "locator": "-X4:U",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 5,
+          "checked": 4,
+          "total": 5
+        }
+      }
+    },
+    {
+      "id": "fb01-signal-s1",
+      "source": "Foerderband FB-01",
+      "question": "Was schaltet der Start-Taster -S1 letztlich?",
+      "answer": "\n\n\n\n\n\n## Kurzantwort\n-S1 setzt E0.0, das in FB10 Netzwerk 1 die Selbsthaltung \"Freigabe\" setzt; diese steuert Netzwerk 2 den Ausgang A4.0, der Schütz -K1 anzieht und Motor -M1 vorwärts laufen lässt (plus Meldeleuchte -H1 Betrieb).\n\n## Details\nSignalweg:\n- -S1 (Schließer, +BP1) → -X3:1 → SPS-Eingang E0.0 (`Start`) [[01_Stromlaufplan_FB-01.pdf|/4.6]]\n- FB10 NW1 „Selbsthaltung Betrieb“: `U(; O #Start; O #Freigabe; ) U #Stop; U #MSS_OK; U #NotHalt_OK; UN #Stoerung; = #Freigabe;` – Start oder bestehende Freigabe, UND Stop (Öffner, also nicht betätigt), UND Motorschutz i.O., UND Not-Halt-Freigabe, UND keine Störung → setzt Merker `Freigabe` [[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]\n- FB10 NW2 „Schütz vorwärts -K1“: `U #Freigabe; UN #Richtung_Rueck; UN #Rueckwaerts; = #Vorwaerts;` → Ausgang A4.0 [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]]\n- A4.0 → -X3:9 → Schütz -K1 Spule → Fördermotor -M1 vorwärts [[01_Stromlaufplan_FB-01.pdf|/6.3]]\n- FB10 NW6 „Meldeleuchte Betrieb -H1“: `U #Freigabe; = #Betrieb;` → A4.2 → -H1 grün leuchtet [[04_SPS_Programm_FB-01.awl|FB 10 NW 6]]\n\nZusätzlich: bei `Richtung_Rueck` (Wartungsbetrieb) würde die Freigabe stattdessen über NW3 Schütz -K2 (rückwärts) wirken, nicht -K1.\n\nWiederanlaufsperre: nach Not-Halt (-S3) muss nach Entriegeln erneut über -S1 gestartet werden [[01_Stromlaufplan_FB-01.pdf|/4.8]].",
+      "sources": [
+        {
+          "document_id": "d6405900eab24b968993ecedd001cc6c",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e9623f09e3fd474caec16bee6275b48d",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b4b9d7910a0d491c9527de83717cbefe",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": "Not-Halt-Kreis und Bedientaster"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": "SPS -A1 Digitaleingaenge -A1.1"
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": "Klemmenplan -X3 und -X4"
+        },
+        {
+          "document_id": "f6021b0b5e554a60b21a6ba52c80a6df",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "ec635df2cab64a64a464dda9d6155f2f",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "find_tag",
+        "get_plc_block",
+        "get_page",
+        "get_page"
+      ],
+      "dauer_s": 21.3,
+      "score": {
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 6,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "e18ee0bcb8254f39ba90937dd4a284aa",
+      "usage": {
+        "input_tokens": 28249,
+        "output_tokens": 1306,
+        "calls": 4,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.069558
+      },
+      "meta": {
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.6]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 2]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/6.3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/6.3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 6]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.8]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 6,
+          "checked": 6,
+          "total": 6
+        }
+      }
+    }
+  ]
+}
