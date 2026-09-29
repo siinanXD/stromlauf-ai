@@ -211,15 +211,22 @@ def filename_doc_type(filename: str) -> DocType | None:
 
 
 def detect(filename: str, path: Path | None = None) -> Detection:
-    """Endung (.awl/.sdf) > Inhalt > Dateiname > OTHER."""
+    """Endung (.awl/.sdf) > Inhalt > Dateiname > OTHER.
+
+    Ein PDF mit Seiten, aber ohne Text auf den ersten Seiten ist ein Scan: Der Grund sagt das, statt
+    "nicht erkannt" (Issue #64); der Typ kommt dann aus dem Dateinamen, sonst OTHER.
+    """
     suffix = Path(filename).suffix.lower()
     if suffix == ".awl":
         return Detection(DocType.PLC_PROGRAM, 1.0, "Endung .awl", "suffix")
     if suffix == ".sdf":
         return Detection(DocType.PLC_SYMBOLS, 1.0, "Endung .sdf", "suffix")
+    scan = False
     if path is not None:
         try:
-            found = guess_doc_type(sample_text(path))
+            text = sample_text(path)
+            found = guess_doc_type(text)
+            scan = suffix == ".pdf" and not text.strip() and _pdf_pages(path) > 0
         except (
             Exception
         ) as exc:  # defekte Datei: Dateiname entscheidet, Ingestion meldet den Fehler
@@ -228,6 +235,19 @@ def detect(filename: str, path: Path | None = None) -> Detection:
             )
         if found.doc_type != DocType.OTHER:
             return found
-    if hinted := filename_doc_type(filename):
+    hinted = filename_doc_type(filename)
+    if scan:
+        if hinted:
+            return Detection(
+                hinted, 0.5, f"Scan (keine Textebene); Typ aus Dateiname „{filename}“", "filename"
+            )
+        return Detection(DocType.OTHER, 0.0, "Scan (keine Textebene)", "content")
+    if hinted:
         return Detection(hinted, 0.5, f"Dateiname „{filename}“", "filename")
     return Detection(DocType.OTHER, 0.0, "weder Inhalt noch Dateiname eindeutig", "none")
+
+
+def _pdf_pages(path: Path) -> int:
+    from app.ingestion.docling_parser import pdf_page_count
+
+    return pdf_page_count(path)

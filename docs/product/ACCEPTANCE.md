@@ -33,7 +33,7 @@ Gemessen mit `eval/run_ingest.py` über dieselbe Lesekette wie der Upload, ohne 
 | Messung | Wert | Lauf | Stand |
 | --- | --- | --- | --- |
 | Kennzeichen-Recall Text (FB-01, Issue #63) | device, terminal, plc_address: Recall **1,00** und Precision **1,00** (72, 74 und 41 Vorkommen auf 7 Seiten); cross_ref 0,95 und 0,95, nur berichtet | [`ingest_fb01_2026-09-29_22-05-00.json`](../../eval/results/ingest_fb01_2026-09-29_22-05-00.json) | Gate `--min 0.95` im Retrieval-Job bei jedem PR. Einzige Abweichung: pdfium zieht auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammen. 0,65 s je Seite lokal mit GPU |
-| Kennzeichen-Recall Scan | _ausstehend, Issues #64 bis #66_ | | |
+| Kennzeichen-Recall Scan, vorher ohne OCR (Issue #64) | Recall device / terminal / plc_address: Voll-Scan **0,00** / 0,00 / 0,00; Teil-Scan mit Blatt 3 als Bild 0,89 / 0,93 / 0,98; Blatt 4 hochkant 0,88 / 0,88 / 0,93. Precision überall 1,00 | [`scan`](../../eval/results/ingest_fb01_scan_2026-09-29_22-48-24.json), [`teilscan`](../../eval/results/ingest_fb01_teilscan_2026-09-29_22-48-40.json), [`quer`](../../eval/results/ingest_fb01_quer_2026-09-29_22-48-57.json) | Fixtures `examples/scan/` aus dem Beispielplan (`scripts/example_docs/make_scan.py`). Seiten ohne Text gehen nicht mehr still verloren: Hinweis „1 von 7 Seiten ohne Text: 3“ am Dokument, ein reiner Scan bricht mit Seitenzahl ab. Ziel mit OCR ≥ 0,85 (Issues #65, #66) |
 
 ## Teil 2: Ablauf nach Freigabe des Railway-Stagings
 

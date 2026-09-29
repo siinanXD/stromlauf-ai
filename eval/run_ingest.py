@@ -1,6 +1,6 @@
 """Ingest-Benchmark: Kennzeichen je Seite gegen Ground Truth, ohne Datenbank und ohne Modellaufruf.
 
-Aufruf:  python eval/run_ingest.py --gold eval/ingest_gold/fb01.json [--doc PFAD] [--min 0.95]
+Aufruf:  python eval/run_ingest.py --gold eval/ingest_gold/fb01.json [--doc PFAD --label scan] [--min 0.95]
                                    [--types device,terminal,plc_address] [--out eval/results]
 
 Misst die Lesekette des Uploads (Docling + PDF-Rohtext -> Stuecke -> Kennzeichen) ueber dieselben
@@ -178,6 +178,11 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
         "--types", default=",".join(GATED_DEFAULT), help="Gegatete Typen, kommagetrennt"
     )
     parser.add_argument("--out", type=Path, default=RESULTS, help="Ordner fuer JSON und Markdown")
+    parser.add_argument(
+        "--label",
+        default="",
+        help="Fassung im Dateinamen, z. B. scan, wenn --doc vom Gold abweicht",
+    )
     args = parser.parse_args(argv)
     gated = [kind.strip() for kind in args.types.split(",") if kind.strip()]
     if unknown := sorted(set(gated) - set(TAG_TYPES)):
@@ -190,6 +195,7 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
     failures = gate_failures(metrics, args.min, gated) if args.min > 0 else []
     summary = {
         "gold": _relative(args.gold),
+        "label": args.label,
         "dokument": _relative(doc),
         "doc_type": gold["doc_type"],
         "seiten": page_count,
@@ -204,9 +210,12 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
         },
     }
 
-    name = f"ingest_{args.gold.stem}_{evallib.run_id()}"
-    out = evallib.save_result(args.out / f"{name}.json", summary, deviations)
-    markdown = render_markdown(args.gold.stem, summary, deviations)
+    title = f"{args.gold.stem}_{args.label}" if args.label else args.gold.stem
+    out = evallib.save_result(
+        args.out / f"ingest_{title}_{evallib.run_id()}.json", summary, deviations
+    )
+    heading = f"{args.gold.stem} ({args.label})" if args.label else args.gold.stem
+    markdown = render_markdown(heading, summary, deviations)
     out.with_suffix(".md").write_text(markdown, encoding="utf-8")
     print(markdown)
     print(f"Ergebnis: {out}")
