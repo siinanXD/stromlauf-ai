@@ -26,11 +26,12 @@ die Session des Chats geschrieben.
 ## Gates in CI (`.github/workflows/eval.yml`)
 
 - **Retrieval-Gate** bei jedem PR und auf master: zuerst der Ingest-Benchmark (`run_ingest.py` auf FB-01,
-  `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling), dann Backend mit pgvector und lokalem
-  `bge-m3` (Modellcache), `scripts/acceptance.py --load` (FB-01, ohne Vision) und `scripts/load_folder.py` fuer
-  Injection-Test, UR-01 und PM1-AR, dann `run_retrieval.py --only "Foerderband FB-01,Umroller UR-01,Aufrollung
-  PM1-AR,Injection-Test" --min 0.9 --min-sources 0.9` und das Zitat-Gate (`rescore.py --min-citations 0.9`).
-  Kostet keine Tokens.
+  `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling) und derselbe auf dem Voll-Scan mit OCR
+  (`--ocr --min 0.95 --min-for terminal=0.75`, Issue #66), dann Backend mit pgvector und lokalem `bge-m3`
+  (Modellcache), `scripts/acceptance.py --load` (FB-01, ohne Vision) und `scripts/load_folder.py` fuer
+  Injection-Test, UR-01, PM1-AR und den Voll-Scan als Quelle „Scan FB-01“ (`--pattern "*_scan.pdf"`, OCR im
+  Upload), dann `run_retrieval.py --only "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Injection-Test,Scan
+  FB-01" --min 0.9 --min-sources 0.9` und das Zitat-Gate (`rescore.py --min-citations 0.9`). Kostet keine Tokens.
 - **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Foerderband FB-01,Injection-Test" --min 0.8
   --min-citations 0.9 --max-cost 2.00` (stoppt, sobald die Summe der `usage.cost_usd` den Deckel erreicht) und
   `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf gegen die 15 gelabelten Boxen des
@@ -47,7 +48,7 @@ die Session des Chats geschrieben.
 
 ## Fragen
 
-68 Fragen, sieben Quellen:
+73 Fragen, acht Quellen:
 
 | Quelle | Fragen | Daten |
 | --- | --- | --- |
@@ -57,6 +58,7 @@ die Session des Chats geschrieben.
 | AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2) |
 | Foerderband FB-01 | 21 | `examples/foerderband/` (`scripts/load_example.py`); 19 davon mit Retrieval-Anteil, 2 Fallenfragen |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
+| Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Foerderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
 | Testwerk (Planung, Standort) | 4 | `scripts/load_testwerk.py`; nur Retrieval (`"agent": false`), der Chat-Agent hat dafuer keine Werkzeuge |
 
 Fuenf Fragen sind Fallen (`*-nicht-vorhanden`): die Antwort steht in keinem Dokument. Erwartet wird
@@ -140,6 +142,8 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
   -Konfidenz stehen unter `ocr` im Ergebnis. Stand 2026-09-29, Voll-Scan: device 0,99, terminal 0,77, plc_address
   1,00, Precision 1,00, 4,4 s je Seite. Die Klemmen fehlen dort, wo der Klemmenkreis direkt vor der Beschriftung
   steht: Die OCR liest ihn als „O“ und verliert das Minus („O X1:2“).
+- `--min-for TYP=WERT` (Issue #66, mehrfach) setzt fuer einzelne Typen eine eigene Schwelle statt `--min`; das Gate
+  auf dem Voll-Scan nutzt `--min 0.95 --min-for terminal=0.75`, weil die Klemmen gemessen bei 0,77 liegen.
 
 ```bash
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95

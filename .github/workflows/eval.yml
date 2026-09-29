@@ -68,6 +68,12 @@ jobs:
           pip install -e ".[dev]"
       - name: Ingest-Benchmark FB-01 (Kennzeichen je Seite gegen Ground Truth, Issue #63, ohne Modell und ohne DB)
         run: python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95 --types device,terminal,plc_address
+      # Klemmen neben dem Klemmenkreis liest die OCR als "O X1:2" (gemessen 0,77, Issue #65); Schwelle darum 0,75
+      - name: Ingest-Benchmark Voll-Scan mit OCR (Issue #66, RapidOCR lokal auf der CPU)
+        run: >-
+          python eval/run_ingest.py --gold eval/ingest_gold/fb01.json
+          --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan-ocr --ocr
+          --min 0.95 --min-for terminal=0.75 --types device,terminal,plc_address
       - name: Backend starten
         working-directory: backend
         run: |
@@ -82,8 +88,10 @@ jobs:
         run: |
           python scripts/load_folder.py examples/umroller --name "Umroller UR-01" --api http://localhost:8010
           python scripts/load_folder.py examples/aufrollung --name "Aufrollung PM1-AR" --api http://localhost:8010
-      - name: Retrieval-Eval mit Schwellwerten (FB-01, UR-01, PM1-AR, Injection-Fallen)
-        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Injection-Test" --min 0.9 --min-sources 0.9
+      - name: Scan-Fassung FB-01 laden (Issue #66, nur der Voll-Scan als eigene Quelle, OCR im Upload)
+        run: python scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01" --api http://localhost:8010
+      - name: Retrieval-Eval mit Schwellwerten (FB-01, UR-01, PM1-AR, Injection-Fallen, Scan)
+        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Injection-Test,Scan FB-01" --min 0.9 --min-sources 0.9
       - name: Zitat-Resolver gegen den Referenzlauf (Issue #46, kostenlos, Regressionstest)
         run: >-
           python eval/rescore.py eval/results/referenz_2026-09-28_claude-sonnet-5.json --api http://localhost:8010

@@ -23,4 +23,10 @@ python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc examples/scan/
 ```
 
 Die Dateien gehoeren in eine eigene Wissensquelle, nicht zur Demo-Maschine FB-01. Sonst beantwortet der Chat
-Fragen zum Scan aus dem Text-PDF, und der Test beweist nichts.
+Fragen zum Scan aus dem Text-PDF, und der Test beweist nichts. Das Retrieval-Gate laedt nur den Voll-Scan als Quelle
+„Scan FB-01“; der Upload liest ihn per OCR (Issue #66):
+
+```bash
+python scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"
+python eval/run_retrieval.py --only "Scan FB-01"
+```

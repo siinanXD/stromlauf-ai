@@ -33,3 +33,14 @@ def test_readme_des_ordners_ist_doku_und_keine_kundendatei(tmp_path: Path):
         "notizen.txt",
         "plan.pdf",
     ]
+
+
+def test_muster_waehlt_einzelne_dateien_des_ordners(tmp_path: Path):
+    """Issue #66: Die Scan-Quelle im Retrieval-Gate bekommt nur den Voll-Scan, nicht die Fassungen mit Textseiten."""
+    for name in ("plan_scan.pdf", "plan_teilscan.pdf", "plan_quer.pdf", "README.md"):
+        (tmp_path / name).write_text("x", encoding="utf-8")
+    load_folder = _load()
+    assert [p.name for p in load_folder.candidate_files(tmp_path, "*_scan.pdf")] == [
+        "plan_scan.pdf"
+    ]
+    assert len(load_folder.candidate_files(tmp_path)) == 3

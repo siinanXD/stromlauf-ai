@@ -1,6 +1,7 @@
 """Laedt alle unterstuetzten Dateien eines Ordners als Wissensquelle in ein laufendes Backend.
 
 Aufruf:  python scripts/load_folder.py testdata/festo --name "Festo MPS" [--api http://localhost:8010] [--vision]
+                                       [--pattern "*_scan.pdf"]
 
 Fuer eigene Testdaten (testdata/ ist in .gitignore). Dateityp wird vom Backend an der Endung erkannt.
 """
@@ -21,10 +22,11 @@ except ImportError:  # pragma: no cover
 SUFFIXES = {".pdf", ".xlsx", ".csv", ".docx", ".pptx", ".md", ".html", ".txt", ".awl", ".sdf", ".png", ".jpg", ".jpeg"}
 
 
-def candidate_files(folder: Path) -> list[Path]:
-    """Dateien mit unterstuetzter Endung, alphabetisch. README.* beschreibt den Ordner und ist keine Kundendatei
-    (bei examples/injection stuenden sonst die erwarteten Fallenmuster selbst in der Wissensquelle)."""
-    return sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in SUFFIXES and p.stem.lower() != "readme")
+def candidate_files(folder: Path, pattern: str = "*") -> list[Path]:
+    """Dateien mit unterstuetzter Endung, die zum Muster passen, alphabetisch. README.* beschreibt den Ordner und ist
+    keine Kundendatei (bei examples/injection stuenden sonst die erwarteten Fallenmuster selbst in der Wissensquelle).
+    Das Muster waehlt einzelne Dateien, z. B. nur den Voll-Scan aus examples/scan (Issue #66)."""
+    return sorted(p for p in folder.glob(pattern) if p.is_file() and p.suffix.lower() in SUFFIXES and p.stem.lower() != "readme")
 
 
 def _auth_headers() -> dict[str, str]:
@@ -39,9 +41,10 @@ def main() -> int:
     parser.add_argument("--name", required=True, help="Name der Wissensquelle")
     parser.add_argument("--api", default="http://localhost:8010")
     parser.add_argument("--vision", action="store_true", help="Vision-Analyse fuer PDFs (kostet API-Tokens je Seite)")
+    parser.add_argument("--pattern", default="*", help="Nur Dateien, die zum Muster passen, z. B. '*_scan.pdf'")
     args = parser.parse_args()
 
-    files = candidate_files(args.folder)
+    files = candidate_files(args.folder, args.pattern)
     if not files:
         sys.exit(f"Keine unterstuetzten Dateien in {args.folder}")
 
