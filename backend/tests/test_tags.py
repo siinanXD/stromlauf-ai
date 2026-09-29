@@ -21,6 +21,29 @@ def test_terminals():
     assert ("-X1:6", TagType.TERMINAL) in tags
 
 
+def test_satzzeichen_nach_der_klemme_gehoert_nicht_zum_anschluss():
+    """Scan-Messung zu #64: "-X3:6." am Satzende landete so im Kennzeichen-Index; ein Anschluss endet nie auf "." oder "/"."""
+    tags = _tags("Schaltausgang BK auf -X3:5 bzw. -X3:6. Bruecke -X1:7/ -X1:8")
+    for tag in ("-X3:5", "-X3:6", "-X1:7", "-X1:8"):
+        assert (tag, TagType.TERMINAL) in tags, tag
+    assert [tag for tag, _ in tags if tag.endswith((".", "/"))] == []
+
+
+def test_kennzeichen_nach_schraegstrich_beginnt_eine_neue_klemme():
+    """Zwei Klemmen "-X3:9/-X3:10", nicht der Anschluss "9/-X3" und ein verlorenes -X3:10."""
+    tags = _tags("(nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10).")
+    assert ("-X3:9", TagType.TERMINAL) in tags
+    assert ("-X3:10", TagType.TERMINAL) in tags
+    assert ("-X3:9/-X3", TagType.TERMINAL) not in tags
+
+
+def test_anschluesse_mit_buchstaben_punkt_und_schraegstrich_bleiben_ganz():
+    tags = _tags("PE auf -X1:PE, N auf -X1:N, Bruecke -X2:3A, Motor an -X4:U, Ebene -X5:1.2, Spannung an -X4:U/V/W pruefen")
+    for tag in ("-X1:PE", "-X1:N", "-X2:3A", "-X4:U", "-X5:1.2", "-X4:U/V/W"):
+        assert (tag, TagType.TERMINAL) in tags, tag
+    assert ("-X2:3", TagType.TERMINAL) not in _tags("Bruecke -X2:3a")  # ganz oder gar nicht, nie abgeschnitten
+
+
 def test_no_device_tag_inside_words():
     assert _tags("E-Mail an Service-Team, Typ 3RT2016-1BB41") == set()
 
