@@ -6,10 +6,12 @@ import { useCallback, useEffect, useState } from "react";
 import { ChatPanel, ExampleQuestions } from "@/components/chat/ChatPanel";
 import type { PageTarget } from "@/components/PageViewer";
 import { api, type AnswerMeta, type Conversation, type MachineDetail } from "@/lib/api";
+import { recallConversation, rememberConversation } from "@/lib/chatMemory";
 
 /**
  * Chat je Maschine (chat-first, MB-4): Scope ist fest ihre Wissensquelle (Backend erzwingt das ueber
- * machine_id). Der Verlauf sitzt als Auswahl in der Kopfzeile; der Composer bleibt unten.
+ * machine_id). Der Verlauf sitzt als Auswahl in der Kopfzeile; der Composer bleibt unten. Der zuletzt
+ * geoeffnete Chat wird je Maschine im Browser gemerkt und nach einem Reload wieder geladen (Issue #47).
  */
 export function MachineChatTab({
   machine,
@@ -29,18 +31,42 @@ export function MachineChatTab({
   onGoToDocuments?: () => void;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationIdState] = useState<string | null>(null);
   const [initialInput, setInitialInput] = useState("");
   const sourceId = machine.source_id;
+  const machineId = machine.id;
 
-  const loadConversations = useCallback(() => {
-    if (!sourceId) return;
-    api.listConversations(sourceId).then(setConversations).catch(() => {});
+  const setConversationId = useCallback(
+    (id: string | null) => {
+      setConversationIdState(id);
+      rememberConversation(machineId, id);
+    },
+    [machineId],
+  );
+
+  const loadConversations = useCallback((): Promise<Conversation[]> => {
+    if (!sourceId) return Promise.resolve([]);
+    return api
+      .listConversations(sourceId)
+      .then((list) => {
+        setConversations(list);
+        return list;
+      })
+      .catch(() => []);
   }, [sourceId]);
 
+  // Beim Oeffnen der Maschine: Liste laden und den gemerkten Chat wieder waehlen, sofern es ihn noch gibt
   useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+    let cancelled = false;
+    loadConversations().then((list) => {
+      if (cancelled) return;
+      const remembered = recallConversation(machineId);
+      if (remembered && list.some((c) => c.id === remembered)) setConversationIdState(remembered);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadConversations, machineId]);
 
   if (!sourceId) {
     return (

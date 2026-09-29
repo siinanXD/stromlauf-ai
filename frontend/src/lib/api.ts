@@ -347,8 +347,9 @@ export const api = {
     request<Conversation[]>(`/api/conversations${sourceId ? `?source_id=${encodeURIComponent(sourceId)}` : ""}`),
   deleteConversation: (id: string) =>
     request<void>(`/api/conversations/${id}`, { method: "DELETE" }),
-  getMessages: (conversationId: string) =>
-    request<ChatMessage[]>(`/api/conversations/${conversationId}/messages`),
+  /** Verlauf mit meta je Antwort (Issue #47); machineId liefert die Schaltschrank-Belege dieser Maschine. */
+  getMessages: (conversationId: string, machineId?: string) =>
+    request<ChatMessage[]>(`/api/conversations/${conversationId}/messages${machineId ? `?machine_id=${encodeURIComponent(machineId)}` : ""}`),
   pageImageUrl: (documentId: string, page: number) =>
     withApiKey(`${API_URL}/api/documents/${documentId}/pages/${page}/image`),
 };
