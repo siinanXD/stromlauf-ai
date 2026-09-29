@@ -42,15 +42,15 @@ die Session des Chats geschrieben.
 
 ## Fragen
 
-51 Fragen, sechs Quellen:
+68 Fragen, sieben Quellen:
 
 | Quelle | Fragen | Daten |
 | --- | --- | --- |
-| Foerderband FB-01 | 9 | `examples/foerderband/` (`scripts/load_example.py`) |
 | Umroller UR-01 | 11 | `examples/umroller/` (`scripts/load_testwerk.py --docs`) |
 | Aufrollung PM1-AR | 10 | `examples/aufrollung/` (`scripts/load_testwerk.py --docs`) |
 | Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal) |
 | AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2) |
+| Foerderband FB-01 | 21 | `examples/foerderband/` (`scripts/load_example.py`); 19 davon mit Retrieval-Anteil, 2 Fallenfragen |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
 | Testwerk (Planung, Standort) | 4 | `scripts/load_testwerk.py`; nur Retrieval (`"agent": false`), der Chat-Agent hat dafuer keine Werkzeuge |
 
@@ -62,7 +62,9 @@ Diese Muster stehen nicht woertlich im Dokument, deshalb laufen die Fragen koste
 (`--only "Foerderband FB-01,Injection-Test"`, Komma trennt mehrere Filter) und nachts im Agentenlauf.
 
 Je Zeile: `id`, `source`, `question`, `must_contain` (Regex, Gross/Klein egal, `|` trennt Alternativen),
-`must_not_contain` (Halluzinations-Fallen), `expect_sources` (Dateien, die zitiert sein muessen). Optional:
+`must_not_contain` (Halluzinations-Fallen), `expect_sources` (Dateien, die zitiert sein muessen),
+`expect_tags` (Betriebsmittel, die eine richtige Antwort nennt; Grundlage fuer `teile_recall`) und `ok_tags`
+(weitere Betriebsmittel, die genannt werden duerfen, ohne `teile_praezision` zu senken). Optional:
 
 - `retrieval`: `{"mode": "tag|semantic|keyword|fact|signal|calc|site", "query": ...}` — Anfrage der
   Retrieval-Schicht. Die kuerzeste Anfrage, die die Belege liefert (`"Blockade"` statt der ganzen Frage).
@@ -94,6 +96,13 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
   Richter. Alte Laeufe ohne meta-Event bekommen den Wert per
   `python eval/rescore.py <lauf> --api http://127.0.0.1:8010` nachgeliefert (kein Modellaufruf);
   `--min-citations` und `--expect-invalid` machen daraus ein Gate (Retrieval-Job in `eval.yml`).
+- `teile_recall` / `teile_praezision` (Issue #49, contract.md „referenced-part precision >= 0,85“): die
+  referenzierten Bauteile der Antwort (`meta.referenced_tags`, Betriebsmittel im Index der Quelle) gegen
+  `expect_tags` und `ok_tags` der Frage. Recall = erwartete Teile, die die Antwort nennt; Praezision = genannte
+  Teile, die erwartet oder erlaubt sind. Ueber alle Antworten mit `expect_tags` zusammengezaehlt; nur Agentenlauf
+  (`teile_antworten` nennt die Zahl der beitragenden Antworten).
+- `p95_s`: Dauer, unter der 95 % der bewerteten Antworten liegen; `fehlerrate`: Anteil der Fragen mit
+  API-/Netzfehler an allen Fragen.
 - `sauber`: Anteil der Fragen ohne verbotene Angaben
 - `werkzeug_ok`: Anteil der Fragen mit `tools`, bei denen der Agent sie aufgerufen hat (nur Agentenlauf)
 - `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok, sauber und Werkzeug ok
