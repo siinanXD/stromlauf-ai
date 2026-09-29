@@ -69,8 +69,13 @@ festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision
   „Anlage“, der Rest „Ohne Einbauort“. Kein Modellaufruf, alles aus den Daten.
 - **Antwort-Vertrag**: am Ende jedes Chat-Streams kommt das Event `meta` mit `referenced_tags`
   (Betriebsmittel aus dem Antworttext, die im Index der Quelle vorkommen), `citations` und `evidence`
-  (Seiten der Zitate, Hotspots in Schaltschrankfotos). Das Frontend markiert die Bauteile amber im
-  Modell, zeigt Bauteil-Chips und Belegbilder unter der Antwort; „Im Modell zeigen“ springt zum Schema.
+  (Seiten der Zitate, Hotspots in Schaltschrankfotos) sowie `citation_checks`/`citations_valid` (Zitat-Resolver,
+  Issue #46). Das Frontend markiert die Bauteile amber im Modell, zeigt Bauteil-Chips und Belegbilder unter
+  der Antwort; „Im Modell zeigen“ springt zum Schema. Der Verlauf
+  (`GET /api/conversations/{id}/messages?machine_id=`) rechnet dasselbe `meta` je Antwort nach (deterministisch,
+  kein Modellaufruf), und die Maschinenseite merkt sich den zuletzt geöffneten Chat je Maschine im Browser
+  (`stromlauf:chat:<machine_id>`): Chips, Belegbilder und Markierung überleben so einen Reload (Issue #47).
+  Nur die Kosten je Antwort gibt es weiterhin nur live.
 - Die bisherigen Tabs (Draufsicht, Schaltschrank, Signalweg, Dokumente; Ablauf, Fehler, Kennzahlen hinter
   „Mehr“) leben im Modell-Panel weiter. Das Panel lässt sich einklappen (Streifen) oder vergrößern.
 - Hell und dunkel: Tokens aus Figma `Foundations` in `frontend/src/app/globals.css`, Umschalter in der

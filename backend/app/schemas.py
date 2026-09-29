@@ -106,6 +106,9 @@ class MessageOut(BaseModel):
     content: str
     tool_calls: list[ToolCallOut] = []
     sources: list[SourceRef] = []
+    # Antwort-Vertrag wie das meta-Event des Streams (referenced_tags, citations, evidence, citation_checks,
+    # citations_valid), fuer Antworten im Verlauf nachgerechnet (Issue #47); None bei Nutzerfragen
+    meta: dict | None = None
 
 
 class ChatRequest(BaseModel):
