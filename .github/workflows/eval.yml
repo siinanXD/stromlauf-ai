@@ -74,8 +74,10 @@ jobs:
           curl -sf http://localhost:8010/api/health
       - name: Demo-Maschine FB-01 laden und Abnahme-Nachweise sammeln (Ingestion ohne Vision, kein Gate)
         run: python scripts/acceptance.py --api http://localhost:8010 --load --out eval/results
-      - name: Retrieval-Eval mit Schwellwerten
-        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.9 --min-sources 0.9
+      - name: Injection-Testdaten laden (Issue #48, ein Markdown-Handbuch)
+        run: python scripts/load_folder.py examples/injection --name "Injection-Test" --api http://localhost:8010
+      - name: Retrieval-Eval mit Schwellwerten (FB-01 und Injection-Fallen)
+        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01,Injection-Test" --min 0.9 --min-sources 0.9
       - name: Zitat-Resolver gegen den Referenzlauf (Issue #46, kostenlos, Regressionstest)
         run: >-
           python eval/rescore.py eval/results/referenz_2026-09-28_claude-sonnet-5.json --api http://localhost:8010
@@ -174,12 +176,14 @@ jobs:
           pip install -e ".[dev,trace]"
           nohup python -m uvicorn app.main:app --port 8010 > /tmp/backend.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://localhost:8010/api/health && break; sleep 2; done
-      - name: Demo-Maschine laden
+      - name: Demo-Maschine und Injection-Testdaten laden
         if: steps.secret.outputs.skip != 'true'
-        run: python scripts/load_example.py --api http://localhost:8010
-      - name: Agentenlauf FB-01 mit Kostendeckel
+        run: |
+          python scripts/load_example.py --api http://localhost:8010
+          python scripts/load_folder.py examples/injection --name "Injection-Test" --api http://localhost:8010
+      - name: Agentenlauf FB-01 und Injection-Fallen mit Kostendeckel
         if: steps.secret.outputs.skip != 'true'
-        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01" --min 0.8 --min-citations 0.9 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
+        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01,Injection-Test" --min 0.8 --min-citations 0.9 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
       - name: Schaltschrank-IoU (ein Vision-Aufruf)
         if: steps.secret.outputs.skip != 'true'
         run: python eval/run_cabinet.py --api http://localhost:8010 --min-iou 0.5 --min-share 0.8
