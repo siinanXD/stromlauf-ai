@@ -20,31 +20,49 @@ _FILENAME_HINTS: list[tuple[str, DocType]] = [
     (r"st(ü|ue|u)ckliste|\bbom\b|artikelliste", DocType.BOM),
     (r"klemm", DocType.TERMINAL_PLAN),
     (r"symbol", DocType.PLC_SYMBOLS),
-    (r"\bawl\b|sps|plc", DocType.PLC_PROGRAM),
+    (r"\bawl\b|\bscl\b|sps|plc", DocType.PLC_PROGRAM),
     (r"stromlauf|schaltplan|eplan|schematic|elektroplan", DocType.SCHEMATIC),
     (r"handbuch|manual|anleitung|betriebsanl|datasheet|datenblatt", DocType.MANUAL),
 ]
 
 _AWL_BLOCK = re.compile(r"^\s*(FUNCTION_BLOCK|FUNCTION|ORGANIZATION_BLOCK|DATA_BLOCK)\b", re.M)
 _AWL_NETWORK = re.compile(r"^\s*NETWORK\b", re.M)
-_SYMBOL_ROW = re.compile(r'^"[^"\n]*",\s*"\s*(?:%?[EAIQM]\s*\d+\.\d|[EAIQM][BWD]\s*\d+|DB\s*\d+|FB\s*\d+|FC\s*\d+|OB\s*\d+)\s*",\s*"', re.M | re.I)
+_SYMBOL_ROW = re.compile(
+    r'^"[^"\n]*",\s*"\s*(?:%?[EAIQM]\s*\d+\.\d|[EAIQM][BWD]\s*\d+|DB\s*\d+|FB\s*\d+|FC\s*\d+|OB\s*\d+)\s*",\s*"',
+    re.M | re.I,
+)
 _TERMINAL_HEADER = re.compile(r"klemm", re.I)
 _TERMINAL_TARGET = re.compile(r"ziel|intern|extern|anschluss|brücke|bruecke", re.I)
 _TERMINAL_ROW = re.compile(r"-X\d+:[A-Z0-9]+")
-_BOM_TAG = re.compile(r"\b(bmk|kennzeichen|betriebsmittel|artikel|pos\.?|label|designation|item)\b", re.I)
-_BOM_QTY = re.compile(r"\b(menge|st(ü|ue)ck|stk|anzahl|bestell|hersteller|typ|qty|quantity|manufacturer)\b", re.I)
+_BOM_TAG = re.compile(
+    r"\b(bmk|kennzeichen|betriebsmittel|artikel|pos\.?|label|designation|item)\b", re.I
+)
+_BOM_QTY = re.compile(
+    r"\b(menge|st(ü|ue)ck|stk|anzahl|bestell|hersteller|typ|qty|quantity|manufacturer)\b", re.I
+)
 _BOM_TITLE = re.compile(
-    r"^\W*(artikelst(ü|ue)ckliste|st(ü|ue)ckliste|bauteilliste|nomenclature|bill of materials?|parts?\s*list|artikelliste)", re.I
+    r"^\W*(artikelst(ü|ue)ckliste|st(ü|ue)ckliste|bauteilliste|nomenclature|bill of materials?|parts?\s*list|artikelliste)",
+    re.I,
 )
 _SHEET_FRAME = re.compile(r"\bblatt\s*\d+\s*/\s*\d+|\bsheet\s*\d+\s*(?:/|of)\s*\d+", re.I)
 _FOLIO_FRAME = re.compile(r"\bfolio\s*:\s*\d+", re.I)  # QElectroTech-Schriftfeld
 _SHEET_LIST = re.compile(r"\b(folio list|sheet list|inhaltsverzeichnis|table of contents)\b", re.I)
-_COLUMN_HEADER = re.compile(r"^\s*1\s+2\s+3\s+4\s+5\s+6\s+7\s+8(?:\s+\d{1,2})*\s*$", re.M)  # Raster 1..8 oder 1..18
+_COLUMN_HEADER = re.compile(
+    r"^\s*1\s+2\s+3\s+4\s+5\s+6\s+7\s+8(?:\s+\d{1,2})*\s*$", re.M
+)  # Raster 1..8 oder 1..18
 _RAILS = re.compile(r"^L1\s*$\s*^L2\s*$\s*^L3\s*$", re.M)
-_SCHEMATIC_TITLE = re.compile(r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan|electrical cabinet", re.I)
+_SCHEMATIC_TITLE = re.compile(
+    r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan|electrical cabinet", re.I
+)
 _CROSS_REF = re.compile(r"(?<![\w/.])/\d{1,4}\.\d{1,2}(?![\w.])")
-_MANUAL_TITLE = re.compile(r"^\W*(betriebsanleitung|bedienungsanleitung|handbuch|manual|operating instructions|datenblatt|datasheet)", re.I)
-_MANUAL_WORDS = re.compile(r"\b(wartung|inbetriebnahme|sicherheitshinweis|st(ö|oe)rung|fehlerbehebung|bestimmungsgem|instandhaltung|maintenance|troubleshooting)", re.I)
+_MANUAL_TITLE = re.compile(
+    r"^\W*(betriebsanleitung|bedienungsanleitung|handbuch|manual|operating instructions|datenblatt|datasheet)",
+    re.I,
+)
+_MANUAL_WORDS = re.compile(
+    r"\b(wartung|inbetriebnahme|sicherheitshinweis|st(ö|oe)rung|fehlerbehebung|bestimmungsgem|instandhaltung|maintenance|troubleshooting)",
+    re.I,
+)
 _DEVICE_TAG = re.compile(r"(?<![\w.])-[A-Z]{1,3}\d{1,4}(?![\w:])")
 
 
@@ -67,7 +85,10 @@ def sample_text(path: Path) -> str:
         with pdfium_lock:
             pdf = pdfium.PdfDocument(str(path))
             try:
-                pages = [pdf[i].get_textpage().get_text_range() for i in range(min(SAMPLE_PAGES, len(pdf)))]
+                pages = [
+                    pdf[i].get_textpage().get_text_range()
+                    for i in range(min(SAMPLE_PAGES, len(pdf)))
+                ]
             finally:
                 pdf.close()
         return "\n".join(pages)
@@ -86,7 +107,20 @@ def sample_text(path: Path) -> str:
             return "\n".join(lines)
         finally:
             workbook.close()
-    if suffix in {".csv", ".txt", ".md", ".awl", ".sdf", ".log", ".ini", ".xml", ".json", ".html", ".htm"}:
+    if suffix in {
+        ".csv",
+        ".txt",
+        ".md",
+        ".awl",
+        ".scl",
+        ".sdf",
+        ".log",
+        ".ini",
+        ".xml",
+        ".json",
+        ".html",
+        ".htm",
+    }:
         from app.ingestion.awl_parser import read_text
 
         return "\n".join(read_text(path).splitlines()[:SAMPLE_LINES])
@@ -186,8 +220,12 @@ def detect(filename: str, path: Path | None = None) -> Detection:
     if path is not None:
         try:
             found = guess_doc_type(sample_text(path))
-        except Exception as exc:  # defekte Datei: Dateiname entscheidet, Ingestion meldet den Fehler
-            found = Detection(DocType.OTHER, 0.0, f"Textprobe fehlgeschlagen: {type(exc).__name__}", "none")
+        except (
+            Exception
+        ) as exc:  # defekte Datei: Dateiname entscheidet, Ingestion meldet den Fehler
+            found = Detection(
+                DocType.OTHER, 0.0, f"Textprobe fehlgeschlagen: {type(exc).__name__}", "none"
+            )
         if found.doc_type != DocType.OTHER:
             return found
     if hinted := filename_doc_type(filename):
