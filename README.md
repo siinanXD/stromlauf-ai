@@ -486,7 +486,11 @@ Wie Zusammenhänge entstehen:
 | SPS-Programm | `.awl` (STEP 7 AWL-Quelle), `.scl` (TIA-Portal-Quelle: ein Chunk je Baustein mit Deklaration und Rumpf, keine Netzwerke) |
 | Symboltabelle | `.sdf` |
 
-Gescannte PDFs: `OCR_ENABLED=true` in `.env`.
+Gescannte PDFs: Seiten ohne Textebene nennt die Ingestion am Dokument („1 von 7 Seiten ohne Text: 3“), ein reiner
+Scan bricht mit der Seitenzahl ab. Die lokale Texterkennung (`backend/app/ingestion/ocr.py`, RapidOCR auf der CPU,
+ohne Download und ohne API-Kosten) legt eine unsichtbare Textebene ins PDF; in die Upload-Pipeline kommt sie mit
+Issue #66. Bis dahin misst `python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc <scan.pdf> --ocr` ihre
+Wirkung. `OCR_ENABLED=true` schaltet noch Doclings eigene OCR ein; dieser Weg ist ungetestet und lädt Modelle nach.
 
 ## Tracing: was in Langfuse landet (optional)
 

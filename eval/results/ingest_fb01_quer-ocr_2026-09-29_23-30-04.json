@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "gold": "eval/ingest_gold/fb01.json",
+    "label": "quer-ocr",
+    "dokument": "examples/scan/01_Stromlaufplan_FB-01_quer.pdf",
+    "doc_type": "schematic",
+    "seiten": 7,
+    "sekunden": 4.52,
+    "sekunden_je_seite": 0.65,
+    "ocr": {
+      "seiten": [
+        4
+      ],
+      "sekunden": 10.22,
+      "sekunden_je_seite": 10.22,
+      "konfidenz": 0.99,
+      "gedreht": {
+        "4": 270
+      },
+      "zeilen": 63
+    },
+    "metriken": {
+      "device": {
+        "tp": 72,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "terminal": {
+        "tp": 74,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "plc_address": {
+        "tp": 41,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "cross_ref": {
+        "tp": 19,
+        "fp": 1,
+        "fn": 1,
+        "recall": 0.95,
+        "precision": 0.95
+      }
+    },
+    "gate": {
+      "min": 0.0,
+      "typen": [],
+      "ok": true,
+      "verfehlt": []
+    }
+  },
+  "results": [
+    {
+      "seite": 3,
+      "fehlend": {
+        "cross_ref": [
+          "/6.5"
+        ]
+      },
+      "fremd": {
+        "cross_ref": [
+          "/6.51"
+        ]
+      }
+    }
+  ]
+}

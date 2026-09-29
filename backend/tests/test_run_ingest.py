@@ -141,6 +141,49 @@ def test_cli_schreibt_json_und_markdown_und_scheitert_unter_der_schwelle(tmp_pat
     assert run_ingest.main([*args, "--min", "0.5"], measure_fn=fake_measure) == 0
 
 
+def test_cli_ocr_misst_das_durchsuchbare_pdf_und_schreibt_die_ocr_kennzahlen(tmp_path):
+    """Issue #65: --ocr erzeugt vor der Messung die unsichtbare Textebene und misst diese Fassung."""
+    gold = tmp_path / "mini.json"
+    gold.write_text(
+        json.dumps(
+            {"dokument": "x.pdf", "doc_type": "schematic", "seiten": {"1": {"device": ["-K1"]}}}
+        ),
+        encoding="utf-8",
+    )
+    scan = tmp_path / "x_scan.pdf"
+    measured = []
+
+    def fake_ocr(doc: Path, out_dir: Path):
+        return out_dir / f"{doc.stem}_ocr.pdf", {"seiten": [1], "sekunden": 3.0, "konfidenz": 0.95}
+
+    def fake_measure(doc: Path, doc_type: str):
+        measured.append(doc.name)
+        return {1: {"device": {"-K1"}}}, 1, 1.0
+
+    args = [
+        "--gold",
+        str(gold),
+        "--doc",
+        str(scan),
+        "--ocr",
+        "--label",
+        "scan-ocr",
+        "--out",
+        str(tmp_path),
+    ]
+    assert run_ingest.main(args, measure_fn=fake_measure, ocr_fn=fake_ocr) == 0
+    assert measured == ["x_scan_ocr.pdf"]
+    summary = json.loads(
+        next(tmp_path.glob("ingest_mini_scan-ocr_*.json")).read_text(encoding="utf-8")
+    )["summary"]
+    assert summary["ocr"] == {"seiten": [1], "sekunden": 3.0, "konfidenz": 0.95}
+    assert summary["dokument"].endswith(
+        "x_scan.pdf"
+    )  # gemessen wird die OCR-Fassung, genannt das Original
+    markdown = next(tmp_path.glob("ingest_mini_scan-ocr_*.md")).read_text(encoding="utf-8")
+    assert "OCR: 1 Seiten, 3.0 s, Konfidenz 0.95" in markdown
+
+
 def test_cli_label_trennt_laeufe_verschiedener_fassungen_desselben_plans(tmp_path):
     """Issue #64: Scan und Teil-Scan werden gegen dasselbe Gold gemessen und brauchen eigene Dateinamen."""
     gold = tmp_path / "mini.json"

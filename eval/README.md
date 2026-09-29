@@ -135,10 +135,16 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
   Scan-Fassungen liegen in `examples/scan/` (`scripts/example_docs/make_scan.py`, Issue #64): Voll-Scan, Teil-Scan
   mit Blatt 3 als Bild, Blatt 4 hochkant; Seitenzahl und Blattfolge wie im Text-PDF. Vorher-Werte ohne OCR:
   Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,88 bis 0,93 (Recall je Typ, Precision 1,00).
+- `--ocr` (Issue #65) legt vor der Messung eine unsichtbare Textebene auf die Seiten ohne Text
+  (`backend/app/ingestion/ocr.py`, RapidOCR lokal auf der CPU) und misst diese Fassung; OCR-Seiten, -Sekunden und
+  -Konfidenz stehen unter `ocr` im Ergebnis. Stand 2026-09-29, Voll-Scan: device 0,99, terminal 0,77, plc_address
+  1,00, Precision 1,00, 4,4 s je Seite. Die Klemmen fehlen dort, wo der Klemmenkreis direkt vor der Beschriftung
+  steht: Die OCR liest ihn als „O“ und verliert das Minus („O X1:2“).
 
 ```bash
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan
+python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan-ocr --ocr
 python scripts/example_docs/make_gold.py --check          # Gold passt zum Generator?
 python scripts/example_docs/make_scan.py                  # Scan-Fassungen neu erzeugen (gleiche Bytes)
 ```
