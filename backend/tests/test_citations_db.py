@@ -342,3 +342,105 @@ def test_endpunkt_prueft_gespeicherte_antworten_im_eigenen_workspace(client, wor
         headers=_auth(world["tokens"][WS]),
     )
     assert too_long.status_code == 422
+
+
+class _FakeGraph:
+    """Ersetzt den LangGraph-Checkpointer: liefert einen festen Verlauf fuer jede Konversation."""
+
+    def __init__(self, messages: list) -> None:
+        self.messages = messages
+
+    async def aget_state(self, config: dict):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(values={"messages": self.messages})
+
+
+def test_verlauf_traegt_das_meta_je_antwort_nach(client, world, monkeypatch):
+    """Issue #47: GET /api/conversations/{id}/messages rechnet das meta-Event deterministisch nach."""
+    from datetime import datetime, timezone
+
+    from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+    from app.db import session_scope
+    from app.models import Conversation
+    from app.tenancy import reset_workspace, set_workspace
+
+    refs = [
+        {
+            "document_id": "x",
+            "filename": "01_Stromlaufplan_FB-01.pdf",
+            "doc_type": "schematic",
+            "page": 3,
+            "section": "",
+        },
+        {
+            "document_id": "y",
+            "filename": "02_Stueckliste_FB-01.xlsx",
+            "doc_type": "bom",
+            "page": None,
+            "section": "",
+        },
+    ]
+    token = set_workspace(WS)
+    try:
+        with session_scope() as session:
+            conversation = Conversation(
+                title="Verlauf",
+                source_ids=[world["source_id"]],
+                updated_at=datetime.now(timezone.utc),
+            )
+            session.add(conversation)
+            session.flush()
+            conversation_id = conversation.id
+    finally:
+        reset_workspace(token)
+    messages = [
+        HumanMessage("Was ist -F2?"),
+        AIMessage(
+            content="", tool_calls=[{"name": "find_tag", "args": {"tag": "-F2"}, "id": "c1"}]
+        ),
+        ToolMessage(content="...", tool_call_id="c1", artifact=refs),
+        AIMessage(content=ANSWER),
+        HumanMessage("Ohne Beleg?"),
+        AIMessage(content="Dazu steht nichts in der Doku."),
+    ]
+    monkeypatch.setattr(client.app.state, "graph", _FakeGraph(messages))
+    before = _ledger_rows(WS)
+
+    response = client.get(
+        f"/api/conversations/{conversation_id}/messages", headers=_auth(world["tokens"][WS])
+    )
+    assert response.status_code == 200, response.text
+    user, answer, _question2, plain = response.json()
+    assert user["role"] == "user" and user.get("meta") is None
+    assert answer["meta"]["referenced_tags"] == ["-F2"]
+    assert answer["meta"]["citations"] == refs
+    assert answer["meta"]["citations_valid"] == {"valid": 2, "checked": 4, "total": 4}
+    assert [c["valid"] for c in answer["meta"]["citation_checks"]] == [True, False, False, True]
+    assert [e["kind"] for e in answer["meta"]["evidence"]] == ["page"]
+    assert plain["meta"] == {
+        "referenced_tags": [],
+        "citations": [],
+        "evidence": [],
+        "citation_checks": [],
+        "citations_valid": {"valid": 0, "checked": 0, "total": 0},
+    }
+    assert _ledger_rows(WS) == before
+
+    # fremder Workspace: 404 wie bisher; unbekannte Maschine im eigenen Workspace: 404
+    assert (
+        client.get(
+            f"/api/conversations/{conversation_id}/messages",
+            headers=_auth(world["tokens"][OTHER_WS]),
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/api/conversations/{conversation_id}/messages",
+            params={"machine_id": "gibt-es-nicht"},
+            headers=_auth(world["tokens"][WS]),
+        ).status_code
+        == 404
+    )
