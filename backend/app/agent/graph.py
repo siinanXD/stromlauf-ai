@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -14,7 +14,24 @@ from app.llm import make_chat_model
 
 
 def _build_model(model_name: str):
-    return make_chat_model(model_name, max_tokens=32000, max_retries=3, streaming=True).bind_tools(TOOLS)
+    return make_chat_model(model_name, max_tokens=32000, max_retries=3, streaming=True).bind_tools(
+        TOOLS
+    )
+
+
+def history_window(messages: list, limit: int) -> list:
+    """Die letzten `limit` Nachrichten fuer das Modell, beginnend bei einer Nutzerfrage (Issue #48).
+
+    Ein Schnitt mitten in einer Werkzeugrunde (AIMessage mit tool_calls ohne ihre ToolMessages) waere
+    fuer die Anbieter-API ungueltig, deshalb wandert der Anfang zur letzten Frage davor. 0 = alle.
+    Der Checkpointer behaelt den ganzen Verlauf; nur der Modellkontext wird begrenzt.
+    """
+    if limit <= 0 or len(messages) <= limit:
+        return list(messages)
+    cut = len(messages) - limit
+    while cut > 0 and not isinstance(messages[cut], HumanMessage):
+        cut -= 1
+    return list(messages[cut:])
 
 
 def model_name_for(config: dict | None) -> str:
@@ -28,7 +45,8 @@ def build_graph(checkpointer):
     get_model = lru_cache(maxsize=8)(_build_model)
 
     async def agent(state: MessagesState, config: RunnableConfig) -> dict:
-        messages = [SystemMessage(system_prompt_for(config.get("configurable"))), *state["messages"]]
+        window = history_window(state["messages"], get_settings().chat_history_messages)
+        messages = [SystemMessage(system_prompt_for(config.get("configurable"))), *window]
         return {"messages": [await get_model(model_name_for(config)).ainvoke(messages, config)]}
 
     builder = StateGraph(MessagesState)

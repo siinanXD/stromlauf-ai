@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app import ledger
+from app.agent.prompts import PROMPT_VERSION
 from app.api.answer_meta import build_meta
 from app.citations import check_answer
 from app.config import get_settings
@@ -231,6 +233,93 @@ async def get_messages(
     return history
 
 
+async def agent_events(
+    graph,
+    config: dict,
+    message: str,
+    *,
+    model: str,
+    machine_id: str | None,
+    max_tool_calls: int,
+    timeout_s: float,
+) -> AsyncIterator[tuple[str, dict | list]]:
+    """Ereignisse einer Agentenantwort: token, usage, tool_start, tool_end, sources, error.
+
+    Leitplanken (Issue #48): nach `max_tool_calls` Werkzeugaufrufen und nach `timeout_s` Sekunden endet die
+    Antwort mit einem error-Ereignis statt weiterzulaufen; ein abgebrochener Werkzeugaufruf wird beim naechsten
+    Chat von _close_dangling_tool_calls nachgetragen. Jede Modellantwort wird der Maschine zugebucht.
+    """
+    refs: list[dict] = []
+    calls = 0
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_s
+    stream = graph.astream(
+        {"messages": [HumanMessage(message)]}, config, stream_mode=["messages", "updates"]
+    ).__aiter__()
+    try:
+        while True:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise TimeoutError
+            try:
+                # Zeitlimit nur um das Warten auf den Agenten: ein Abbruch trifft nie das Senden an den Client
+                mode, payload = await asyncio.wait_for(stream.__anext__(), timeout=remaining)
+            except StopAsyncIteration:
+                break
+            if mode == "messages":
+                chunk, meta = payload
+                if isinstance(chunk, AIMessageChunk) and meta.get("langgraph_node") == "agent":
+                    text = _text_of(chunk.content)
+                    if text:
+                        yield "token", {"text": text}
+                continue
+            for update in payload.values():
+                for item in (update or {}).get("messages", []):
+                    if isinstance(item, AIMessage):
+                        usage = ledger.usage_of(item, model)
+                        if usage is not None:
+                            # jede Modellantwort (auch Werkzeugrunden) wird der Maschine zugebucht
+                            with session_scope() as booking:
+                                call = ledger.record_usage(
+                                    booking, usage, purpose="chat", machine_id=machine_id
+                                )
+                                cost_cents = call.cost_microcents / ledger.MICROCENTS_PER_CENT
+                            yield (
+                                "usage",
+                                {
+                                    "input_tokens": usage.input_tokens,
+                                    "output_tokens": usage.output_tokens,
+                                    "model": usage.model,
+                                    "cost_cents": cost_cents,
+                                },
+                            )
+                        if item.tool_calls:
+                            calls += len(item.tool_calls)
+                            if calls > max_tool_calls:
+                                yield (
+                                    "error",
+                                    {
+                                        "message": f"Abgebrochen: mehr als {max_tool_calls} "
+                                        "Werkzeugaufrufe in einer Antwort."
+                                    },
+                                )
+                                return
+                            for call in item.tool_calls:
+                                yield "tool_start", {"name": call["name"], "args": call["args"]}
+                            yield "token", {"text": "\n\n"}
+                        if item.response_metadata.get("stop_reason") == "refusal":
+                            yield "error", {"message": "Das Modell hat die Anfrage abgelehnt."}
+                    elif isinstance(item, ToolMessage):
+                        yield "tool_end", {"name": item.name}
+                        if isinstance(item.artifact, list):
+                            refs += item.artifact
+                            yield "sources", _dedupe_sources(refs)
+    except TimeoutError:
+        yield "error", {"message": f"Abgebrochen: Zeitlimit von {timeout_s:g} s ueberschritten."}
+    finally:
+        await stream.aclose()
+
+
 def _meta_for(
     answer: str, citations: list[dict], source_ids: list[str], machine_id: str | None
 ) -> dict:
@@ -293,7 +382,10 @@ async def chat(body: ChatRequest, request: Request):
         conversation_id, title = conversation.id, conversation.title
 
     config = _thread_config(conversation_id, source_ids, machine, model)
-    config.update(trace_config(conversation_id, body.trace_tags, model))
+    config.update(
+        trace_config(conversation_id, [*body.trace_tags, f"prompt:v{PROMPT_VERSION}"], model)
+    )
+    settings = get_settings()
 
     async def stream() -> AsyncIterator[str]:
         yield _sse("conversation", {"id": conversation_id, "title": title})
@@ -303,59 +395,25 @@ async def chat(body: ChatRequest, request: Request):
         workspace_token = set_workspace(workspace_id)
         try:
             await _close_dangling_tool_calls(graph, config)
-            async for mode, payload in graph.astream(
-                {"messages": [HumanMessage(body.message)]},
+            async for event, data in agent_events(
+                graph,
                 config,
-                stream_mode=["messages", "updates"],
+                body.message,
+                model=model,
+                machine_id=body.machine_id,
+                max_tool_calls=settings.chat_max_tool_calls,
+                timeout_s=settings.chat_timeout_s,
             ):
-                if mode == "messages":
-                    chunk, meta = payload
-                    if isinstance(chunk, AIMessageChunk) and meta.get("langgraph_node") == "agent":
-                        text = _text_of(chunk.content)
-                        if text:
-                            answer_parts.append(text)
-                            yield _sse("token", {"text": text})
-                    continue
-                for update in payload.values():
-                    for message in (update or {}).get("messages", []):
-                        if isinstance(message, AIMessage):
-                            usage = ledger.usage_of(message, model)
-                            if usage is not None:
-                                # jede Modellantwort (auch Werkzeugrunden) wird der Maschine zugebucht
-                                with session_scope() as booking:
-                                    call = ledger.record_usage(
-                                        booking, usage, purpose="chat", machine_id=body.machine_id
-                                    )
-                                    cost_cents = call.cost_microcents / ledger.MICROCENTS_PER_CENT
-                                yield _sse(
-                                    "usage",
-                                    {
-                                        "input_tokens": usage.input_tokens,
-                                        "output_tokens": usage.output_tokens,
-                                        "model": usage.model,
-                                        "cost_cents": cost_cents,
-                                    },
-                                )
-                            for call in message.tool_calls:
-                                yield _sse(
-                                    "tool_start", {"name": call["name"], "args": call["args"]}
-                                )
-                            if message.tool_calls:
-                                yield _sse("token", {"text": "\n\n"})
-                            if message.response_metadata.get("stop_reason") == "refusal":
-                                yield _sse(
-                                    "error", {"message": "Das Modell hat die Anfrage abgelehnt."}
-                                )
-                        elif isinstance(message, ToolMessage):
-                            yield _sse("tool_end", {"name": message.name})
-                            if isinstance(message.artifact, list):
-                                refs += message.artifact
-                                yield _sse("sources", _dedupe_sources(refs))
+                if event == "token":
+                    answer_parts.append(data["text"])
+                elif event == "sources":
+                    refs = list(data)
+                yield _sse(event, data)
             # Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - deterministisch aus Index und Fundstellen.
             # Im Threadpool, weil der Zitat-Resolver Blaetter per pdfium (globaler Lock) nachschlaegt und der
             # Event-Loop sonst fuer alle Mandanten steht.
             meta = await run_in_threadpool(
-                _meta_for, "".join(answer_parts), _dedupe_sources(refs), source_ids, body.machine_id
+                _meta_for, "".join(answer_parts), refs, source_ids, body.machine_id
             )
             yield _sse("meta", meta)
             yield _sse("done", {})
