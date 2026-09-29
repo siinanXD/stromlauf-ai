@@ -249,6 +249,19 @@ def test_durchsuchbares_pdf_aus_dem_teilscan(tmp_path):
     assert ocr.pages_without_text(out) == []
 
 
+def test_spalten_des_schief_gescannten_blatts_werden_gefunden(tmp_path):
+    """Echte OCR: Der Scan ist 0,5 Grad schief, die Spaltennummern fallen ueber die Blattbreite um etwa 0,012
+    Seitenhoehen ab. Die Spaltenerkennung muss sie trotzdem als eine Kopfzeile lesen."""
+    out = tmp_path / "blatt3_ocr.pdf"
+    ocr.searchable_pdf(SCAN, out, pages=[3])
+    scanned, original = page_columns(out, 3), page_columns(TEXT, 3)
+    assert len(scanned) == len(original) == 8
+    assert (
+        max(abs(a.x0 - b.x0) + abs(a.x1 - b.x1) for a, b in zip(scanned, original, strict=True))
+        <= 0.01
+    )
+
+
 def test_hochkant_gescanntes_blatt_wird_gedreht_erkannt(tmp_path):
     out = tmp_path / "quer_ocr.pdf"
     report = ocr.searchable_pdf(SIDEWAYS, out)
