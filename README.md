@@ -261,7 +261,7 @@ Beim Hochladen mit „Automatisch erkennen“ liest das Backend eine Textprobe (
 erste Zeilen einer Tabelle oder Textdatei) und schlägt den Typ mit Begründung vor, etwa
 „Kopfzeile Klemmleiste;Klemme;Ziel“ oder „Schriftfeld Blatt n / m; Spaltenkopf 1 … 8“. Der Dialog
 zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochgeladen. Reihenfolge:
-Endung (.awl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
+Endung (.awl, .scl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
 `POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
 
 ## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
@@ -483,7 +483,7 @@ Wie Zusammenhänge entstehen:
 | Typ | Endungen |
 | --- | --- |
 | Stromlaufplan, Klemmenplan, Stückliste, Handbuch | `.pdf`, `.xlsx`, `.csv`, `.docx`, `.pptx`, `.md`, `.html`, `.txt`, Bilder |
-| SPS-Programm | `.awl` (STEP 7 AWL-Quelle) |
+| SPS-Programm | `.awl` (STEP 7 AWL-Quelle), `.scl` (TIA-Portal-Quelle: ein Chunk je Baustein mit Deklaration und Rumpf, keine Netzwerke) |
 | Symboltabelle | `.sdf` |
 
 Gescannte PDFs: `OCR_ENABLED=true` in `.env`.

@@ -13,7 +13,14 @@ logger = logging.getLogger(__name__)
 
 DOCLING_SUFFIXES = {".pdf", ".docx", ".xlsx", ".pptx", ".html", ".htm", ".md", ".csv",
                     ".png", ".jpg", ".jpeg", ".tif", ".tiff"}  # fmt: skip
-PLAIN_TEXT_SUFFIXES = {".txt", ".log", ".ini", ".xml", ".json"}
+PLAIN_TEXT_SUFFIXES = {
+    ".txt",
+    ".log",
+    ".ini",
+    ".xml",
+    ".json",
+    ".scl",
+}  # .scl: TIA-Quelle, Issue #50
 
 _converter = None
 _converter_lock = threading.Lock()
@@ -101,7 +108,9 @@ def parse_document(path: Path) -> list[ParsedPage]:
         try:
             markdown = document.export_to_markdown(page_no=page_no)
         except Exception:  # Docling kennt die Seite nicht (z.B. leere Seite)
-            logger.warning("Docling lieferte kein Markdown fuer Seite %s von %s", page_no, path.name)
+            logger.warning(
+                "Docling lieferte kein Markdown fuer Seite %s von %s", page_no, path.name
+            )
             markdown = ""
         pages.append(ParsedPage(page=page_no, markdown=markdown, raw_text=raw_texts[page_no]))
     return pages

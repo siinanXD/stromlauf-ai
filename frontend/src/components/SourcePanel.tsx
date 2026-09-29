@@ -228,7 +228,7 @@ export function SourcePanel({
           type="file"
           multiple
           hidden
-          accept=".pdf,.awl,.sdf,.xlsx,.csv,.docx,.pptx,.md,.txt,.html,.png,.jpg,.jpeg,.tif,.tiff"
+          accept=".pdf,.awl,.scl,.sdf,.xlsx,.csv,.docx,.pptx,.md,.txt,.html,.png,.jpg,.jpeg,.tif,.tiff"
           onChange={(event) => choose(event.target.files)}
         />
         {pending.length > 0 && (
