@@ -13,10 +13,13 @@ und den Text normalisieren. Messwerte: eval/run_ingest.py --ocr.
 import ctypes
 import logging
 import math
+import os
 import re
+import shutil
 import threading
 import time
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -400,12 +403,21 @@ def render_page(path: Path, page: int) -> tuple[Image.Image, int]:
     return image, dpi
 
 
-def searchable_pdf(src: Path, dst: Path, pages: list[int] | None = None) -> OcrReport:
-    """src mit erkanntem Text auf den Seiten ohne Textebene (oder `pages`) als durchsuchbares PDF nach dst."""
+def searchable_pdf(
+    src: Path,
+    dst: Path,
+    pages: list[int] | None = None,
+    progress: Callable[[int, int], None] | None = None,
+) -> OcrReport:
+    """src mit erkanntem Text auf den Seiten ohne Textebene (oder `pages`) als durchsuchbares PDF nach dst.
+
+    progress(n, gesamt) meldet vor jeder Seite den Stand (Fortschritt am Dokument: "OCR Seite n/gesamt")."""
     started = time.perf_counter()
     targets = pages_without_text(src) if pages is None else pages
     results: list[PageOcr] = []
-    for page in targets:
+    for index, page in enumerate(targets, start=1):
+        if progress:
+            progress(index, len(targets))
         page_start = time.perf_counter()
         image, dpi = render_page(src, page)
         lines, rotation, skew = read_page(image)
@@ -424,3 +436,107 @@ def searchable_pdf(src: Path, dst: Path, pages: list[int] | None = None) -> OcrR
         )
     write_text_layer(src, dst, {result.page: list(result.lines) for result in results})
     return OcrReport(tuple(results), time.perf_counter() - started)
+
+
+# --- Uploads (Issue #66) ------------------------------------------------------------------------------
+
+
+def original_path(path: Path) -> Path:
+    """Wo das unveraenderte Original eines durchsuchbar gemachten Uploads liegt: <name>.orig<endung>."""
+    return path.with_name(f"{path.stem}.orig{path.suffix}")
+
+
+def stored_files(path: Path) -> list[Path]:
+    """Alle Dateien eines Uploads; Loeschen muss beide entfernen."""
+    return [path, original_path(path)]
+
+
+def prepare_pdf(
+    path: Path, mode: str, progress: Callable[[int, int], None] | None = None
+) -> OcrReport | None:
+    """Upload unter path bei Bedarf durchsuchbar machen; das Original bleibt als original_path(path) liegen.
+
+    mode: auto (Seiten ohne Textebene), always (jede Seite), off (keine). Neu verarbeiten beginnt immer beim
+    Original, damit ein anderer Modus oder eine bessere Erkennung wirkt. So lesen alle Stellen, die storage_path
+    oeffnen (Seitenbild, Spalten, Zitat-Resolver, Ablauf), den Scan ohne Sonderpfad und ohne Migration.
+    Liefert None, wenn keine Seite OCR brauchte oder die Datei fehlt (das meldet dann das Parsen).
+    """
+    original = original_path(path)
+    if original.exists():
+        shutil.copyfile(original, path)
+    if mode == "off" or not path.exists():
+        return None
+    if mode == "always":
+        with pdfium_lock:
+            document = pdfium.PdfDocument(str(path))
+            try:
+                pages = list(range(1, len(document) + 1))
+            finally:
+                document.close()
+    else:
+        pages = pages_without_text(path)
+    if not pages:
+        return None
+    if not original.exists():
+        shutil.copyfile(path, original)
+    scratch = path.with_name(f"{path.stem}.ocr-tmp{path.suffix}")
+    try:
+        report = searchable_pdf(original, scratch, pages, progress)
+        os.replace(scratch, path)
+    finally:
+        scratch.unlink(missing_ok=True)
+    return report
+
+
+def _decimal(value: float, digits: int) -> str:
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
+def ocr_note(report: OcrReport) -> str:
+    """Hinweis am Dokument, z. B. "7 Seiten per OCR, Ø Konfidenz 0,98, 4,4 s/Seite"."""
+    pages = len(report.pages)
+    if not pages:
+        return ""
+    parts = [f"{pages} {'Seite' if pages == 1 else 'Seiten'} per OCR"]
+    if report.confidence is not None:
+        parts.append(f"Ø Konfidenz {_decimal(report.confidence, 2)}")
+    parts.append(f"{_decimal(report.seconds / pages, 1)} s/Seite")
+    return ", ".join(parts)
+
+
+def lines_to_text(lines: list[OcrLine]) -> str:
+    """Zeilen in Lesereihenfolge: von oben nach unten, auf gleicher Hoehe von links nach rechts."""
+    if not lines:
+        return ""
+
+    def top(line: OcrLine) -> float:
+        return min(y for _, y in line.quad)
+
+    def height(line: OcrLine) -> float:
+        return max(y for _, y in line.quad) - top(line)
+
+    tolerance = float(np.median([height(line) for line in lines])) / 2
+    rows: list[list[OcrLine]] = []
+    for line in sorted(lines, key=top):
+        if rows and abs(top(line) - top(rows[-1][0])) <= tolerance:
+            rows[-1].append(line)
+        else:
+            rows.append([line])
+    return "\n".join(
+        "  ".join(line.text for line in sorted(row, key=lambda item: min(x for x, _ in item.quad)))
+        for row in rows
+    )
+
+
+def read_image(path: Path) -> list[tuple[str, float | None]]:
+    """Text je Bild einer Datei (mehrseitige TIFF: je Seite), mit mittlerer Konfidenz."""
+    from PIL import ImageOps, ImageSequence
+
+    frames = []
+    with Image.open(path) as image:
+        for frame in ImageSequence.Iterator(image):
+            upright = ImageOps.exif_transpose(frame.copy())
+            lines, _, _ = read_page(upright)
+            confidence = float(np.mean([line.confidence for line in lines])) if lines else None
+            frames.append((lines_to_text(lines), confidence))
+    return frames

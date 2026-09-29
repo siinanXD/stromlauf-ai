@@ -14,7 +14,7 @@ from app import ledger
 from app.config import get_settings
 from app.db import session_scope
 from app.embeddings import embeddings
-from app.ingestion import awl_parser, doctype
+from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
 from app.ingestion.tags import detect_folio_style, extract_tags
@@ -90,14 +90,12 @@ def empty_pages_note(pages: list[int], page_count: int | None) -> str:
     return f"{len(pages)} von {page_count} Seiten ohne Text: {page_ranges(pages)}" if pages else ""
 
 
-def scan_message(page_count: int, ocr_enabled: bool) -> str:
-    """Fehlertext fuer ein PDF, in dem keine einzige Seite lesbaren Text hat."""
-    if ocr_enabled:
-        return (
-            f"Scan ohne Textebene ({page_count} von {page_count} Seiten), "
-            "auch die Texterkennung (OCR_ENABLED) fand keinen Text"
-        )
-    return f"Scan ohne Textebene ({page_count} von {page_count} Seiten), Texterkennung noch nicht aktiv"
+def scan_message(page_count: int, mode: str) -> str:
+    """Fehlertext fuer ein PDF, in dem keine einzige Seite lesbaren Text hat, auch nach der Texterkennung."""
+    scan = f"Scan ohne Textebene ({page_count} von {page_count} Seiten)"
+    if mode == "off":
+        return f"{scan}, Texterkennung ausgeschaltet (OCR_MODE=off)"
+    return f"{scan}, auch die Texterkennung fand keinen Text"
 
 
 def progress_text(chunks: int, tags: int, note: str) -> str:
@@ -294,6 +292,33 @@ def vision_skip_note() -> str:
     return f"Vision-Analyse uebersprungen: {missing} fehlt" if missing else ""
 
 
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
+
+
+def _image_pieces(path: Path) -> list[Piece]:
+    """Bild (Foto, Scan als Bilddatei): Text per OCR statt Docling, ein Stueck je Bild bzw. TIFF-Seite (Issue #66)."""
+    if get_settings().effective_ocr_mode == "off":
+        return []
+    frames = ocr.read_image(path)
+    pieces = []
+    for number, (text, confidence) in enumerate(frames, start=1):
+        if not text.strip():
+            continue
+        meta = {
+            "read": "ocr",
+            **({"ocr_conf": round(confidence, 3)} if confidence is not None else {}),
+        }
+        pieces.append(
+            Piece(
+                text,
+                section=f"Seite {number}" if len(frames) > 1 else "",
+                meta=meta,
+                folio_style=detect_folio_style(text),
+            )
+        )
+    return pieces
+
+
 def document_pieces(
     path: Path, doc_type: str, progress: Callable[[str], None] | None = None
 ) -> DocumentPieces:
@@ -303,6 +328,10 @@ def document_pieces(
         return DocumentPieces(_awl_pieces(path))
     if doc_type == DocType.PLC_SYMBOLS or path.suffix.lower() == ".sdf":
         return DocumentPieces(_symbol_pieces(path))
+    if path.suffix.lower() in IMAGE_SUFFIXES:
+        if progress:
+            progress("Texterkennung")
+        return DocumentPieces(_image_pieces(path))
 
     if progress:
         progress("Docling-Analyse")
@@ -361,9 +390,42 @@ def _build_pieces(
     covered = {piece.page for piece in pieces}
     lost = [page for page in read.empty_pages if page not in covered]
     if page_count and len(lost) == page_count:
-        raise ValueError(scan_message(page_count, get_settings().ocr_enabled))
+        raise ValueError(scan_message(page_count, get_settings().effective_ocr_mode))
     note = " · ".join(part for part in (note, empty_pages_note(lost, page_count)) if part)
     return pieces, page_count, note
+
+
+def _prepare_scan(document_id: str, path: Path, doc_type: str) -> tuple[ocr.OcrReport | None, str]:
+    """PDF-Upload per OCR durchsuchbar machen (Issue #66). Scheitert die Erkennung, laeuft die Ingestion mit der
+    vorhandenen Textebene weiter und nennt den Fehler am Dokument."""
+    if path.suffix.lower() != ".pdf" or doc_type in {DocType.PLC_PROGRAM, DocType.PLC_SYMBOLS}:
+        return None, ""
+    try:
+        report = ocr.prepare_pdf(
+            path,
+            get_settings().effective_ocr_mode,
+            progress=lambda page, total: _set_progress(document_id, f"OCR Seite {page}/{total}"),
+        )
+    except Exception as exc:
+        logger.exception("Texterkennung fehlgeschlagen: %s", path.name)
+        return None, f"Texterkennung fehlgeschlagen: {type(exc).__name__}"
+    return report, ""
+
+
+def _mark_reading(pieces: list[Piece], report: ocr.OcrReport | None, path: Path) -> None:
+    """Lesart je PDF-Seite in Chunk.meta: "ocr" mit Konfidenz oder "text" (Textebene des Originals)."""
+    if path.suffix.lower() != ".pdf":
+        return
+    confidence = {page.page: page.confidence for page in report.pages} if report else {}
+    for piece in pieces:
+        if piece.page is None or "read" in piece.meta or piece.kind == "vision":
+            continue
+        if piece.page in confidence:
+            piece.meta["read"] = "ocr"
+            if confidence[piece.page] is not None:
+                piece.meta["ocr_conf"] = round(confidence[piece.page], 3)
+        else:
+            piece.meta["read"] = "text"
 
 
 def ingest_document(document_id: str) -> None:
@@ -387,8 +449,15 @@ def ingest_document(document_id: str) -> None:
         _set_progress(document_id, "wartet, anderes Dokument wird gerade verarbeitet")
         _INGEST_LOCK.acquire()
     try:
+        ocr_report, ocr_problem = _prepare_scan(document_id, path, doc_type)
         raw_pieces, page_count, note = _build_pieces(
             document_id, path, doc_type, vision, machine_id
+        )
+        _mark_reading(raw_pieces, ocr_report, path)
+        note = " · ".join(
+            part
+            for part in (ocr.ocr_note(ocr_report) if ocr_report else "", ocr_problem, note)
+            if part
         )
         pieces = split_pieces(raw_pieces)
         if not pieces:  # reine Scan-PDFs meldet schon _build_pieces mit Seitenzahl

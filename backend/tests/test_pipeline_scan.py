@@ -121,15 +121,6 @@ def test_voll_scan_scheitert_mit_seitenzahl_statt_mit_ocr_hinweis(ohne_docling):
         pipeline._build_pieces("doc", FULL, "schematic", vision=False)
 
 
-def test_scan_meldung_unterscheidet_ob_die_texterkennung_lief():
-    assert pipeline.scan_message(7, ocr_enabled=False) == (
-        "Scan ohne Textebene (7 von 7 Seiten), Texterkennung noch nicht aktiv"
-    )
-    assert pipeline.scan_message(3, ocr_enabled=True) == (
-        "Scan ohne Textebene (3 von 3 Seiten), auch die Texterkennung (OCR_ENABLED) fand keinen Text"
-    )
-
-
 def test_textobjekte_ohne_lesbare_zeichen_zaehlen_als_seite_ohne_text(ohne_docling, tmp_path):
     path = tmp_path / "handbuch.pdf"
     _pdf_mit_leerer_textebene(path)
@@ -182,8 +173,12 @@ def _wipe_sources() -> None:
 
 
 @DB
-def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenzahl(monkeypatch):
-    from app.config import get_settings
+def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenzahl(
+    monkeypatch, tmp_path
+):
+    """Ohne Texterkennung (OCR_MODE=off) wie in B2; mit OCR siehe test_ocr_pipeline.py. Die Pipeline schreibt
+    in den Upload, deshalb arbeitet der Test auf Kopien der Fixtures."""
+    from app.config import Settings, get_settings
     from app.db import session_scope
     from app.models import Document, KnowledgeSource, Workspace
     from app.tenancy import reset_workspace, set_workspace
@@ -196,6 +191,10 @@ def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenz
 
     monkeypatch.setattr(pipeline, "parse_document", _docling_ohne_ocr)
     monkeypatch.setattr(pipeline, "embeddings", _NullEmbeddings())
+    monkeypatch.setattr(pipeline, "get_settings", lambda: Settings(_env_file=None, ocr_mode="off"))
+    uploads = {"teil": tmp_path / "teil.pdf", "voll": tmp_path / "voll.pdf"}
+    uploads["teil"].write_bytes(PARTIAL.read_bytes())
+    uploads["voll"].write_bytes(FULL.read_bytes())
     with session_scope() as session:
         session.merge(Workspace(id=WS, name=WS))
     _wipe_sources()
@@ -210,7 +209,7 @@ def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenz
                 document = Document(
                     source_id=source.id,
                     filename=path.name,
-                    storage_path=str(path),
+                    storage_path=str(uploads[key]),
                     doc_type="schematic",
                 )
                 session.add(document)
@@ -241,6 +240,10 @@ def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenz
     assert progress.endswith(" · 1 von 7 Seiten ohne Text: 3") and " Abschnitte, " in progress
     status, progress, error = result["voll"]
     assert status == "failed" and progress == ""
-    assert (
-        error == "ValueError: Scan ohne Textebene (7 von 7 Seiten), Texterkennung noch nicht aktiv"
+    assert error == (
+        "ValueError: Scan ohne Textebene (7 von 7 Seiten), Texterkennung ausgeschaltet (OCR_MODE=off)"
     )
+    assert sorted(p.name for p in tmp_path.iterdir()) == [
+        "teil.pdf",
+        "voll.pdf",
+    ]  # ohne OCR kein Original

@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.db import get_session
 from app.ingestion import doctype
 from app.ingestion.docling_parser import DOCLING_SUFFIXES, PLAIN_TEXT_SUFFIXES
+from app.ingestion.ocr import stored_files
 from app.ingestion.pdf_layout import known_sheets, page_columns, parse_ref, sheet_page
 from app.ingestion.pipeline import detect_doc_type, ingest_document
 from app.ingestion.profile import CORE_DOC_TYPES, Occurrence, build_profile
@@ -74,7 +75,8 @@ def create_source(body: SourceCreate, session: Session = Depends(get_session)):
 @router.delete("/sources/{source_id}", status_code=204)
 def delete_source(source_id: str, session: Session = Depends(get_session)):
     source = _get_source(session, source_id)
-    paths = [Path(d.storage_path) for d in source.documents]
+    # je Upload auch das Original eines per OCR durchsuchbar gemachten Scans (Issue #66)
+    paths = [file for d in source.documents for file in stored_files(Path(d.storage_path))]
     session.delete(source)
     session.commit()
     for path in paths:
@@ -232,10 +234,11 @@ def reingest_document(
 @router.delete("/documents/{document_id}", status_code=204)
 def delete_document(document_id: str, session: Session = Depends(get_session)):
     document = _get_document(session, document_id)
-    path = Path(document.storage_path)
+    paths = stored_files(Path(document.storage_path))
     session.delete(document)
     session.commit()
-    path.unlink(missing_ok=True)
+    for path in paths:
+        path.unlink(missing_ok=True)
 
 
 @router.get("/documents/{document_id}/pages/{page}/image")
