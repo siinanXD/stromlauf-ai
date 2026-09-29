@@ -104,6 +104,9 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
   generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
+- Kennzeichen-Index: Schluessel immer in der Schreibweise von `tags.normalize_tag` (gross), denn `find_tag`,
+  `/api/tags/search`, `/api/facts` und die Hotspot-Suche vergleichen case-sensitiv (`==`, `LIKE`). Die Etage einer
+  Mehrstockklemme `-X2:3a` steht als `-X2:3A` im Index, der Kontext behaelt die Schreibweise des Dokuments.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

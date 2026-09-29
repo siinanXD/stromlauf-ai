@@ -134,7 +134,7 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
 - `--doc` misst eine andere Fassung desselben Plans gegen dasselbe Gold, `--label` kommt in den Dateinamen. Die
   Scan-Fassungen liegen in `examples/scan/` (`scripts/example_docs/make_scan.py`, Issue #64): Voll-Scan, Teil-Scan
   mit Blatt 3 als Bild, Blatt 4 hochkant; Seitenzahl und Blattfolge wie im Text-PDF. Vorher-Werte ohne OCR:
-  Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,88 bis 0,93 (Recall je Typ, Precision 1,00).
+  Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,86 bis 0,93 (Recall je Typ, Precision 1,00).
 
 ```bash
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95

@@ -13,11 +13,13 @@ from app.models import TagType
 # IEC 81346 / EN 61346: [=Anlage][+Ort]-Kennbuchstabe(n)Zaehlnummer[:Anschluss]
 # Im Anschluss stehen "." und "/" nur vor einem Buchstaben oder einer Ziffer (-X5:1.2, -X4:U/V/W): so bleiben
 # Satzende ("-X3:6.") und das naechste Kennzeichen ("-X3:9/-X3:10") draussen.
+# Kleinbuchstaben nur direkt hinter einer Ziffer: Etage einer Mehrstockklemme (-X2:3a). Fliesstext hinter
+# der Leiste ("-X1:Schirm") wird so kein Anschluss.
 _DEVICE_RE = re.compile(
     r"(?<![\w.])"
     r"(?P<prefix>(?:=[A-Z0-9][A-Z0-9.]*)?(?:\+[A-Z0-9][A-Z0-9.\-]*?)?)"
     r"-(?P<letters>[A-Z]{1,3})(?P<number>\d{1,4}(?:\.\d{1,3})?)"
-    r"(?::(?P<pin>[A-Z0-9](?:[A-Z0-9+\-]|[./](?=[A-Z0-9])){0,7}))?"
+    r"(?::(?P<pin>[A-Z0-9](?:[A-Z0-9+\-]|(?<=\d)[a-z]|[./](?=[A-Z0-9])){0,7}))?"
     r"(?![\w])"
 )
 
@@ -148,7 +150,8 @@ def extract_tags(text: str, *, plc_loose: bool = False, folio_style: bool = Fals
         if m["prefix"]:
             add(f"{m['prefix']}{base}", tag_type, m)
         if m["pin"] and is_terminal:
-            add(f"{base}:{m['pin']}", TagType.TERMINAL, m)
+            # gross wie normalize_tag(): die Suche vergleicht case-sensitiv, "-x2:3a" sucht "-X2:3A"
+            add(f"{base}:{m['pin'].upper()}", TagType.TERMINAL, m)
 
     if folio_style:
         for m in _FOLIO_DEVICE_RE.finditer(text):

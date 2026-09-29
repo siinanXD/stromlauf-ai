@@ -44,6 +44,29 @@ def test_anschluesse_mit_buchstaben_punkt_und_schraegstrich_bleiben_ganz():
     assert ("-X2:3", TagType.TERMINAL) not in _tags("Bruecke -X2:3a")  # ganz oder gar nicht, nie abgeschnitten
 
 
+def test_etage_einer_mehrstockklemme_in_kleinbuchstaben_wird_erkannt():
+    """-X2:3a/-X2:3b stehen so in den Klemmenplaenen von FB-01, UR-01 und PM1-AR; bisher kam nur -X2 in den Index."""
+    row = _tags("-X2;-X2:3a;-K3:14;-K1:A1 / -K2:A1 (ueber -A1.2);+24 V freigegeben;/4.4")  # 03_Klemmenplan_FB-01.csv
+    assert ("-X2:3A", TagType.TERMINAL) in row
+    prose = _tags("Freigabe ueber -X2:3a, Tippbetrieb ueber -X2:3b.")
+    assert ("-X2:3A", TagType.TERMINAL) in prose and ("-X2:3B", TagType.TERMINAL) in prose
+    assert [tag for tag, _ in row | prose if tag != tag.upper()] == []
+
+
+def test_suche_findet_die_mehrstockklemme_in_jeder_schreibweise():
+    """Die Suche vergleicht case-sensitiv (== und LIKE) mit normalize_tag(); der Index muss genauso lauten."""
+    assert [t.tag for t in extract_tags("Bruecke -X2:3a") if ":" in t.tag] == ["-X2:3A"]
+    for typed in ("-X2:3a", "-x2:3a", "x2:3a", "-X2:3A"):
+        assert normalize_tag(typed) == "-X2:3A", typed
+        assert "-X2:3A" in search_prefixes(typed), typed
+
+
+def test_kleinbuchstaben_nur_als_etage_direkt_hinter_einer_ziffer():
+    """Fliesstext hinter einer Klemmleiste wird kein Anschluss; "3ab" wird weder "3A" noch "3"."""
+    for text in ("Schirm auf -X1:Schirm legen", "Leiste -X1:oben", "Ader -X1:Pe", "Klemme -X2:3ab"):
+        assert [tag for tag, _ in _tags(text) if ":" in tag] == [], text
+
+
 def test_no_device_tag_inside_words():
     assert _tags("E-Mail an Service-Team, Typ 3RT2016-1BB41") == set()
 
