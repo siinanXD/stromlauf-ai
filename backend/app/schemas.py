@@ -64,8 +64,12 @@ class CitationValidateRequest(BaseModel):
     """
 
     answer: str = Field(max_length=50_000)
-    source_ids: list[str] = Field(default_factory=list, max_length=50)  # leer = alle Quellen des Workspace
-    sources: list[CitedFile] | None = Field(default=None, max_length=500)  # Fundstellen der Werkzeugaufrufe; None = jede Datei der Quellen gilt
+    source_ids: list[str] = Field(
+        default_factory=list, max_length=50
+    )  # leer = alle Quellen des Workspace
+    sources: list[CitedFile] | None = Field(
+        default=None, max_length=500
+    )  # Fundstellen der Werkzeugaufrufe; None = jede Datei der Quellen gilt
 
 
 class CitationCheckOut(BaseModel):
@@ -86,6 +90,9 @@ class CitationsValid(BaseModel):
 class CitationValidateOut(BaseModel):
     citation_checks: list[CitationCheckOut]
     citations_valid: CitationsValid
+    referenced_tags: list[
+        str
+    ] = []  # Betriebsmittel der Antwort im Index der Quellen (fuer teile_praezision/-recall)
 
 
 class SourceRef(BaseModel):

@@ -4,6 +4,7 @@ Ohne Netz und ohne Modell; die Skripte run_eval.py, run_retrieval.py und rescore
 """
 
 import json
+import math
 import re
 from collections.abc import Iterable
 from datetime import datetime
@@ -12,7 +13,10 @@ from pathlib import Path
 RETRIEVAL_MODES = ("tag", "semantic", "keyword", "fact", "signal", "calc", "site")
 NO_FILES = {"signal", "calc", "site"}  # Retrieval-Modi ohne zitierte Dateinamen: quellen gilt als erfuellt
 ERROR_PREFIX = "[FEHLER]"
-COMPARE_KEYS = ("fakten_mittel", "quellen_ok", "zitate_gueltig", "zitate_geprueft", "sauber", "werkzeug_ok", "voll_bestanden", "dauer_mittel_s")
+COMPARE_KEYS = (
+    "fakten_mittel", "quellen_ok", "zitate_gueltig", "zitate_geprueft", "teile_praezision", "teile_recall",
+    "sauber", "werkzeug_ok", "voll_bestanden", "dauer_mittel_s", "p95_s", "fehlerrate",
+)
 
 
 # --- Fragen -----------------------------------------------------------------------------------
@@ -59,6 +63,10 @@ def validate_questions(rows: list[dict]) -> list[str]:
                 problems.append(f"{qid}: retrieval.query fehlt")
         if row.get("agent") is False and retrieval is None:
             problems.append(f"{qid}: agent=false braucht retrieval")
+        for key in ("expect_tags", "ok_tags"):
+            tags = row.get(key)
+            if tags is not None and (not isinstance(tags, list) or not all(isinstance(t, str) and t.strip() for t in tags)):
+                problems.append(f"{qid}: {key} muss eine Liste nichtleerer Kennzeichen sein")
     return problems
 
 
@@ -114,7 +122,10 @@ def score(question: dict, answer: str, sources: list[dict], tools: list[str] | N
 
     ``meta`` ist das meta-Event der Antwort: seine ``citation_checks`` (Zitat-Resolver im Backend, Issue #46)
     ergeben ``zitate_gueltig`` (Anteil gueltiger Belege) und ``zitate_geprueft`` (Anteil pruefbarer Orte);
-    ohne Belege oder ohne meta bleiben beide None.
+    ohne Belege oder ohne meta bleiben beide None. Seine ``referenced_tags`` werden gegen ``expect_tags``
+    der Frage gehalten (Issue #49): ``teile_recall`` = erwartete Teile, die die Antwort nennt;
+    ``teile_praezision`` = genannte Teile, die erwartet oder per ``ok_tags`` erlaubt sind. Ohne meta oder
+    ohne ``expect_tags`` bleiben beide None.
     """
     hits = [bool(re.search(p, answer, re.IGNORECASE)) for p in question["must_contain"]]
     forbidden = [p for p in question.get("must_not_contain", []) if re.search(p, answer, re.IGNORECASE)]
@@ -127,6 +138,7 @@ def score(question: dict, answer: str, sources: list[dict], tools: list[str] | N
     invalid = [c.get("text", "") for c in checks if not c.get("valid")]
     checked_n = len(checks) - len(unchecked)
     return {
+        **_parts_score(question, meta),
         "fakten": sum(hits) / len(hits) if hits else 1.0,
         "fakten_fehlend": [p for p, h in zip(question["must_contain"], hits, strict=True) if not h],
         "quellen_ok": not missing_sources,
@@ -139,6 +151,26 @@ def score(question: dict, answer: str, sources: list[dict], tools: list[str] | N
         "zitate_geprueft": checked_n / len(checks) if checks else None,
         "zitate_ungueltig": invalid,
         "zitate_ungeprueft": unchecked,
+    }
+
+
+def _parts_score(question: dict, meta: dict | None) -> dict:
+    """Referenzierte Bauteile (meta.referenced_tags) gegen expect_tags/ok_tags der Frage; Zaehler fuer summarize."""
+    expected = [str(t).upper() for t in question.get("expect_tags") or []]
+    allowed = set(expected) | {str(t).upper() for t in question.get("ok_tags") or []}
+    referenced = [str(t).upper() for t in (meta or {}).get("referenced_tags") or []]
+    measurable = meta is not None and bool(expected)
+    hits = [t for t in expected if t in referenced]
+    fitting = [t for t in referenced if t in allowed]
+    return {
+        "teile_erwartet": len(expected) if measurable else 0,
+        "teile_referenziert": len(referenced) if measurable else 0,
+        "teile_treffer": len(hits) if measurable else 0,
+        "teile_passend": len(fitting) if measurable else 0,
+        "teile_recall": len(hits) / len(expected) if measurable else None,
+        "teile_praezision": len(fitting) / len(referenced) if measurable and referenced else None,
+        "teile_fehlend": [t for t in expected if t not in referenced] if measurable else [],
+        "teile_fremd": [t for t in referenced if t not in allowed] if measurable else [],
     }
 
 
@@ -172,21 +204,33 @@ def summarize(rows: list[dict]) -> dict:
     unchecked = sum(len(r["score"].get("zitate_ungeprueft") or []) for r in scored)
     invalid = sum(len(r["score"].get("zitate_ungueltig") or []) for r in scored)
     checked = total - unchecked
+    # Referenzierte Bauteile ebenso zusammengezaehlt, nur ueber Antworten mit expect_tags (Issue #49)
+    with_parts = [r for r in scored if r["score"].get("teile_erwartet")]
+    expected = sum(r["score"]["teile_erwartet"] for r in with_parts)
+    referenced = sum(r["score"].get("teile_referenziert") or 0 for r in with_parts)
+    treffer = sum(r["score"].get("teile_treffer") or 0 for r in with_parts)
+    passend = sum(r["score"].get("teile_passend") or 0 for r in with_parts)
+    durations = sorted(float(r.get("dauer_s") or 0.0) for r in scored)
 
     return {
         "fragen": len(rows),
         "bewertet": len(scored),
         "nicht_bewertet_fehler": len(failed),
+        "fehlerrate": round(len(failed) / len(rows), 3) if rows else None,
         "fakten_mittel": round(sum(r["score"]["fakten"] for r in scored) / n, 3),
         "quellen_ok": round(sum(r["score"]["quellen_ok"] for r in scored) / n, 3),
         "zitate_belege": total,
         "zitate_antworten": sum(1 for r in scored if r["score"].get("zitate_belege")),
         "zitate_gueltig": round((checked - invalid) / checked, 3) if checked else None,
         "zitate_geprueft": round(checked / total, 3) if total else None,
+        "teile_antworten": len(with_parts),
+        "teile_recall": round(treffer / expected, 3) if expected else None,
+        "teile_praezision": round(passend / referenced, 3) if referenced else None,
         "sauber": round(sum(r["score"]["sauber"] for r in scored) / n, 3),
         "werkzeug_ok": round(sum(r["score"]["werkzeug_ok"] for r in with_tools) / len(with_tools), 3) if with_tools else None,
         "voll_bestanden": sum(passed(r["score"]) for r in scored),
         "dauer_mittel_s": round(sum(r.get("dauer_s", 0.0) for r in scored) / n, 1),
+        "p95_s": durations[max(0, math.ceil(0.95 * len(durations)) - 1)] if durations else None,
         **usage_total(rows),
     }
 
@@ -266,10 +310,16 @@ def print_row(index: int, total: int, question: dict, result: dict, seconds: flo
     flag = "OK " if passed(result) else "-- "
     tools = "" if result.get("werkzeug_ok") is None else f"  werkzeug {'ja' if result['werkzeug_ok'] else 'NEIN'}"
     cites = "" if result.get("zitate_gueltig") is None else f"  zitate {result['zitate_gueltig']:.2f}"
+    recall, precision = result.get("teile_recall"), result.get("teile_praezision")
+    parts = "" if recall is None else f"  teile {recall:.2f}/{'-' if precision is None else format(precision, '.2f')}"
     time_text = f"  {seconds:.0f}s" if seconds is not None else ""
     print(f"[{index}/{total}] {question['id']}: {question['question'][:70]}", flush=True)
     print(f"      {flag} fakten {result['fakten']:.2f}  quellen {'ja' if result['quellen_ok'] else 'NEIN'}  "
-          f"sauber {'ja' if result['sauber'] else 'NEIN'}{tools}{cites}{time_text}", flush=True)
+          f"sauber {'ja' if result['sauber'] else 'NEIN'}{tools}{cites}{parts}{time_text}", flush=True)
+    if result.get("teile_fehlend"):
+        print(f"         Teil fehlt: {result['teile_fehlend']}")
+    if result.get("teile_fremd"):
+        print(f"         Teil fremd: {result['teile_fremd']}")
     if result["fakten_fehlend"]:
         print(f"         fehlt: {result['fakten_fehlend']}")
     if result["quellen_fehlend"]:

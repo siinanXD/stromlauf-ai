@@ -9,6 +9,7 @@ angegebene Wissensquelle). Bewertet wird ohne LLM-Richter, nur mit Regeln (eval/
   fakten     Anteil der must_contain-Muster (Regex, Gross/Klein egal), die in der Antwort vorkommen
   quellen    alle expect_sources-Dateien wurden als Quelle zitiert
   zitate     Anteil der Belege [[Datei|Ort]], die der Zitat-Resolver des Backends bestaetigt (meta-Event)
+  teile      referenzierte Bauteile gegen expect_tags/ok_tags der Frage: Recall und Praezision (meta-Event)
   sauber     kein must_not_contain-Muster in der Antwort (Halluzinations-Fallen)
   werkzeug   die in "tools" erwarteten Werkzeuge wurden aufgerufen (nur wenn erwartet)
 
@@ -91,8 +92,9 @@ def push_scores(run: str, rows: list[dict]) -> None:
         client.create_score(session_id=session, name="fakten", value=score["fakten"], data_type="NUMERIC")
         client.create_score(session_id=session, name="quellen_ok", value=float(score["quellen_ok"]), data_type="NUMERIC")
         client.create_score(session_id=session, name="sauber", value=float(score["sauber"]), data_type="NUMERIC")
-        if score.get("zitate_gueltig") is not None:
-            client.create_score(session_id=session, name="zitate_gueltig", value=score["zitate_gueltig"], data_type="NUMERIC")
+        for key in ("zitate_gueltig", "teile_praezision", "teile_recall"):
+            if score.get(key) is not None:
+                client.create_score(session_id=session, name=key, value=score[key], data_type="NUMERIC")
         written += 1
     client.flush()
     print(f"Langfuse: {written} von {len(rows)} Antworten bewertet (Lauf {run}).")
