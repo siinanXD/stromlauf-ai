@@ -195,10 +195,29 @@ export interface CabinetEvidence {
 
 export type Evidence = PageEvidence | CabinetEvidence;
 
+/** Ein Beleg [[Datei|Ort]] der Antwort, vom Zitat-Resolver des Backends geprueft (Issue #46). */
+export interface CitationCheck {
+  text: string;
+  file: string;
+  locator: string;
+  valid: boolean;
+  /** false: Ort in diesem Dokument nicht pruefbar (keine Seiten, kein Index, keine Abschnitte). */
+  checked: boolean;
+  reason: string;
+}
+
+export interface CitationsValid {
+  valid: number;
+  checked: number;
+  total: number;
+}
+
 export interface AnswerMeta {
   referenced_tags: string[];
   citations: SourceRef[];
   evidence: Evidence[];
+  citation_checks?: CitationCheck[];
+  citations_valid?: CitationsValid;
 }
 
 // --- Maschinenmodell "Schema" (GET /api/machines/{id}/map) ---------------------------------

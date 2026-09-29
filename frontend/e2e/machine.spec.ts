@@ -56,6 +56,14 @@ test("Antwort markiert -K1 im Modell, zeigt Belegbild, Chip löst openPart aus",
   await expect(page.getByTestId("evidence-row").locator("img")).toHaveCount(2);
   await expect(page.getByTestId("evidence-cabinet")).toBeVisible();
 
+  // Zitat-Resolver (Issue #46): ungueltige Belege (Span ohne Ziel und klickbarer PDF-Chip) tragen den Grund fuer
+  // Screenreader und Tooltip, der Fuss zaehlt und listet die Gruende auf
+  await expect(page.locator('span[data-invalid="true"]').first()).toContainText("Beleg ungültig: Kennzeichen -X9 nicht in 02_Stueckliste_FB-01.xlsx");
+  await expect(page.locator('button[data-invalid="true"]').first()).toHaveAccessibleName(/Beleg ungültig: Seite 9 nicht in 01_Stromlaufplan_FB-01.pdf/);
+  await expect(page.getByTestId("citations-valid")).toContainText("Belege: 1 von 3 gültig");
+  await page.getByTestId("citations-valid").locator("summary").click();
+  await expect(page.getByTestId("citations-valid").getByRole("listitem")).toHaveCount(2);
+
   // Modell: -K1 und -F2 als referenziert markiert, Zone +ST1 leuchtet
   const zones = page.getByRole("list", { name: "Zonen der Maschine" });
   await expect(zones.locator('button.part-chip[data-tag="-K1"]')).toHaveAttribute("data-referenced", "true");

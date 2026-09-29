@@ -1,5 +1,7 @@
 /** Chat-Antworten zerlegen: Belege [[Datei|Ort]] und die festen Abschnitte aus dem System-Prompt. */
 
+import type { CitationCheck, CitationsValid } from "./api";
+
 export interface Citation {
   index: number;
   filename: string;
@@ -80,6 +82,25 @@ export function refOf(loc: string): { ref?: string; page?: number } {
   const page = loc.match(/S\.\s*(\d+)/);
   if (page) return { ref: `S. ${page[1]}`, page: Number(page[1]) };
   return {};
+}
+
+/** Pruefergebnis des Backends zu einem Beleg (Datei ohne Gross/Klein, Ort genau); undefined ohne meta. */
+export function citationCheckFor(checks: CitationCheck[] | undefined, citation: Citation): CitationCheck | undefined {
+  if (!checks) return undefined;
+  const file = citation.filename.toLowerCase();
+  return checks.find((c) => c.file.toLowerCase() === file && c.locator === citation.loc);
+}
+
+/** Fuss der Antwort: "Belege: 5 von 6 gültig" bzw. mit nicht pruefbaren Orten
+ * "Belege: 4 von 4 geprüft gültig, 2 nicht prüfbar" (ungepruefte zaehlen im Backend als gueltig, sind aber
+ * nicht belegt und werden hier nicht als gueltig ausgegeben); leer ohne Belege. */
+export function citationsValidLabel(valid: CitationsValid | undefined): string {
+  if (!valid || valid.total === 0) return "";
+  const unchecked = valid.total - valid.checked;
+  if (unchecked > 0) {
+    return `Belege: ${valid.valid - unchecked} von ${valid.checked} geprüft gültig, ${unchecked} nicht prüfbar`;
+  }
+  return `Belege: ${valid.valid} von ${valid.total} gültig`;
 }
 
 /** Erstes Geraete-Kennzeichen (-M1, -K12) eines Textes; Klemmen (-X1:5) zaehlen nicht. */
