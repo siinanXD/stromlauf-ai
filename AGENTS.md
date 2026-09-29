@@ -101,7 +101,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   „Bauteile erkennen“ (Schaltschrank) und „Vorschläge erkennen“ (Draufsicht) pro Aufruf.
 - Design: „Blaupause“ (Figma `25Zi2sbyA5rXJcwViTqB10`, Frame 5:273), Tokens in `frontend/src/app/globals.css`.
   Blau = Auswahl/Aktion, Rot nur für Fehler und Not-Halt. UI-Bausteine: shadcn/ui unter `src/components/ui/`.
-- Git-Remote `origin` = github.com/siinanXD/stromlauf-ai (privat).
+- Git-Remote `origin` = github.com/siinanXD/stromlauf-ai (oeffentlich, MIT-Lizenz in `LICENSE`; Testdaten mit
+  Fremdlizenz bleiben unter `testdata/` ausserhalb des Repos).
 
 ## Build & Test
 
@@ -119,13 +120,15 @@ E2E_API_URL=http://127.0.0.1:8010 npx playwright test e2e/staging.spec.ts   # E2
 ```
 
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
-CI (`.github/workflows/ci.yml`) laeuft nur per Hand: privates Repo ohne Actions-Guthaben. Vor jedem Push
-`scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
+CI (`.github/workflows/ci.yml`) laeuft bei jedem Push auf `master` und jedem Pull Request (oeffentliches Repo,
+Actions kostenlos): Backend, Frontend, E2E, Migration von null, Container-Build und ein Secret-Scan mit gitleaks
+ueber die ganze Historie; `eval.yml` faehrt das kostenlose Retrieval-Gate je PR und den bezahlten Agentenlauf
+woechentlich. Vor jedem Push `scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
 
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
 und muss neu erstellt werden.
 
-GitHub-Remote: `siinanXD/stromlauf-ai` (privat, seit 2026-09-25). Beispielanlage: `examples/foerderband/`, Laden mit `python scripts/load_example.py`.
+GitHub-Remote: `siinanXD/stromlauf-ai` (oeffentlich, angelegt 2026-09-25). Beispielanlage: `examples/foerderband/`, Laden mit `python scripts/load_example.py`.
 MCP-Server: `backend/stromlauf_mcp/` (nur httpx + mcp 2.x, importiert nichts aus `app`), Start
 `backend/.venv/Scripts/python scripts/mcp_server.py`; Werkzeuge nur lesend, Tests mit httpx.MockTransport.
 Testdokumentation UR-01/PM1-AR: Generator `scripts/testdoku/` (model, render_pdf, render_rest, machines/*),

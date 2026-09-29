@@ -2,7 +2,7 @@
 
 Ein vollstaendiger, frei erfundener Dokumentensatz einer kleinen Foerderbandsteuerung. Alle
 Betriebsmittel, Klemmen und SPS-Adressen sind ueber die sechs Dateien hinweg konsistent, so wie
-in einer echten Anlagendokumentation. Ohne Herstellerbezug, frei verwendbar (Lizenz des Repos).
+in einer echten Anlagendokumentation. Ohne Herstellerbezug, frei verwendbar (MIT-Lizenz des Repos, siehe `LICENSE`).
 
 | Datei | Inhalt |
 | --- | --- |

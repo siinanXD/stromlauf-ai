@@ -534,10 +534,20 @@ backend/.venv/Scripts/python scripts/check.py                 # ruff, pytest, es
 backend/.venv/Scripts/python scripts/check.py --install-hook  # dasselbe automatisch vor jedem Push
 ```
 
-Der GitHub-Workflow `.github/workflows/ci.yml` ist nur von Hand startbar, weil das private Repo kein
-Actions-Guthaben hat. Wird das Repo öffentlich, `push`/`pull_request` wieder als Auslöser eintragen.
+Der GitHub-Workflow `.github/workflows/ci.yml` läuft bei jedem Push auf `master` und jedem Pull Request
+(öffentliches Repo, Actions kostenlos): Backend, Frontend, E2E, Migration von null, Container-Build und ein
+Secret-Scan mit gitleaks über die gesamte Historie. `eval.yml` fährt das kostenlose Retrieval-Gate je PR und
+den bezahlten Agentenlauf wöchentlich (siehe „Evaluation“).
 
 ```bash
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
 ```
+
+## Lizenz
+
+MIT, siehe `LICENSE`. Die Beispielanlagen unter `examples/` (Förderband FB-01, Umroller UR-01, Aufrollung PM1-AR,
+Testwerk, Injection-Test) sind frei erfunden und stehen unter derselben Lizenz. Testdaten mit fremder Lizenz
+(Festo Didactic, awlsim GPLv2, QElectroTech GPL) liegen nur lokal unter `testdata/` und sind per `.gitignore`
+ausgeschlossen; `scripts/fetch_testdata.py` ist für sie vorgesehen (Stufe B). Ein Secret-Scan mit gitleaks
+läuft in der CI über die gesamte Historie.
