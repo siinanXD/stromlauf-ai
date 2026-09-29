@@ -31,6 +31,7 @@ from app.config import get_settings
 from app.db import init_db, session_scope
 from app.ingestion.resume import plan_restart, resume_in_background
 from app.ledger import BudgetExceeded
+from app.llm import missing_key
 from app.models import DocStatus, Document
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -66,7 +67,12 @@ app.add_middleware(
 async def _budget_exceeded(request: Request, exc: BudgetExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=402,
-        content={"detail": str(exc), "code": "budget_exceeded", "used_cents": exc.used_cents, "cap_cents": exc.cap_cents},
+        content={
+            "detail": str(exc),
+            "code": "budget_exceeded",
+            "used_cents": exc.used_cents,
+            "cap_cents": exc.cap_cents,
+        },
     )
 
 
@@ -91,8 +97,12 @@ app.include_router(flow.router)
 @app.get("/api/health")
 def health():
     settings = get_settings()
+    try:
+        configured = missing_key(settings.chat_model, settings) is None
+    except ValueError:  # Modellname ohne erkennbaren Provider: kein 500 im Health-Check
+        configured = False
     return {
         "status": "ok",
         "chat_model": settings.chat_model,
-        "api_key_configured": bool(settings.anthropic_api_key),
+        "api_key_configured": configured,
     }
