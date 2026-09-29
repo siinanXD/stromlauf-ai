@@ -71,6 +71,11 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   Aenderung erhoehen), `agent_events` in `api/chat.py` deckelt Werkzeugaufrufe und Zeit je Antwort
   (`CHAT_MAX_TOOL_CALLS`, `CHAT_TIMEOUT_S`), `graph.history_window` begrenzt den Modellkontext
   (`CHAT_HISTORY_MESSAGES`). Testdaten `examples/injection/`, Tests `tests/test_injection.py`.
+- Ingest-Benchmark (Issue #63): `eval/run_ingest.py` misst die Lesekette des Uploads ohne DB und Modell
+  (`pipeline.document_pieces` -> `split_pieces` -> `tag_rows`, dieselben Funktionen wie `ingest_document`) gegen
+  `eval/ingest_gold/*.json`. Das Gold schreibt `scripts/example_docs/make_gold.py --write` beim Zeichnen mit
+  (`make_pdf.build` nimmt dafuer eine protokollierende Zeichenflaeche); nach Aenderungen an `make_pdf.py` PDF und
+  Gold neu erzeugen, `test_run_ingest.py` prueft die Gleichheit. Gate im Retrieval-Job von `eval.yml` (`--min 0.95`).
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
@@ -115,6 +120,7 @@ backend/.venv/Scripts/python scripts/check.py   # alles: ruff, pytest, eslint, t
 cd backend && .venv/Scripts/python -m pytest -q
 cd frontend && npm run lint && npx tsc --noEmit && npm test
 python eval/run_retrieval.py      # Eval ohne Kosten; eval/run_eval.py kostet Tokens je Frage
+python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95   # Lesegenauigkeit je Seite, ohne DB und Modell
 python scripts/acceptance.py [--load]   # Abnahme-Nachweise (contract §5) ohne Modellaufruf; Lighthouse: node frontend/scripts/lighthouse-a11y.mjs
 E2E_API_URL=http://127.0.0.1:8010 npx playwright test e2e/staging.spec.ts   # E2E gegen echtes Backend (Frage nur mit E2E_ASK=1)
 ```

@@ -26,6 +26,15 @@ läuft (Freigabe des Owners, kostenpflichtig). Bis dahin gilt: **Preview (Vercel
 | 7 | 390 px ohne horizontalen Scroll; Lighthouse Accessibility ≥ 90 | Playwright bei 390/768/1440 mit „kein Body-Scroll“ und axe WCAG 2 A/AA ohne Verstöße; `frontend/scripts/lighthouse-a11y.mjs` (nur Kategorie Accessibility, mobil emuliert) als Gate ≥ 90 im Job „Retrieval-Gate“ gegen den Produktions-Build mit echten FB-01-Daten | CI: E2E-Job grün; Lighthouse **100** lokal am 2026-09-28 (Dev-Server, Maschinenansicht FB-01), CI-Wert im Artefakt `lighthouse-a11y.report.html`; Lauf gegen die Vercel-Preview braucht ein erreichbares Backend (Staging) |
 | 8 | Jeder KI-Aufruf in Langfuse mit Modell, Tokens, Kosten, Maschine, Belegen | Kostenbuch `ai_call_ledger` (MB-3) + Langfuse-Callback (`app/tracing.py`) | Nightly 2026-09-28: jede Antwort als Langfuse-Session mit Tags `eval:2026-09-28_14-07-12`, `q:<id>`, `model:claude-sonnet-5`; Kosten je Antwort im Ergebnis-JSON (`usage`) und im Kostenbuch der CI-Instanz |
 
+## Lesegenauigkeit (Epic #45, Stufe B)
+
+Gemessen mit `eval/run_ingest.py` über dieselbe Lesekette wie der Upload, ohne Datenbank und ohne Modellaufruf. Die Ground Truth entsteht beim Zeichnen des Beispielplans (`scripts/example_docs/make_gold.py`) und misst das Lesen des PDFs, nicht die Kennzeichen-Grammatik.
+
+| Messung | Wert | Lauf | Stand |
+| --- | --- | --- | --- |
+| Kennzeichen-Recall Text (FB-01, Issue #63) | device, terminal, plc_address: Recall **1,00** und Precision **1,00** (72, 74 und 41 Vorkommen auf 7 Seiten); cross_ref 0,95 und 0,95, nur berichtet | [`ingest_fb01_2026-09-29_22-05-00.json`](../../eval/results/ingest_fb01_2026-09-29_22-05-00.json) | Gate `--min 0.95` im Retrieval-Job bei jedem PR. Einzige Abweichung: pdfium zieht auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammen. 0,65 s je Seite lokal mit GPU |
+| Kennzeichen-Recall Scan | _ausstehend, Issues #64 bis #66_ | | |
+
 ## Teil 2: Ablauf nach Freigabe des Railway-Stagings
 
 Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jeder ohne Modellaufruf, außer wo es steht:

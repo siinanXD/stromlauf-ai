@@ -1,9 +1,10 @@
 # Eval: Antwortqualitaet messen
 
-Eine Fragenliste (`questions.jsonl`), drei Schichten. Die ersten beiden kosten nichts.
+Eine Fragenliste (`questions.jsonl`), drei Schichten, davor die Lesegenauigkeit. Nur der Agentenlauf kostet.
 
 | Schicht | Aufruf | Kosten | Misst |
 | --- | --- | --- | --- |
+| Lesen | `python eval/run_ingest.py --gold eval/ingest_gold/fb01.json` | keine, Sekunden, ohne DB | Findet die Lesekette des Uploads jedes Kennzeichen je Seite, ohne Fremdfunde? (Ground Truth aus dem Generator) |
 | Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, hybride Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
 | Wiederbewertung | `python eval/rescore.py eval/results/<lauf>.json` | keine | Gespeicherte Agentenantworten mit der aktuellen Fragenliste neu bewerten |
 | Agent | `python eval/run_eval.py` | **API-Tokens je Frage**, ca. 20 min | Antwortet der Chat-Agent Ende-zu-Ende richtig, zitiert er, nutzt er das passende Werkzeug? |
@@ -24,13 +25,17 @@ die Session des Chats geschrieben.
 
 ## Gates in CI (`.github/workflows/eval.yml`)
 
-- **Retrieval-Gate** bei jedem PR und auf master: Backend mit pgvector und lokalem `bge-m3` (Modellcache),
-  `scripts/load_example.py` (FB-01, ohne Vision), dann `run_retrieval.py --only "Foerderband FB-01" --min 0.9
-  --min-sources 0.9`. Kostet keine Tokens.
-- **Nightly** (03:17 UTC, auch manuell): `run_eval.py --min 0.8 --max-cost 2.00` (stoppt, sobald die Summe der
-  `usage.cost_usd` den Deckel erreicht) und `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf
-  gegen die 14 gelabelten Boxen des FB-01-Aufbauplans). Braucht `ANTHROPIC_API_KEY` als Secret (Environment
-  `eval`), optional `LANGFUSE_*`; ohne Secret wird der Job uebersprungen.
+- **Retrieval-Gate** bei jedem PR und auf master: zuerst der Ingest-Benchmark (`run_ingest.py` auf FB-01,
+  `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling), dann Backend mit pgvector und lokalem
+  `bge-m3` (Modellcache), `scripts/acceptance.py --load` (FB-01, ohne Vision) und `scripts/load_folder.py` fuer
+  Injection-Test, UR-01 und PM1-AR, dann `run_retrieval.py --only "Foerderband FB-01,Umroller UR-01,Aufrollung
+  PM1-AR,Injection-Test" --min 0.9 --min-sources 0.9` und das Zitat-Gate (`rescore.py --min-citations 0.9`).
+  Kostet keine Tokens.
+- **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Foerderband FB-01,Injection-Test" --min 0.8
+  --min-citations 0.9 --max-cost 2.00` (stoppt, sobald die Summe der `usage.cost_usd` den Deckel erreicht) und
+  `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf gegen die 15 gelabelten Boxen des
+  FB-01-Aufbauplans). Braucht `ANTHROPIC_API_KEY` als Secret (Environment `eval`), optional `LANGFUSE_*`; ohne
+  Secret wird der Job uebersprungen.
 - **Isolation**: `backend/tests/test_isolation_eval.py` stellt fuenf Retrieval-Fragen ueber Workspaces hinweg
   (Kennzeichen, Befundkarte, Suche, Maschinen-Tag, Signalweg) und erwartet keine fremden Inhalte.
 - **Abnahme-Nachweise** (`docs/product/ACCEPTANCE.md`) im selben Job wie das Retrieval-Gate: `scripts/acceptance.py --load`
@@ -110,6 +115,33 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
   Antwort. In der Retrieval-Schicht sind 404/409 und unbekannte Artikel dagegen echte Fehltreffer und
   werden mit 0 Fakten bewertet; `--min` schlaegt zusaetzlich fehl, sobald unbewertete Fehler uebrig sind.
 
+## Lesegenauigkeit gegen Ground Truth (`run_ingest.py`, Issue #63)
+
+Misst, ob die Lesekette des Uploads die Kennzeichen eines Plans vollstaendig und ohne Fremdfunde je Seite findet:
+ohne Datenbank, ohne Embeddings, ohne Vision und ohne Modellaufruf. Gelesen wird ueber dieselben Funktionen wie
+beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/ingestion/pipeline.py`).
+
+- Gold: `eval/ingest_gold/fb01.json`, beim Zeichnen des Beispielplans mitgeschrieben
+  (`python scripts/example_docs/make_gold.py --write`; `test_run_ingest.py` prueft, dass die Datei zum Generator
+  passt). Jede gezeichnete Zeichenkette wird einzeln ausgewertet, dazu kommen die BMK aus Geraeten, Kontakten und
+  Spulen ohne Grammatik. Das Gold misst damit das Lesen des PDFs (Reihenfolge, Zusammenziehen, Trennen von Text),
+  nicht die Kennzeichen-Grammatik; die prueft `backend/tests/test_tags.py`.
+- Metrik: Recall und Precision je Typ (`device`, `terminal`, `plc_address`, `cross_ref`), ueber alle Seiten
+  summiert; dazu fehlende und fremde Kennzeichen je Seite und Sekunden je Seite. Funde ohne Seite zaehlen als Seite 0.
+- Gate: `--min 0.95 --types device,terminal,plc_address` im Retrieval-Job; `cross_ref` wird nur berichtet.
+- Stand 2026-09-29 (FB-01, Text-PDF): device, terminal und plc_address je Recall und Precision 1,00; cross_ref
+  0,95, weil pdfium auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammenzieht.
+- `--doc` misst eine andere Fassung desselben Plans gegen dasselbe Gold (Scan, Teil-Scan, Issues #64 bis #66).
+
+```bash
+python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95
+python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc <andere-fassung-desselben-plans.pdf>
+python scripts/example_docs/make_gold.py --check          # Gold passt zum Generator?
+```
+
+Ergebnis: `eval/results/ingest_<gold>_<zeitstempel>.json` und `.md`; Exit 1, wenn ein gegateter Typ unter `--min` liegt
+oder fuer ihn kein Gold existiert.
+
 ## Ablauf-Extraktion gegen Gold (`run_flow.py`)
 
 Misst ein Extraktions-JSON (`scripts/extract_flow.py`) gegen `testdata/festo/gold.flow.json`, ohne Modellaufruf:
@@ -131,6 +163,7 @@ Anleitung steht in `open_questions` der Vorlage.
 ## Aufrufe
 
 ```bash
+python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95   # Lesegenauigkeit, ohne DB und Modell
 python eval/run_retrieval.py                              # alle Fragen mit retrieval, Sekunden
 python eval/run_retrieval.py --only ur01 --min 0.9        # Filter; Exit-Code 1 unter dem Fakten-Mittel
 python eval/run_retrieval.py --baseline eval/results/referenz_retrieval_2026-09-27.json

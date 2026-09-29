@@ -2,6 +2,7 @@
 
 import logging
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,12 +15,12 @@ from app.config import get_settings
 from app.db import session_scope
 from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype
-from app.ingestion.docling_parser import parse_document
+from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
 from app.ingestion.tags import detect_folio_style, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
-from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence
+from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence, TagType
 from app.tenancy import reset_workspace, set_workspace
 from app.tracing import vision_trace
 
@@ -41,6 +42,31 @@ class Piece:
     meta: dict = field(default_factory=dict)
     plc_loose: bool = False  # "A 1.0" mit Leerzeichen als SPS-Adresse werten
     folio_style: bool = False  # Kennzeichen ohne Minus im Blatt-Stil (4Q1, 9K1) werten, siehe tags.detect_folio_style
+
+
+@dataclass(frozen=True)
+class TagRow:
+    """Eine Zeile des Kennzeichen-Index: je Kennzeichen, Typ, Seite und Abschnitt einmal."""
+
+    tag: str
+    tag_type: TagType
+    page: int | None
+    section: str
+    context: str
+
+
+@dataclass
+class DocumentPieces:
+    """Gelesene Stuecke eines Dokuments, ohne Vision und ohne Datenbank.
+
+    Grundlage fuer den Upload (`_build_pieces`) und den Ingest-Benchmark (`eval/run_ingest.py`), damit
+    beide dieselbe Lesekette messen. `parsed` und `titles` braucht nur die Vision-Analyse.
+    """
+
+    pieces: list[Piece]
+    page_count: int | None = None
+    parsed: list[ParsedPage] = field(default_factory=list)
+    titles: dict[int, str] = field(default_factory=dict)
 
 
 def detect_doc_type(filename: str, requested: str, path: Path | None = None) -> DocType:
@@ -74,6 +100,27 @@ def _split(piece: Piece) -> list[Piece]:
         )
         for part in _splitter().split_text(piece.content)
     ]
+
+
+def split_pieces(pieces: list[Piece]) -> list[Piece]:
+    """Zu lange Stuecke auf Chunk-Groesse teilen; Seite, Abschnitt und Lesemodus bleiben erhalten."""
+    return [part for piece in pieces for part in _split(piece)]
+
+
+def tag_rows(pieces: list[Piece]) -> list[TagRow]:
+    """Kennzeichen aller Stuecke, je (Kennzeichen, Typ, Seite, Abschnitt) einmal; der erste Fund liefert den Kontext."""
+    rows: list[TagRow] = []
+    seen: set[tuple] = set()
+    for piece in pieces:
+        for tag in extract_tags(
+            piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style
+        ):
+            key = (tag.tag, tag.tag_type, piece.page, piece.section)
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(TagRow(tag.tag, tag.tag_type, piece.page, piece.section, tag.context))
+    return rows
 
 
 def _set_progress(document_id: str, progress: str) -> None:
@@ -210,17 +257,18 @@ def vision_skip_note() -> str:
     return f"Vision-Analyse uebersprungen: {missing} fehlt" if missing else ""
 
 
-def _build_pieces(
-    document_id: str, path: Path, doc_type: str, vision: bool, machine_id: str | None = None
-) -> tuple[list[Piece], int | None, str]:
-    """Liefert (Stuecke, Seitenzahl, Hinweis)."""
+def document_pieces(
+    path: Path, doc_type: str, progress: Callable[[str], None] | None = None
+) -> DocumentPieces:
+    """Stuecke eines Dokuments ohne Vision und ohne Datenbank; `progress` meldet den Docling-Schritt."""
     # .scl (TIA-Quelle) laeuft durch denselben Bausteinparser: ein Chunk je Baustein, ohne Netzwerke
     if doc_type == DocType.PLC_PROGRAM or path.suffix.lower() in {".awl", ".scl"}:
-        return _awl_pieces(path), None, ""
+        return DocumentPieces(_awl_pieces(path))
     if doc_type == DocType.PLC_SYMBOLS or path.suffix.lower() == ".sdf":
-        return _symbol_pieces(path), None, ""
+        return DocumentPieces(_symbol_pieces(path))
 
-    _set_progress(document_id, "Docling-Analyse")
+    if progress:
+        progress("Docling-Analyse")
     parsed = parse_document(path)
     # Blatttitel als Abschnitt, Stuecklistenseiten als kind "bom", Kennzeichen-Stil je Dokument (Issue #39)
     titles, parts_pages = page_titles(parsed)
@@ -237,14 +285,24 @@ def _build_pieces(
         if p.text.strip()
     ]
     page_count = max((p.page for p in parsed if p.page), default=None)
+    return DocumentPieces(pieces, page_count, parsed, titles)
+
+
+def _build_pieces(
+    document_id: str, path: Path, doc_type: str, vision: bool, machine_id: str | None = None
+) -> tuple[list[Piece], int | None, str]:
+    """Liefert (Stuecke, Seitenzahl, Hinweis)."""
+    read = document_pieces(path, doc_type, progress=lambda text: _set_progress(document_id, text))
+    pieces, page_count = list(read.pieces), read.page_count
 
     note = ""
-    if vision and path.suffix.lower() == ".pdf":
+    # Nur Dokumente, die Docling gelesen hat, haben Seiten fuer die Vision-Analyse (nicht AWL/SCL/SDF)
+    if vision and read.parsed and path.suffix.lower() == ".pdf":
         note = vision_skip_note()
         if not note:
-            page_texts = {p.page: p.raw_text or p.markdown for p in parsed if p.page}
+            page_texts = {p.page: p.raw_text or p.markdown for p in read.parsed if p.page}
             vision_pieces, failed, skipped = _vision_pieces(
-                document_id, path, page_texts, machine_id, titles
+                document_id, path, page_texts, machine_id, read.titles
             )
             pieces += vision_pieces
             notes = []
@@ -284,7 +342,7 @@ def ingest_document(document_id: str) -> None:
         raw_pieces, page_count, note = _build_pieces(
             document_id, path, doc_type, vision, machine_id
         )
-        pieces = [part for piece in raw_pieces for part in _split(piece)]
+        pieces = split_pieces(raw_pieces)
         if not pieces:
             raise ValueError(
                 "Kein Text im Dokument gefunden (gescanntes PDF? OCR_ENABLED=true setzen)"
@@ -303,7 +361,6 @@ def ingest_document(document_id: str) -> None:
             session.execute(delete(Chunk).where(Chunk.document_id == document_id))
             session.execute(delete(TagOccurrence).where(TagOccurrence.document_id == document_id))
 
-            seen_tags: set[tuple] = set()
             for seq, (piece, vector) in enumerate(zip(pieces, vectors, strict=True)):
                 session.add(
                     Chunk(
@@ -317,29 +374,25 @@ def ingest_document(document_id: str) -> None:
                         embedding=vector,
                     )
                 )
-                for tag in extract_tags(
-                    piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style
-                ):
-                    key = (tag.tag, tag.tag_type, piece.page, piece.section)
-                    if key in seen_tags:
-                        continue
-                    seen_tags.add(key)
-                    session.add(
-                        TagOccurrence(
-                            document_id=document_id,
-                            source_id=source_id,
-                            tag=tag.tag,
-                            tag_type=tag.tag_type,
-                            page=piece.page,
-                            section=piece.section,
-                            context=tag.context,
-                        )
+            # dieselbe Funktion misst eval/run_ingest.py gegen die Ground Truth
+            rows = tag_rows(pieces)
+            for row in rows:
+                session.add(
+                    TagOccurrence(
+                        document_id=document_id,
+                        source_id=source_id,
+                        tag=row.tag,
+                        tag_type=row.tag_type,
+                        page=row.page,
+                        section=row.section,
+                        context=row.context,
                     )
+                )
 
             document = session.get(Document, document_id)
             document.status = DocStatus.READY
             document.page_count = page_count
-            document.progress = note or f"{len(pieces)} Abschnitte, {len(seen_tags)} Kennzeichen"
+            document.progress = note or f"{len(pieces)} Abschnitte, {len(rows)} Kennzeichen"
     except Exception as exc:
         logger.exception("Ingestion fehlgeschlagen: %s", filename)
         with session_scope() as session:
