@@ -1,0 +1,11 @@
+# gitleaks (Secret-Scan in der CI, Issue #51): Standardregeln plus eine Ausnahme fuer die festen Testwerte der
+# Backend-Tests. Die DB-Tests setzen JWT-Geheimnisse wie "ledger-test-secret-0123456789abcdef"; echte Schluessel
+# stehen nie im Repo (.env ist ignoriert, Vorlage .env.example). Die Tabelle [allowlist] verstehen gitleaks 8.24
+# und 8.30 (ab 8.25 heisst sie [[allowlists]], die alte Form bleibt bis 9.x gueltig).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Feste Testwerte der Backend-Tests, kein echter Schluessel"
+regexes = ['''secret-0123456789''']
