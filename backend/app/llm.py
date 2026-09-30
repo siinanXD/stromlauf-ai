@@ -17,6 +17,15 @@ PROVIDER_ENV = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}
 _OPENAI_PREFIXES = ("gpt-", "o1", "o3", "o4")
 
 
+class MissingKeyError(RuntimeError):
+    """Der Schluessel des Providers fehlt. Das ist Konfiguration, kein Fehler des Providers: Die API antwortet
+    darauf mit 400 und nennt den Namen der Variable (Issue #50)."""
+
+    def __init__(self, key: str, detail: str = ""):
+        super().__init__(f"{key} fehlt{detail}")
+        self.key = key
+
+
 def split_model(name: str) -> tuple[str, str]:
     """ "provider:modell" oder ein Name, an dem der Provider erkennbar ist -> (provider, modell)."""
     name = (name or "").strip()
@@ -66,8 +75,9 @@ def make_chat_model(
     provider, model = split_model(name)
     key = api_key_for(provider)
     if not key:
-        raise RuntimeError(
-            f"{PROVIDER_ENV[provider]} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten."
+        raise MissingKeyError(
+            PROVIDER_ENV[provider],
+            f" fuer Modell {name!r}. In .env eintragen und Backend neu starten.",
         )
     kwargs = {
         "model_provider": provider,

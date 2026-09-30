@@ -126,7 +126,9 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `openai:`/`anthropic:` oder erkennbar (`claude-*`, `gpt-*`). `POST /api/chat` nimmt `model` je Anfrage
   (Evals: `run_eval.py --model`). Embeddings `local|voyage|openai` (`app/embeddings.py`), Wechsel = neu indexieren.
   Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
-  Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs).
+  Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
+  Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ und
+  „Vorschlaege erkennen“ antworten dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,

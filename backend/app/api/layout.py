@@ -25,6 +25,7 @@ from app.ingestion.layout_geometry import (
 from app.ingestion.layout_vision import detect_layout
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import render_page_png
+from app.llm import MissingKeyError
 from app.models import Document, LayoutPart, Machine, MachineLayout, TagOccurrence
 from app.schemas import LayoutIn, LayoutOut, LayoutPartIn, LayoutPartOut, LayoutPartUpdate
 from app.tracing import vision_trace
@@ -190,6 +191,8 @@ def detect_layout_parts(layout_id: str, session: Session = Depends(get_session))
     config, usage = ledger.collect(vision_trace(layout.id, "draufsicht"))
     try:
         result = detect_layout(png, known, config)
+    except MissingKeyError as exc:  # Konfiguration, kein Fehler des Providers (Issue #50)
+        raise HTTPException(400, f"Vision-Erkennung nicht moeglich: {exc}") from exc
     except Exception as exc:
         logger.exception("Vision-Erkennung (Draufsicht) fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
