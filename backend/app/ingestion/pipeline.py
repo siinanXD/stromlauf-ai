@@ -17,6 +17,7 @@ from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
+from app.ingestion.pdf_layout import SheetMap, sheet_map
 from app.ingestion.tags import detect_folio_style, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
@@ -88,6 +89,18 @@ def page_ranges(pages: list[int]) -> str:
 def empty_pages_note(pages: list[int], page_count: int | None) -> str:
     """Hinweis fuer das Dokument, z. B. "1 von 7 Seiten ohne Text: 3"; leer, wenn keine Seite fehlt."""
     return f"{len(pages)} von {page_count} Seiten ohne Text: {page_ranges(pages)}" if pages else ""
+
+
+def sheet_map_note(sheets: SheetMap) -> str:
+    """Hinweis, wenn die Blatt-Map raet (Issue #67): kein Schriftfeld gelesen oder Seiten ohne eindeutige Nummer.
+    Verweise wie /3.8 auf diese Blaetter zeigen dann auf eine angenommene Seite."""
+    if not sheets.gaps:
+        return ""
+    if not sheets.read:
+        return "Blatt-Map unsicher: Seite = Blatt angenommen"
+    word = "Seite" if len(sheets.gaps) == 1 else "Seiten"
+    pages = page_ranges(list(sheets.gaps))
+    return f"Blatt-Map unsicher: {word} {pages} ohne eindeutige Blattnummer"
 
 
 def scan_message(page_count: int, mode: str) -> str:
@@ -336,8 +349,10 @@ def document_pieces(
     if progress:
         progress("Docling-Analyse")
     parsed = parse_document(path)
-    # Blatttitel als Abschnitt, Stuecklistenseiten als kind "bom", Kennzeichen-Stil je Dokument (Issue #39)
-    titles, parts_pages = page_titles(parsed)
+    # Blatttitel als Abschnitt, Stuecklistenseiten als kind "bom", Kennzeichen-Stil je Dokument (Issue #39); das
+    # Inhaltsverzeichnis nennt Blaetter, die Blatt-Map ordnet sie den Seiten zu (Issue #67)
+    sheet_of = sheet_map(path).page_sheets if path.suffix.lower() == ".pdf" else None
+    titles, parts_pages = page_titles(parsed, sheet_of)
     folio = detect_folio_style("\n".join(p.raw_text or p.markdown for p in parsed))
     pieces = [
         Piece(
@@ -361,7 +376,8 @@ def _build_pieces(
     """Liefert (Stuecke, Seitenzahl, Hinweis).
 
     Seiten ohne lesbaren Text, die auch die Vision-Analyse nicht beschrieben hat, stehen im Hinweis. Hat
-    keine einzige Seite eines PDFs Text, bricht die Verarbeitung mit der Seitenzahl ab (Issue #64).
+    keine einzige Seite eines PDFs Text, bricht die Verarbeitung mit der Seitenzahl ab (Issue #64). Raet die
+    Blatt-Map eines Stromlaufplans, steht das ebenfalls im Hinweis (Issue #67).
     """
     read = document_pieces(path, doc_type, progress=lambda text: _set_progress(document_id, text))
     pieces, page_count = list(read.pieces), read.page_count
@@ -391,7 +407,11 @@ def _build_pieces(
     lost = [page for page in read.empty_pages if page not in covered]
     if page_count and len(lost) == page_count:
         raise ValueError(scan_message(page_count, get_settings().effective_ocr_mode))
-    note = " · ".join(part for part in (note, empty_pages_note(lost, page_count)) if part)
+    sheet_note = ""
+    if doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf":
+        sheet_note = sheet_map_note(sheet_map(path))
+    parts = (note, empty_pages_note(lost, page_count), sheet_note)
+    note = " · ".join(part for part in parts if part)
     return pieces, page_count, note
 
 

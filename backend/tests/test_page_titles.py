@@ -70,6 +70,39 @@ def test_echte_fb01_pdf_bekommt_ihre_blatttitel():
     assert parts == set()
 
 
+def test_inhaltsverzeichnis_nennt_blaetter_nicht_seiten():
+    """Issue #67: Mit Deckblatt und Inhaltsverzeichnis vorne ist Blatt 1 die Seite 3."""
+    pages = [
+        _page(1, "Stromlaufplan", "Deckblatt"),
+        _page(2, "Inhaltsverzeichnis", "1 Einspeisung 400 V 2026-09", "2 Steuerspannung 24 V DC 2026-09"),
+        _page(3, "Einspeisung 400 V"),
+        _page(4, "Steuerspannung 24 V DC"),
+    ]
+    titles, parts = page_titles(pages, sheet_of={3: 1, 4: 2})
+    assert titles == {3: "Einspeisung 400 V", 4: "Steuerspannung 24 V DC"}
+
+
+SCHRIFTFELD = Path(__file__).resolve().parents[2] / "examples" / "schriftfeld"
+SHEET_TITLES = ["Einspeisung 400 V", "Steuerspannung 24 V DC", "Motorsteuerung Band", "Not-Halt-Kreis", "SPS-Eingaenge"]
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["blatt_schraegstrich.pdf", "blatt_von.pdf", "bl_punkt.pdf", "sheet_of.pdf", "getrennte_felder.pdf",
+     "eplan_seitenname.pdf", "luecke.pdf"],
+)
+def test_schriftfeld_fixtures_bekommen_die_titel_ihrer_blaetter(name):
+    from app.ingestion.docling_parser import pdf_raw_text
+    from app.ingestion.pdf_layout import sheet_map
+
+    path = SCHRIFTFELD / name
+    raw = pdf_raw_text(path)
+    pages = [ParsedPage(page=no, markdown="", raw_text=text) for no, text in sorted(raw.items())]
+    titles, parts = page_titles(pages, sheet_of=sheet_map(path).page_sheets)
+    assert titles == dict(enumerate(SHEET_TITLES, start=3))
+    assert parts == set()
+
+
 @pytest.mark.skipif(not QET.exists(), reason="QElectroTech-Testdaten liegen nur lokal (testdata/qelectrotech)")
 def test_echte_qet_pdf_bekommt_folio_titel_und_stuecklistenseiten():
     from app.ingestion.docling_parser import pdf_raw_text

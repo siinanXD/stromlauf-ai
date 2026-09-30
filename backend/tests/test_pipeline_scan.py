@@ -108,7 +108,10 @@ def test_teilscan_meldet_blatt_3_ohne_text_und_behaelt_die_anderen_seiten(ohne_d
     assert read.page_count == 7 and read.empty_pages == [3]
     assert sorted({piece.page for piece in read.pieces}) == [1, 2, 4, 5, 6, 7]
     pieces, page_count, note = pipeline._build_pieces("doc", PARTIAL, "schematic", vision=False)
-    assert page_count == 7 and note == "1 von 7 Seiten ohne Text: 3"
+    # die Bildseite traegt auch keine lesbare Blattnummer: Blatt 3 ist dort nur angenommen (Issue #67)
+    assert page_count == 7 and note == (
+        "1 von 7 Seiten ohne Text: 3 · Blatt-Map unsicher: Seite 3 ohne eindeutige Blattnummer"
+    )
 
 
 def test_text_pdf_bekommt_keinen_hinweis(ohne_docling):
@@ -136,7 +139,8 @@ def test_von_der_vision_beschriebene_bildseite_gilt_nicht_als_verloren(ohne_docl
         lambda *_args, **_kwargs: ([Piece("Vision: Schuetz -K1 auf Blatt 3", page=3)], [], []),
     )
     _, _, note = pipeline._build_pieces("doc", PARTIAL, "schematic", vision=True)
-    assert note == ""
+    # nicht verloren, aber ohne Textebene auch ohne lesbare Blattnummer (Issue #67)
+    assert note == "Blatt-Map unsicher: Seite 3 ohne eindeutige Blattnummer"
 
 
 def test_langer_hinweis_passt_in_die_spalte_progress():
@@ -237,7 +241,10 @@ def test_ingest_teilscan_wird_ready_mit_hinweis_und_voll_scan_failed_mit_seitenz
 
     status, progress, error = result["teil"]
     assert (status, error) == ("ready", None)
-    assert progress.endswith(" · 1 von 7 Seiten ohne Text: 3") and " Abschnitte, " in progress
+    assert " Abschnitte, " in progress
+    assert progress.endswith(
+        " · 1 von 7 Seiten ohne Text: 3 · Blatt-Map unsicher: Seite 3 ohne eindeutige Blattnummer"
+    )
     status, progress, error = result["voll"]
     assert status == "failed" and progress == ""
     assert error == (

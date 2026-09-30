@@ -50,8 +50,13 @@ def _title_lines(page) -> list[str]:
     ]
 
 
-def page_titles(pages: Iterable) -> tuple[dict[int, str], set[int]]:
-    """(Titel je Seite, Seiten mit Stueckliste). Seiten ohne sicheren Titel fehlen im Dict."""
+def page_titles(pages: Iterable, sheet_of: dict[int, int] | None = None) -> tuple[dict[int, str], set[int]]:
+    """(Titel je Seite, Seiten mit Stueckliste). Seiten ohne sicheren Titel fehlen im Dict.
+
+    Das Inhaltsverzeichnis nennt Blaetter, nicht Seiten: sheet_of ist das Blatt je Seite aus der Blatt-Map
+    (pdf_layout.sheet_map, Issue #67), damit Deckblatt und Inhaltsverzeichnis vor Blatt 1 nichts verschieben.
+    Ohne sheet_of gilt Seite = Blatt.
+    """
     pages = list(pages)
     contents = _contents(pages)
     titles: dict[int, str] = {}
@@ -60,9 +65,10 @@ def page_titles(pages: Iterable) -> tuple[dict[int, str], set[int]]:
         number = getattr(page, "page", None)
         if number is None:
             continue
+        sheet = number if sheet_of is None else sheet_of.get(number)
         lines = _title_lines(page)
         title = ""
-        for candidate in contents.get(number, []):
+        for candidate in contents.get(sheet, []) if sheet is not None else []:
             for line in lines:
                 if candidate == line or candidate.startswith(line + " ") or line.startswith(candidate):
                     if len(line) > len(title):
