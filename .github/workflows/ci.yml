@@ -71,8 +71,8 @@ jobs:
         run: pip install -e ".[dev,examples,trace]"
       - name: Ruff
         run: ruff check . ../scripts ../eval
-      - name: Tests
-        run: python -m pytest -q
+      - name: Tests (mit den 20 langsamsten)
+        run: python -m pytest -q --durations=20
 
   frontend:
     name: Frontend (lint, tsc, vitest)
