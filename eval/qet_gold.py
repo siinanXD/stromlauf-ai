@@ -91,7 +91,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, help="Standard: qet.json neben der PDF")
     args = parser.parse_args()
     if not args.pdf.exists():
-        sys.exit(f"{args.pdf} fehlt: QElectroTech-Testdaten liegen nur lokal (testdata/README.md)")
+        sys.exit(f"{args.pdf} fehlt, laden mit: python scripts/fetch_testdata.py")
     gold = build_gold(args.pdf)
     out = args.out or args.pdf.with_name("qet.json")
     out.write_text(json.dumps(gold, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
