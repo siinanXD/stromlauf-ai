@@ -50,12 +50,13 @@ def fact_card(tag: str, source_ids: list[str] = Query(default=[]), session: Sess
     if single is None:
         raise HTTPException(404, f"{normalized} kommt in mehreren Wissensquellen vor")
     hits = single
-    # Tabellen: Index-Snippets sind kurz, darum die ganzen Abschnitte mit dem Kennzeichen dazunehmen
+    # Tabellen: Index-Snippets sind kurz, darum die ganzen Abschnitte mit dem Kennzeichen dazunehmen.
+    # Ohne Gross/Klein: der Schluessel -X2:3A steht im Dokument als -X2:3a.
     table_docs = {h["document_id"]: h for h in hits if h["doc_type"] in TABLE_DOC_TYPES}
     if table_docs:
         chunks = session.execute(
             select(Chunk.document_id, Chunk.content).where(
-                Chunk.document_id.in_(table_docs), Chunk.content.contains(normalized, autoescape=True)
+                Chunk.document_id.in_(table_docs), Chunk.content.icontains(normalized, autoescape=True)
             )
         ).all()
         for document_id, content in chunks:
