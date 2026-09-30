@@ -73,9 +73,6 @@ class Settings(BaseSettings):
     # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
     checkpointer: str = "sqlite"
 
-    # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
-    checkpointer: str = "sqlite"
-
     @property
     def upload_dir(self) -> Path:
         return self.data_dir / "uploads"
