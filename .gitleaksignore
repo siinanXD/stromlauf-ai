@@ -1,0 +1,6 @@
+# Einzelne Fehlalarme des Secret-Scans (Fingerprint aus dem gitleaks-Log: Commit:Datei:Regel:Zeile). Jede Zeile hier
+# braucht eine Begruendung; test_repo_hygiene.py haelt die Liste fest.
+#
+# .env.example, Commit b6535c5 (#32): JWT_SECRET= ist leer, generic-api-key nimmt die naechste Zeile
+# (JWT_TTL_HOURS=12) als Wert. Ein Geheimnis stand dort nie.
+b6535c5438b523d6b65e695b00bb325cd8c8f729:.env.example:generic-api-key:52

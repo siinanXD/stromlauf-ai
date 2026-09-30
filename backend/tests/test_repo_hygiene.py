@@ -53,6 +53,14 @@ def test_gitleaks_nimmt_nur_die_festen_testwerte_der_tests_aus():
     assert len(secrets) >= 5 and all(allowed[0] in value for value in secrets), secrets
 
 
+def test_gitleaksignore_enthaelt_nur_den_bekannten_fehlalarm():
+    """Ein leeres JWT_SECRET= in .env.example: generic-api-key nimmt die naechste Zeile (JWT_TTL_HOURS=12) als Wert.
+    Jede weitere Ausnahme muss hier bewusst dazukommen."""
+    lines = (ROOT / ".gitleaksignore").read_text(encoding="utf-8").splitlines()
+    ignored = [line for line in lines if line.strip() and not line.startswith("#")]
+    assert ignored == ["b6535c5438b523d6b65e695b00bb325cd8c8f729:.env.example:generic-api-key:52"]
+
+
 def test_keine_fremdlizenzierten_testdaten_im_repo():
     tracked = subprocess.run(
         ["git", "ls-files", "testdata"], cwd=ROOT, capture_output=True, text=True, check=True

@@ -551,7 +551,8 @@ backend/.venv/Scripts/python scripts/check.py --install-hook  # dasselbe automat
 Der GitHub-Workflow `.github/workflows/ci.yml` läuft bei jedem Push auf `master` und jedem Pull Request
 (öffentliches Repo, Actions kostenlos): Backend, Frontend, E2E, Migration von null, Container-Build und ein
 Secret-Scan mit gitleaks über die gesamte Historie bis zum geprüften Stand, mit fester Version und Prüfsumme;
-Ausnahmen gibt es nur für die festen Testwerte der Backend-Tests (`.gitleaks.toml`). `eval.yml` fährt das
+Ausnahmen gibt es nur für die festen Testwerte der Backend-Tests (`.gitleaks.toml`) und einen begründeten
+Fehlalarm in `.env.example` (`.gitleaksignore`). `eval.yml` fährt das
 kostenlose Retrieval-Gate je PR und den bezahlten Agentenlauf wöchentlich (siehe „Evaluation“).
 
 ```bash
