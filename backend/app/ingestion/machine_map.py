@@ -128,14 +128,16 @@ def build_map(
     layout_tags: list[tuple[str, str]] | None = None,
     known_tags: set[str] | None = None,
     legend: str = "",
-    index_hits: list[tuple[str, int | None, str]] | None = None,
+    index_hits: list[tuple[str, int | None, str, int | None]] | None = None,
 ) -> MachineMap:
     """bom_rows: (Kennzeichen, Zeilenkontext) aus der Stueckliste (Datei oder Stuecklistenseite einer PDF);
-    layout_tags: (Kennzeichen, Label) aus der Draufsicht; index_hits: (Kennzeichen, Seite, Blatttitel) aus dem
-    Kennzeichen-Index der uebrigen Dokumente, erste Fundstelle zuerst; known_tags: alle Betriebsmittel der Quelle.
+    layout_tags: (Kennzeichen, Label) aus der Draufsicht; index_hits: (Kennzeichen, Seite, Blatttitel, Blatt aus dem
+    Schriftfeld oder None) aus dem Kennzeichen-Index der uebrigen Dokumente, erste Fundstelle zuerst; known_tags: alle
+    Betriebsmittel der Quelle.
 
     Zonen entstehen zuerst aus Einbauorten (+ST1), sonst aus dem Blatt des Stromlaufplans, auf dem das Teil
-    zuerst vorkommt (Issue #39); Teile ohne beides landen in "Ohne Einbauort"."""
+    zuerst vorkommt (Issue #39); Teile ohne beides landen in "Ohne Einbauort". Die Blatt-Zone traegt die Nummer aus
+    dem Schriftfeld; ohne gelesene Nummer heisst sie nach der Seite (Issue #67)."""
     names = location_names(legend)
     zones: dict[str, Zone] = {}
     placed: dict[str, str] = {}
@@ -178,14 +180,17 @@ def build_map(
 
     only_on_parts_list: list[str] = []
     cable_labels = {c.label for c in connectors}
-    for tag, page, section in index_hits or []:
+    for tag, page, section, sheet in index_hits or []:
         # Leitungen, Klemmen und Namen ohne Kennbuchstabe (Potentiale wie 24V1) sind keine Teile des Modells
         if not tag or tag in placed or tag in cable_labels or kind_of(tag) in {"", "Leitung", "Klemme"}:
             continue
         if page is None or is_parts_list(section):
             only_on_parts_list.append(tag)
             continue
-        target = zone(f"blatt-{page}", f"Blatt {page}", section, page)
+        if sheet is not None:
+            target = zone(f"blatt-{sheet}", f"Blatt {sheet}", section, page)
+        else:  # keine Blattnummer im Schriftfeld gelesen: nicht raten, die Seite nennen
+            target = zone(f"seite-{page}", f"Seite {page}", section, page)
         label = labels.pop(tag, None)  # Bezeichnung aus der Stueckliste, wenn es eine Zeile ohne Ort gab
         target.parts.append(Part(tag, label or "", kind_of(tag), "bom" if label is not None else "index"))
         placed[tag] = target.id
