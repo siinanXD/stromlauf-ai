@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     vision_concurrency: int = 4
     chunk_size: int = 1500
     chunk_overlap: int = 150
+    # Beim Start unterbrochene Ingestion aller Workspaces fortsetzen (app/ingestion/resume.py). Darf nur der
+    # eine Backend-Prozess; Tests schalten es ab (tests/conftest.py), sie teilen sich lokal die Datenbank.
+    resume_ingestion: bool = True
 
     cors_origins: str = "http://localhost:3100"
 

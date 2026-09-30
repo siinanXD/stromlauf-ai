@@ -59,6 +59,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
   `backend/data/images/`. Ingestion laeuft im Prozess; nach Neustart reiht `ingestion/resume.py`
   angefangene Dokumente neu ein (max. 3 Anlaeufe je `documents.attempts`, "Neu verarbeiten" setzt zurueck).
+  Das darf nur der eine Backend-Prozess (`RESUME_INGESTION`, Standard an): `backend/tests/conftest.py` schaltet
+  es fuer alle Tests ab, sonst griffe jeder `TestClient(app)` nach den Uploads von Backend und anderen Laeufen.
 - Ablauf-Visualisierung `backend/app/flow/`: Schema `schema.py` -> `schemas/machine_flow.json` (Generator
   `scripts/flow_schema.py`, Test prueft Gleichheit). Extraktion `extract.py`: Phase A klein parallel (I/O,
   Sensoren/Aktoren), Phase B stark (Schrittkette), Cache SHA-256+Prompt-Version unter `data/flow_cache/`,

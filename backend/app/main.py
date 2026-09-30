@@ -35,18 +35,22 @@ from app.llm import missing_key
 from app.models import DocStatus, Document
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    with session_scope() as session:
-        # Jobs laufen im Prozess; nach einem Neustart werden angefangene neu eingereiht.
-        interrupted = session.scalars(
-            select(Document).where(Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING]))
-        ).all()
-        resume_ids = plan_restart(interrupted)
-    resume_in_background(resume_ids)
+    if get_settings().resume_ingestion:
+        with session_scope() as session:
+            # Jobs laufen im Prozess; nach einem Neustart werden angefangene neu eingereiht.
+            interrupted = session.scalars(
+                select(Document).where(Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING]))
+            ).all()
+            resume_ids = plan_restart(interrupted)
+        resume_in_background(resume_ids)
+    else:
+        logger.info("RESUME_INGESTION=false: unterbrochene Dokumente bleiben unangetastet")
     async with open_checkpointer() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
