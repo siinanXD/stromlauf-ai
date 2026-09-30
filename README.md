@@ -436,6 +436,14 @@ Stromlaufplan-Verweise, Klemmen und SPS-Adressen aus dem Kennzeichen-Index (`GET
 vom Modell. Der **Einbauort** kommt aus der Einbauort-Spalte der Stückliste (`+ST1`, `+BP1`, `+AN1` …), den
 Klartext („Schaltschrank +ST1") liefert die Kopfzeile derselben Datei; Leitungen tragen beide Orte.
 
+Das Blatt eines Verweises steht im Schriftfeld unten auf der Seite. Erkannt werden „Blatt 3 / 7“, „Blatt 3 von 7“,
+„Bl. 3“, „Sheet 3 of 7“, „Seite 5“ (EPLAN), „Folio : 3“ und „Page: 3“ (QElectroTech), getrennte Felder („Blatt“
+klein, die Nummer darunter) und der EPLAN-Seitenname `=ANL+ORT/3`, auch hinter Deckblatt und Inhaltsverzeichnis und
+auf hochkant gescannten Blättern. Querverweise und Inhaltsverzeichnisse im Plan zählen nicht als Blatt. Findet die
+Blatt-Map keine Nummer, nimmt sie das Blatt an und sagt das: Am Dokument steht „Blatt-Map unsicher: Seite = Blatt
+angenommen“ (oder welche Seiten keine eindeutige Nummer tragen), und die Zitatprüfung meldet Belege auf diese Blätter
+als „nicht geprüft“ statt „gültig“.
+
 Kommt die Dokumentation als **eine PDF** (EPLAN-, QElectroTech-Export mit Deckblatt, Inhaltsverzeichnis, Plan,
 Klemmenplan und Stückliste), gibt es keine Stücklisten-Datei. Dann entsteht das Modell aus dem Kennzeichen-Index:
 Teile sind die Betriebsmittel der Planseiten, Zonen die Blätter, auf denen sie zuerst vorkommen („Blatt 4 · Mains

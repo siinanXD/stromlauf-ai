@@ -98,6 +98,17 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `Chunk.meta` (`read: text|ocr`, `ocr_conf`), Hinweis „7 Seiten per OCR, Ø Konfidenz …“. Bilder (png/jpg/tif) liest
   `document_pieces` per OCR statt Docling; Doclings eigene OCR ist aus (`docling_parser.pdf_pipeline_options`).
   Tests, die `ingest_document` laufen lassen, brauchen Kopien der Fixtures: die Pipeline schreibt in den Upload.
+- Blatt-Map (Issue #67): `pdf_layout.sheet_map` liest die Blattnummer nur im unteren Viertel jeder Seite, in
+  Leserichtung (hochkant gescannte Blaetter: Zeichenwinkel aus pdfium): „Blatt 3 / 7“, „Blatt 3 von 7“, „Bl. 3“,
+  „Sheet 3 of 7“, „Seite 5“, „Folio : 3“ (das Folgeblatt darunter zaehlt nicht), „Page: 3“, getrennte Felder
+  („Blatt“ klein, Nummer darunter), EPLAN `=ANL+ORT/3`. Ohne Blattanzahl zaehlt eine Nummer nur als ganzes Feld
+  („von Blatt 3“ in der Zeichnung zaehlt nicht), untereinander stehende „Blatt n“ sind eine Liste, doppelte Nummern
+  entscheidet die Seitenfolge. `sheet_page` liefert `SheetPage(page, guessed)`; geraten heisst: ohne jede gelesene
+  Nummer Seite = Blatt, sonst aus der Seitenfolge zwischen gelesenen Blaettern. Dann schreibt die Pipeline
+  „Blatt-Map unsicher: …“ in den Hinweis (`pipeline.sheet_map_note`, nur Stromlaufplaene), der Zitat-Resolver meldet
+  „Nicht geprueft: Blatt-Map unsicher“; `page_titles` ordnet das Inhaltsverzeichnis ueber `SheetMap.page_sheets` zu.
+  Fixtures `examples/schriftfeld/` (Generator `scripts/example_docs/make_titleblocks.py`, Gold `gold.json`); QET-Gold
+  nur lokal per `eval/qet_gold.py` (Testdaten unter `testdata/`).
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
