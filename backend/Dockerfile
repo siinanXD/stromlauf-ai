@@ -14,15 +14,21 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml alembic.ini ./
+COPY pyproject.toml ./
+
+# Abhaengigkeiten vor dem Code: Dieser Layer (Torch, Docling, rund 640 MB) bleibt im Build-Cache, solange sich
+# pyproject.toml nicht aendert. Fuer das editable Install genuegen leere Paketordner, der Code kommt danach.
+# torch UND torchvision aus dem CPU-Index: ein torchvision von PyPI passt nicht zum CPU-torch
+# ("operator torchvision::nms does not exist" beim ersten Embedding)
+RUN mkdir -p app stromlauf_mcp \
+    && touch app/__init__.py stromlauf_mcp/__init__.py \
+    && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install -e ".[trace]"
+
+COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
 COPY stromlauf_mcp ./stromlauf_mcp
-
-# torch UND torchvision aus dem CPU-Index: ein torchvision von PyPI passt nicht zum CPU-torch
-# ("operator torchvision::nms does not exist" beim ersten Embedding)
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-    && pip install -e ".[trace]"
 
 # Uploads, Bilder, Flow-Cache und HF-Modelle liegen unter /data (Railway-Volume mounten)
 RUN mkdir -p /data
