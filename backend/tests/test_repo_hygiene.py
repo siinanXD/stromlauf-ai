@@ -40,6 +40,18 @@ def test_secret_scan_prueft_die_ganze_historie_mit_fester_version():
     assert '--log-opts="--full-history HEAD"' in ci
 
 
+def test_step_namen_der_workflows_verlieren_nichts_an_yaml_kommentare():
+    """In einem Namen ohne Anfuehrungszeichen beginnt mit " #" ein YAML-Kommentar: GitHub zeigte dann nur
+    "Injection-Testdaten laden (Issue" statt des ganzen Namens."""
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        cut = [
+            line.strip()
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if re.match(r"\s*(- )?name: [^\"']", line) and " #" in line
+        ]
+        assert cut == [], path.name
+
+
 def test_gitleaks_nimmt_nur_die_festen_testwerte_der_tests_aus():
     config = (ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
     assert "useDefault = true" in config and "paths" not in config and "commits" not in config
