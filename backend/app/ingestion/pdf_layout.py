@@ -16,6 +16,7 @@ from app.ingestion.vision import pdfium_lock
 
 SHEET_RE = re.compile(r"Blatt\s+(\d+)\s*(?:/|von)\s*\d+", re.I)
 MIN_COLUMNS = 4
+ROW_TOLERANCE = 0.006  # Hoehenversatz zweier benachbarter Spaltennummern, relativ zur Seitenhoehe
 TITLE_BLOCK_START = 0.75  # Schriftfeld liegt im untersten Viertel
 FALLBACK_BOTTOM = 0.85
 
@@ -111,21 +112,18 @@ def page_columns(path: Path, page: int) -> list[Column]:
         finally:
             pdf.close()
 
-    numbers = [t for t in tokens if t.text.isdigit() and t.top < 1 / 3]
-    rows: list[list[_Token]] = []
-    for token in sorted(numbers, key=lambda t: t.top):
-        if rows and abs(token.top - rows[-1][0].top) < 0.006:
-            rows[-1].append(token)
-        else:
-            rows.append([token])
+    # Laengste Folge 1, 2, 3 ... von links. Nur Nachbarn muessen auf gleicher Hoehe liegen, nicht die ganze Zeile:
+    # Ein 0,5 Grad schief eingescannter Plan faellt ueber die Blattbreite um etwa 0,012 ab (Issue #65).
+    numbers = sorted((t for t in tokens if t.text.isdigit() and t.top < 1 / 3), key=lambda t: t.left)
     best: list[_Token] = []
-    for row in rows:
-        row.sort(key=lambda t: t.left)
-        sequence = [t for t in row if t.text.isdigit()]
-        # laengste Folge 1, 2, 3 ... von links
-        run: list[_Token] = []
-        for token in sequence:
-            if int(token.text) == len(run) + 1:
+    for start in (t for t in numbers if t.text == "1"):
+        run = [start]
+        for token in numbers:
+            if (
+                token.left > run[-1].left
+                and int(token.text) == len(run) + 1
+                and abs(token.top - run[-1].top) < ROW_TOLERANCE
+            ):
                 run.append(token)
         if len(run) > len(best):
             best = run

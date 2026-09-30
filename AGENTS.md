@@ -82,6 +82,13 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `doctype.detect` meldet „Scan (keine Textebene)“. Fixtures `examples/scan/` (Generator
   `scripts/example_docs/make_scan.py`, gleiche Bytes je Lauf): Voll-Scan, Teil-Scan Blatt 3, Blatt 4 hochkant;
   eigene Wissensquelle, nie zur Demo-Maschine FB-01 laden. Tests ohne Docling (`test_pipeline_scan.py`).
+- OCR-Kern (Issue #65): `app/ingestion/ocr.py` macht aus einem Scan ein durchsuchbares PDF (`searchable_pdf`): RapidOCR
+  mit den mitgelieferten PP-OCRv6-Modellen ueber `onnxruntime` (CPU, kein Download), eine unsichtbare Textzeile je
+  erkannter Zeile per pypdfium2-Rohschnittstelle, damit alle Leser der Textebene den Scan ohne Sonderpfad lesen.
+  Je Seite: native Aufloesung des eingebetteten Bildes (`page_dpi`), Detektion fuer Drehung (hochkant -> 90/270)
+  und Schraeglage, lange Zeilen geteilt neu erkennen, `normalize` (Striche, Vollbreite, Leerzeichen vor Kennzeichen).
+  RapidOCR merkt sich `use_det/use_cls/use_rec` ueber Aufrufe hinweg: `_run` setzt immer alle drei. Noch nicht in der
+  Upload-Pipeline (Issue #66); messen mit `eval/run_ingest.py --ocr`.
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
