@@ -58,6 +58,7 @@ def test_fehlender_schluessel_wird_je_provider_benannt():
 
 
 def test_vision_hinweis_und_erkennung_folgen_dem_provider_des_modells(monkeypatch):
+    from app import llm
     from app.ingestion import cabinet_vision, layout_vision, pipeline
 
     with_openai = SimpleNamespace(
@@ -71,12 +72,61 @@ def test_vision_hinweis_und_erkennung_folgen_dem_provider_des_modells(monkeypatc
     monkeypatch.setattr(pipeline, "get_settings", lambda: without)
     assert pipeline.vision_skip_note() == "Vision-Analyse uebersprungen: OPENAI_API_KEY fehlt"
 
+    # eigener Fehlertyp, damit die Endpunkte daraus ein 400 mit dem Namen machen (nicht 502)
     monkeypatch.setattr(cabinet_vision, "get_settings", lambda: without)
-    with pytest.raises(RuntimeError, match="OPENAI_API_KEY fehlt"):
+    with pytest.raises(llm.MissingKeyError, match="OPENAI_API_KEY fehlt") as cabinet_error:
         cabinet_vision.detect_components(Path("nirgends.png"))
     monkeypatch.setattr(layout_vision, "get_settings", lambda: without)
-    with pytest.raises(RuntimeError, match="OPENAI_API_KEY fehlt"):
+    with pytest.raises(llm.MissingKeyError, match="OPENAI_API_KEY fehlt") as layout_error:
         layout_vision.detect_layout(b"")
+    assert cabinet_error.value.key == layout_error.value.key == "OPENAI_API_KEY"
+
+
+class _FakeVisionModel:
+    """Steht fuer das Chatmodell des Providers: feste Antwort, kein Netz, keine Kosten."""
+
+    def __init__(self, model: str, **kwargs):
+        self.model, self.kwargs = model, kwargs
+
+    def invoke(self, _messages, _config=None):
+        item = '{"tag": "-K1", "kind": "Schuetz", "label": "Hauptschuetz", "x": 0.1, "y": 0.2, "w": 0.1, "h": 0.1}'
+        return SimpleNamespace(content=f'{{"items": [{item}]}}')
+
+
+def test_vision_startet_mit_nur_openai_api_key(monkeypatch, tmp_path):
+    """Issue #50: Vision mit openai:gpt-* braucht nur OPENAI_API_KEY; der Provider ist gemockt."""
+    from PIL import Image
+
+    from app import llm
+    from app.config import Settings
+    from app.ingestion import cabinet_vision
+
+    settings = Settings(
+        _env_file=None,
+        vision_model="openai:gpt-5",
+        anthropic_api_key=None,
+        openai_api_key="sk-openai",
+    )
+    created: list[_FakeVisionModel] = []
+
+    def fake_init(model: str, **kwargs):
+        created.append(_FakeVisionModel(model, **kwargs))
+        return created[-1]
+
+    monkeypatch.setattr(cabinet_vision, "get_settings", lambda: settings)
+    monkeypatch.setattr(llm, "get_settings", lambda: settings)
+    monkeypatch.setattr(llm, "init_chat_model", fake_init)
+    image = tmp_path / "schrank.png"
+    Image.new("RGB", (80, 60), "white").save(image)
+
+    items = cabinet_vision.detect_components(image)
+    assert [item["tag"] for item in items] == ["-K1"]
+    (model,) = created
+    assert (model.model, model.kwargs["model_provider"], model.kwargs["api_key"]) == (
+        "gpt-5",
+        "openai",
+        "sk-openai",
+    )
 
 
 def test_health_meldet_den_schluessel_des_chat_providers(monkeypatch):

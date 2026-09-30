@@ -15,6 +15,7 @@ from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size
 from app.ingestion.tags import normalize_tag, search_prefixes
+from app.llm import MissingKeyError
 from app.models import (
     CabinetHotspot,
     CabinetImage,
@@ -467,6 +468,8 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
     config, usage = ledger.collect(vision_trace(cabinet_id, "schaltschrank"))
     try:
         items = detect_components(Path(cabinet.image_path), known, config)
+    except MissingKeyError as exc:  # Konfiguration, kein Fehler des Providers (Issue #50)
+        raise HTTPException(400, f"Vision-Erkennung nicht moeglich: {exc}") from exc
     except Exception as exc:
         logger.exception("Vision-Erkennung fehlgeschlagen")
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc

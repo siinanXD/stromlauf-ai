@@ -14,7 +14,7 @@ from PIL import Image
 
 from app.config import get_settings
 from app.ingestion.tags import normalize_tag
-from app.llm import image_block, make_chat_model, missing_key
+from app.llm import MissingKeyError, image_block, make_chat_model, missing_key
 
 MAX_EDGE = 2000
 
@@ -54,7 +54,7 @@ def detect_components(
 ) -> list[dict]:
     settings = get_settings()
     if missing := missing_key(settings.vision_model, settings):
-        raise RuntimeError(f"{missing} fehlt")
+        raise MissingKeyError(missing)
     png, _, _ = load_png(path)
     known = ""
     if known_tags:

@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 
 from app.config import get_settings
 from app.ingestion.layout_geometry import LAYOUT_KINDS
-from app.llm import image_block, make_chat_model, missing_key
+from app.llm import MissingKeyError, image_block, make_chat_model, missing_key
 
 DETECT_PROMPT = """Du bist Konstrukteur im Anlagenbau. Das Bild zeigt eine Draufsicht \
 (Vogelperspektive) einer Maschine oder Anlage: Aufstellungsplan, Skizze, Scan oder Foto.
@@ -58,7 +58,7 @@ def detect_layout(
     """Ruft Claude Vision auf (kostet API-Tokens). Rueckgabe: items, floor, width_mm, depth_mm."""
     settings = get_settings()
     if missing := missing_key(settings.vision_model, settings):
-        raise RuntimeError(f"{missing} fehlt")
+        raise MissingKeyError(missing)
     known = ""
     if known_tags:
         known = (
