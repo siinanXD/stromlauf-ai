@@ -164,7 +164,9 @@ E2E_API_URL=http://127.0.0.1:8010 npx playwright test e2e/staging.spec.ts   # E2
 Einrichtung der venv und des GPU-Torch: `README.md` Abschnitt „Start“.
 CI (`.github/workflows/ci.yml`) laeuft bei jedem Push auf `master` und jedem Pull Request (oeffentliches Repo,
 Actions kostenlos): Backend, Frontend, E2E, Migration von null, Container-Build und ein Secret-Scan mit gitleaks
-ueber die ganze Historie; `eval.yml` faehrt das kostenlose Retrieval-Gate je PR und den bezahlten Agentenlauf
+ueber die ganze Historie (gitleaks selbst mit fester Version und Pruefsumme; gitleaks-action prueft bei PR und Push
+nur neue Commits; Ausnahmen nur fuer feste Testwerte in `.gitleaks.toml`, Muster `…-test-secret-0123456789…`);
+`eval.yml` faehrt das kostenlose Retrieval-Gate je PR und den bezahlten Agentenlauf
 woechentlich. Vor jedem Push `scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
 
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
