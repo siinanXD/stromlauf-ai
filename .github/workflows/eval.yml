@@ -29,27 +29,19 @@ env:
   EMBEDDING_PROVIDER: local
   HF_HOME: /home/runner/.cache/huggingface
   DATA_DIR: /tmp/stromlauf-data
+  PYTHONUNBUFFERED: "1"  # Fortschrittszeilen der Lade-Skripte mit echten Zeitstempeln im Log
 
 jobs:
-  retrieval:
-    name: Retrieval-Gate (FB-01, kostenlos)
+  # Lesegenauigkeit je Seite gegen Ground Truth, ohne DB, Backend und Modellaufruf: eigener Job neben dem Retrieval-Gate
+  ingest:
+    name: Ingest-Gate (Lesegenauigkeit, kostenlos)
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    services:
-      db:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_USER: stromlauf
-          POSTGRES_PASSWORD: stromlauf
-          POSTGRES_DB: stromlauf
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U stromlauf -d stromlauf"
-          --health-interval 5s --health-timeout 3s --health-retries 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Runner-CPU (gleiche Arbeit dauert je Runner unterschiedlich lange)
+        run: lscpu | grep -E 'Model name|^CPU\(s\)'
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -78,6 +70,65 @@ jobs:
           python eval/run_ingest.py --gold eval/ingest_gold/fb01.json
           --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan-ocr --ocr
           --min 0.95 --min-for terminal=0.75 --types device,terminal,plc_address
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ingest-nachweise
+          path: |
+            eval/results/ingest_*.json
+            eval/results/ingest_*.md
+          retention-days: 14
+
+  # Das Einlesen der Quellen (Embeddings mit bge-m3 auf der CPU) kostet die meiste Zeit: nacheinander in einem Job
+  # 16,8 min (2026-09-30). Drei Gruppen laufen parallel, jede laedt nur ihre Quellen und prueft deren Fragen mit
+  # denselben Schwellen.
+  retrieval:
+    name: Retrieval-Gate ${{ matrix.gruppe }} (kostenlos)
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gruppe: FB-01  # dazu Abnahme-Nachweise, Zitat-Resolver, Frontend-Build und Lighthouse
+            quellen: "Foerderband FB-01,Injection-Test,Scan FB-01"
+          - gruppe: UR-01
+            quellen: "Umroller UR-01"
+          - gruppe: PM1-AR
+            quellen: "Aufrollung PM1-AR"
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: stromlauf
+          POSTGRES_PASSWORD: stromlauf
+          POSTGRES_DB: stromlauf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stromlauf -d stromlauf"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runner-CPU (gleiche Arbeit dauert je Runner unterschiedlich lange)
+        run: lscpu | grep -E 'Model name|^CPU\(s\)'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Modellcache (bge-m3, Docling)
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/huggingface
+          key: hf-bge-m3-docling-${{ runner.os }}-v1
+      - name: Backend mit CPU-Torch installieren
+        working-directory: backend
+        run: |
+          # torch und torchvision aus demselben Index, sonst passt torchvision (PyPI, CUDA-Build) nicht zum CPU-torch
+          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          pip install -e ".[dev]"
       - name: Backend starten
         working-directory: backend
         run: |
@@ -85,28 +136,36 @@ jobs:
           for i in $(seq 1 60); do curl -sf http://localhost:8010/api/health && break; sleep 2; done
           curl -sf http://localhost:8010/api/health
       - name: Demo-Maschine FB-01 laden und Abnahme-Nachweise sammeln (Ingestion ohne Vision, kein Gate)
+        if: matrix.gruppe == 'FB-01'
         run: python scripts/acceptance.py --api http://localhost:8010 --load --out eval/results
       - name: Injection-Testdaten laden (Issue #48, ein Markdown-Handbuch)
+        if: matrix.gruppe == 'FB-01'
         run: python scripts/load_folder.py examples/injection --name "Injection-Test" --api http://localhost:8010
-      - name: Testdokumentation UR-01 und PM1-AR laden (Issue #49, je 6 Dateien)
-        run: |
-          python scripts/load_folder.py examples/umroller --name "Umroller UR-01" --api http://localhost:8010
-          python scripts/load_folder.py examples/aufrollung --name "Aufrollung PM1-AR" --api http://localhost:8010
       - name: Scan-Fassung FB-01 laden (Issue #66, nur der Voll-Scan als eigene Quelle, OCR im Upload)
+        if: matrix.gruppe == 'FB-01'
         run: python scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01" --api http://localhost:8010
-      - name: Retrieval-Eval mit Schwellwerten (FB-01, UR-01, PM1-AR, Injection-Fallen, Scan)
-        run: python eval/run_retrieval.py --api http://localhost:8010 --only "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Injection-Test,Scan FB-01" --min 0.9 --min-sources 0.9
+      - name: Testdokumentation UR-01 laden (Issue #49, 6 Dateien)
+        if: matrix.gruppe == 'UR-01'
+        run: python scripts/load_folder.py examples/umroller --name "Umroller UR-01" --api http://localhost:8010
+      - name: Testdokumentation PM1-AR laden (Issue #49, 6 Dateien)
+        if: matrix.gruppe == 'PM1-AR'
+        run: python scripts/load_folder.py examples/aufrollung --name "Aufrollung PM1-AR" --api http://localhost:8010
+      - name: Retrieval-Eval mit Schwellwerten (${{ matrix.quellen }})
+        run: python eval/run_retrieval.py --api http://localhost:8010 --only "${{ matrix.quellen }}" --min 0.9 --min-sources 0.9
       - name: Zitat-Resolver gegen den Referenzlauf (Issue #46, kostenlos, Regressionstest)
+        if: matrix.gruppe == 'FB-01'
         run: >-
           python eval/rescore.py eval/results/referenz_2026-09-28_claude-sonnet-5.json --api http://localhost:8010
           --out eval/results/rescore_gate_claude-sonnet-5.json --min-citations 0.9
           --expect-invalid "[[02_Stueckliste_FB-01.xlsx|-X3:3]]" --expect-invalid "[[05_Symboltabelle_FB-01.sdf|-]]"
       - uses: actions/setup-node@v4
+        if: matrix.gruppe == 'FB-01'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Frontend als Produktions-Build gegen das lokale Backend starten
+        if: matrix.gruppe == 'FB-01'
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8010
@@ -117,6 +176,7 @@ jobs:
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3100/login && break; sleep 2; done
           curl -sf -o /dev/null http://localhost:3100/login
       - name: Lighthouse Accessibility >= 90 auf der Maschinenansicht (contract.md §5)
+        if: matrix.gruppe == 'FB-01'
         run: node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010 --out eval/results
       - name: Logs bei Fehler
         if: failure()
@@ -127,11 +187,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: abnahme-nachweise
+          name: abnahme-nachweise-${{ matrix.gruppe }}
           path: |
             eval/results/retrieval_*.json
-            eval/results/ingest_*.json
-            eval/results/ingest_*.md
             eval/results/rescore_gate_*.json
             eval/results/acceptance_*.json
             eval/results/acceptance_*.md

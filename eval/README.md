@@ -25,13 +25,16 @@ die Session des Chats geschrieben.
 
 ## Gates in CI (`.github/workflows/eval.yml`)
 
-- **Retrieval-Gate** bei jedem PR und auf master: zuerst der Ingest-Benchmark (`run_ingest.py` auf FB-01, UR-01 und
-  PM1-AR, `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling) und derselbe auf dem Voll-Scan mit OCR
-  (`--ocr --min 0.95 --min-for terminal=0.75`, Issue #66), dann Backend mit pgvector und lokalem `bge-m3`
-  (Modellcache), `scripts/acceptance.py --load` (FB-01, ohne Vision) und `scripts/load_folder.py` fuer
-  Injection-Test, UR-01, PM1-AR und den Voll-Scan als Quelle „Scan FB-01“ (`--pattern "*_scan.pdf"`, OCR im
-  Upload), dann `run_retrieval.py --only "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Injection-Test,Scan
-  FB-01" --min 0.9 --min-sources 0.9` und das Zitat-Gate (`rescore.py --min-citations 0.9`). Kostet keine Tokens.
+- **Ingest-Gate** bei jedem PR und auf master, eigener Job ohne DB und Backend: `run_ingest.py` auf FB-01, UR-01 und
+  PM1-AR (`--min 0.95` fuer device, terminal, plc_address; braucht nur Docling) und auf dem Voll-Scan mit OCR
+  (`--ocr --min 0.95 --min-for terminal=0.75`, Issue #66). Artefakt `ingest-nachweise`.
+- **Retrieval-Gate** bei jedem PR und auf master, parallel dazu in drei Gruppen (Matrix `gruppe`), weil das Einlesen der
+  Quellen mit `bge-m3` auf der CPU die meiste Zeit kostet (in einem Job nacheinander 16,8 min). Jede Gruppe startet
+  Backend mit pgvector und lokalem `bge-m3` (Modellcache), laedt nur ihre Quellen und prueft deren Fragen mit
+  `run_retrieval.py --only "<quellen>" --min 0.9 --min-sources 0.9`: FB-01 (`scripts/acceptance.py --load`, ohne
+  Vision) mit Injection-Test und dem Voll-Scan als Quelle „Scan FB-01“ (`--pattern "*_scan.pdf"`, OCR im Upload), dazu
+  das Zitat-Gate (`rescore.py --min-citations 0.9`); UR-01; PM1-AR. `backend/tests/test_ci_laufzeit.py` prueft, dass
+  jede Quelle in genau einer Gruppe steht und dort geladen wird. Kostet keine Tokens.
 - **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Foerderband FB-01,Injection-Test" --min 0.8
   --min-citations 0.9 --max-cost 2.00` (stoppt, sobald die Summe der `usage.cost_usd` den Deckel erreicht) und
   `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf gegen die 15 gelabelten Boxen des
@@ -39,11 +42,11 @@ die Session des Chats geschrieben.
   Secret wird der Job uebersprungen.
 - **Isolation**: `backend/tests/test_isolation_eval.py` stellt fuenf Retrieval-Fragen ueber Workspaces hinweg
   (Kennzeichen, Befundkarte, Suche, Maschinen-Tag, Signalweg) und erwartet keine fremden Inhalte.
-- **Abnahme-Nachweise** (`docs/product/ACCEPTANCE.md`) im selben Job wie das Retrieval-Gate: `scripts/acceptance.py --load`
+- **Abnahme-Nachweise** (`docs/product/ACCEPTANCE.md`) in der Gruppe FB-01 des Retrieval-Gates: `scripts/acceptance.py --load`
   laedt FB-01, misst Kaltstart und Ingestion-Dauer, zaehlt Baugruppen, Teile und Fundstellen des Modells, liest Kostenbuch
   und Schaetzung (kein Gate ohne `--strict`; Ergebnis `acceptance_<zeit>.json/.md`). Danach baut der Job das Frontend und
   `frontend/scripts/lighthouse-a11y.mjs` prueft Lighthouse Accessibility >= 90 auf der Maschinenansicht (Gate). Alles
-  landet im Artefakt `abnahme-nachweise`. Gegen ein echtes Backend ohne Mocks: `E2E_API_URL=... npx playwright test
+  landet im Artefakt `abnahme-nachweise-FB-01`. Gegen ein echtes Backend ohne Mocks: `E2E_API_URL=... npx playwright test
   e2e/staging.spec.ts` (Frage nur mit `E2E_ASK=1`, kostet eine Antwort).
 
 ## Fragen
@@ -102,7 +105,7 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
   zum zitierenden Satz passt, bleibt gueltig und traegt nur einen Hinweis (`reason`); das erkennt erst ein
   Richter. Alte Laeufe ohne meta-Event bekommen den Wert per
   `python eval/rescore.py <lauf> --api http://127.0.0.1:8010` nachgeliefert (kein Modellaufruf);
-  `--min-citations` und `--expect-invalid` machen daraus ein Gate (Retrieval-Job in `eval.yml`).
+  `--min-citations` und `--expect-invalid` machen daraus ein Gate (Retrieval-Gate FB-01 in `eval.yml`).
 - `teile_recall` / `teile_praezision` (Issue #49, contract.md „referenced-part precision >= 0,85“): die
   referenzierten Bauteile der Antwort (`meta.referenced_tags`, Betriebsmittel im Index der Quelle) gegen
   `expect_tags` und `ok_tags` der Frage. Recall = erwartete Teile, die die Antwort nennt; Praezision = genannte
@@ -131,7 +134,7 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
   nicht die Kennzeichen-Grammatik; die prueft `backend/tests/test_tags.py`.
 - Metrik: Recall und Precision je Typ (`device`, `terminal`, `plc_address`, `cross_ref`), ueber alle Seiten
   summiert; dazu fehlende und fremde Kennzeichen je Seite und Sekunden je Seite. Funde ohne Seite zaehlen als Seite 0.
-- Gate: `--min 0.95 --types device,terminal,plc_address` im Retrieval-Job; `cross_ref` wird nur berichtet.
+- Gate: `--min 0.95 --types device,terminal,plc_address` im Job „Ingest-Gate“; `cross_ref` wird nur berichtet.
 - Stand 2026-09-29 (FB-01, Text-PDF): device, terminal und plc_address je Recall und Precision 1,00; cross_ref
   0,95, weil pdfium auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammenzieht.
 - Stand 2026-09-30 (UR-01 mit 16 Seiten, PM1-AR mit 13 Seiten, Text-PDF): alle vier Typen Recall und Precision 1,00,
