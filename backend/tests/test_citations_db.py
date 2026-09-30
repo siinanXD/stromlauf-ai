@@ -33,19 +33,20 @@ def client(tmp_path_factory):
     get_settings.cache_clear()
 
 
-def _wipe_sources(workspace: str) -> None:
-    """Alle Quellen des Test-Workspace loeschen (Cascade raeumt Dokumente, Chunks und Index mit)."""
+def _wipe_workspace(workspace: str) -> None:
+    """Quellen und Chats des Test-Workspace loeschen (Cascade: Dokumente, Chunks, Index)."""
     from sqlalchemy import select
 
     from app.db import session_scope
-    from app.models import KnowledgeSource
+    from app.models import Conversation, KnowledgeSource
     from app.tenancy import reset_workspace, set_workspace
 
     token = set_workspace(workspace)
     try:
         with session_scope() as session:
-            for source in session.scalars(select(KnowledgeSource)).all():
-                session.delete(source)
+            for model in (KnowledgeSource, Conversation):
+                for row in session.scalars(select(model)).all():
+                    session.delete(row)
     finally:
         reset_workspace(token)
 
@@ -84,7 +85,7 @@ def world(client):
                 secret=SECRET,
                 hours=1,
             )
-    _wipe_sources(WS)
+    _wipe_workspace(WS)
 
     token = set_workspace(WS)
     try:
@@ -168,7 +169,7 @@ def world(client):
     finally:
         reset_workspace(token)
     yield {"tokens": tokens, "source_id": source_id}
-    _wipe_sources(WS)
+    _wipe_workspace(WS)
 
 
 def _auth(token: str) -> dict:

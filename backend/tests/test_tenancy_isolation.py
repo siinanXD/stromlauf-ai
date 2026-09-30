@@ -12,6 +12,7 @@ import pytest
 pytestmark = pytest.mark.skipif(not os.environ.get("STROMLAUF_DB_TESTS"), reason="braucht Postgres (STROMLAUF_DB_TESTS=1)")
 
 SECRET = "isolation-test-secret-0123456789"
+WORKSPACES = ("ws-a-test", "ws-b-test")
 
 
 @pytest.fixture(scope="module")
@@ -30,8 +31,28 @@ def client(tmp_path_factory):
     get_settings.cache_clear()
 
 
+def _wipe_workspaces() -> None:
+    """Quellen, Hallen und Chats der Test-Workspaces loeschen (Cascade raeumt Dokumente, Index und Maschinen mit)."""
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.models import Conversation, Hall, KnowledgeSource
+    from app.tenancy import reset_workspace, set_workspace
+
+    for workspace in WORKSPACES:
+        token = set_workspace(workspace)
+        try:
+            with session_scope() as session:
+                for model in (KnowledgeSource, Hall, Conversation):
+                    for row in session.scalars(select(model)).all():
+                        session.delete(row)
+        finally:
+            reset_workspace(token)
+
+
 @pytest.fixture(scope="module")
 def workspaces(client):
+    """Tokens fuer beide Workspaces; raeumt vorher Reste frueherer Laeufe und hinterher die eigenen Zeilen weg."""
     from app.auth import issue_token
     from app.db import session_scope
     from app.models import User, Workspace, WorkspaceMember
@@ -45,7 +66,9 @@ def workspaces(client):
             session.merge(user)
             session.merge(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="admin"))
             tokens[key], _ = issue_token(user_id=user.id, email=user.email, workspace_id=workspace.id, role="admin", secret=SECRET, hours=1)
-    return tokens
+    _wipe_workspaces()
+    yield tokens
+    _wipe_workspaces()
 
 
 def _auth(token: str) -> dict:
@@ -125,6 +148,18 @@ def test_maschinen_und_chats_sind_getrennt(client, workspaces):
     assert client.delete(f"/api/conversations/{conversation_id}", headers=_auth(b)).status_code == 404
 
 
+def _delete_login_tokens(email: str) -> None:
+    """Magic-Links einer Test-Adresse loeschen (login_tokens hat keinen Workspace)."""
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.models import LoginToken
+
+    with session_scope() as session:
+        for login in session.scalars(select(LoginToken).where(LoginToken.email == email)).all():
+            session.delete(login)
+
+
 def test_me_und_magic_link_exchange(client, workspaces):
     me = client.get("/api/auth/me", headers=_auth(workspaces["a"])).json()
     assert me["workspace"]["id"] == "ws-a-test" and me["email"] == "a@isolation.test"
@@ -150,3 +185,4 @@ def test_me_und_magic_link_exchange(client, workspaces):
     finally:
         os.environ.pop("AUTH_DEV_LINK", None)
         get_settings.cache_clear()
+        _delete_login_tokens("neu@isolation-test.de")

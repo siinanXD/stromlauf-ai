@@ -13,6 +13,7 @@ pytestmark = pytest.mark.skipif(not os.environ.get("STROMLAUF_DB_TESTS"), reason
 
 SECRET = "isolation-eval-secret-0123456789abc"
 TAGS = ["-K77", "-M42", "-F9", "-X7:3", "-Q5"]
+WORKSPACES = ("ws-eval-a", "ws-eval-b")
 
 
 @pytest.fixture(scope="module")
@@ -31,9 +32,31 @@ def client(tmp_path_factory):
     get_settings.cache_clear()
 
 
+def _wipe_workspaces() -> None:
+    """Quellen und Hallen beider Eval-Workspaces loeschen (Cascade: Dokumente, Index, Maschinen)."""
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.models import Hall, KnowledgeSource
+    from app.tenancy import reset_workspace, set_workspace
+
+    for workspace in WORKSPACES:
+        token = set_workspace(workspace)
+        try:
+            with session_scope() as session:
+                for model in (KnowledgeSource, Hall):
+                    for row in session.scalars(select(model)).all():
+                        session.delete(row)
+        finally:
+            reset_workspace(token)
+
+
 @pytest.fixture(scope="module")
 def world(client):
-    """Workspace B mit Daten, Workspace A leer; Tokens fuer beide."""
+    """Workspace B mit Daten, Workspace A leer; Tokens fuer beide.
+
+    Raeumt vorher Reste frueherer Laeufe und hinterher die eigenen Zeilen weg.
+    """
     from app.auth import issue_token
     from app.db import session_scope
     from app.models import (
@@ -53,6 +76,7 @@ def world(client):
             session.merge(User(id=f"user-eval-{key}", email=f"{key}@isolation-eval.de"))
             session.merge(WorkspaceMember(workspace_id=f"ws-eval-{key}", user_id=f"user-eval-{key}", role="admin"))
             tokens[key], _ = issue_token(user_id=f"user-eval-{key}", email=f"{key}@isolation-eval.de", workspace_id=f"ws-eval-{key}", role="admin", secret=SECRET, hours=1)
+    _wipe_workspaces()
 
     token = set_workspace("ws-eval-b")
     try:
@@ -73,7 +97,8 @@ def world(client):
         reset_workspace(token)
     hall = client.post("/api/halls", json={"name": "Halle B", "description": ""}, headers={"Authorization": f"Bearer {tokens['b']}"}).json()
     machine = client.post(f"/api/halls/{hall['id']}/machines", json={"name": "Geheimpresse", "machine_type": "main", "description": "", "source_id": source_id}, headers={"Authorization": f"Bearer {tokens['b']}"}).json()
-    return {"tokens": tokens, "source_id": source_id, "machine_id": machine["id"]}
+    yield {"tokens": tokens, "source_id": source_id, "machine_id": machine["id"]}
+    _wipe_workspaces()
 
 
 def _auth(token: str) -> dict:
