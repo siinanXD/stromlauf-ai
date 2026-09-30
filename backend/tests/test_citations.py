@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from app.citations import DocIndex, check_citations, parse_markers, summary
+from app.ingestion.pdf_layout import SheetPage
 
 PLAN = DocIndex(
     filename="01_Stromlaufplan_FB-01.pdf", is_pdf=True, pages=frozenset(range(1, 8)), page_count=7
@@ -305,6 +306,61 @@ def test_unlesbare_pdf_macht_den_blattverweis_nicht_pruefbar():
             False,
             "Ort nicht pruefbar: plan.pdf nicht lesbar",
         )
+
+
+def test_geratenes_blatt_ist_nicht_geprueft_statt_gueltig():
+    """Issue #67: Wo die Blatt-Map das Blatt nur annimmt, bestaetigt der Resolver den Beleg nicht."""
+    plan = DocIndex(filename="plan.pdf", is_pdf=True, path=Path("/plan.pdf"), page_count=7)
+    guessed, missing, read = check_citations(
+        "[[plan.pdf|/3.2]] [[plan.pdf|/9.1]] [[plan.pdf|Blatt 4]]",
+        [plan],
+        None,
+        sheet_lookup=lambda path, sheet: {3: SheetPage(3, guessed=True), 4: SheetPage(6)}.get(
+            sheet, SheetPage(None, guessed=True)
+        ),
+    )
+    assert (guessed.valid, guessed.checked, guessed.reason) == (
+        True,
+        False,
+        "Nicht geprueft: Blatt-Map unsicher, Blatt 3 auf Seite 3 angenommen",
+    )
+    assert (missing.valid, missing.checked, missing.reason) == (
+        True,
+        False,
+        "Nicht geprueft: Blatt-Map unsicher, Blatt 9 nicht gefunden",
+    )
+    assert (read.valid, read.checked, read.reason) == (True, True, "")
+
+
+SCHRIFTFELD = Path(__file__).resolve().parents[2] / "examples" / "schriftfeld"
+
+
+def test_schriftfeld_fixtures_gegen_die_echte_blatt_map():
+    def plan(name: str) -> DocIndex:
+        path = SCHRIFTFELD / name
+        return DocIndex(
+            filename=name, is_pdf=True, path=path, pages=frozenset(range(1, 8)), page_count=7
+        )
+
+    deckblatt, zu_hoch, ohne, luecke, gelesen = check_citations(
+        "[[blatt_von.pdf|/1.2]] [[blatt_von.pdf|/7.1]] [[ohne_blattnummer.pdf|/2.3]] [[luecke.pdf|/3.2]] "
+        "[[luecke.pdf|/4.1]]",
+        [plan("blatt_von.pdf"), plan("ohne_blattnummer.pdf"), plan("luecke.pdf")],
+        None,
+    )
+    assert (deckblatt.valid, deckblatt.checked) == (True, True)
+    assert (zu_hoch.valid, zu_hoch.reason) == (False, "Blatt 7 nicht in blatt_von.pdf")
+    assert (ohne.valid, ohne.checked, ohne.reason) == (
+        True,
+        False,
+        "Nicht geprueft: Blatt-Map unsicher, Blatt 2 auf Seite 2 angenommen",
+    )
+    assert (luecke.valid, luecke.checked, luecke.reason) == (
+        True,
+        False,
+        "Nicht geprueft: Blatt-Map unsicher, Blatt 3 auf Seite 5 angenommen",
+    )
+    assert (gelesen.valid, gelesen.checked) == (True, True)
 
 
 def test_leere_antwort_leerer_dateiname_unplausible_zahl_und_belegdeckel():

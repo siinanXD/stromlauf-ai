@@ -17,7 +17,7 @@ from PIL import Image
 
 from app.ingestion import ocr
 from app.ingestion.docling_parser import pdf_raw_text
-from app.ingestion.pdf_layout import _sheet_map, page_columns
+from app.ingestion.pdf_layout import page_columns, sheet_map
 from app.ingestion.tags import extract_tags
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -65,8 +65,10 @@ def blatt_3_mit_textebene(tmp_path_factory) -> Path:
 
 
 def test_textebene_macht_blatt_und_spalten_des_scans_lesbar(blatt_3_mit_textebene):
-    sheets, pages = _sheet_map(str(blatt_3_mit_textebene), blatt_3_mit_textebene.stat().st_mtime)
-    assert sheets == {3: 3} and pages == 7
+    sheets = sheet_map(blatt_3_mit_textebene)
+    assert sheets.read == {3: 3} and sheets.page_count == 7
+    # die Bildseiten ohne Textebene davor und bis zur Blattanzahl "/ 7" danach sind nur angenommen (Issue #67)
+    assert sheets.guessed == {1: 1, 2: 2, 4: 4, 5: 5, 6: 6, 7: 7}
     scanned = page_columns(blatt_3_mit_textebene, 3)
     original = page_columns(TEXT, 3)
     assert len(scanned) == len(original) == 8

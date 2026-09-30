@@ -156,6 +156,13 @@ python scripts/example_docs/make_scan.py                  # Scan-Fassungen neu e
 Ergebnis: `eval/results/ingest_<gold>[_<label>]_<zeitstempel>.json` und `.md`; Exit 1, wenn ein gegateter Typ unter
 `--min` liegt oder fuer ihn kein Gold existiert.
 
+QElectroTech-Testdaten (Issue #67, nur lokal): `python eval/qet_gold.py` schreibt `testdata/qelectrotech/qet.json`
+aus der Stueckliste des Projekts (Geraet -> Folio, Folio -> Seite ueber die Blatt-Map, nur im Schriftfeld gelesene
+Nummern). Die Testdaten stehen unter GPL und liegen bis zur Lizenzklaerung nicht im Repo, das Gold deshalb auch
+nicht. `python eval/run_ingest.py --gold testdata/qelectrotech/qet.json --types device` misst den Recall der
+Planseiten; Precision ist dort nicht aussagekraeftig, weil Kontakte eines Schuetzes sein Kennzeichen auch auf
+anderen Folios tragen. Stand 2026-09-30: Recall 1,00 (105 von 105 Kennzeichen auf 23 Seiten), 1 s je Seite.
+
 ## Ablauf-Extraktion gegen Gold (`run_flow.py`)
 
 Misst ein Extraktions-JSON (`scripts/extract_flow.py`) gegen `testdata/festo/gold.flow.json`, ohne Modellaufruf:
