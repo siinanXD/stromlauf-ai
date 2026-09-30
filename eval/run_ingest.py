@@ -1,7 +1,10 @@
 """Ingest-Benchmark: Kennzeichen je Seite gegen Ground Truth, ohne Datenbank und ohne Modellaufruf.
 
-Aufruf:  python eval/run_ingest.py --gold eval/ingest_gold/fb01.json [--doc PFAD --label scan] [--min 0.95]
-                                   [--types device,terminal,plc_address] [--out eval/results]
+Aufruf:  python eval/run_ingest.py --gold eval/ingest_gold/fb01.json [--doc PFAD --label scan] [--ocr]
+                                   [--min 0.95] [--types device,terminal,plc_address] [--out eval/results]
+
+--ocr legt vor der Messung eine unsichtbare Textebene auf die Seiten ohne Text (app/ingestion/ocr.py,
+RapidOCR lokal) und misst diese Fassung; OCR-Seiten, -Sekunden und -Konfidenz stehen im Ergebnis.
 
 Misst die Lesekette des Uploads (Docling + PDF-Rohtext -> Stuecke -> Kennzeichen) ueber dieselben
 Funktionen wie die Pipeline: `document_pieces`, `split_pieces`, `tag_rows` aus
@@ -17,6 +20,7 @@ Exit 1, wenn Recall oder Precision eines gegateten Typs unter --min liegen.
 import argparse
 import json
 import sys
+import tempfile
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -34,6 +38,7 @@ NO_PAGE = 0  # Funde ohne Seite (Nicht-PDF) landen hier statt verloren zu gehen
 
 Pages = dict[int, dict[str, set[str]]]
 Measure = Callable[[Path, str], tuple[Pages, int | None, float]]
+Ocr = Callable[[Path, Path], tuple[Path, dict]]
 
 
 def load_gold(path: Path) -> dict:
@@ -123,6 +128,15 @@ def measure(doc: Path, doc_type: str) -> tuple[Pages, int | None, float]:
     return by_page(rows), read.page_count, time.perf_counter() - start
 
 
+def make_searchable(doc: Path, out_dir: Path) -> tuple[Path, dict]:
+    """Durchsuchbare Fassung von doc in out_dir (OCR auf den Seiten ohne Textebene) und ihre Kennzahlen."""
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.ingestion.ocr import searchable_pdf
+
+    target = out_dir / f"{doc.stem}_ocr.pdf"
+    return target, searchable_pdf(doc, target).summary()
+
+
 def _number(value: float | None) -> str:
     return "-" if value is None else f"{value:.2f}"
 
@@ -136,6 +150,14 @@ def render_markdown(title: str, summary: dict, deviations: list[dict]) -> str:
         f"Dokument `{summary['dokument']}`, {summary['seiten'] or '-'} Seiten, {summary['sekunden']:.1f} s "
         f"({_number(summary['sekunden_je_seite'])} s je Seite). Gold `{summary['gold']}`.",
         "",
+    ]
+    if ocr := summary.get("ocr"):
+        lines += [
+            f"OCR: {len(ocr['seiten'])} Seiten, {ocr['sekunden']:.1f} s, Konfidenz {_number(ocr['konfidenz'])} "
+            "(unsichtbare Textebene, RapidOCR lokal auf der CPU).",
+            "",
+        ]
+    lines += [
         f"Gate: Recall und Precision >= {gate['min']:.2f} fuer {', '.join(gate['typen']) or '-'}: {verdict}.",
         "",
         "| Typ | Gold | gefunden | Treffer | Recall | Precision |",
@@ -163,7 +185,9 @@ def _relative(path: Path) -> str:
         return str(path)
 
 
-def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
+def main(
+    argv: list[str] | None = None, measure_fn: Measure = measure, ocr_fn: Ocr = make_searchable
+) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
         "--gold", type=Path, required=True, help="Gold-Datei, z. B. eval/ingest_gold/fb01.json"
@@ -183,6 +207,11 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
         default="",
         help="Fassung im Dateinamen, z. B. scan, wenn --doc vom Gold abweicht",
     )
+    parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help="Seiten ohne Textebene vorher per OCR durchsuchbar machen",
+    )
     args = parser.parse_args(argv)
     gated = [kind.strip() for kind in args.types.split(",") if kind.strip()]
     if unknown := sorted(set(gated) - set(TAG_TYPES)):
@@ -190,7 +219,13 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
 
     gold = load_gold(args.gold)
     doc = args.doc or ROOT / gold["dokument"]
-    found, page_count, seconds = measure_fn(doc, gold["doc_type"])
+    ocr_summary = None
+    if args.ocr:
+        with tempfile.TemporaryDirectory() as scratch:
+            searchable, ocr_summary = ocr_fn(doc, Path(scratch))
+            found, page_count, seconds = measure_fn(searchable, gold["doc_type"])
+    else:
+        found, page_count, seconds = measure_fn(doc, gold["doc_type"])
     metrics, deviations = compare(gold["seiten"], found)
     failures = gate_failures(metrics, args.min, gated) if args.min > 0 else []
     summary = {
@@ -201,6 +236,7 @@ def main(argv: list[str] | None = None, measure_fn: Measure = measure) -> int:
         "seiten": page_count,
         "sekunden": round(seconds, 2),
         "sekunden_je_seite": round(seconds / page_count, 2) if page_count else None,
+        "ocr": ocr_summary,
         "metriken": metrics,
         "gate": {
             "min": args.min,
