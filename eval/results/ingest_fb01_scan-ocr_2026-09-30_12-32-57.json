@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "gold": "eval/ingest_gold/fb01.json",
+    "label": "scan-ocr",
+    "dokument": "examples/scan/01_Stromlaufplan_FB-01_scan.pdf",
+    "doc_type": "schematic",
+    "seiten": 7,
+    "sekunden": 5.01,
+    "sekunden_je_seite": 0.72,
+    "ocr": {
+      "seiten": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "sekunden": 35.18,
+      "sekunden_je_seite": 5.03,
+      "konfidenz": 0.979,
+      "gedreht": {},
+      "zeilen": 415
+    },
+    "metriken": {
+      "device": {
+        "tp": 71,
+        "fp": 0,
+        "fn": 1,
+        "recall": 0.9861111111111112,
+        "precision": 1.0
+      },
+      "terminal": {
+        "tp": 59,
+        "fp": 0,
+        "fn": 14,
+        "recall": 0.8082191780821918,
+        "precision": 1.0
+      },
+      "plc_address": {
+        "tp": 41,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "cross_ref": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 2,
+        "recall": 0.9,
+        "precision": 1.0
+      }
+    },
+    "gate": {
+      "min": 0.95,
+      "min_je_typ": {
+        "terminal": 0.75
+      },
+      "typen": [
+        "device",
+        "terminal",
+        "plc_address"
+      ],
+      "ok": true,
+      "verfehlt": []
+    }
+  },
+  "results": [
+    {
+      "seite": 2,
+      "fehlend": {
+        "device": [
+          "-Q1"
+        ],
+        "terminal": [
+          "-X1",
+          "-X1:1",
+          "-X1:2",
+          "-X1:3",
+          "-X1:N",
+          "-X1:PE",
+          "-X2:1",
+          "-X2:2",
+          "-X2:4",
+          "-X2:5",
+          "-X2:6"
+        ],
+        "cross_ref": [
+          "/5.1"
+        ]
+      },
+      "fremd": {}
+    },
+    {
+      "seite": 3,
+      "fehlend": {
+        "terminal": [
+          "-X4:U"
+        ]
+      },
+      "fremd": {}
+    },
+    {
+      "seite": 5,
+      "fehlend": {
+        "terminal": [
+          "-X3:3",
+          "-X3:4"
+        ]
+      },
+      "fremd": {}
+    },
+    {
+      "seite": 7,
+      "fehlend": {
+        "cross_ref": [
+          "/5.4"
+        ]
+      },
+      "fremd": {}
+    }
+  ]
+}

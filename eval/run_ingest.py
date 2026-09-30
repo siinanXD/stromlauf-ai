@@ -107,7 +107,7 @@ def gate_failures(
 ) -> list[str]:
     """Verfehlte Schwellen als lesbare Zeilen; ein gegateter Typ ohne Gold ist ein Fehler, kein Freifahrtschein.
 
-    per_type ueberschreibt die gemeinsame Schwelle je Typ (Scan: Klemmen gemessen 0,77, Issue #66)."""
+    per_type ueberschreibt die gemeinsame Schwelle je Typ (Scan: Klemmen, Issue #66)."""
     failures = []
     for kind in types:
         threshold = (per_type or {}).get(kind, minimum)

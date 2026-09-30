@@ -68,7 +68,7 @@ jobs:
           pip install -e ".[dev]"
       - name: Ingest-Benchmark FB-01 (Kennzeichen je Seite gegen Ground Truth, Issue #63, ohne Modell und ohne DB)
         run: python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95 --types device,terminal,plc_address
-      # Klemmen neben dem Klemmenkreis liest die OCR als "O X1:2" (gemessen 0,77, Issue #65); Schwelle darum 0,75
+      # Klemmen neben dem Klemmenkreis liest die OCR als "O X1:2" (gemessen 0,81, Issue #65); Schwelle darum 0,75
       - name: Ingest-Benchmark Voll-Scan mit OCR (Issue #66, RapidOCR lokal auf der CPU)
         run: >-
           python eval/run_ingest.py --gold eval/ingest_gold/fb01.json

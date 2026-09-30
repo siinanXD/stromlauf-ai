@@ -78,7 +78,7 @@ def test_gate_meldet_jeden_typ_unter_der_schwelle_und_typen_ohne_gold():
 
 
 def test_schwelle_je_typ_ueberschreibt_die_gemeinsame():
-    """Issue #66: Klemmen auf dem Scan sind gemessen 0,77; ihr Gate liegt bei 0,75, die anderen Typen bei 0,95."""
+    """Issue #66: Klemmen auf dem Scan bleiben unter 0,95; ihr Gate liegt bei 0,75, die anderen Typen bei 0,95."""
     metrics = {
         "device": {"recall": 0.99, "precision": 1.0},
         "terminal": {"recall": 0.77, "precision": 1.0},
