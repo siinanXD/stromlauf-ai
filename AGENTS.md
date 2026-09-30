@@ -135,6 +135,10 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - Modelle: zwei Provider ueber `app/llm.py` (`make_chat_model`): Anthropic (Standard) und OpenAI; Name mit Praefix
   `openai:`/`anthropic:` oder erkennbar (`claude-*`, `gpt-*`). `POST /api/chat` nimmt `model` je Anfrage
   (Evals: `run_eval.py --model`). Embeddings `local|voyage|openai` (`app/embeddings.py`), Wechsel = neu indexieren.
+  `EMBEDDING_CACHE_DIR` (nur CI/Eval, leer = aus) legt `CachedEmbeddings` um den Provider: Dokument-Vektoren je
+  SHA-256 aus Provider, Modell, Dimension, Passage-Praefix und Text auf Platte, Anfragen immer live. In `eval.yml`
+  haelt `actions/cache` sie je Retrieval-Gruppe; ein aelterer Stand kommt nur bei gleichem `embeddings.py`,
+  `pyproject.toml` und `MODELLCACHE_VERSION` zurueck.
   Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
   Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
   Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ und

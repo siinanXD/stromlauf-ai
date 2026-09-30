@@ -74,6 +74,30 @@ def test_retrieval_gate_prueft_jede_quelle_in_genau_einer_parallelen_gruppe():
     assert '--only "${{ matrix.quellen }}" --min 0.9 --min-sources 0.9' in gate
 
 
+def test_retrieval_gate_nimmt_die_vektoren_unveraenderter_abschnitte_aus_dem_cache():
+    """Der Cache ist nach Inhalt adressiert (app/embeddings.py, CachedEmbeddings). Aendern sich Embedding-Code,
+    Abhaengigkeiten oder Modelle, darf trotzdem kein alter Stand zurueckkommen: Davon haengt der Teil des Schluessels
+    ab, ueber den ein aelterer Cache wiederhergestellt wird."""
+    retrieval = _eval_jobs()["retrieval"]
+    cache_dir = retrieval["env"]["EMBEDDING_CACHE_DIR"]
+    (cache,) = [
+        step["with"]
+        for step in retrieval["steps"]
+        if step.get("uses", "").startswith("actions/cache@") and step["with"]["path"] == cache_dir
+    ]
+    key, restore = cache["key"], cache["restore-keys"]
+    assert key.startswith(restore) and key != restore and "matrix.gruppe" in restore
+    for part in ("backend/app/embeddings.py", "backend/pyproject.toml", "env.MODELLCACHE_VERSION"):
+        assert part in restore, part
+    hf_keys = [
+        step["with"]["key"]
+        for job in _eval_jobs().values()
+        for step in job["steps"]
+        if step.get("with", {}).get("path") == "/home/runner/.cache/huggingface"
+    ]
+    assert hf_keys and all("env.MODELLCACHE_VERSION" in hf_key for hf_key in hf_keys)
+
+
 def test_ingest_gate_laeuft_ohne_datenbank_neben_dem_retrieval_gate():
     """Lesegenauigkeit braucht weder DB noch Backend; als eigener Job verlaengert sie keine Retrieval-Gruppe."""
     jobs = _eval_jobs()
