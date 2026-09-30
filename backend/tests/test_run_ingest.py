@@ -77,6 +77,26 @@ def test_gate_meldet_jeden_typ_unter_der_schwelle_und_typen_ohne_gold():
     assert run_ingest.gate_failures(metrics, 0.9, ["device", "terminal"]) == []
 
 
+def test_schwelle_je_typ_ueberschreibt_die_gemeinsame():
+    """Issue #66: Klemmen auf dem Scan sind gemessen 0,77; ihr Gate liegt bei 0,75, die anderen Typen bei 0,95."""
+    metrics = {
+        "device": {"recall": 0.99, "precision": 1.0},
+        "terminal": {"recall": 0.77, "precision": 1.0},
+    }
+    types = ["device", "terminal"]
+    assert run_ingest.gate_failures(metrics, 0.95, types) == ["terminal: Recall 0.77 < 0.95"]
+    assert run_ingest.gate_failures(metrics, 0.95, types, {"terminal": 0.75}) == []
+    assert run_ingest.gate_failures(metrics, 0.95, types, {"terminal": 0.8}) == [
+        "terminal: Recall 0.77 < 0.80"
+    ]
+    assert run_ingest.parse_minimums(["terminal=0.75", "device=0.9"]) == {
+        "terminal": 0.75,
+        "device": 0.9,
+    }
+    with pytest.raises(ValueError, match="geraet"):
+        run_ingest.parse_minimums(["geraet=0.5"])
+
+
 def test_by_page_gruppiert_nach_seite_und_typ_und_verliert_seitenlose_funde_nicht():
     Row = namedtuple("Row", "tag tag_type page")
     rows = [
@@ -131,6 +151,7 @@ def test_cli_schreibt_json_und_markdown_und_scheitert_unter_der_schwelle(tmp_pat
     assert summary["metriken"]["device"]["recall"] == 0.5
     assert summary["gate"] == {
         "min": 0.95,
+        "min_je_typ": {},
         "typen": ["device"],
         "ok": False,
         "verfehlt": ["device: Recall 0.50 < 0.95"],

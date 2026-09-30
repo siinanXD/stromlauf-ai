@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -43,6 +44,9 @@ class Settings(BaseSettings):
     embedding_query_prefix: str = ""
     embedding_passage_prefix: str = ""
 
+    # Texterkennung fuer Scans (app/ingestion/ocr.py, lokal): auto = nur Seiten ohne Textebene, always = jede Seite,
+    # off = keine. OCR_ENABLED=true ist der alte Schalter und heisst always.
+    ocr_mode: Literal["auto", "always", "off"] = "auto"
     ocr_enabled: bool = False
     vision_max_edge: int = 2400
     vision_concurrency: int = 4
@@ -75,6 +79,11 @@ class Settings(BaseSettings):
 
     # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
     checkpointer: str = "sqlite"
+
+    @property
+    def effective_ocr_mode(self) -> str:
+        """OCR_MODE, wobei der alte Schalter OCR_ENABLED=true als always gilt."""
+        return "always" if self.ocr_enabled else self.ocr_mode
 
     @property
     def upload_dir(self) -> Path:

@@ -87,8 +87,15 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   erkannter Zeile per pypdfium2-Rohschnittstelle, damit alle Leser der Textebene den Scan ohne Sonderpfad lesen.
   Je Seite: native Aufloesung des eingebetteten Bildes (`page_dpi`), Detektion fuer Drehung (hochkant -> 90/270)
   und Schraeglage, lange Zeilen geteilt neu erkennen, `normalize` (Striche, Vollbreite, Leerzeichen vor Kennzeichen).
-  RapidOCR merkt sich `use_det/use_cls/use_rec` ueber Aufrufe hinweg: `_run` setzt immer alle drei. Noch nicht in der
-  Upload-Pipeline (Issue #66); messen mit `eval/run_ingest.py --ocr`.
+  RapidOCR merkt sich `use_det/use_cls/use_rec` ueber Aufrufe hinweg: `_run` setzt immer alle drei. Messen mit
+  `eval/run_ingest.py --ocr` (Schwellen je Typ: `--min-for terminal=0.75`).
+- OCR im Upload (Issue #66): `ingest_document` ruft vor dem Lesen `ocr.prepare_pdf` (`OCR_MODE` auto|always|off, alt
+  `OCR_ENABLED=true` = always, `Settings.effective_ocr_mode`). Die durchsuchbare Fassung ersetzt die Datei unter
+  `storage_path`, das Original liegt als `<id>.orig.pdf` daneben (`ocr.original_path`); „Neu verarbeiten“ beginnt
+  beim Original, Loeschen entfernt beide (`ocr.stored_files` in `api/sources.py`). Keine Migration. Lesart je Seite in
+  `Chunk.meta` (`read: text|ocr`, `ocr_conf`), Hinweis „7 Seiten per OCR, Ø Konfidenz …“. Bilder (png/jpg/tif) liest
+  `document_pieces` per OCR statt Docling; Doclings eigene OCR ist aus (`docling_parser.pdf_pipeline_options`).
+  Tests, die `ingest_document` laufen lassen, brauchen Kopien der Fixtures: die Pipeline schreibt in den Upload.
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =

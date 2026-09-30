@@ -102,19 +102,38 @@ def compare(gold: Pages, found: Pages, types: Iterable[str] = TAG_TYPES) -> tupl
     return metrics, deviations
 
 
-def gate_failures(metrics: dict, minimum: float, types: Iterable[str]) -> list[str]:
-    """Verfehlte Schwellen als lesbare Zeilen; ein gegateter Typ ohne Gold ist ein Fehler, kein Freifahrtschein."""
+def gate_failures(
+    metrics: dict, minimum: float, types: Iterable[str], per_type: dict[str, float] | None = None
+) -> list[str]:
+    """Verfehlte Schwellen als lesbare Zeilen; ein gegateter Typ ohne Gold ist ein Fehler, kein Freifahrtschein.
+
+    per_type ueberschreibt die gemeinsame Schwelle je Typ (Scan: Klemmen gemessen 0,77, Issue #66)."""
     failures = []
     for kind in types:
+        threshold = (per_type or {}).get(kind, minimum)
         recall, precision = metrics[kind]["recall"], metrics[kind]["precision"]
         if recall is None:
             failures.append(f"{kind}: kein Gold fuer diesen Typ")
             continue
         for label, value in (("Recall", recall), ("Precision", precision)):
-            if value is None or value < minimum:
+            if value is None or value < threshold:
                 shown = "-" if value is None else f"{value:.2f}"
-                failures.append(f"{kind}: {label} {shown} < {minimum:.2f}")
+                failures.append(f"{kind}: {label} {shown} < {threshold:.2f}")
     return failures
+
+
+def parse_minimums(values: Iterable[str]) -> dict[str, float]:
+    """["terminal=0.75", ...] -> {"terminal": 0.75}; unbekannte Typen sind ein Fehler."""
+    result = {}
+    for value in values:
+        kind, _, number = value.partition("=")
+        kind = kind.strip()
+        if kind not in TAG_TYPES:
+            raise ValueError(
+                f"unbekannter Typ in --min-for: {kind} (erlaubt: {', '.join(TAG_TYPES)})"
+            )
+        result[kind] = float(number)
+    return result
 
 
 def measure(doc: Path, doc_type: str) -> tuple[Pages, int | None, float]:
@@ -158,7 +177,11 @@ def render_markdown(title: str, summary: dict, deviations: list[dict]) -> str:
             "",
         ]
     lines += [
-        f"Gate: Recall und Precision >= {gate['min']:.2f} fuer {', '.join(gate['typen']) or '-'}: {verdict}.",
+        f"Gate: Recall und Precision >= {gate['min']:.2f} fuer {', '.join(gate['typen']) or '-'}"
+        + "".join(
+            f", {kind} >= {value:.2f}" for kind, value in (gate.get("min_je_typ") or {}).items()
+        )
+        + f": {verdict}.",
         "",
         "| Typ | Gold | gefunden | Treffer | Recall | Precision |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
@@ -212,10 +235,21 @@ def main(
         action="store_true",
         help="Seiten ohne Textebene vorher per OCR durchsuchbar machen",
     )
+    parser.add_argument(
+        "--min-for",
+        action="append",
+        default=[],
+        metavar="TYP=WERT",
+        help="Schwelle fuer einen Typ statt --min, z. B. terminal=0.75 (mehrfach moeglich)",
+    )
     args = parser.parse_args(argv)
     gated = [kind.strip() for kind in args.types.split(",") if kind.strip()]
     if unknown := sorted(set(gated) - set(TAG_TYPES)):
         parser.error(f"unbekannte Typen: {', '.join(unknown)} (erlaubt: {', '.join(TAG_TYPES)})")
+    try:
+        per_type = parse_minimums(args.min_for)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     gold = load_gold(args.gold)
     doc = args.doc or ROOT / gold["dokument"]
@@ -227,7 +261,7 @@ def main(
     else:
         found, page_count, seconds = measure_fn(doc, gold["doc_type"])
     metrics, deviations = compare(gold["seiten"], found)
-    failures = gate_failures(metrics, args.min, gated) if args.min > 0 else []
+    failures = gate_failures(metrics, args.min, gated, per_type) if args.min > 0 else []
     summary = {
         "gold": _relative(args.gold),
         "label": args.label,
@@ -240,6 +274,7 @@ def main(
         "metriken": metrics,
         "gate": {
             "min": args.min,
+            "min_je_typ": per_type,
             "typen": gated if args.min > 0 else [],
             "ok": not failures,
             "verfehlt": failures,

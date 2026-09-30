@@ -396,6 +396,7 @@ def test_summarize_pools_parts_and_reports_p95_and_error_rate():
         "zitate_ungueltig": [],
         "zitate_ungeprueft": [],
     }
+
     def parts(erwartet: int, referenziert: int, treffer: int, passend: int) -> dict:
         return {
             **base,
@@ -678,6 +679,25 @@ def test_questions_cover_testdoku_and_testwerk():
         if not r["expect_sources"] and r.get("agent", True)
     )
     assert all(r["must_not_contain"] for r in rows if r["id"].endswith("nicht-vorhanden"))
+
+
+def test_scan_fragen_pruefen_den_voll_scan_und_bleiben_aus_dem_fb01_filter():
+    """Issue #66: Die Quelle heisst nicht "Foerderband FB-01 (Scan)", weil --only per Teiltext filtert und der
+    woechentliche Agentenlauf (--only "Foerderband FB-01,...") die Fragen sonst ohne geladene Quelle stellen wuerde."""
+    rows = [
+        r
+        for r in evallib.load_questions(ROOT / "eval" / "questions.jsonl")
+        if r["source"] == "Scan FB-01"
+    ]
+    assert len(rows) == 5 and all(r["id"].startswith("fb01-scan-") for r in rows)
+    assert all(
+        r["retrieval"] and r["expect_sources"] == ["01_Stromlaufplan_FB-01_scan.pdf"] for r in rows
+    )
+    assert not evallib.load_questions(
+        ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01,Injection-Test"
+    )[-1]["id"].startswith("fb01-scan-")
+    fb01 = evallib.load_questions(ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01")
+    assert {r["source"] for r in fb01} == {"Foerderband FB-01"}
 
 
 # --- Fix pass nach Review ------------------------------------------------------------------------

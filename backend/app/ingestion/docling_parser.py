@@ -7,8 +7,6 @@ from pathlib import Path
 
 import pypdfium2 as pdfium
 
-from app.config import get_settings
-
 logger = logging.getLogger(__name__)
 
 DOCLING_SUFFIXES = {".pdf", ".docx", ".xlsx", ".pptx", ".html", ".htm", ".md", ".csv",
@@ -53,16 +51,27 @@ def _get_converter():
     with _converter_lock:
         if _converter is None:
             from docling.datamodel.base_models import InputFormat
-            from docling.datamodel.pipeline_options import PdfPipelineOptions
             from docling.document_converter import DocumentConverter, PdfFormatOption
 
-            options = PdfPipelineOptions()
-            options.do_ocr = get_settings().ocr_enabled
-            options.do_table_structure = True
             _converter = DocumentConverter(
-                format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(pipeline_options=pdf_pipeline_options())
+                }
             )
         return _converter
+
+
+def pdf_pipeline_options():
+    """Docling ohne eigene OCR: Scans macht app/ingestion/ocr.py vorher durchsuchbar (Issue #66).
+
+    Doclings OCR wuerde sonst Torch-Modelle nachladen und bereits erkannte Seiten ein zweites Mal lesen.
+    """
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+    options = PdfPipelineOptions()
+    options.do_ocr = False
+    options.do_table_structure = True
+    return options
 
 
 def pdf_raw_text(path: Path) -> dict[int, str]:

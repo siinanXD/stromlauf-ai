@@ -152,7 +152,7 @@ Frontend auf Vercel (Projekt `stromlauf-ai`, Root Directory `frontend`). Railway
    `CREATE EXTENSION vector`), Variable `DATABASE_URL=postgresql+psycopg://...`.
 4. Variablen: `ANTHROPIC_API_KEY`, `API_KEY` (Zugriffsschutz), `CORS_ORIGINS=https://<vercel-domain>`,
    `CHECKPOINTER=postgres`, `EMBEDDING_PROVIDER=voyage` + `VOYAGE_API_KEY` (oder `local`, dann
-   mindestens 3 GB RAM fuer bge-m3), optional `LANGFUSE_*`, `OCR_ENABLED`.
+   mindestens 3 GB RAM fuer bge-m3), optional `LANGFUSE_*`, `OCR_MODE` (Standard `auto`).
 5. Vercel: `NEXT_PUBLIC_API_URL=https://<railway-domain>`, `NEXT_PUBLIC_API_KEY=<API_KEY>`.
 6. Abnahme auf Staging: Ablauf und Skripte in `docs/product/ACCEPTANCE.md` (Abschnitt „Teil 2“).
 
@@ -486,11 +486,13 @@ Wie Zusammenhänge entstehen:
 | SPS-Programm | `.awl` (STEP 7 AWL-Quelle), `.scl` (TIA-Portal-Quelle: ein Chunk je Baustein mit Deklaration und Rumpf, keine Netzwerke) |
 | Symboltabelle | `.sdf` |
 
-Gescannte PDFs: Seiten ohne Textebene nennt die Ingestion am Dokument („1 von 7 Seiten ohne Text: 3“), ein reiner
-Scan bricht mit der Seitenzahl ab. Die lokale Texterkennung (`backend/app/ingestion/ocr.py`, RapidOCR auf der CPU,
-ohne Download und ohne API-Kosten) legt eine unsichtbare Textebene ins PDF; in die Upload-Pipeline kommt sie mit
-Issue #66. Bis dahin misst `python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc <scan.pdf> --ocr` ihre
-Wirkung. `OCR_ENABLED=true` schaltet noch Doclings eigene OCR ein; dieser Weg ist ungetestet und lädt Modelle nach.
+Gescannte PDFs und Bilder liest die Ingestion selbst: Seiten ohne Textebene laufen durch die lokale Texterkennung
+(`backend/app/ingestion/ocr.py`, RapidOCR auf der CPU, ohne Download und ohne API-Kosten, etwa 5 s je Seite). Sie legt
+eine unsichtbare Textebene ins PDF, damit Suche, Blattverweise wie `/3.4` und Zitatprüfung auf dem Scan genauso
+funktionieren wie auf einem Text-PDF; das Original bleibt neben der Upload-Datei liegen. Am Dokument steht danach z. B.
+„7 Seiten per OCR, Ø Konfidenz 0,98“. `OCR_MODE=auto` (Standard) erkennt nur Seiten ohne Textebene, `always` jede
+Seite, `off` keine. Grenze: Klemmenbeschriftungen direkt neben dem Klemmensymbol liest die OCR oft ohne Minus
+(„X1:2“ statt „-X1:2“); im Beispiel-Scan werden 77 % der Klemmen gefunden, Geräte und SPS-Adressen zu 99 bis 100 %.
 
 ## Tracing: was in Langfuse landet (optional)
 
