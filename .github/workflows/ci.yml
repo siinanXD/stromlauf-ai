@@ -63,8 +63,10 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/pyproject.toml
-      - name: Torch (CPU) vor Docling, sonst zieht pip die CUDA-Variante
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Torch und Torchvision (CPU) vor Docling, sonst zieht pip die CUDA-Variante
+        # beide aus dem CPU-Index: torchvision von PyPI verlangt ein bestimmtes torch und ersetzt ein neueres CPU-Torch
+        # sonst durch CUDA-Torch (rund 3 GB NVIDIA-Pakete je Lauf, Tests mit anderer Variante als Eval und Produktion)
+        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - name: Abhaengigkeiten
         run: pip install -e ".[dev,examples,trace]"
       - name: Ruff
