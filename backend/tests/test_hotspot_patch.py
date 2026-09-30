@@ -23,7 +23,13 @@ def client(tmp_path_factory):
     get_settings.cache_clear()
 
 
-def test_rahmen_korrektur_setzt_manual_und_confirmed(client):
+@pytest.fixture
+def hotspot_id(client):
+    """Halle -> Maschine -> Schrankbild -> Hotspot in default; loescht hinterher genau diese Halle.
+
+    default haelt lokal die Demo-Daten: geloescht wird nur die eigene Halle (Cascade raeumt
+    Maschine, Schrankbild und Hotspot mit), nichts sonst in diesem Workspace.
+    """
     from app.db import session_scope
     from app.models import CabinetHotspot, CabinetImage, Hall, Machine
     from app.tenancy import reset_workspace, set_workspace
@@ -42,9 +48,18 @@ def test_rahmen_korrektur_setzt_manual_und_confirmed(client):
         hotspot = CabinetHotspot(cabinet_id=cabinet.id, tag="-K1", label="", kind="", x=0.2, y=0.3, w=0.1, h=0.12, confidence=0.7, origin="vision", confirmed=False)
         session.add(hotspot)
         session.flush()
-        hotspot_id = hotspot.id
+        hall_id, created_id = hall.id, hotspot.id
     reset_workspace(token)
+    yield created_id
+    token = set_workspace("default")
+    try:
+        with session_scope() as session:
+            session.delete(session.get(Hall, hall_id))
+    finally:
+        reset_workspace(token)
 
+
+def test_rahmen_korrektur_setzt_manual_und_confirmed(client, hotspot_id):
     # nur Text aendern: Herkunft und Bestaetigung bleiben
     renamed = client.patch(f"/api/hotspots/{hotspot_id}", json={"label": "Hauptschütz"}).json()
     assert renamed["origin"] == "vision" and renamed["confirmed"] is False

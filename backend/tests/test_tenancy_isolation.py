@@ -148,6 +148,18 @@ def test_maschinen_und_chats_sind_getrennt(client, workspaces):
     assert client.delete(f"/api/conversations/{conversation_id}", headers=_auth(b)).status_code == 404
 
 
+def _delete_login_tokens(email: str) -> None:
+    """Magic-Links einer Test-Adresse loeschen (login_tokens hat keinen Workspace)."""
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.models import LoginToken
+
+    with session_scope() as session:
+        for login in session.scalars(select(LoginToken).where(LoginToken.email == email)).all():
+            session.delete(login)
+
+
 def test_me_und_magic_link_exchange(client, workspaces):
     me = client.get("/api/auth/me", headers=_auth(workspaces["a"])).json()
     assert me["workspace"]["id"] == "ws-a-test" and me["email"] == "a@isolation.test"
@@ -173,3 +185,4 @@ def test_me_und_magic_link_exchange(client, workspaces):
     finally:
         os.environ.pop("AUTH_DEV_LINK", None)
         get_settings.cache_clear()
+        _delete_login_tokens("neu@isolation-test.de")
