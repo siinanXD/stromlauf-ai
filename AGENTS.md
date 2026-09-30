@@ -43,7 +43,9 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   nachgeladen). Kein Modell, kein Raten: fehlt die Kopfzeile, steht nur das Ortskennzeichen da.
 - Modell ohne Stuecklisten-Datei (Issue #39): `api/machine_map.py::split_rows` trennt Stuecklistenzeilen von
   Plan-Fundstellen, `ingestion/machine_map.py::build_map` nimmt Teile aus dem Kennzeichen-Index und bildet Zonen aus
-  dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Blatttitel liefert
+  dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Die Blattnummer liest
+  `api/machine_map.py::pdf_sheets` aus dem Schriftfeld (Blatt-Map, Issue #67); ohne gelesene Nummer heisst die Zone
+  `Seite 4`. Blatttitel liefert
   `ingestion/page_titles.py` (Inhaltsverzeichnis/Folio-Liste + Schriftfeld) und die Pipeline schreibt sie als
   `section` an Chunks und Fundstellen; Seiten mit Titel „Stueckliste/Nomenclature/Parts list“ (Chunk-`kind` `bom`)
   zaehlen als Stuecklistenzeilen (Bezeichnung, kein Blatt). Kennzeichen ohne Minus im Blatt-Stil (`4Q1`, `9K1`,

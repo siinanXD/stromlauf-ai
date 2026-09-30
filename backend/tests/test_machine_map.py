@@ -76,12 +76,12 @@ def test_einbauort_aus_der_eigenen_zeile_auch_bei_langen_stuecklistenzeilen():
 def test_index_fallback_gruppiert_teile_nach_blatt_und_titel():
     """Issue #39: ohne Stueckliste entstehen die Zonen aus den Blaettern des Stromlaufplans."""
     hits = [
-        ("9QF1", 9, "V1 Gate Control Circuit"),
-        ("9K1", 9, "V1 Gate Control Circuit"),
-        ("4Q1", 4, "Mains Power Supply"),
-        ("6KE1", 6, "Emergency Stop Circuit"),
-        ("9K1", 41, "Nomenclature"),  # zweite Fundstelle auf der Stuecklistenseite zaehlt nicht fuer die Zone
-        ("5T1", 41, "Nomenclature"),  # nur auf der Stuecklistenseite: kein Blatt bekannt
+        ("9QF1", 9, "V1 Gate Control Circuit", 9),
+        ("9K1", 9, "V1 Gate Control Circuit", 9),
+        ("4Q1", 4, "Mains Power Supply", 4),
+        ("6KE1", 6, "Emergency Stop Circuit", 6),
+        ("9K1", 41, "Nomenclature", 41),  # zweite Fundstelle auf der Stuecklistenseite zaehlt nicht fuer die Zone
+        ("5T1", 41, "Nomenclature", 41),  # nur auf der Stuecklistenseite: kein Blatt bekannt
     ]
     result = build_map([], index_hits=hits).as_dict()
     codes = [z["code"] for z in result["zones"]]
@@ -97,7 +97,7 @@ def test_index_fallback_gruppiert_teile_nach_blatt_und_titel():
 def test_stuecklistenzeile_ohne_ort_gibt_bezeichnung_und_blatt_zone():
     """Stuecklistenseite in der PDF (freie Zeile statt Tabelle) liefert die Bezeichnung, das Blatt die Zone."""
     bom_rows = [("6KE1", "6 Emergency Stop Circuit 6KE1 Emergency Contactor Emergency Contactor 1 Schneider Electric")]
-    result = build_map(bom_rows, index_hits=[("6KE1", 6, "Emergency Stop Circuit")]).as_dict()
+    result = build_map(bom_rows, index_hits=[("6KE1", 6, "Emergency Stop Circuit", 6)]).as_dict()
     (zone,) = result["zones"]
     assert zone["code"] == "Blatt 6"
     assert zone["parts"] == [{"tag": "6KE1", "label": "Emergency Contactor Emergency Contactor 1 Schneider Electric",
@@ -106,8 +106,18 @@ def test_stuecklistenzeile_ohne_ort_gibt_bezeichnung_und_blatt_zone():
 
 def test_einbauort_schlaegt_blatt_zone():
     bom_rows = [("-K1", "| -K1 | Schuetz Hauptantrieb | 3RT2015 | +ST1 |")]
-    result = build_map(bom_rows, index_hits=[("-K1", 3, "Hauptstromkreis")], legend=LEGEND).as_dict()
+    result = build_map(bom_rows, index_hits=[("-K1", 3, "Hauptstromkreis", 3)], legend=LEGEND).as_dict()
     assert [z["code"] for z in result["zones"]] == ["+ST1"]
+
+
+def test_blatt_zone_heisst_nach_dem_schriftfeld_nicht_nach_der_seite():
+    """Issue #67: Hinter Deckblatt und Inhaltsverzeichnis liegt Blatt 1 auf Seite 3. Ohne gelesene Blattnummer heisst
+    die Zone nach der Seite, statt ein Blatt zu behaupten."""
+    hits = [("-Q1", 3, "Einspeisung 400 V", 1), ("-K1", 5, "Motorsteuerung Band", 3), ("-S1", 12, "Wartung", None)]
+    zones = {z["code"]: z for z in build_map([], index_hits=hits).as_dict()["zones"]}
+    assert list(zones) == ["Blatt 1", "Blatt 3", "Seite 12"]
+    assert zones["Blatt 1"]["id"] == "blatt-1" and zones["Blatt 1"]["name"] == "Einspeisung 400 V"
+    assert zones["Seite 12"]["id"] == "seite-12"
 
 
 def test_kind_of_kennt_folio_stil_und_zweibuchstabige_kennbuchstaben():
@@ -120,8 +130,8 @@ def test_kind_of_kennt_folio_stil_und_zweibuchstabige_kennbuchstaben():
 def test_index_fallback_laesst_leitungen_klemmen_und_potentiale_weg():
     """Leitungen (-W), Klemmen (-X) und Namen ohne Kennbuchstabe (24V1) sind keine Teile; Verbinder-Leitungen erst recht nicht."""
     bom_rows = [("-W3", "| -W3 | Motorleitung | +ST1 -> +FE1 |")]
-    hits = [("-W3", 3, "Hauptstromkreis"), ("-W9", 3, "Hauptstromkreis"), ("24V1", 5, "Auxiliary Power Supply"),
-            ("9EV1", 9, "V1 Gate Control Circuit"), ("9QF1", 9, "V1 Gate Control Circuit"), ("-X3", 7, "Klemmenplan")]
+    hits = [("-W3", 3, "Hauptstromkreis", 3), ("-W9", 3, "Hauptstromkreis", 3), ("24V1", 5, "Auxiliary Power Supply", 5),
+            ("9EV1", 9, "V1 Gate Control Circuit", 9), ("9QF1", 9, "V1 Gate Control Circuit", 9), ("-X3", 7, "Klemmenplan", 7)]
     result = build_map(bom_rows, index_hits=hits, legend=LEGEND).as_dict()
     assert [z["code"] for z in result["zones"]] == ["+FE1", "+ST1", "Blatt 9"]  # +FE1/+ST1 nur wegen des Verbinders -W3
     assert {p["tag"]: p["kind"] for z in result["zones"] for p in z["parts"]} == {"9EV1": "Ventil", "9QF1": "Schutz"}
@@ -135,6 +145,6 @@ def test_bezeichnung_steht_hinter_dem_kennzeichen_auch_in_stuecklistenseiten_der
         ("-K1", "| -K1 | Schuetz Hauptantrieb | 3RT2015 | +ST1 |"),
         ("8F1", "| 8 | VX Gate Control Circuit | 8F1 |"),  # ohne Bezeichnung: der Blatttitel davor ist keine
     ]
-    hits = [("6KE1", 6, "Emergency Stop Circuit"), ("4Q1", 4, "Mains Power Supply"), ("8F1", 8, "VX Gate Control Circuit")]
+    hits = [("6KE1", 6, "Emergency Stop Circuit", 6), ("4Q1", 4, "Mains Power Supply", 4), ("8F1", 8, "VX Gate Control Circuit", 8)]
     labels = {p["tag"]: p["label"] for z in build_map(rows, index_hits=hits, legend=LEGEND).as_dict()["zones"] for p in z["parts"]}
     assert labels == {"6KE1": "Emergency Contactor", "4Q1": "80A", "-K1": "Schuetz Hauptantrieb", "8F1": ""}

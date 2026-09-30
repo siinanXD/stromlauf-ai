@@ -447,7 +447,8 @@ als „nicht geprüft“ statt „gültig“.
 Kommt die Dokumentation als **eine PDF** (EPLAN-, QElectroTech-Export mit Deckblatt, Inhaltsverzeichnis, Plan,
 Klemmenplan und Stückliste), gibt es keine Stücklisten-Datei. Dann entsteht das Modell aus dem Kennzeichen-Index:
 Teile sind die Betriebsmittel der Planseiten, Zonen die Blätter, auf denen sie zuerst vorkommen („Blatt 4 · Mains
-Power Supply“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld; Seiten mit Titel
+Power Supply“). Die Blattnummer kommt aus dem Schriftfeld, auch hinter einem Deckblatt; ohne lesbare Nummer heißt die
+Zone nach der Seite („Seite 4“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld; Seiten mit Titel
 „Stückliste“, „Nomenclature“ oder „Parts list“ liefern die Bezeichnungen. Kennzeichen ohne Minus im Blatt-Stil
 (`4Q1`, `9K1`) werden erkannt, wenn ein Dokument diesen Stil durchgängig nutzt. Bestehende Quellen brauchen dafür
 „Neu verarbeiten“.
