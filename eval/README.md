@@ -139,11 +139,11 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
   Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,86 bis 0,93 (Recall je Typ, Precision 1,00).
 - `--ocr` (Issue #65) legt vor der Messung eine unsichtbare Textebene auf die Seiten ohne Text
   (`backend/app/ingestion/ocr.py`, RapidOCR lokal auf der CPU) und misst diese Fassung; OCR-Seiten, -Sekunden und
-  -Konfidenz stehen unter `ocr` im Ergebnis. Stand 2026-09-29, Voll-Scan: device 0,99, terminal 0,77, plc_address
-  1,00, Precision 1,00, 4,4 s je Seite. Die Klemmen fehlen dort, wo der Klemmenkreis direkt vor der Beschriftung
+  -Konfidenz stehen unter `ocr` im Ergebnis. Stand 2026-09-30, Voll-Scan: device 0,99, terminal 0,81, plc_address
+  1,00, Precision 1,00, 5,0 s je Seite. Die Klemmen fehlen dort, wo der Klemmenkreis direkt vor der Beschriftung
   steht: Die OCR liest ihn als „O“ und verliert das Minus („O X1:2“).
 - `--min-for TYP=WERT` (Issue #66, mehrfach) setzt fuer einzelne Typen eine eigene Schwelle statt `--min`; das Gate
-  auf dem Voll-Scan nutzt `--min 0.95 --min-for terminal=0.75`, weil die Klemmen gemessen bei 0,77 liegen.
+  auf dem Voll-Scan nutzt `--min 0.95 --min-for terminal=0.75`, weil die Klemmen gemessen bei 0,81 liegen.
 
 ```bash
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95

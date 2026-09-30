@@ -492,7 +492,7 @@ eine unsichtbare Textebene ins PDF, damit Suche, Blattverweise wie `/3.4` und Zi
 funktionieren wie auf einem Text-PDF; das Original bleibt neben der Upload-Datei liegen. Am Dokument steht danach z. B.
 „7 Seiten per OCR, Ø Konfidenz 0,98“. `OCR_MODE=auto` (Standard) erkennt nur Seiten ohne Textebene, `always` jede
 Seite, `off` keine. Grenze: Klemmenbeschriftungen direkt neben dem Klemmensymbol liest die OCR oft ohne Minus
-(„X1:2“ statt „-X1:2“); im Beispiel-Scan werden 77 % der Klemmen gefunden, Geräte und SPS-Adressen zu 99 bis 100 %.
+(„X1:2“ statt „-X1:2“); im Beispiel-Scan werden 81 % der Klemmen gefunden, Geräte und SPS-Adressen zu 99 bis 100 %.
 
 ## Tracing: was in Langfuse landet (optional)
 
