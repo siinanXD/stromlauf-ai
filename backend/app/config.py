@@ -77,9 +77,6 @@ class Settings(BaseSettings):
     # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
     checkpointer: str = "sqlite"
 
-    # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
-    checkpointer: str = "sqlite"
-
     @property
     def effective_ocr_mode(self) -> str:
         """OCR_MODE, wobei der alte Schalter OCR_ENABLED=true als always gilt."""
