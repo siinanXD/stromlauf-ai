@@ -1,5 +1,10 @@
+import hashlib
+import json
 import logging
+import os
+import tempfile
 import threading
+from pathlib import Path
 
 from langchain_core.embeddings import Embeddings
 
@@ -134,15 +139,82 @@ class OpenAIEmbeddings(Embeddings):
         return self._post([text])[0]
 
 
+class CachedEmbeddings(Embeddings):
+    """Dokument-Vektoren je exaktem Text auf Platte wiederverwenden (EMBEDDING_CACHE_DIR, fuer CI und Eval).
+
+    Das Einbetten der Abschnitte kostet in der Eval die meiste Zeit (bge-m3 auf der CPU), obwohl sich die
+    Beispieldokumente selten aendern. Dateiname ist der SHA-256 aus model_key und Text; model_key nennt Provider,
+    Modell, Dimension und Passage-Praefix, damit ein Wechsel nie alte Vektoren liefert. Anfragen laufen immer live.
+    """
+
+    def __init__(self, inner: Embeddings, cache_dir: Path, model_key: str) -> None:
+        self.inner = inner
+        self.cache_dir = cache_dir
+        self.model_key = model_key
+
+    def _path(self, text: str) -> Path:
+        digest = hashlib.sha256(f"{self.model_key}\0{text}".encode()).hexdigest()
+        return self.cache_dir / f"{digest}.json"
+
+    @staticmethod
+    def _load(path: Path) -> list[float] | None:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):  # fehlt oder unlesbar: neu rechnen
+            return None
+
+    def _store(self, path: Path, vector: list[float]) -> None:
+        """Erst vollstaendig schreiben, dann umbenennen: nie eine halbe Datei unter dem Schluessel."""
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        handle, temp = tempfile.mkstemp(dir=self.cache_dir, suffix=".tmp")
+        with os.fdopen(handle, "w", encoding="utf-8") as file:
+            json.dump(vector, file)
+        os.replace(temp, path)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        paths = [self._path(text) for text in texts]
+        vectors = [self._load(path) for path in paths]
+        missing = [i for i, vector in enumerate(vectors) if vector is None]
+        if missing:
+            computed = self.inner.embed_documents([texts[i] for i in missing])
+            for i, vector in zip(missing, computed, strict=True):
+                self._store(paths[i], vector)
+                vectors[i] = vector
+        reused = len(texts) - len(missing)
+        logger.info("Embedding-Cache: %d aus dem Cache, %d neu gerechnet", reused, len(missing))
+        return vectors
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.inner.embed_query(text)
+
+
+def _model_key(settings) -> str:
+    """Alles, was einen Dokument-Vektor ausser dem Text bestimmt."""
+    provider = settings.embedding_provider.lower()
+    model = {
+        "local": settings.embedding_model,
+        "voyage": settings.voyage_model,
+        "openai": settings.openai_embedding_model,
+    }[provider]
+    return f"{provider}|{model}|{settings.embedding_dim}|{settings.embedding_passage_prefix}"
+
+
 def make_embeddings() -> Embeddings:
-    provider = get_settings().embedding_provider.lower()
+    settings = get_settings()
+    provider = settings.embedding_provider.lower()
     if provider == "voyage":
-        return VoyageEmbeddings()
-    if provider == "openai":
-        return OpenAIEmbeddings()
-    if provider == "local":
-        return LocalEmbeddings()
-    raise RuntimeError(f"EMBEDDING_PROVIDER={provider!r}: erlaubt sind local, voyage oder openai")
+        inner: Embeddings = VoyageEmbeddings()
+    elif provider == "openai":
+        inner = OpenAIEmbeddings()
+    elif provider == "local":
+        inner = LocalEmbeddings()
+    else:
+        raise RuntimeError(
+            f"EMBEDDING_PROVIDER={provider!r}: erlaubt sind local, voyage oder openai"
+        )
+    if settings.embedding_cache_dir is None:
+        return inner
+    return CachedEmbeddings(inner, settings.embedding_cache_dir, _model_key(settings))
 
 
 embeddings = make_embeddings()

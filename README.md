@@ -135,6 +135,8 @@ Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), son
   Antwort kommen aus `app/flow/pricing.py` (beide Provider).
 - Embeddings: `EMBEDDING_PROVIDER=openai` nutzt `text-embedding-3-small` mit `dimensions = EMBEDDING_DIM`. Ein
   Wechsel des Embedders heißt: alle Dokumente neu verarbeiten, sonst passen die Vektoren nicht zusammen.
+  `EMBEDDING_CACHE_DIR` ist nur für CI und Eval gedacht: Die Vektoren der Abschnitte liegen dann je exaktem Text auf
+  der Platte, und nur neue Abschnitte werden eingebettet. Leer ist der Cache aus, so wie im Betrieb.
 - Nightly-Eval (`eval.yml`) per Hand starten mit `chat_model` und `vision_model` als Eingabe; die Schlüssel liegen
   als Repository-Secrets (`OPEN_API_KEY` wird als `OPENAI_API_KEY` durchgereicht).
 - Nicht umgestellt: die Ablauf-Extraktion (`FLOW_MODEL_*`) nutzt das Anthropic-SDK direkt (strukturierte Ausgabe).

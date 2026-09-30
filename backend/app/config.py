@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +44,9 @@ class Settings(BaseSettings):
     # e5-Modelle erwarten "query: " / "passage: " Praefixe, bge-m3 nicht.
     embedding_query_prefix: str = ""
     embedding_passage_prefix: str = ""
+    # Nur CI und Eval: Dokument-Vektoren je Abschnittstext auf Platte wiederverwenden (app/embeddings.py,
+    # CachedEmbeddings). Leer = aus, so wie im Betrieb.
+    embedding_cache_dir: Path | None = None
 
     # Texterkennung fuer Scans (app/ingestion/ocr.py, lokal): auto = nur Seiten ohne Textebene, always = jede Seite,
     # off = keine. OCR_ENABLED=true ist der alte Schalter und heisst always.
@@ -79,6 +83,12 @@ class Settings(BaseSettings):
 
     # Gespraechsverlauf des Agenten: sqlite (Datei unter data_dir) oder postgres (DATABASE_URL)
     checkpointer: str = "sqlite"
+
+    @field_validator("embedding_cache_dir", mode="before")
+    @classmethod
+    def _empty_cache_dir_is_off(cls, value):
+        """.env.example fuehrt EMBEDDING_CACHE_DIR= leer; Path("") waere das aktuelle Verzeichnis."""
+        return None if value == "" else value
 
     @property
     def effective_ocr_mode(self) -> str:

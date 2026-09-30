@@ -34,7 +34,10 @@ die Session des Chats geschrieben.
   `run_retrieval.py --only "<quellen>" --min 0.9 --min-sources 0.9`: FB-01 (`scripts/acceptance.py --load`, ohne
   Vision) mit Injection-Test und dem Voll-Scan als Quelle „Scan FB-01“ (`--pattern "*_scan.pdf"`, OCR im Upload), dazu
   das Zitat-Gate (`rescore.py --min-citations 0.9`); UR-01; PM1-AR. `backend/tests/test_ci_laufzeit.py` prueft, dass
-  jede Quelle in genau einer Gruppe steht und dort geladen wird. Kostet keine Tokens.
+  jede Quelle in genau einer Gruppe steht und dort geladen wird. Kostet keine Tokens. Die Vektoren unveraenderter
+  Abschnitte kommen aus dem Embedding-Cache (`EMBEDDING_CACHE_DIR`, `actions/cache` je Gruppe); Docling, OCR,
+  Chunking, Kennzeichen, DB und Suche laufen weiter jedes Mal, Anfragen werden live eingebettet. Aendern sich
+  `backend/app/embeddings.py`, `pyproject.toml` oder `MODELLCACHE_VERSION`, beginnt der Cache leer.
 - **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Foerderband FB-01,Injection-Test" --min 0.8
   --min-citations 0.9 --max-cost 2.00` (stoppt, sobald die Summe der `usage.cost_usd` den Deckel erreicht) und
   `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf gegen die 15 gelabelten Boxen des

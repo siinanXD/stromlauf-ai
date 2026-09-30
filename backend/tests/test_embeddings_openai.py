@@ -18,6 +18,7 @@ def _settings(**overrides):
         openai_api_url="https://openai.invalid/v1",
         embedding_query_prefix="",
         embedding_passage_prefix="",
+        embedding_cache_dir=None,
     )
     base.update(overrides)
     return SimpleNamespace(**base)

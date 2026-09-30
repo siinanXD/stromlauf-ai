@@ -30,6 +30,9 @@ env:
   HF_HOME: /home/runner/.cache/huggingface
   DATA_DIR: /tmp/stromlauf-data
   PYTHONUNBUFFERED: "1"  # Fortschrittszeilen der Lade-Skripte mit echten Zeitstempeln im Log
+  # Stand der Modelle im Modellcache (bge-m3, Docling); hochzaehlen, wenn sich Modelle aendern. Der Embedding-Cache
+  # haengt daran, damit nie Vektoren eines alten Modells zurueckkommen.
+  MODELLCACHE_VERSION: v1
 
 jobs:
   # Lesegenauigkeit je Seite gegen Ground Truth, ohne DB, Backend und Modellaufruf: eigener Job neben dem Retrieval-Gate
@@ -51,7 +54,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /home/runner/.cache/huggingface
-          key: hf-bge-m3-docling-${{ runner.os }}-v1
+          key: hf-bge-m3-docling-${{ runner.os }}-${{ env.MODELLCACHE_VERSION }}
       - name: Backend mit CPU-Torch installieren
         working-directory: backend
         run: |
@@ -87,6 +90,8 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      EMBEDDING_CACHE_DIR: /home/runner/.cache/stromlauf-embeddings  # app/embeddings.py, CachedEmbeddings
     strategy:
       fail-fast: false
       matrix:
@@ -122,7 +127,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /home/runner/.cache/huggingface
-          key: hf-bge-m3-docling-${{ runner.os }}-v1
+          key: hf-bge-m3-docling-${{ runner.os }}-${{ env.MODELLCACHE_VERSION }}
+      # Vektoren je Abschnittstext: nur neue oder geaenderte Abschnitte rechnet bge-m3 neu. Ein aelterer Stand kommt
+      # nur zurueck, solange Embedding-Code, Abhaengigkeiten und Modelle gleich sind; Beispiele und Ingestion-Code
+      # stecken im Inhalt der Abschnitte (Schluessel je Datei) und bestimmen nur, wann ein neuer Stand gespeichert wird.
+      - name: Embedding-Cache
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/stromlauf-embeddings
+          key: >-
+            emb-${{ runner.os }}-${{ env.MODELLCACHE_VERSION }}-${{ matrix.gruppe }}-${{
+            hashFiles('backend/app/embeddings.py', 'backend/pyproject.toml') }}-${{
+            hashFiles('examples/**', 'backend/app/**') }}
+          restore-keys: >-
+            emb-${{ runner.os }}-${{ env.MODELLCACHE_VERSION }}-${{ matrix.gruppe }}-${{
+            hashFiles('backend/app/embeddings.py', 'backend/pyproject.toml') }}-
       - name: Backend mit CPU-Torch installieren
         working-directory: backend
         run: |
@@ -245,7 +264,7 @@ jobs:
         if: steps.secret.outputs.skip != 'true'
         with:
           path: /home/runner/.cache/huggingface
-          key: hf-bge-m3-docling-${{ runner.os }}-v1
+          key: hf-bge-m3-docling-${{ runner.os }}-${{ env.MODELLCACHE_VERSION }}
       - name: Backend installieren und starten
         if: steps.secret.outputs.skip != 'true'
         working-directory: backend
