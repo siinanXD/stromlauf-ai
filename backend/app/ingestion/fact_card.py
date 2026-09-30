@@ -41,7 +41,8 @@ def _rows(context: str) -> list[list[str]]:
 
 
 def _mentions(cells: list[str], tag: str) -> bool:
-    return re.search(rf"(?<![\w-]){re.escape(tag)}(?![\d.])", " ".join(cells)) is not None
+    # Der Schluessel ist gross wie normalize_tag, das Dokument schreibt die Etage klein: -X2:3A steht als -X2:3a da
+    return re.search(rf"(?<![\w-]){re.escape(tag)}(?![\d.])", " ".join(cells), re.IGNORECASE) is not None
 
 
 def _is_bom(hit: dict) -> bool:

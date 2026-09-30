@@ -134,6 +134,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - Kennzeichen-Index: Schluessel immer in der Schreibweise von `tags.normalize_tag` (gross), denn `find_tag`,
   `/api/tags/search`, `/api/facts` und die Hotspot-Suche vergleichen case-sensitiv (`==`, `LIKE`). Die Etage einer
   Mehrstockklemme `-X2:3a` steht als `-X2:3A` im Index, der Kontext behaelt die Schreibweise des Dokuments.
+  Wo die Befundkarte den Schluessel mit Dokumenttext vergleicht (`fact_card._mentions`, Abschnitte in
+  `api/facts.py`), gilt Gross/Klein nicht.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

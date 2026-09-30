@@ -174,3 +174,21 @@ def test_stuecklistenseite_im_stromlaufplan_liefert_titel():
     card = build_fact_card("6KE1", [circuit, nomenclature])
     assert card["title"] == "Emergency Contactor Emergency Contactor 1 Schneider Electric"
     assert rows(card)["Stromlaufplan"] == ["S. 6"]  # die Stuecklistenseite ist keine Planseite
+
+
+# --- Etage einer Mehrstockklemme in Kleinbuchstaben ---------------------------------------------
+
+# 03_Klemmenplan_FB-01.csv: im Index steht -X2:3A (Schreibweise von normalize_tag), im Kontext -X2:3a wie im Dokument
+TERMINAL_3A = hit("terminal_plan", "| -X2 | -X2:3a | -K3:14 | -K1:A1 / -K2:A1 (ueber -A1.2) | +24 V freigegeben | /4.4 |")
+SCHEMATIC_4 = hit("schematic", "Freigabe ueber -X2:3a", page=4, filename="01_Stromlaufplan.pdf")
+
+
+def test_klemmenplanzeile_in_kleinbuchstaben_gehoert_zur_karte_der_klemme():
+    card = build_fact_card("-X2:3A", [TERMINAL_3A, SCHEMATIC_4])
+    assert rows(card) == {"Stromlaufplan": ["/4.4"], "Klemmen": ["-X2:3A"]}  # bisher nur "S. 4"
+
+
+def test_karte_des_geraets_an_der_mehrstockklemme_bleibt_gleich():
+    """War schon vor dem Fix gruen: -K3 steht gross in der Zeile, seine Karte darf sich nicht aendern."""
+    card = build_fact_card("-K3", [TERMINAL_3A, SCHEMATIC_4])
+    assert rows(card) == {"Stromlaufplan": ["/4.4"], "Klemmen": ["-X2:3A"]}
