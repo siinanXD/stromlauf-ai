@@ -5,7 +5,7 @@ dieser Datei existiert: ``S. n``/``Seite n`` auf einer Seite, ``/Blatt.Spalte``,
 ``Blatt n`` auf einem Blatt des Plans (Schriftfeld), ein Kennzeichen (``-K1``, ``-X3:3``, ``A 4.0``,
 ``/3.2``) im Kennzeichen-Index der Datei, sonst ein Abschnitt (AWL-Baustein/Netzwerk, Symboltabelle)
 in den Chunk-Abschnitten. Was sich nicht pruefen laesst (Dokument ohne Seiten, Index oder Abschnitte,
-unlesbare PDF), gilt als gueltig, aber ``checked=False``. Kein Modellaufruf; die Kennzahl
+unlesbare PDF, Blatt nur angenommen statt im Schriftfeld gelesen), gilt als gueltig, aber ``checked=False``. Kein Modellaufruf; die Kennzahl
 ``zitate_gueltig`` im Eval beruht hierauf.
 """
 
@@ -19,7 +19,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.ingestion.pdf_layout import parse_ref, sheet_page
+from app.ingestion.pdf_layout import SheetPage, parse_ref, sheet_page
 from app.ingestion.tags import extract_tags
 from app.models import Chunk, DocStatus, Document, TagOccurrence, TagType
 
@@ -177,7 +177,7 @@ def _check_doc(
     locator: str,
     doc: DocIndex,
     context: str,
-    sheet_lookup: Callable[[Path, int], int | None],
+    sheet_lookup: Callable[[Path, int], SheetPage],
 ) -> CitationCheck:
     invalid = lambda reason: CitationCheck(text, file, locator, False, True, reason)  # noqa: E731
     unverified = lambda reason: CitationCheck(text, file, locator, True, False, reason)  # noqa: E731
@@ -204,7 +204,12 @@ def _check_doc(
             found = sheet_lookup(doc.path, sheet)
         except (OSError, RuntimeError):  # fehlende Datei, pypdfium2.PdfiumError (RuntimeError)
             return unverified(f"Ort nicht pruefbar: {doc.filename} nicht lesbar")
-        return ok if found is not None else invalid(f"Blatt {sheet} nicht in {doc.filename}")
+        if found.guessed:  # Issue #67: kein Schriftfeld gelesen oder Luecke in der Blatt-Map
+            where = (
+                f"auf Seite {found.page} angenommen" if found.page is not None else "nicht gefunden"
+            )
+            return unverified(f"Nicht geprueft: Blatt-Map unsicher, Blatt {sheet} {where}")
+        return ok if found.page is not None else invalid(f"Blatt {sheet} nicht in {doc.filename}")
 
     known = {t.upper() for t in doc.tags}
     found = _tag_of(locator)
@@ -243,7 +248,7 @@ def _check_one(
     locator: str,
     docs: list[DocIndex],
     cited: set[str] | None,
-    sheet_lookup: Callable[[Path, int], int | None],
+    sheet_lookup: Callable[[Path, int], SheetPage],
     context: str = "",
 ) -> CitationCheck:
     invalid = lambda reason: CitationCheck(text, file, locator, False, True, reason)  # noqa: E731
@@ -274,7 +279,7 @@ def check_citations(
     answer: str,
     docs: Iterable[DocIndex],
     cited: Iterable[str] | None,
-    sheet_lookup: Callable[[Path, int], int | None] = sheet_page,
+    sheet_lookup: Callable[[Path, int], SheetPage] = sheet_page,
 ) -> list[CitationCheck]:
     """Alle Belege einer Antwort pruefen.
 

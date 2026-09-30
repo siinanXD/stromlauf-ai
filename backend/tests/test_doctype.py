@@ -108,6 +108,16 @@ def test_echte_qet_pdf_wird_als_stromlaufplan_erkannt():
     assert found.doc_type == DocType.SCHEMATIC and found.source == "content", found
 
 
+TITLE_BLOCKS = sorted((EXAMPLES / "schriftfeld").glob("*.pdf"))
+
+
+@pytest.mark.parametrize("path", TITLE_BLOCKS, ids=[p.name for p in TITLE_BLOCKS])
+def test_schriftfeld_fixtures_sind_stromlaufplaene_am_inhalt(path: Path):
+    """Issue #67: Deckblatt und Inhaltsverzeichnis vorne aendern den erkannten Typ nicht."""
+    found = guess_doc_type(sample_text(path))
+    assert found.doc_type == DocType.SCHEMATIC, found
+
+
 SCAN_PDF = EXAMPLES / "scan" / "01_Stromlaufplan_FB-01_scan.pdf"
 
 

@@ -263,7 +263,7 @@ def locate(document_id: str, ref: str, session: Session = Depends(get_session)):
         raise HTTPException(400, "Nur PDF-Dokumente haben Seiten")
     sheet, column, page = parse_ref(ref)
     if sheet is not None:
-        page = sheet_page(path, sheet) or page
+        page = sheet_page(path, sheet).page or page
         if page is None:
             raise HTTPException(404, f"Blatt {sheet} nicht gefunden")
     if page is None:
