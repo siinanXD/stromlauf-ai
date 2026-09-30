@@ -18,6 +18,7 @@ def _settings(**overrides):
         voyage_api_url="https://voyage.invalid/v1/embeddings",
         embedding_query_prefix="",
         embedding_passage_prefix="",
+        embedding_cache_dir=None,
     )
     base.update(overrides)
     return SimpleNamespace(**base)
