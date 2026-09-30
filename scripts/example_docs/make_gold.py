@@ -1,16 +1,22 @@
-"""Ground Truth fuer den Ingest-Benchmark: Kennzeichen je Seite, beim Zeichnen des Stromlaufplans mitgeschrieben.
+"""Ground Truth fuer den Ingest-Benchmark: Kennzeichen je Seite, beim Zeichnen der Stromlaufplaene mitgeschrieben.
 
 Aufruf:  python scripts/example_docs/make_gold.py --write   |   python scripts/example_docs/make_gold.py --check
 
 Jede gezeichnete Zeichenkette wird einzeln ausgewertet, nicht der Seitentext. Dazu kommen die BMK
-aus Sheet.device/contact/coil direkt, ohne Kennzeichen-Grammatik. So misst eval/run_ingest.py das
-Lesen des PDFs (Reihenfolge, Zusammenziehen, Trennen von Text), nicht die Grammatik in tags.py.
-Ausgabe: eval/ingest_gold/fb01.json (Seite = PDF-Seite; beim Beispiel ist Seite n = Blatt n).
+aus den Symbolen (Sheet.device/contact/coil, in der Testdokumentation auch lamp/motor) direkt, ohne
+Kennzeichen-Grammatik. So misst eval/run_ingest.py das Lesen des PDFs (Reihenfolge, Zusammenziehen,
+Trennen von Text), nicht die Grammatik in tags.py.
+Ausgabe (Seite = PDF-Seite; bei allen Plaenen ist Seite n = Blatt n): eval/ingest_gold/fb01.json aus dem
+Beispielplan (make_pdf.py), ur01.json und pm1_ar.json aus der Testdokumentation (scripts/testdoku/render_pdf.py,
+Issue #68).
 """
 
+import importlib
 import io
 import json
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from reportlab.pdfgen import canvas
@@ -18,14 +24,15 @@ from reportlab.pdfgen import canvas
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))  # data.py und make_pdf.py liegen neben diesem Skript
+sys.path.insert(1, str(ROOT / "scripts" / "testdoku"))  # render_pdf.py, render_rest.py, machines/
 sys.path.insert(0, str(ROOT / "backend"))
 
 import make_pdf  # noqa: E402
+import render_pdf  # noqa: E402
 
-TARGET = ROOT / "eval" / "ingest_gold" / "fb01.json"
-DOCUMENT = "examples/foerderband/01_Stromlaufplan_FB-01.pdf"
+GOLD_DIR = ROOT / "eval" / "ingest_gold"
 NOTE = (
-    "Kennzeichen je gezeichneter Zeichenkette (tags.extract_tags) plus BMK aus Sheet.device/contact/coil; "
+    "Kennzeichen je gezeichneter Zeichenkette (tags.extract_tags) plus BMK aus {symbols}; "
     "misst das Lesen des PDFs, nicht die Kennzeichen-Grammatik. Erzeugt von scripts/example_docs/make_gold.py."
 )
 
@@ -59,8 +66,8 @@ class RecordingCanvas(canvas.Canvas):
         self.page_no += 1
 
 
-class RecordingSheet(make_pdf.Sheet):
-    """Blatt, das die BMK aus Geraeten, Kontakten und Spulen ohne Grammatik mitschreibt."""
+class _RecordsSymbols:
+    """Schreibt die BMK aus Geraeten, Kontakten und Spulen ohne Grammatik mit (vor dem Sheet des Generators erben)."""
 
     def _bmk(self, bmk: str) -> None:
         if bmk:
@@ -79,13 +86,88 @@ class RecordingSheet(make_pdf.Sheet):
         return super().coil(x, y, bmk, *args, **kwargs)
 
 
-def gold() -> dict:
+class RecordingSheet(_RecordsSymbols, make_pdf.Sheet):
+    """Blatt des Beispielplans FB-01."""
+
+
+class RecordingTestdokuSheet(_RecordsSymbols, render_pdf.Sheet):
+    """Blatt der Testdokumentation; zeichnet Leuchten und Motoren als eigene Symbole mit BMK."""
+
+    def lamp(self, x, y, bmk, *args, **kwargs):
+        self._bmk(bmk)
+        return super().lamp(x, y, bmk, *args, **kwargs)
+
+    def motor(self, x, y, bmk, *args, **kwargs):
+        self._bmk(bmk)
+        return super().motor(x, y, bmk, *args, **kwargs)
+
+
+def testdoku_machine(name: str):
+    """Maschinenmodell der Testdokumentation, z. B. ur01 -> scripts/testdoku/machines/ur01.py."""
+    return importlib.import_module(f"machines.{name}").MACHINE
+
+
+def _draw_fb01() -> RecordingCanvas:
+    return make_pdf.build(
+        io.BytesIO(), canvas_factory=RecordingCanvas, sheet_factory=RecordingSheet
+    )
+
+
+def _draw_testdoku(name: str) -> RecordingCanvas:
+    from render_rest import terminal_rows
+
+    drawn: list[RecordingCanvas] = []
+
+    def recording_canvas(*args, **kwargs) -> RecordingCanvas:
+        drawn.append(RecordingCanvas(*args, **kwargs))
+        return drawn[-1]
+
+    render_pdf.render(
+        testdoku_machine(name),
+        io.BytesIO(),
+        terminal_rows,
+        canvas_factory=recording_canvas,
+        sheet_factory=RecordingTestdokuSheet,
+    )
+    return drawn[0]
+
+
+@dataclass(frozen=True)
+class Target:
+    document: str
+    generator: str
+    symbols: str
+    draw: Callable[[], RecordingCanvas]
+
+
+TARGETS = {
+    "fb01": Target(
+        "examples/foerderband/01_Stromlaufplan_FB-01.pdf",
+        "scripts/example_docs/make_pdf.py",
+        "Sheet.device/contact/coil",
+        _draw_fb01,
+    ),
+    "ur01": Target(
+        "examples/umroller/01_Stromlaufplan_UR-01.pdf",
+        "scripts/testdoku/render_pdf.py",
+        "Sheet.device/contact/coil/lamp/motor",
+        lambda: _draw_testdoku("ur01"),
+    ),
+    "pm1_ar": Target(
+        "examples/aufrollung/01_Stromlaufplan_PM1-AR.pdf",
+        "scripts/testdoku/render_pdf.py",
+        "Sheet.device/contact/coil/lamp/motor",
+        lambda: _draw_testdoku("pm1_ar"),
+    ),
+}
+
+
+def gold(name: str) -> dict:
     # erst hier importiert: app liegt nur ueber sys.path vor, und ruff sortiert es je nach Startordner anders
     from app.ingestion.tags import extract_tags
 
-    drawn = make_pdf.build(
-        io.BytesIO(), canvas_factory=RecordingCanvas, sheet_factory=RecordingSheet
-    )
+    target = TARGETS[name]
+    drawn = target.draw()
     pages: dict[str, dict[str, list[str]]] = {}
     for page in sorted(set(drawn.strings) | set(drawn.bmk)):
         by_type: dict[str, set[str]] = {}
@@ -96,29 +178,37 @@ def gold() -> dict:
             by_type.setdefault("terminal" if bmk[1:].startswith("X") else "device", set()).add(bmk)
         pages[str(page)] = {kind: sorted(tags) for kind, tags in sorted(by_type.items())}
     return {
-        "dokument": DOCUMENT,
+        "dokument": target.document,
         "doc_type": "schematic",
-        "generator": "scripts/example_docs/make_pdf.py",
-        "hinweis": NOTE,
+        "generator": target.generator,
+        "hinweis": NOTE.format(symbols=target.symbols),
         "seiten": pages,
     }
 
 
-def render() -> str:
-    return json.dumps(gold(), ensure_ascii=False, indent=2) + "\n"
+def render(name: str) -> str:
+    return json.dumps(gold(name), ensure_ascii=False, indent=2) + "\n"
 
 
 def main(argv: list[str]) -> int:
-    if "--write" in argv:
-        TARGET.parent.mkdir(parents=True, exist_ok=True)
-        TARGET.write_text(render(), encoding="utf-8", newline="\n")
-        print(f"geschrieben: {TARGET.relative_to(ROOT).as_posix()}")
-        return 0
-    if TARGET.exists() and TARGET.read_text(encoding="utf-8") == render():
+    outdated = []
+    for name in TARGETS:
+        path = GOLD_DIR / f"{name}.json"
+        text = render(name)
+        if "--write" in argv:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8", newline="\n")
+            print(f"geschrieben: {path.relative_to(ROOT).as_posix()}")
+        elif not path.exists() or path.read_text(encoding="utf-8") != text:
+            outdated.append(path.relative_to(ROOT).as_posix())
+    if outdated:
+        print(
+            f"Gold veraltet: {', '.join(outdated)}. python scripts/example_docs/make_gold.py --write"
+        )
+        return 1
+    if "--write" not in argv:
         print("Gold aktuell")
-        return 0
-    print("Gold veraltet: python scripts/example_docs/make_gold.py --write")
-    return 1
+    return 0
 
 
 if __name__ == "__main__":

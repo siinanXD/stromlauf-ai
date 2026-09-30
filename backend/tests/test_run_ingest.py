@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import re
 from collections import namedtuple
 from pathlib import Path
 
@@ -250,11 +251,39 @@ def make_gold():
     return _load("make_gold", EXAMPLE_DOCS)
 
 
-def test_gold_datei_passt_zum_generator(make_gold):
-    assert GOLD.exists(), "python scripts/example_docs/make_gold.py --write"
-    assert (
-        GOLD.read_text(encoding="utf-8") == make_gold.render()
-    )  # Zeilenenden normalisiert (core.autocrlf)
+@pytest.mark.parametrize("name", ["fb01", "ur01", "pm1_ar"])
+def test_gold_datei_passt_zum_generator(make_gold, name):
+    path = ROOT / "eval" / "ingest_gold" / f"{name}.json"
+    assert path.exists(), "python scripts/example_docs/make_gold.py --write"
+    # read_text normalisiert die Zeilenenden (core.autocrlf)
+    assert path.read_text(encoding="utf-8") == make_gold.render(name)
+
+
+@pytest.mark.parametrize("name", ["fb01", "ur01", "pm1_ar"])
+def test_jedes_gold_der_generatoren_steht_im_ingest_gate(name):
+    workflow = (ROOT / ".github" / "workflows" / "eval.yml").read_text(encoding="utf-8")
+    assert re.search(rf"run_ingest\.py --gold eval/ingest_gold/{name}\.json --min 0\.95 ", workflow)
+
+
+@pytest.mark.parametrize("name", ["ur01", "pm1_ar"])
+def test_testdoku_gold_nennt_jedes_betriebsmittel_und_jede_seite_des_plans(make_gold, name):
+    """Issue #68: UR-01 und PM1-AR im Ingest-Gate, Gold beim Zeichnen mitgeschrieben wie bei FB-01."""
+    import pypdfium2 as pdfium
+
+    gold = run_ingest.load_gold(ROOT / "eval" / "ingest_gold" / f"{name}.json")
+    tags = {
+        tag
+        for by_type in gold["seiten"].values()
+        for kind in ("device", "terminal")
+        for tag in by_type.get(kind, ())
+    }
+    devices = make_gold.testdoku_machine(name).devices
+    assert [device.bmk for device in devices if device.bmk not in tags] == []
+    pdf = pdfium.PdfDocument(str(ROOT / gold["dokument"]))
+    try:
+        assert sorted(gold["seiten"]) == list(range(1, len(pdf) + 1))
+    finally:
+        pdf.close()
 
 
 def test_jedes_betriebsmittel_der_stueckliste_steht_im_gold(make_gold):

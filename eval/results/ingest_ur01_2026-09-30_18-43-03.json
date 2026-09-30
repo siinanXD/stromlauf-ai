@@ -1,0 +1,54 @@
+{
+  "summary": {
+    "gold": "eval/ingest_gold/ur01.json",
+    "label": "",
+    "dokument": "examples/umroller/01_Stromlaufplan_UR-01.pdf",
+    "doc_type": "schematic",
+    "seiten": 16,
+    "sekunden": 20.88,
+    "sekunden_je_seite": 1.3,
+    "ocr": null,
+    "metriken": {
+      "device": {
+        "tp": 197,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "terminal": {
+        "tp": 235,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "plc_address": {
+        "tp": 95,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "cross_ref": {
+        "tp": 22,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      }
+    },
+    "gate": {
+      "min": 0.95,
+      "min_je_typ": {},
+      "typen": [
+        "device",
+        "terminal",
+        "plc_address"
+      ],
+      "ok": true,
+      "verfehlt": []
+    }
+  },
+  "results": []
+}
