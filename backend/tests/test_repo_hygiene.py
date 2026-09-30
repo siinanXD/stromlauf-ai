@@ -66,3 +66,9 @@ def test_keine_fremdlizenzierten_testdaten_im_repo():
         ["git", "ls-files", "testdata"], cwd=ROOT, capture_output=True, text=True, check=True
     ).stdout
     assert tracked.strip() == ""
+
+
+def test_firmendokumente_unter_testdata_private_sind_ignoriert():
+    """Issue #68: Ablage fuer echte Firmendokumente und ihre Gold-Vorlagen; nichts davon darf ins oeffentliche Repo."""
+    for path in ("testdata/private/x.pdf", "testdata/private/x.gold.json"):
+        assert subprocess.run(["git", "check-ignore", "-q", path], cwd=ROOT).returncode == 0, path
