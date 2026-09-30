@@ -50,7 +50,7 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `section` an Chunks und Fundstellen; Seiten mit Titel „Stueckliste/Nomenclature/Parts list“ (Chunk-`kind` `bom`)
   zaehlen als Stuecklistenzeilen (Bezeichnung, kein Blatt). Kennzeichen ohne Minus im Blatt-Stil (`4Q1`, `9K1`,
   QElectroTech) erkennt `tags.detect_folio_style` je Dokument, damit Bestellnummern (`6ES7`) in deutschen Plaenen
-  keine Treffer werden. Testdaten dafuer: `testdata/qelectrotech/` (lokal, siehe `testdata/README.md`).
+  keine Treffer werden. Testdaten dafuer: `testdata/qelectrotech/` (lokal, `python scripts/fetch_testdata.py`).
 - Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
@@ -78,8 +78,16 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - Ingest-Benchmark (Issue #63): `eval/run_ingest.py` misst die Lesekette des Uploads ohne DB und Modell
   (`pipeline.document_pieces` -> `split_pieces` -> `tag_rows`, dieselben Funktionen wie `ingest_document`) gegen
   `eval/ingest_gold/*.json`. Das Gold schreibt `scripts/example_docs/make_gold.py --write` beim Zeichnen mit
-  (`make_pdf.build` nimmt dafuer eine protokollierende Zeichenflaeche); nach Aenderungen an `make_pdf.py` PDF und
-  Gold neu erzeugen, `test_run_ingest.py` prueft die Gleichheit. Gate im Retrieval-Job von `eval.yml` (`--min 0.95`).
+  (`make_pdf.build` und `scripts/testdoku/render_pdf.render` nehmen dafuer eine protokollierende Zeichenflaeche; Gold
+  `fb01`, `ur01`, `pm1_ar`); nach Aenderungen an `make_pdf.py` oder `scripts/testdoku/` PDF und Gold neu erzeugen,
+  `test_run_ingest.py` prueft die Gleichheit. Gate im Retrieval-Job von `eval.yml` (`--min 0.95`, alle drei Plaene).
+- Fremd- und Firmendaten (Issue #68): `scripts/fetch_testdata.py` laedt nach `scripts/testdata_manifest.json`
+  (Zielpfad unter `testdata/`, https-URL, SHA-256 der Zieldatei, Lizenz; awlsim am Tag `awlsim-0.77.1`, `auspacken:
+  awlpro` zieht die Quellen eines Projekts in eine `.awl`) und endet bei abweichender Pruefsumme mit Exit 1, ohne zu
+  ueberschreiben. Festo ohne URL (Quelle nennt der Owner), wird nur geprueft. Keine Downloads in der CI. `testdata/`
+  bleibt komplett ignoriert, deshalb liegt das Manifest unter `scripts/`. Firmendokumente nach `testdata/private/`;
+  `scripts/make_gold_template.py --doc --out` schreibt den Lesestand als Gold-Vorlage und verweigert Ziele, die git
+  committen wuerde. Grenzen (PDF-Export ist der Vertrag): README „Grenzen“.
 - Scans (Issue #64): `document_pieces` fuehrt Seiten ohne lesbaren Text als `empty_pages`; `_build_pieces` schreibt sie
   als „1 von 7 Seiten ohne Text: 3“ in den Hinweis (`progress_text`, max. 200 Zeichen), ausser die Vision-Analyse hat
   die Seite beschrieben. Hat kein Blatt eines PDFs Text, endet die Ingestion mit `scan_message` (Seitenzahl).
@@ -110,7 +118,7 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   „Blatt-Map unsicher: …“ in den Hinweis (`pipeline.sheet_map_note`, nur Stromlaufplaene), der Zitat-Resolver meldet
   „Nicht geprueft: Blatt-Map unsicher“; `page_titles` ordnet das Inhaltsverzeichnis ueber `SheetMap.page_sheets` zu.
   Fixtures `examples/schriftfeld/` (Generator `scripts/example_docs/make_titleblocks.py`, Gold `gold.json`); QET-Gold
-  nur lokal per `eval/qet_gold.py` (Testdaten unter `testdata/`).
+  nur lokal per `eval/qet_gold.py` (Testdaten per `scripts/fetch_testdata.py` unter `testdata/`).
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =

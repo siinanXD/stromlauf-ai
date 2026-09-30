@@ -503,6 +503,20 @@ funktionieren wie auf einem Text-PDF; das Original bleibt neben der Upload-Datei
 Seite, `off` keine. Grenze: Klemmenbeschriftungen direkt neben dem Klemmensymbol liest die OCR oft ohne Minus
 („X1:2“ statt „-X1:2“); im Beispiel-Scan werden 81 % der Klemmen gefunden, Geräte und SPS-Adressen zu 99 bis 100 %.
 
+## Grenzen
+
+Der PDF-Export ist der Vertrag: Stromlauf AI liest, was ein CAE-Werkzeug als PDF ausgibt (dazu Stücklisten und
+Klemmenpläne als Tabelle, SPS-Quellen als `.awl`/`.scl`), nicht die Projektdatei des Werkzeugs. Nicht unterstützt:
+
+- DXF/DWG. Dafür den PDF-Export des Plans hochladen.
+- Native EPLAN-Projekte (`.elk`) und TIA-Portal-Projekte (`.ap*`). Dafür PDF-Export, Stückliste als `.xlsx` oder
+  `.csv` und die SPS-Bausteine als Quelle exportieren.
+- Handschrift, etwa Nachträge von Hand im Plan.
+- Fotos von Plänen mit starker Perspektive. Die OCR dreht hochkant gescannte Blätter und gleicht Schräglage aus,
+  entzerrt aber keine schräg fotografierte Seite.
+
+Wie gut das Lesen auf einem eigenen Plan klappt, zeigt eine Gold-Vorlage (siehe „Fremd- und Firmendaten“).
+
 ## Tracing: was in Langfuse landet (optional)
 
 Mit `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` in der `.env` und dem Extra
@@ -540,6 +554,25 @@ python eval/run_eval.py          # Agentenlauf, kostet API-Tokens je Frage
 
 Details in [`eval/README.md`](eval/README.md).
 
+## Fremd- und Firmendaten
+
+Testdaten mit fremder Lizenz (QElectroTech-Beispielprojekte, AWL-Quellen aus awlsim, Festo MPS) liegen nie im Repo.
+`python scripts/fetch_testdata.py` lädt sie nach `testdata/` (per `.gitignore` ausgeschlossen) und prüft jede Datei
+gegen die SHA-256 in `scripts/testdata_manifest.json`, das je Datei Quelle, Lizenz und Zielpfad nennt. Ein zweiter
+Lauf lädt nichts neu. Weicht eine Prüfsumme ab, überschreibt das Skript nichts und endet mit Exit 1. Für die
+Festo-Unterlagen fehlt noch die Download-Quelle: Sie werden von Hand abgelegt und nur geprüft.
+
+Eigene Firmendokumente gehören nach `testdata/private/` (ebenfalls ausgeschlossen). So entsteht ein eigenes Gold:
+
+```bash
+python scripts/make_gold_template.py --doc testdata/private/anlage.pdf --out testdata/private/anlage.gold.json
+python eval/run_ingest.py --gold testdata/private/anlage.gold.json --min 0.95
+```
+
+Die Vorlage enthält, was die Lesekette heute findet, und misst sich unverändert mit 1,0. Aussagekräftig wird sie,
+wenn jede Seite von Hand gegen das Dokument geprüft ist: fehlende Kennzeichen ergänzen, falsch gelesene löschen.
+An eine Stelle, die git committen würde, schreibt das Skript nicht.
+
 ## Tests
 
 Alle Prüfungen auf einmal, wie sie eine CI ausführen würde (ohne Cloud-Kosten, etwa 1 Minute):
@@ -566,5 +599,5 @@ cd frontend && npm run lint && npx tsc --noEmit && npm test
 MIT, siehe `LICENSE`. Die Beispielanlagen unter `examples/` (Förderband FB-01, Umroller UR-01, Aufrollung PM1-AR,
 Testwerk, Injection-Test) sind frei erfunden und stehen unter derselben Lizenz. Testdaten mit fremder Lizenz
 (Festo Didactic, awlsim GPLv2, QElectroTech GPL) liegen nur lokal unter `testdata/` und sind per `.gitignore`
-ausgeschlossen; `scripts/fetch_testdata.py` ist für sie vorgesehen (Stufe B). Ein Secret-Scan mit gitleaks
-läuft in der CI über die gesamte Historie.
+ausgeschlossen; `scripts/fetch_testdata.py` holt sie mit geprüften Prüfsummen (siehe „Fremd- und Firmendaten“).
+Ein Secret-Scan mit gitleaks läuft in der CI über die gesamte Historie.
