@@ -80,7 +80,7 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `eval/ingest_gold/*.json`. Das Gold schreibt `scripts/example_docs/make_gold.py --write` beim Zeichnen mit
   (`make_pdf.build` und `scripts/testdoku/render_pdf.render` nehmen dafuer eine protokollierende Zeichenflaeche; Gold
   `fb01`, `ur01`, `pm1_ar`); nach Aenderungen an `make_pdf.py` oder `scripts/testdoku/` PDF und Gold neu erzeugen,
-  `test_run_ingest.py` prueft die Gleichheit. Gate im Retrieval-Job von `eval.yml` (`--min 0.95`, alle drei Plaene).
+  `test_run_ingest.py` prueft die Gleichheit. Gate im Job „Ingest-Gate“ von `eval.yml` (`--min 0.95`, alle drei Plaene).
 - Fremd- und Firmendaten (Issue #68): `scripts/fetch_testdata.py` laedt nach `scripts/testdata_manifest.json`
   (Zielpfad unter `testdata/`, https-URL, SHA-256 der Zieldatei, Lizenz; awlsim am Tag `awlsim-0.77.1`, `auspacken:
   awlpro` zieht die Quellen eines Projekts in eine `.awl`) und endet bei abweichender Pruefsumme mit Exit 1, ohne zu
@@ -181,8 +181,10 @@ Actions kostenlos): Backend, Frontend, E2E, Migration von null, Container-Build 
 ueber die ganze Historie (gitleaks selbst mit fester Version und Pruefsumme; gitleaks-action prueft bei PR und Push
 nur neue Commits; Ausnahmen nur fuer feste Testwerte in `.gitleaks.toml`, Muster `…-test-secret-0123456789…`, und
 einzelne begruendete Fehlalarme per Fingerprint in `.gitleaksignore`);
-`eval.yml` faehrt das kostenlose Retrieval-Gate je PR und den bezahlten Agentenlauf
-woechentlich. Vor jedem Push `scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
+`eval.yml` faehrt je PR kostenlos das Ingest-Gate (eigener Job ohne DB) und das Retrieval-Gate in drei parallelen
+Gruppen (Matrix FB-01, UR-01, PM1-AR; das Einlesen mit bge-m3 auf der CPU kostet die meiste Zeit) und woechentlich den
+bezahlten Agentenlauf. `backend/tests/test_ci_laufzeit.py` haelt CPU-Torch, die Docker-Layer-Reihenfolge und die
+Verteilung der Quellen fest. Vor jedem Push `scripts/check.py`; `--install-hook` legt dafuer einen pre-push-Hook an.
 
 Ordner hieß bis 2026-09-25 `Stromlauf ai`. Die `.venv` im Backend stammt vom alten Pfad
 und muss neu erstellt werden.
