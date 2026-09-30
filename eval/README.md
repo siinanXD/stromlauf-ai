@@ -134,7 +134,7 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
 - `--doc` misst eine andere Fassung desselben Plans gegen dasselbe Gold, `--label` kommt in den Dateinamen. Die
   Scan-Fassungen liegen in `examples/scan/` (`scripts/example_docs/make_scan.py`, Issue #64): Voll-Scan, Teil-Scan
   mit Blatt 3 als Bild, Blatt 4 hochkant; Seitenzahl und Blattfolge wie im Text-PDF. Vorher-Werte ohne OCR:
-  Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,88 bis 0,93 (Recall je Typ, Precision 1,00).
+  Voll-Scan 0,00, Teil-Scan 0,89 bis 0,98, hochkant 0,86 bis 0,93 (Recall je Typ, Precision 1,00).
 - `--ocr` (Issue #65) legt vor der Messung eine unsichtbare Textebene auf die Seiten ohne Text
   (`backend/app/ingestion/ocr.py`, RapidOCR lokal auf der CPU) und misst diese Fassung; OCR-Seiten, -Sekunden und
   -Konfidenz stehen unter `ocr` im Ergebnis. Stand 2026-09-29, Voll-Scan: device 0,99, terminal 0,77, plc_address

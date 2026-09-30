@@ -118,3 +118,10 @@ def test_example_fb01_is_consistent_except_one_unused_symbol():
     assert kinds(profile) == [("symbol_unused", "M10.1")]
     assert profile["summary"]["devices"] >= 20
     assert profile["summary"]["terminals"] >= 25
+
+
+def test_mehrstockklemme_x2_3a_zaehlt_in_plan_und_klemmenplan():
+    """-X2:3a steht auf Blatt 4 und im Klemmenplan; der Index fuehrt es als -X2:3A, das _is_pin als Anschluss nimmt."""
+    profile = build_profile(_example_occurrences(), ALL, known_sheets(EXAMPLE / "01_Stromlaufplan_FB-01.pdf"))
+    docs = {c["tag"]: c["docs"] for c in profile["coverage"]}
+    assert {"schematic", "terminal_plan"} <= set(docs.get("-X2:3A", {}))
