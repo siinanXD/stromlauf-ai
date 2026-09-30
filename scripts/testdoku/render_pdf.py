@@ -400,21 +400,25 @@ def plan_pages(m: Machine) -> list[tuple[str, str, object]]:
     return pages
 
 
-def render(m: Machine, out: Path, terminal_rows_fn) -> Refs:
-    """Zeichnet den Plan; Klemmenplan-Blaetter kommen zuletzt (brauchen die Verweise der anderen)."""
+def render(
+    m: Machine, out, terminal_rows_fn, canvas_factory=canvas.Canvas, sheet_factory=Sheet
+) -> Refs:
+    """Zeichnet den Plan nach out (Pfad oder Datei-Objekt); Klemmenplan-Blaetter kommen zuletzt (brauchen die
+    Verweise der anderen). scripts/example_docs/make_gold.py uebergibt eine protokollierende Zeichenflaeche und ein
+    protokollierendes Blatt, um die Ground Truth des Ingest-Benchmarks beim Zeichnen mitzuschreiben (Issue #68)."""
     refs = Refs()
     pages = plan_pages(m)
     # Klemmenplan-Blaetter: Zeilenzahl kennen wir, Inhalt erst nach den anderen Blaettern
     probe_rows = terminal_rows_fn(m, refs, probe=True)
     n_terminal_pages = max(1, -(-len(probe_rows) // TERMINAL_ROWS_PER_PAGE))
     total = len(pages) + n_terminal_pages
-    c = canvas.Canvas(str(out), pagesize=landscape(A4))
+    c = canvas_factory(str(out) if isinstance(out, Path) else out, pagesize=landscape(A4))
     c.setTitle(f"Stromlaufplan {m.title}")
     c.setAuthor("Stromlauf AI Testdokumentation")
     titles = [(i + 1, title) for i, (title, _, _) in enumerate(pages)]
     titles += [(len(pages) + 1 + i, "Klemmenplan" + (" (Fortsetzung)" if i else "")) for i in range(n_terminal_pages)]
     for number, (title, kind, payload) in enumerate(pages, start=1):
-        s = Sheet(c, m, refs, number, total, title)
+        s = sheet_factory(c, m, refs, number, total, title)
         if kind == "cover":
             page_cover(s, titles)
         elif kind == "supply":
@@ -433,7 +437,7 @@ def render(m: Machine, out: Path, terminal_rows_fn) -> Refs:
     rows = terminal_rows_fn(m, refs, probe=False)
     for i in range(n_terminal_pages):
         number = len(pages) + 1 + i
-        s = Sheet(c, m, refs, number, total, titles[number - 1][1])
+        s = sheet_factory(c, m, refs, number, total, titles[number - 1][1])
         page_terminals(s, rows[i * TERMINAL_ROWS_PER_PAGE : (i + 1) * TERMINAL_ROWS_PER_PAGE], i == 0)
         c.showPage()
     c.save()

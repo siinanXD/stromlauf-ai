@@ -1,0 +1,54 @@
+{
+  "summary": {
+    "gold": "eval/ingest_gold/pm1_ar.json",
+    "label": "",
+    "dokument": "examples/aufrollung/01_Stromlaufplan_PM1-AR.pdf",
+    "doc_type": "schematic",
+    "seiten": 13,
+    "sekunden": 11.54,
+    "sekunden_je_seite": 0.89,
+    "ocr": null,
+    "metriken": {
+      "device": {
+        "tp": 169,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "terminal": {
+        "tp": 194,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "plc_address": {
+        "tp": 88,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      },
+      "cross_ref": {
+        "tp": 19,
+        "fp": 0,
+        "fn": 0,
+        "recall": 1.0,
+        "precision": 1.0
+      }
+    },
+    "gate": {
+      "min": 0.95,
+      "min_je_typ": {},
+      "typen": [
+        "device",
+        "terminal",
+        "plc_address"
+      ],
+      "ok": true,
+      "verfehlt": []
+    }
+  },
+  "results": []
+}

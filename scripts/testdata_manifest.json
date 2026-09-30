@@ -1,0 +1,117 @@
+{
+  "hinweis": "Fremd-Testdaten (Issue #68): Zielpfad unter testdata/ (gitignored), Quelle, SHA-256 der Zieldatei, Lizenz. Laden mit python scripts/fetch_testdata.py. Nur lokal nutzen, nie ins Repo. awlsim am festen Tag awlsim-0.77.1; auspacken=awlpro zieht die Quellen eines awlsim-Projekts in eine .awl-Datei.",
+  "dateien": [
+    {
+      "ziel": "qelectrotech/QET_Beispielprojekt_industrial_50S.pdf",
+      "url": "https://download.qelectrotech.org/qet/schemas_pdf/industrial.pdf",
+      "sha256": "6fc0486e908f16dd15a0a0b126907e04e7b3ef015fe814c6de4292f0f9655971",
+      "lizenz": "Beispielprojekt aus QElectroTech (Programm GPL-2.0-or-later); Lizenz der Projektdatei selbst ungeklaert (Issue #68), nur lokal"
+    },
+    {
+      "ziel": "qelectrotech/QET_Beispielprojekt_example_40S.pdf",
+      "url": "https://download.qelectrotech.org/qet/schemas_pdf/example_project.pdf",
+      "sha256": "90be86f1c0a2e73b507f6b5908da66a26a76bc04ea69706f29326291d64d3f2d",
+      "lizenz": "Beispielprojekt aus QElectroTech (Programm GPL-2.0-or-later); Lizenz der Projektdatei selbst ungeklaert (Issue #68), nur lokal"
+    },
+    {
+      "ziel": "awl/acme-001.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/tests/tc999_projects/acme-001.awl",
+      "sha256": "1de28289117cdd51ec7fa1bd3464b2480cf13f479061d3aaf19dcde912b2cda3",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/acme-003.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/tests/tc999_projects/acme-003.awl",
+      "sha256": "3059540d22b3e38fc217798edcad2f30f29fe7f6f51f3566ad119612370a3b2d",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/acme-005.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/tests/tc999_projects/acme-005.awl",
+      "sha256": "d577ea725ab69a4cf8b330f060b9d4494d6d0da3e18178819412e69a603bc418",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/acme-006.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/tests/tc999_projects/acme-006.awl",
+      "sha256": "65612904cbac35706bd4c3bc245dcb09f99465fe8290de9d36bea2a063a6714c",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/bnt_modell.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/tests/tc999_projects/bnt_modell.awl",
+      "sha256": "9c84815c6475073503d8082cfa990cab00f523565b1296fbd7b7c5b9ff3608f2",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/EXAMPLE.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/EXAMPLE.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "d5e1b11f8bf9d01c88914016082db7c1eddaa71cd99067bdf1a59fbedbdb0250",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/linuxcnc-demo.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/linuxcnc-demo/linuxcnc-demo.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "1ad133ae6d3a3378b7998a802e2ef051bca15143503776b91b105b36eca9b5fa",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/raspberrypi-gpio.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/raspberrypi-gpio.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "7014404d49884282e3dc6eb3f621157af8f396a20fe8d21a9da8487cdf80c1c7",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/raspberrypi-pixtend-musicplayer.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/raspberrypi-pixtend-musicplayer.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "699979b7799b537be593ccefa5f47b0c467e12bddbf4b600f0d590fdb42a0d34",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/raspberrypi-pixtend.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/raspberrypi-pixtend.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "9e097b731fdb346bdc48ede3943d3cc182f550874fabb7f74c872d8ca31b1e82",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "awl/raspberrypi-profibus.awl",
+      "url": "https://raw.githubusercontent.com/mbuesch/awlsim/awlsim-0.77.1/examples/raspberrypi-profibus.awlpro",
+      "auspacken": "awlpro",
+      "sha256": "c9f993d90f76cb7b51613ab4720f3d81e113c4a2939fff1f856d44ab48a54312",
+      "lizenz": "GPL-2.0-or-later (awlsim, Michael Buesch)"
+    },
+    {
+      "ziel": "festo/Festo_MPS_Trennen_Handbuch.pdf",
+      "url": null,
+      "quelle": "Festo Didactic InfoPortal laut eval/README.md; TODO Owner: Download-URL nennen (Issue #68)",
+      "sha256": "774760ef2e961c2bbe755ebed87cc24417e6d4d6aa612269c30569b8de6dd313",
+      "lizenz": "Eigentum von Festo Didactic, nur lokal testen, nicht weiterverteilen"
+    },
+    {
+      "ziel": "festo/Festo_MPS_Trennen_Stromlaufplan.pdf",
+      "url": null,
+      "quelle": "Festo Didactic InfoPortal laut eval/README.md; TODO Owner: Download-URL nennen (Issue #68)",
+      "sha256": "a0d84c95edb35ce9ca6c6c5979ceebf1075c6361136f4db133b1ecc630c4674e",
+      "lizenz": "Eigentum von Festo Didactic, nur lokal testen, nicht weiterverteilen"
+    },
+    {
+      "ziel": "festo/Festo_MPS_Verteilen-Band_Stromlaufplan.pdf",
+      "url": null,
+      "quelle": "Festo Didactic InfoPortal laut eval/README.md; TODO Owner: Download-URL nennen (Issue #68)",
+      "sha256": "5657d5983e2710cf58e116ea6d10812c426352e2ff8ad5a7eceb3048b57f1a72",
+      "lizenz": "Eigentum von Festo Didactic, nur lokal testen, nicht weiterverteilen"
+    },
+    {
+      "ziel": "festo/Siemens_STEP7_AWL_Referenzhandbuch.pdf",
+      "url": null,
+      "quelle": "Siemens-Handbuch, Herkunft nicht dokumentiert; TODO Owner: Download-URL nennen (Issue #68)",
+      "sha256": "3b0b371a4a4c2fc3a41b44e2796fc9c458937440ae9b3be405e96d795e3fdb8a",
+      "lizenz": "Eigentum der Siemens AG, nur lokal testen, nicht weiterverteilen"
+    }
+  ]
+}

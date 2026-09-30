@@ -25,8 +25,8 @@ die Session des Chats geschrieben.
 
 ## Gates in CI (`.github/workflows/eval.yml`)
 
-- **Retrieval-Gate** bei jedem PR und auf master: zuerst der Ingest-Benchmark (`run_ingest.py` auf FB-01,
-  `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling) und derselbe auf dem Voll-Scan mit OCR
+- **Retrieval-Gate** bei jedem PR und auf master: zuerst der Ingest-Benchmark (`run_ingest.py` auf FB-01, UR-01 und
+  PM1-AR, `--min 0.95` fuer device, terminal, plc_address; braucht nur Docling) und derselbe auf dem Voll-Scan mit OCR
   (`--ocr --min 0.95 --min-for terminal=0.75`, Issue #66), dann Backend mit pgvector und lokalem `bge-m3`
   (Modellcache), `scripts/acceptance.py --load` (FB-01, ohne Vision) und `scripts/load_folder.py` fuer
   Injection-Test, UR-01, PM1-AR und den Voll-Scan als Quelle „Scan FB-01“ (`--pattern "*_scan.pdf"`, OCR im
@@ -54,8 +54,8 @@ die Session des Chats geschrieben.
 | --- | --- | --- |
 | Umroller UR-01 | 11 | `examples/umroller/` (`scripts/load_testwerk.py --docs`) |
 | Aufrollung PM1-AR | 10 | `examples/aufrollung/` (`scripts/load_testwerk.py --docs`) |
-| Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal) |
-| AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2) |
+| Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal; von Hand ablegen, `scripts/fetch_testdata.py` prueft) |
+| AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2; `scripts/fetch_testdata.py`) |
 | Foerderband FB-01 | 21 | `examples/foerderband/` (`scripts/load_example.py`); 19 davon mit Retrieval-Anteil, 2 Fallenfragen |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
 | Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Foerderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
@@ -123,16 +123,19 @@ Misst, ob die Lesekette des Uploads die Kennzeichen eines Plans vollstaendig und
 ohne Datenbank, ohne Embeddings, ohne Vision und ohne Modellaufruf. Gelesen wird ueber dieselben Funktionen wie
 beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/ingestion/pipeline.py`).
 
-- Gold: `eval/ingest_gold/fb01.json`, beim Zeichnen des Beispielplans mitgeschrieben
-  (`python scripts/example_docs/make_gold.py --write`; `test_run_ingest.py` prueft, dass die Datei zum Generator
-  passt). Jede gezeichnete Zeichenkette wird einzeln ausgewertet, dazu kommen die BMK aus Geraeten, Kontakten und
-  Spulen ohne Grammatik. Das Gold misst damit das Lesen des PDFs (Reihenfolge, Zusammenziehen, Trennen von Text),
+- Gold: `eval/ingest_gold/fb01.json` (Beispielplan) sowie `ur01.json` und `pm1_ar.json` (Testdokumentation,
+  Issue #68), beim Zeichnen der Plaene mitgeschrieben (`python scripts/example_docs/make_gold.py --write`;
+  `test_run_ingest.py` prueft, dass die Dateien zu den Generatoren passen). Jede gezeichnete Zeichenkette wird einzeln
+  ausgewertet, dazu kommen die BMK der Symbole (Geraete, Kontakte, Spulen, in der Testdokumentation auch Leuchten und
+  Motoren) ohne Grammatik. Das Gold misst damit das Lesen des PDFs (Reihenfolge, Zusammenziehen, Trennen von Text),
   nicht die Kennzeichen-Grammatik; die prueft `backend/tests/test_tags.py`.
 - Metrik: Recall und Precision je Typ (`device`, `terminal`, `plc_address`, `cross_ref`), ueber alle Seiten
   summiert; dazu fehlende und fremde Kennzeichen je Seite und Sekunden je Seite. Funde ohne Seite zaehlen als Seite 0.
 - Gate: `--min 0.95 --types device,terminal,plc_address` im Retrieval-Job; `cross_ref` wird nur berichtet.
 - Stand 2026-09-29 (FB-01, Text-PDF): device, terminal und plc_address je Recall und Precision 1,00; cross_ref
   0,95, weil pdfium auf Seite 3 den Querverweis `/6.5` mit der Zeile darunter zu `/6.51` zusammenzieht.
+- Stand 2026-09-30 (UR-01 mit 16 Seiten, PM1-AR mit 13 Seiten, Text-PDF): alle vier Typen Recall und Precision 1,00,
+  keine Abweichung. Beide Plaene stehen mit `--min 0.95` im Gate.
 - `--doc` misst eine andere Fassung desselben Plans gegen dasselbe Gold, `--label` kommt in den Dateinamen. Die
   Scan-Fassungen liegen in `examples/scan/` (`scripts/example_docs/make_scan.py`, Issue #64): Voll-Scan, Teil-Scan
   mit Blatt 3 als Bild, Blatt 4 hochkant; Seitenzahl und Blattfolge wie im Text-PDF. Vorher-Werte ohne OCR:
@@ -147,6 +150,7 @@ beim Upload (`document_pieces`, `split_pieces`, `tag_rows` in `backend/app/inges
 
 ```bash
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95
+python eval/run_ingest.py --gold eval/ingest_gold/ur01.json --min 0.95
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan
 python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan-ocr --ocr
 python scripts/example_docs/make_gold.py --check          # Gold passt zum Generator?
@@ -155,6 +159,16 @@ python scripts/example_docs/make_scan.py                  # Scan-Fassungen neu e
 
 Ergebnis: `eval/results/ingest_<gold>[_<label>]_<zeitstempel>.json` und `.md`; Exit 1, wenn ein gegateter Typ unter
 `--min` liegt oder fuer ihn kein Gold existiert.
+
+Eigene Dokumente (Issue #68): `python scripts/make_gold_template.py --doc testdata/private/anlage.pdf --out
+testdata/private/anlage.gold.json` liest das Dokument ueber dieselbe Kette (`measure`) und schreibt jeden Fund im
+Gold-Format, den Dokumenttyp erkennt es wie der Upload (`--doc-type` setzt ihn fest). Unveraendert misst sich die
+Vorlage mit Recall = Precision = 1,0 (FB-01: 206 Kennzeichen auf 7 Seiten); zur Ground Truth wird sie erst nach dem
+Pruefen von Hand. `testdata/private/` ist ignoriert, und an eine Stelle, die git committen wuerde, schreibt das Skript
+nicht (Exit 2). Ergebnisse unter `eval/results/` sind ebenfalls ignoriert.
+
+Fremd-Testdaten (Festo, awlsim, QElectroTech) laedt `python scripts/fetch_testdata.py` nach `testdata/`, geprueft gegen
+die SHA-256 in `scripts/testdata_manifest.json` (Issue #68, keine Downloads in der CI).
 
 QElectroTech-Testdaten (Issue #67, nur lokal): `python eval/qet_gold.py` schreibt `testdata/qelectrotech/qet.json`
 aus der Stueckliste des Projekts (Geraet -> Folio, Folio -> Seite ueber die Blatt-Map, nur im Schriftfeld gelesene
