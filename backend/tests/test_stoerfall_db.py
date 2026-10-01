@@ -231,6 +231,35 @@ def test_bestehende_zeilen_bekommen_den_standard_der_migration(client, world):
     assert (old["outcome"], old["finding"]) == ("open", "")
 
 
+def test_stoerfaelle_einer_maschine_in_einem_abruf(client, world):
+    headers = _auth(world["tokens"][WS])
+
+    def listing(**params):
+        return client.get("/api/conversations", params=params, headers=headers)
+
+    by_machine = listing(machine_id=world["machine_id"])
+    assert by_machine.status_code == 200, by_machine.text
+    by_source = listing(source_id=world["source_id"]).json()
+    assert [c["id"] for c in by_machine.json()] == [c["id"] for c in by_source]
+    ids = {c["id"] for c in by_machine.json()}
+    conversations = world["conversations"]
+    assert {conversations["found"], conversations["open"], conversations["patch"]} <= ids
+    assert conversations["other_source"] not in ids  # andere Quelle gehoert nicht zur Maschine
+
+    unknown = listing(machine_id="gibt-es-nicht")
+    assert unknown.status_code == 404 and unknown.json()["detail"] == "Maschine nicht gefunden"
+    without_source = listing(machine_id=world["empty_id"])
+    assert without_source.status_code == 404 and "Wissensquelle" in without_source.json()["detail"]
+    foreign = client.get(
+        "/api/conversations",
+        params={"machine_id": world["machine_id"]},
+        headers=_auth(world["tokens"][OTHER_WS]),
+    )
+    assert foreign.status_code == 404
+    both = listing(machine_id=world["machine_id"], source_id=world["source_id"])
+    assert both.status_code == 422
+
+
 def test_patch_schliesst_und_oeffnet_den_stoerfall(client, world):
     conversation_id = world["conversations"]["patch"]
     headers = _auth(world["tokens"][WS])
