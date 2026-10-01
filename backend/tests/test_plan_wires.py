@@ -215,16 +215,17 @@ def _ocr_line(text: str, x: float, y: float, size: float = 8) -> OcrLine:
     return OcrLine(text, ((x0, top), (x1, top), (x1, bottom), (x0, bottom)), 0.99)
 
 
-def _channel_rows(count: int) -> list[OcrLine]:
-    """Kanaele in Zeilen wie im FB-01-Eingangsblatt: Adresse, Klemme, Feldgeraet auf gleicher Hoehe."""
+def _channel_rows(count: int, skew: float = 0.0) -> list[OcrLine]:
+    """Kanaele in Zeilen wie im FB-01-Eingangsblatt: Adresse, Klemme, Feldgeraet auf gleicher Hoehe; skew neigt die
+    Zeilen wie ein schief eingelegtes Blatt (pt Hoehe je pt Breite)."""
     lines = []
     for row in range(count):
         y = 150 + 40 * row
         lines += [
             _ocr_line(f"E0.{row}", 120, y),
-            _ocr_line(f"-X3:{row + 1}", 300, y),
-            _ocr_line("von", 560, y),
-            _ocr_line(f"-S{row + 1}", 590, y),
+            _ocr_line(f"-X3:{row + 1}", 300, y + skew * 180),
+            _ocr_line("von", 560, y + skew * 440),
+            _ocr_line(f"-S{row + 1}", 590, y + skew * 470),
         ]
     return lines
 
@@ -267,6 +268,21 @@ def test_kanaele_in_zeilen(tmp_path, cache):
     }
     assert all(edge.directed and edge.via == "lage" for edge in edges)
     assert plan_wires.plan_edges(text_only(2)) == []
+
+
+def test_schief_eingescannte_zeilen_bleiben_kanaele(tmp_path, cache):
+    """0,8 Grad Schraeglage: das Feldgeraet am Zeilenende liegt 6,6 pt tiefer als die Adresse."""
+    blank = _plan(tmp_path, lambda c: None, name="leer.pdf")
+    path = tmp_path / "schief.pdf"
+    write_text_layer(blank, path, {1: _channel_rows(3, skew=0.014)})
+    assert PlanEdge("-S3", "-X3:3", 1, "lage", True) in plan_wires.plan_edges(path)
+
+
+def test_sps_karte_ist_keine_adresse():
+    """In "-A1.1" findet extract_tags auch die Adresse A1.1; als Anschluss zaehlt nur die Karte nicht."""
+    assert plan_wires._anchor_node("-A1.1,", False) is None
+    assert plan_wires._anchor_node("(E0.0", False) == "E0.0"
+    assert plan_wires._channel(["-A1.1 E0.0 -X3:1 von -S1"], False) == ("E0.0", "-X3:1", "-S1")
 
 
 def test_cache_wird_genutzt(tmp_path, cache, monkeypatch):
