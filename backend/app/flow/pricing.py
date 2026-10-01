@@ -36,7 +36,7 @@ PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
 
 
 def _bare(model: str) -> str:
-    """"openai:gpt-5-mini" -> "gpt-5-mini"; ohne Praefix unveraendert."""
+    """ "openai:gpt-5-mini" -> "gpt-5-mini"; ohne Praefix unveraendert."""
     return model.split(":", 1)[1] if ":" in model else model
 
 
@@ -54,9 +54,20 @@ def prices_for(model: str) -> tuple[float, float] | None:
     return PRICES_PER_MTOK[max(matches, key=len)]
 
 
-def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+# Prompt-Cache: Treffer kosten bei beiden Providern ein Zehntel der Eingabe, Anthropic schreibt (5 min) mit 1,25-fach
+CACHE_READ_FACTOR = 0.1
+CACHE_WRITE_FACTOR = 1.25
+
+
+def cost_usd(
+    model: str, input_tokens: int, output_tokens: int, cache_read: int = 0, cache_creation: int = 0
+) -> float:
+    """Kosten eines Aufrufs; input_tokens enthaelt die Cache-Tokens (so liefert es LangChain), die hier guenstiger
+    bzw. teurer zaehlen als frische Eingabe."""
     prices = prices_for(model)
     if prices is None:
         logger.warning('{"event": "unknown_model_price", "model": "%s"}', model)
         return 0.0
-    return round((input_tokens * prices[0] + output_tokens * prices[1]) / 1_000_000, 6)
+    fresh = max(input_tokens - cache_read - cache_creation, 0)
+    weighted_input = fresh + cache_read * CACHE_READ_FACTOR + cache_creation * CACHE_WRITE_FACTOR
+    return round((weighted_input * prices[0] + output_tokens * prices[1]) / 1_000_000, 6)

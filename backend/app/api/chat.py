@@ -338,6 +338,8 @@ async def agent_events(
                                 {
                                     "input_tokens": usage.input_tokens,
                                     "output_tokens": usage.output_tokens,
+                                    "cache_read_tokens": usage.cache_read_tokens,
+                                    "cache_creation_tokens": usage.cache_creation_tokens,
                                     "model": usage.model,
                                     "cost_cents": cost_cents,
                                 },

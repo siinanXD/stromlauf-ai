@@ -74,8 +74,19 @@ def ask(
         response.raise_for_status()
         answer, sources, tools, meta = evallib.parse_sse(response.iter_lines())
     usage = meta["usage"]
-    usage["cost_usd"] = cost_usd(usage["model"], usage["input_tokens"], usage["output_tokens"])
+    usage["cost_usd"] = usage_cost(usage)
     return answer, sources, tools, time.time() - started, meta
+
+
+def usage_cost(usage: dict) -> float:
+    """Kosten des summierten Verbrauchs einer Frage; Cache-Treffer und -Schreiben zaehlen wie in app/flow/pricing.py."""
+    return cost_usd(
+        usage["model"],
+        usage["input_tokens"],
+        usage["output_tokens"],
+        usage.get("cache_read_tokens", 0),
+        usage.get("cache_creation_tokens", 0),
+    )
 
 
 def push_scores(run: str, rows: list[dict]) -> None:

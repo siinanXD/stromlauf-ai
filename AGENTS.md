@@ -145,7 +145,11 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `PATCH /api/conversations/{id}`, Liste ueber `GET /api/conversations?machine_id=` (aeltere Server: `source_id`), Verlauf in
   Seiten (`?limit=&before=`, `MessageOut.index`). `ChatRequest.machine_id` erzwingt Scope = Quelle der Maschine
   (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`); Werkzeug `search_faults` durchsucht
-  Fehlerlisten ALLER Maschinen (bewusst global). Frontend `components/incident/*` (Liste, Kopf, Detailspalte, URL in
+  Fehlerlisten ALLER Maschinen (bewusst global) und erledigte Stoerfaelle mit Befund der gewaehlten Quellen.
+  Werkzeug `signal_path` (Prompt v3): Hauptweg aus `signal_view.main_view` als Text mit Herkunft je Verbindung
+  („Lage im Plan“ und „Modell“ als unsicher); seine Fundstellen sind alle Dateien des Wegs, sonst verwirft
+  `citations.check_answer` Belege auf Klemmenplan oder AWL. Prompt ab v3 mit echten Umlauten, fester Teil vorn
+  (Prompt-Caching), Maschinenkontext hinten. Frontend `components/incident/*` (Liste, Kopf, Detailspalte, URL in
   `view.ts`), Antwortbloecke `components/answer/blocks/*` in fester Reihenfolge: Fehlerliste sofort ueber
   `GET /api/machines/{id}/fault-hits` (Trefferlogik `app/werk/faults.py`, dieselbe wie `search_faults`; andere Maschinen als
   „Erfahrung“), Text, Bauteile, Signalweg, Im Plan, Im Schrank, Belege; Bloecke ohne Inhalt entfallen, Inhalte laden erst

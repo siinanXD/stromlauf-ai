@@ -794,6 +794,8 @@ def test_parse_sse_summiert_usage_je_modellaufruf():
     assert meta["usage"] == {
         "input_tokens": 1500,
         "output_tokens": 100,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
         "calls": 2,
         "model": "claude-sonnet-5-20260115",
     }
@@ -839,6 +841,34 @@ def test_preis_auch_fuer_datierte_modell_id():
     assert prices_for("gpt-irgendwas") is None
     assert cost_usd("claude-sonnet-5-20260115", 1_000_000, 0) == 2.0
     assert cost_usd("unbekannt", 1_000_000, 1_000_000) == 0.0
+
+
+def test_preis_mit_prompt_cache():
+    from app.flow.pricing import cost_usd
+
+    # gpt-5-mini: 0,25 USD/M Eingabe, Cache-Treffer ein Zehntel; Anthropic schreibt mit 1,25-fachem Preis
+    assert cost_usd("openai:gpt-5-mini", 1_000_000, 0, cache_read=1_000_000) == 0.025
+    assert cost_usd("claude-sonnet-5", 1_000_000, 0, cache_creation=1_000_000) == 2.5
+    assert cost_usd("claude-sonnet-5", 1_000_000, 0, cache_read=500_000) == 1.1
+
+
+def test_parse_sse_summiert_cache_tokens_und_ask_rechnet_sie_ein():
+    lines = [
+        "event: usage",
+        'data: {"input_tokens": 1000, "output_tokens": 10, "model": "claude-sonnet-5", "cache_read_tokens": 800, "cache_creation_tokens": 100}',
+        "event: usage",
+        'data: {"input_tokens": 1000, "output_tokens": 10, "model": "claude-sonnet-5", "cache_read_tokens": 900}',
+        "event: done",
+        "data: {}",
+    ]
+    _, _, _, meta = evallib.parse_sse(lines)
+    assert (
+        meta["usage"]["cache_read_tokens"] == 1700 and meta["usage"]["cache_creation_tokens"] == 100
+    )
+    run_eval = _load("run_eval")
+    assert run_eval.usage_cost(meta["usage"]) == pytest.approx(
+        (200 * 2.0 + 1700 * 0.2 + 100 * 2.5 + 20 * 10.0) / 1_000_000  # 2000 Eingabe, 200 davon frisch
+    )
 
 
 def test_save_result_ueberschreibt_dieselbe_datei(tmp_path):
