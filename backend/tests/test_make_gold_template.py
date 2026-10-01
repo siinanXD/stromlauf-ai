@@ -17,9 +17,9 @@ def _load(name: str, folder: Path):
 make_gold_template = _load("make_gold_template", ROOT / "scripts")
 run_ingest = _load("run_ingest", ROOT / "eval")
 
-TYPES = ("device", "terminal", "plc_address", "cross_ref")
+TYPES = ("device", "terminal", "plc_address", "cross_ref", "device_pin")
 FOUND = {
-    1: {"device": {"-K1", "-K2"}, "terminal": {"-X1:5"}},
+    1: {"device": {"-K1", "-K2"}, "terminal": {"-X1:5"}, "device_pin": {"-K1:A1"}},
     10: {"plc_address": {"E0.0"}, "cross_ref": {"/3.4"}},
     2: {"device": {"-Q1"}},
     0: {"device": {"-F9"}},  # Fund ohne Seite (Nicht-PDF) bleibt erhalten
@@ -59,7 +59,11 @@ def test_vorlage_ist_als_vorlage_gekennzeichnet_und_nach_seiten_sortiert(tmp_pat
     make_gold_template.main(args, measure_fn=_fake_measure())
     gold = json.loads(out.read_text(encoding="utf-8"))
     assert list(gold["seiten"]) == ["0", "1", "2", "10"]
-    assert gold["seiten"]["1"] == {"device": ["-K1", "-K2"], "terminal": ["-X1:5"]}
+    assert gold["seiten"]["1"] == {
+        "device": ["-K1", "-K2"],
+        "device_pin": ["-K1:A1"],
+        "terminal": ["-X1:5"],
+    }
     assert gold["doc_type"] == "schematic" and gold["generator"] == "scripts/make_gold_template.py"
     assert "Vorlage" in gold["hinweis"] and "von Hand" in gold["hinweis"]
 

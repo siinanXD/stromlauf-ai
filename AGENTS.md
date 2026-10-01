@@ -169,6 +169,9 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `normalize_tag("X420 3")` ergibt `-X420:3`, damit die Suche die Schreibweise des Dokuments versteht.
   Adressbereiche einer SPS-Karte wie `E8.0..E9.7` (`tags._PLC_RANGE_RE`, Issue #92) liefern beide Enden als
   `plc_address`, nie die Adressen dazwischen; mit Leerzeichen (`E0.6 .. E1.7`) fand sie schon `_PLC_BIT_RE`.
+  Geraeteanschluesse wie `-K1:A1` oder `-K1:13` stehen als `device_pin` im Index (Issue #98, das Gold schreibt sie
+  mit, nicht gegatet). `tags.pin_kind` gibt die Art nach IEC 60947-1 Anhang L, nur fuer Schaltgeraete K, Q, S, F, B:
+  Spule A1/A2, Funktionsziffer 1-2/5-6 Oeffner, 3-4/7-8 Schliesser, einstellig 1 bis 6 Hauptkontakt (K, Q, F).
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

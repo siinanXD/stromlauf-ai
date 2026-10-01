@@ -1,8 +1,11 @@
+import pytest
+
 from app.ingestion.tags import (
     detect_folio_style,
     detect_spaced_terminals,
     extract_tags,
     normalize_tag,
+    pin_kind,
     search_prefixes,
 )
 from app.models import TagType
@@ -25,6 +28,52 @@ def test_terminals():
     assert ("-X1", TagType.TERMINAL) in tags
     assert ("-X1:5", TagType.TERMINAL) in tags
     assert ("-X1:6", TagType.TERMINAL) in tags
+
+
+def test_geraeteanschluesse_stehen_als_eigener_typ_im_index():
+    """Issue #98: Bisher blieb von "-K1:A1" nur -K1 im Index, die Spule ging verloren."""
+    tags = _tags("Ausgang A4.0 auf -K1:A1, Hilfskontakt -K1:13, Hauptkontakt -Q1:2, Klemme -X1:5")
+    for device in ("-K1", "-Q1"):
+        assert (device, TagType.DEVICE) in tags
+    for pin in ("-K1:A1", "-K1:13", "-Q1:2"):
+        assert (pin, TagType.DEVICE_PIN) in tags, pin
+    assert ("-X1:5", TagType.TERMINAL) in tags and ("-X1:5", TagType.DEVICE_PIN) not in tags
+    assert normalize_tag("-k1:a1") == "-K1:A1"
+
+
+@pytest.mark.parametrize(
+    ("tag", "kind"),
+    [
+        ("-K1:A1", "Spule"),
+        ("-Q1:A2", "Spule"),
+        ("-K1:13", "Schließer"),
+        ("-K1:44", "Schließer"),
+        ("-K3:24", "Schließer"),
+        ("-K1:21", "Öffner"),
+        ("-S2:11", "Öffner"),
+        ("-K3:32", "Öffner"),
+        ("-F2:95", "Öffner"),
+        ("-F2:98", "Schließer"),
+        ("-B5:14", "Schließer"),
+        ("-Q1:1", "Hauptkontakt"),
+        ("-K1:6", "Hauptkontakt"),
+        ("-F1:2", "Hauptkontakt"),
+        ("-K3:S12", None),
+        ("-A1.1:11", None),
+        ("-B1:4", None),
+        ("-M1:U1", None),
+        ("-H1:X1", None),
+        ("-S1:A1", None),
+        ("-K1:7", None),
+        ("-K1:19", None),
+        ("-X1:13", None),
+        ("-K1", None),
+    ],
+)
+def test_art_des_anschlusses_nach_iec_60947_1(tag, kind):
+    """Anhang L: Spule A1/A2; Funktionsziffer 1-2 Oeffner, 3-4 Schliesser, 5-6 und 7-8 mit Sonderfunktion (Ueberlast
+    95/96, 97/98); einstellig die Hauptkontakte. Nur Schaltgeraete, sonst sagt die Nummer nichts (SPS-Karte, Stecker)."""
+    assert pin_kind(tag) == kind
 
 
 def test_satzzeichen_nach_der_klemme_gehoert_nicht_zum_anschluss():

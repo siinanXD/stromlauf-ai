@@ -56,6 +56,16 @@ _CROSS_REF_RE = re.compile(r"(?<![a-z/.])/(?P<page>\d{1,4})\.(?P<col>\d{1,2})(?!
 
 _INTERNATIONAL_TO_GERMAN = {"I": "E", "Q": "A", "PI": "PE", "PQ": "PA"}
 
+# Anschluesse von Schaltgeraeten nach IEC 60947-1, Anhang L (Issue #98): Spule A1/A2; Kontakte zweistellig aus
+# Ordnungs- und Funktionsziffer, Funktionsziffer 1-2 Oeffner, 3-4 Schliesser, 5-6 und 7-8 dasselbe mit
+# Sonderfunktion (Ueberlast 95/96 und 97/98, zeitverzoegert); einstellig 1 bis 6 die Hauptkontakte. Das gilt nur fuer
+# Schaltgeraete: Schuetze und Relais (K, Q), Taster und Schalter (S), Schutzgeraete (F), Positionsschalter (B).
+# Bei einer SPS-Karte (-A1.1:11), einem Sensorstecker (-B1:4) oder einem Motor (-M1:U1) sagt die Nummer nichts.
+_PIN_TAG = re.compile(r"-(?P<letters>[A-Z]{1,3})\d{1,4}(?:\.\d{1,3})?:(?P<pin>[A-Z0-9]{1,2})")
+_COIL_DEVICES = "KQ"
+_CONTACT_DEVICES = "KQSFB"
+_MAIN_CONTACT_DEVICES = "KQF"
+
 
 @dataclass(frozen=True)
 class Tag:
@@ -66,6 +76,22 @@ class Tag:
 
 def _german(area: str) -> str:
     return _INTERNATIONAL_TO_GERMAN.get(area, area)
+
+
+def pin_kind(tag: str) -> str | None:
+    """Art eines Geraeteanschlusses: "-K1:A1" Spule, "-K1:13" Schliesser, "-S2:11" Oeffner, "-Q1:2" Hauptkontakt.
+    None, wenn die Nummer bei diesem Geraet nichts sagt."""
+    match = _PIN_TAG.fullmatch(tag)
+    if match is None:
+        return None
+    first, pin = match["letters"][0], match["pin"]
+    if pin in ("A1", "A2"):
+        return "Spule" if first in _COIL_DEVICES else None
+    if re.fullmatch(r"[1-9][1-8]", pin) and first in _CONTACT_DEVICES:
+        return "Öffner" if pin[1] in "1256" else "Schließer"
+    if re.fullmatch(r"[1-6]", pin) and first in _MAIN_CONTACT_DEVICES:
+        return "Hauptkontakt"
+    return None
 
 
 def normalize_tag(raw: str) -> str:
@@ -184,9 +210,11 @@ def extract_tags(
         add(base, tag_type, m)
         if m["prefix"]:
             add(f"{m['prefix']}{base}", tag_type, m)
-        if m["pin"] and is_terminal:
-            # gross wie normalize_tag(): die Suche vergleicht case-sensitiv, "-x2:3a" sucht "-X2:3A"
-            add(f"{base}:{m['pin'].upper()}", TagType.TERMINAL, m)
+        if m["pin"]:
+            # gross wie normalize_tag(): die Suche vergleicht case-sensitiv, "-x2:3a" sucht "-X2:3A". Anschluesse
+            # anderer Geraete (Spule -K1:A1, Kontakt -K1:13) stehen als eigener Typ im Index (Issue #98)
+            pin_type = TagType.TERMINAL if is_terminal else TagType.DEVICE_PIN
+            add(f"{base}:{m['pin'].upper()}", pin_type, m)
 
     if folio_style:
         for m in _FOLIO_DEVICE_RE.finditer(text):

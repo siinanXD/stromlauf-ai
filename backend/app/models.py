@@ -54,6 +54,7 @@ class DocStatus(StrEnum):
 class TagType(StrEnum):
     DEVICE = "device"  # Betriebsmittelkennzeichen, z.B. -K12
     TERMINAL = "terminal"  # Klemme, z.B. -X1:5
+    DEVICE_PIN = "device_pin"  # Geraeteanschluss, z.B. -K1:A1 (Spule), -K1:13 (Schliesser); Art: tags.pin_kind
     PLC_ADDRESS = "plc_address"  # z.B. E0.0, A4.1, DB10.DBX2.0
     CROSS_REF = "cross_ref"  # Seitenverweis, z.B. /12.3
 
