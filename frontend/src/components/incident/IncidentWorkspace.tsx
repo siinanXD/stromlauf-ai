@@ -24,6 +24,7 @@ import {
   type IncidentFilter,
 } from "./incidents";
 import { IncidentList } from "./IncidentList";
+import { IncidentRail, listColumnLayout } from "./IncidentRail";
 import { levelOf, viewFromParams, type AufbauTab, type MachineView } from "./view";
 
 // Gleiche Breite wie DETAIL_WIDTH in DetailPane.tsx; ein statischer Import wuerde das Nachladen aufheben
@@ -209,31 +210,39 @@ export function IncidentWorkspace({
     }
   }
 
+  const columns = listColumnLayout(level, Boolean(view.detail));
   const activeReference = view.detail?.kind === "plan" && view.detail.target.reference ? `${view.detail.target.documentId}${view.detail.target.reference}` : null;
 
   return (
     <div className="flex min-h-0 flex-1" data-testid="incident-workspace" data-level={level}>
-      <div className={cn("min-h-0 w-full flex-col bg-card lg:flex lg:w-[260px] lg:shrink-0 lg:border-r lg:border-border 2xl:w-[300px]", level === "list" ? "flex" : "hidden")}>
-        <IncidentList
-          incidents={incidents}
-          loading={status === "loading"}
-          failed={status === "failed"}
-          onRetry={() => {
-            setStatus("loading");
-            void load();
-          }}
-          activeId={incident?.id ?? fall}
-          filter={filter}
-          onFilter={setFilter}
-          onCreate={create}
-          onSelect={openIncident}
-          onRetryIncident={retry}
-          unavailable={
-            sourceId
-              ? undefined
-              : { reason: "Keine Dokumentation verknüpft. Ohne Doku gibt es keine belegten Antworten.", action: { label: "Dokumente verknüpfen", onClick: () => onGoToAufbau("dokumente") } }
-          }
-        />
+      <div className={columns.column}>
+        {columns.rail && (
+          <div className={columns.railClass}>
+            <IncidentRail incidents={incidents} filter={filter} activeId={incident?.id ?? fall} onSelect={openIncident} onExpand={goBack} />
+          </div>
+        )}
+        <div className={columns.listClass}>
+          <IncidentList
+            incidents={incidents}
+            loading={status === "loading"}
+            failed={status === "failed"}
+            onRetry={() => {
+              setStatus("loading");
+              void load();
+            }}
+            activeId={incident?.id ?? fall}
+            filter={filter}
+            onFilter={setFilter}
+            onCreate={create}
+            onSelect={openIncident}
+            onRetryIncident={retry}
+            unavailable={
+              sourceId
+                ? undefined
+                : { reason: "Keine Dokumentation verknüpft. Ohne Doku gibt es keine belegten Antworten.", action: { label: "Dokumente verknüpfen", onClick: () => onGoToAufbau("dokumente") } }
+            }
+          />
+        </div>
       </div>
 
       <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden")}>
