@@ -97,17 +97,21 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4 md:px-6">
-          <button type="button" onClick={() => setDrawer((d) => !d)} className="grid size-9 place-items-center rounded-lg border border-border md:hidden" aria-label={drawer ? "Menü schließen" : "Maschinen öffnen"} aria-expanded={drawer} data-testid="rail-toggle">
-            {drawer ? <X className="size-4" /> : <Menu className="size-4" />}
+        <header className="flex h-[52px] shrink-0 items-center gap-3 border-b-[0.5px] border-border bg-bg-bar px-2 backdrop-blur-bar md:px-6">
+          <button type="button" onClick={() => setDrawer((d) => !d)} className="grid size-11 shrink-0 place-items-center rounded-full text-primary hover:bg-muted md:hidden" aria-label={drawer ? "Menü schließen" : "Maschinen öffnen"} aria-expanded={drawer} data-testid="rail-toggle">
+            {drawer ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-          <ol className="flex min-w-0 items-center gap-2 font-mono text-[13px] uppercase">
+          <ol className="flex min-w-0 items-center gap-1.5 text-footnote">
             {breadcrumb.map((crumb, index) => {
               const last = index === breadcrumb.length - 1;
               return (
                 <Fragment key={`${crumb.label}-${index}`}>
-                  {index > 0 && <li className="text-muted-foreground">/</li>}
-                  <li className={cn("truncate", last ? "font-semibold" : "text-muted-foreground")}>
+                  {index > 0 && (
+                    <li className="text-muted-foreground" aria-hidden>
+                      ·
+                    </li>
+                  )}
+                  <li className={cn("truncate", last ? "font-semibold text-foreground" : "text-muted-foreground")}>
                     {crumb.href && !last ? (
                       <Link href={crumb.href} className="hover:text-primary">
                         {crumb.label}
@@ -125,37 +129,37 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
             type="button"
             data-search-trigger
             onClick={() => window.dispatchEvent(new CustomEvent("stromlauf:search"))}
-            className="mx-auto hidden h-8 w-full max-w-md items-center gap-2 border border-border bg-background px-3 text-left text-[13px] text-muted-foreground hover:border-primary md:flex"
+            className="mx-auto hidden h-9 w-full max-w-md items-center gap-2 rounded-md bg-bg-fill px-3 text-left text-subhead text-muted-foreground hover:text-foreground md:flex"
           >
-            <Search className="size-3.5" />
+            <Search className="size-4" />
             <span className="flex-1 truncate">Suchen: -K12, X1:5, E0.0 …</span>
-            <kbd className="border border-border px-1.5 font-mono text-[11px]">Strg K</kbd>
+            <kbd className="rounded-xs bg-card px-1.5 font-mono text-caption-2 shadow-card">Strg K</kbd>
           </button>
 
           {me?.via === "jwt" && (
             <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground" title={me.email ?? ""}>
               <span className="hidden truncate sm:inline">{me.workspace.name}</span>
-              <button type="button" onClick={logout} className="border border-border px-2 py-0.5 hover:border-primary hover:text-primary">
+              <button type="button" onClick={logout} className="min-h-11 rounded-md px-2 font-semibold text-primary hover:bg-muted">
                 Abmelden
               </button>
             </span>
           )}
-          <span className={cn("flex shrink-0 items-center gap-2 text-xs text-muted-foreground", me?.via === "jwt" ? "" : "ml-auto")}>
+          <span className={cn("flex shrink-0 items-center gap-1.5 pr-2 text-footnote text-muted-foreground md:pr-0", me?.via === "jwt" ? "" : "ml-auto")}>
             <span
-              className={cn("size-2 rounded-full", online === null ? "bg-border" : online ? "bg-ok" : "bg-danger")}
+              className={cn("size-2 rounded-full", online === null ? "bg-line" : online ? "bg-ok" : "bg-error")}
             />
             {online === null ? "Verbinde …" : online ? "Backend verbunden" : "Backend nicht erreichbar"}
           </span>
         </header>
 
         {budget?.exceeded && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-danger/40 bg-danger/10 px-6 py-2 text-sm" role="alert">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-[0.5px] border-border bg-error-soft px-6 py-2 text-footnote" role="alert">
             <span>
               KI-Monatslimit erreicht: {costText(budget.month_cents)} von {costText(budget.cap_cents ?? 0)} verbraucht. Chat, Vision und
               Ablauf-Extraktion sind bis zum Monatswechsel gesperrt.
             </span>
             {(me === null || me.workspace.role === "admin") && (
-              <button type="button" onClick={raiseCap} className="border border-danger px-2 py-0.5 text-danger hover:bg-danger hover:text-white">
+              <button type="button" onClick={raiseCap} className="min-h-11 rounded-md px-2 font-semibold text-danger hover:bg-muted">
                 Limit erhöhen
               </button>
             )}
