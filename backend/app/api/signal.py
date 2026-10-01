@@ -10,6 +10,7 @@ import io
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import openpyxl
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,6 +23,7 @@ from app.ingestion.awl_parser import parse_symbol_table, read_text
 from app.ingestion.plan_edges import read_model_edges
 from app.ingestion.plan_wires import plan_edges
 from app.ingestion.signal_graph import Graph, add_plan_edges, build_graph, signal_path
+from app.ingestion.signal_view import main_view
 from app.models import Document
 
 logger = logging.getLogger(__name__)
@@ -131,11 +133,16 @@ def _missing(reason: str, message: str) -> HTTPException:
 
 
 @router.get("/signal-path")
-def get_signal_path(tag: str, source_id: str, session: Session = Depends(get_session)):
+def get_signal_path(
+    tag: str,
+    source_id: str,
+    view: Literal["main"] | None = None,
+    session: Session = Depends(get_session),
+):
     graph, schematic = graph_for_source(session, source_id)
     if not graph.nodes:
         raise _missing("no_sources", "Keine Tabellen und keine Leitungen im Plan gefunden.")
-    path = signal_path(graph, tag)
+    path = main_view(graph, tag) if view == "main" else signal_path(graph, tag)
     if path is None:
         raise _missing("unknown_tag", f"{tag} kommt im Signalweg nicht vor.")
     path["schematic"] = {"document_id": schematic.id, "filename": schematic.filename} if schematic else None
