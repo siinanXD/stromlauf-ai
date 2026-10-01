@@ -227,6 +227,8 @@ export interface MapPart {
   label: string;
   kind: string;
   source: "bom" | "layout" | "index";
+  /** Beziehung im Bauteil-Sheet ("schaltet"), aus der Art (Issue #99) */
+  verb: string;
 }
 
 export interface MapZone {
@@ -248,6 +250,8 @@ export interface MachineMap {
   zones: MapZone[];
   connectors: MapConnector[];
   part_count: number;
+  /** Lesart der Kennbuchstaben der Quelle mit Begruendung (Issue #99) */
+  letter_codes: { edition: "alt" | "2019" | "offen"; reason: string };
 }
 
 export interface Health {

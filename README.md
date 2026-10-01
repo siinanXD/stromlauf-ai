@@ -96,8 +96,11 @@ Ein Tipp auf ein Bauteil (Chip unter der Antwort, Chip im Modell, Belegbild) öf
 (`frontend/src/components/part/PartSheet.tsx`): rechter Drawer ab 768 px, Bottom Sheet am Handy; Esc,
 Wisch nach unten und der Fokus-Rücksprung kommen von Radix Dialog. Inhalt: Einbauort (Zone des Modells),
 Datenblattseite (erste PDF-Fundstelle in Handbuch/Sonstiges, sonst „Datenblatt hochladen“), Befundkarte
-(Stromlaufplan-Stellen, Klemmen, SPS-Adressen), verbundene Bauteile aus dem Signalgraph (Verb aus dem
-Kennbuchstaben: schützt / schaltet / steuert / versorgt), Belege und die Fotos, in denen es markiert ist.
+(Stromlaufplan-Stellen, Klemmen, SPS-Adressen), verbundene Bauteile aus dem Signalgraph (Verb aus der Art des
+Bauteils: schützt / schaltet / steuert / versorgt), Belege und die Fotos, in denen es markiert ist. Die Art kommt
+aus dem Kennbuchstaben in der Lesart der Quelle: Ältere Pläne nach DIN 40719 nennen das Schütz `-K1`, Pläne nach
+IEC 81346-2:2019 nennen es `-QA1` und meinen mit `-K` Relais und SPS. Lässt sich die Lesart nicht bestimmen, bleibt
+die Art bei widersprüchlichen Buchstaben leer, statt geraten zu werden.
 
 „Im Foto zeigen“ öffnet die **Lightbox** (`CabinetLightbox.tsx`): referenzierte Rahmen amber und gefüllt,
 andere als Umriss, Seitenliste mit Konfidenz. „Markierung korrigieren“ macht den gewählten Rahmen zieh-

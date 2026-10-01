@@ -9,10 +9,19 @@ const MAP: MachineMap = {
   part_count: 4,
   connectors: [{ source: "+ST1", target: "+FE1", label: "-W3" }],
   zones: [
-    { id: "+ST1", code: "+ST1", name: "Schaltschrank", parts: [{ tag: "-K1", label: "Schütz", kind: "Schuetz/Relais", source: "bom" }, { tag: "-F2", label: "", kind: "Schutz", source: "bom" }] },
-    { id: "+FE1", code: "+FE1", name: "Feld", parts: [{ tag: "-M1", label: "Motor", kind: "Motor", source: "bom" }] },
-    { id: "?", code: "?", name: "Ohne Einbauort", parts: [{ tag: "-B7", label: "", kind: "Sensor", source: "index" }] },
+    {
+      id: "+ST1",
+      code: "+ST1",
+      name: "Schaltschrank",
+      parts: [
+        { tag: "-K1", label: "Schütz", kind: "Schuetz/Relais", source: "bom", verb: "schaltet" },
+        { tag: "-F2", label: "", kind: "Schutz", source: "bom", verb: "schützt" },
+      ],
+    },
+    { id: "+FE1", code: "+FE1", name: "Feld", parts: [{ tag: "-M1", label: "Motor", kind: "Motor", source: "bom", verb: "hängt an" }] },
+    { id: "?", code: "?", name: "Ohne Einbauort", parts: [{ tag: "-B7", label: "", kind: "Sensor", source: "index", verb: "hängt an" }] },
   ],
+  letter_codes: { edition: "alt", reason: "1 Kennzeichen nach aelterer Lesart, z. B. -A1" },
 };
 
 describe("model", () => {

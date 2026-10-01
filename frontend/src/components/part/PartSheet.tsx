@@ -94,7 +94,9 @@ export function PartSheet({
   const hits = lookup?.hits ?? [];
   const datasheet = hits.find((h) => DATASHEET_TYPES.has(h.doc_type) && h.page && h.filename.toLowerCase().endsWith(".pdf")) ?? null;
   const photos = machine.cabinets.flatMap((c) => c.hotspots.filter((h) => sameTag(h.tag, tag)).map((h) => ({ cabinet: c, hotspot: h })));
-  const related = relatedParts(path, tag);
+  const mapParts = map?.zones.flatMap((z) => z.parts) ?? [];
+  // Verb aus der Art, die das Backend je nach Lesart der Kennbuchstaben bestimmt (Issue #99)
+  const related = relatedParts(path, tag, (t) => mapParts.find((p) => sameTag(p.tag, t))?.verb ?? "hängt an");
   const rows = (card?.rows ?? []).filter((r) => r.values.length > 0);
 
   return (
