@@ -134,8 +134,24 @@ async def _close_dangling_tool_calls(graph, config: dict) -> None:
 
 
 @router.get("/conversations", response_model=list[ConversationOut])
-def list_conversations(source_id: str | None = None, session: Session = Depends(get_session)):
-    """Alle Chats; mit source_id nur die, deren Scope genau diese Quelle ist (Maschinen-Chat)."""
+def list_conversations(
+    source_id: str | None = None,
+    machine_id: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Alle Chats; mit source_id nur die, deren Scope genau diese Quelle ist (Maschinen-Chat).
+
+    machine_id liefert dasselbe wie source_id mit der Quelle der Maschine: die Stoerfaelle der Maschinenseite kommen
+    so in einem Abruf, ohne erst die Maschine zu laden."""
+    if source_id is not None and machine_id is not None:
+        raise HTTPException(422, "Entweder source_id oder machine_id angeben, nicht beides")
+    if machine_id is not None:
+        machine = session.get(Machine, machine_id)
+        if machine is None or not same_workspace(machine):
+            raise HTTPException(404, "Maschine nicht gefunden")
+        if not machine.source_id:
+            raise HTTPException(404, "Maschine hat keine Wissensquelle und damit keine Stoerfaelle")
+        source_id = machine.source_id
     rows = session.scalars(select(Conversation).order_by(Conversation.updated_at.desc())).all()
     if source_id:
         rows = [c for c in rows if list(c.source_ids or []) == [source_id]]
