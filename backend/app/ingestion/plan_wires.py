@@ -22,9 +22,11 @@ Ablauf je Seite, deterministisch und ohne Modell:
    Ein Netz verbindet seine benannten Enden. Netze mit einer Leitung ueber mehr als RAIL_SHARE der Blattbreite oder
    mehr als MAX_ENDS benannten Enden sind Potentialschienen und ergeben keine Kanten (wie die Versorgung im
    Klemmenplan, `signal_graph.SUPPLY_WORDS`).
-4. `plan_edges`: alle Seiten, mit Datei-Cache (`plan_edges.read_edges`/`write_edges`). Seiten ohne Leiter (Scan,
-   reine Textebene) nutzen die Lage im Plan (`via="lage"`): Kanaele in Spalten (#90) oder in Zeilen (Feldgeraet,
-   Klemme und Adresse auf gleicher Hoehe +-ROW), wenn mindestens LAGE_MIN Kanaele so stehen.
+4. `plan_edges`: alle Seiten, mit Datei-Cache (`plan_edges.read_edges`/`write_edges`). Dazu die Lage im Plan
+   (`via="lage"`) auf jeder Seite, mit und ohne Leiter: Kanaele in Spalten (#90) oder in Zeilen (Feldgeraet, Klemme
+   und Adresse auf einer Linie +-ROW), wenn mindestens LAGE_MIN Kanaele so stehen. Eine Lage-Kante kommt nur dazu,
+   wenn keine Leitung dieselben Knoten (oder Anschluss und Geraet) schon verbindet. Das Feldgeraet steht jenseits der
+   Klemme, von der Adresse aus; eine Adresse in Klammern ist ein Verweis und keine Kanal-Adresse.
 
 Richtung: Ein Netz mit E-Adresse laeuft zur Adresse, eins mit A-Adresse von ihr weg; eine Spule ist Ziel, ein Kontakt
 Quelle, wie in `signal_graph._add_terminal_rows`. Alles andere bleibt ungerichtet (`directed=False`).
@@ -78,6 +80,8 @@ PHRASE_GAP = 6.0  # pt: Woerter eines Satzes stehen hoechstens so weit auseinand
 
 _BIT = re.compile(r"[EA]\d+\.[0-7]")
 _CARD = re.compile(r"-A\d+(\.\d+)?$")  # SPS-Karte: Ort der Adresse, kein Feldgeraet
+_CABLE = re.compile(r"-W\d")  # Leitung (Kabel), kein Feldgeraet
+_REFERENCE = re.compile(r"\([^()]*\)")  # Text in Klammern: Verweis, keine eigene Beschriftung
 
 Matrix = tuple[float, float, float, float, float, float]
 IDENTITY: Matrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
@@ -696,32 +700,47 @@ def _unique(edges: list[PlanEdge]) -> list[PlanEdge]:
     return sorted(seen.values(), key=lambda e: (e.page, e.source, e.target))
 
 
-# --- Lage im Plan (Seiten ohne Leiter) --------------------------------------------------------
+# --- Lage im Plan ----------------------------------------------------------------------------
+
+Channel = tuple[str, str, str | None]  # Adresse, Klemme, Feldgeraet oder Anschluss
 
 
-def _channel(texts: list[str], spaced: bool) -> tuple[str, str, str | None] | None:
-    """(Adresse, Klemme, Feldgeraet oder Anschluss) eines Kanals; None, wenn Adresse oder Klemme nicht eindeutig."""
-    tags = [t for text in texts for t in extract_tags(text, spaced_terminals=spaced)]
-    addresses = _addresses(tags)
+def _channel(items: list[tuple[float, str]], spaced: bool) -> Channel | None:
+    """Kanal aus Beschriftungen mit ihrer Lage entlang des Kanals (x in einer Zeile, Hoehe in einer Spalte); None,
+    wenn Adresse oder Klemme nicht eindeutig sind. Das Feldgeraet steht jenseits der Klemme, von der Adresse aus
+    gesehen; die SPS-Karte bei der Adresse und Leitungen (-W) zaehlen nicht. Mehr als ein Kandidat: kein Feldgeraet."""
+    found = [
+        (pos, tag) for pos, text in items for tag in extract_tags(text, spaced_terminals=spaced)
+    ]
+    tags = [tag for _pos, tag in found]
+    # "(A20.2)" unter einem Schuetz verweist auf den Ausgang, der seine Spule schaltet: keine Adresse des Kanals
+    plain = [tag for _pos, text in items for tag in extract_tags(_REFERENCE.sub(" ", text))]
+    addresses = _addresses(tags) & _addresses(plain)
     terminals = {t.tag for t in tags if t.tag_type == TagType.TERMINAL and ":" in t.tag}
     if len(addresses) != 1 or len(terminals) != 1:
         return None
+    address, terminal = addresses.pop(), terminals.pop()
+    at = min(pos for pos, tag in found if tag.tag == address)
+    via = min(pos for pos, tag in found if tag.tag == terminal)
+    side = (via > at) - (via < at)
+    beyond = [tag for pos, tag in found if side and (pos - via) * side > 0]
     pins = {
         t.tag
-        for t in tags
+        for t in beyond
         if t.tag_type == TagType.DEVICE_PIN
         and pin_kind(t.tag)
         and not _CARD.match(t.tag.split(":")[0])
     }
-    devices = {t.tag for t in tags if t.tag_type == TagType.DEVICE and not _CARD.match(t.tag)}
-    if pins:
-        field = pins.pop() if len(pins) == 1 else None
-    else:
-        field = devices.pop() if len(devices) == 1 else None
-    return addresses.pop(), terminals.pop(), field
+    devices = {
+        t.tag
+        for t in beyond
+        if t.tag_type == TagType.DEVICE and not _CARD.match(t.tag) and not _CABLE.match(t.tag)
+    }
+    candidates = pins or devices
+    return address, terminal, candidates.pop() if len(candidates) == 1 else None
 
 
-def _channel_edges(channels: list[tuple[str, str, str | None]], page: int) -> list[PlanEdge]:
+def _channel_edges(channels: list[Channel], page: int) -> list[PlanEdge]:
     edges = []
     for address, terminal, field in channels:
         chain = [field, terminal, address] if address[0] == "E" else [address, terminal, field]
@@ -732,7 +751,7 @@ def _channel_edges(channels: list[tuple[str, str, str | None]], page: int) -> li
     return edges
 
 
-def _row_channels(spots: list[_Spot], spaced: bool) -> list[tuple[str, str, str | None]]:
+def _row_channels(spots: list[_Spot], spaced: bool) -> list[Channel]:
     """Kanaele in Zeilen: Woerter auf der Linie durch Adresse und Klemme (+-ROW). Die Linie folgt der Klemme, weil ein
     schief eingescanntes Blatt ueber die Zeilenlaenge mehr als ROW abfaellt (bis SKEW, etwa 1 Grad)."""
     channels = []
@@ -752,21 +771,30 @@ def _row_channels(spots: list[_Spot], spaced: bool) -> list[tuple[str, str, str 
             continue
         terminal = min(terminals, key=lambda s: abs(s.x - spot.x))
         slope = (terminal.y - spot.y) / (terminal.x - spot.x) if terminal.x != spot.x else 0.0
-        row = [s.text for s in spots if abs(s.y - spot.y - slope * (s.x - spot.x)) <= ROW]
-        if (channel := _channel([" ".join(row)], spaced)) and channel[0] == node:
+        # waagerecht oder entlang der Klemme: Auf Vektorblaettern steht die Klemmenbeschriftung oft ueber der Leitung
+        row = [
+            (s.x, s.text)
+            for s in spots
+            if min(abs(s.y - spot.y), abs(s.y - spot.y - slope * (s.x - spot.x))) <= ROW
+        ]
+        if (channel := _channel(row, spaced)) and channel[0] == node:
             channels.append(channel)
     return list(dict.fromkeys(channels))
 
 
-def _column_channels(page: pdfium.PdfPage, spaced: bool) -> list[tuple[str, str, str | None]]:
-    """Kanaele in Spalten (#90): die Beschriftungen je Strompfad aus pdf_layout."""
-    text = pdf_layout._page_column_text(page)
-    if not text:
+def _column_channels(page: pdfium.PdfPage, spaced: bool) -> list[Channel]:
+    """Kanaele in Spalten (#90): die Beschriftungen je Strompfad aus pdf_layout, von oben nach unten."""
+    layout = pdf_layout.column_layout(page)
+    if layout is None:
         return []
     channels = []
-    for block in text.split("\n\n"):
-        head, _, body = block.partition("\n")
-        if head.startswith("Spalte ") and (channel := _channel(body.splitlines(), spaced)):
+    for column in sorted({n for n, _segment in layout.placed}):
+        items = [
+            (min(t.top for t in segment), " ".join(t.text for t in segment))
+            for n, segment in layout.placed
+            if n == column
+        ]
+        if channel := _channel(items, spaced):
             channels.append(channel)
     return channels
 
@@ -823,20 +851,31 @@ def _layout_page(path: Path, page: int, spots: list[_Spot], spaced: bool) -> lis
             pdf.close()
 
 
+def _device(node: str) -> str:
+    """Anschluss -> Geraet ("-S1:14" -> "-S1"); Klemmen und Adressen bleiben."""
+    return node.split(":", 1)[0] if pin_kind(node) else node
+
+
 def compute_edges(path: Path) -> list[PlanEdge]:
-    """Alle Seiten ohne Cache: Leitungen, auf Seiten ohne Leiter die Lage im Plan."""
+    """Alle Seiten ohne Cache: Leitungen, dazu die Lage im Plan fuer jede Verbindung, die keine Leitung schon zeigt.
+
+    Kanalblaetter tragen oft Leitungen, die durch Klemme und Eingang laufen, ohne dass jedes Ende benannt ist; die Lage
+    (Feldgeraet, Klemme, Adresse in einer Spalte oder Zeile) ergaenzt dort, was die Leitungen offen lassen. Ob zwei
+    Knoten schon verbunden sind, gilt im ganzen Dokument und fuer Anschluss und Geraet gleich (-S1:14 wie -S1)."""
     spaced = _spaced_style(path)
-    edges: list[PlanEdge] = []
+    wired: list[PlanEdge] = []
+    placed: list[PlanEdge] = []
     for page in range(1, _page_count(path) + 1):
         segments = page_segments(path, page)
         geometry = _geometry(path, page)
         if geometry is None:
             continue
         if any(not s.dashed for s in segments):
-            edges += _wire_edges(geometry, segments, page, spaced)
-        else:
-            edges += _layout_page(path, page, list(geometry.spots), spaced)
-    return edges
+            wired += _wire_edges(geometry, segments, page, spaced)
+        placed += _layout_page(path, page, list(geometry.spots), spaced)
+    shown = {frozenset((_device(e.source), _device(e.target))) for e in wired}
+    extra = [e for e in placed if frozenset((_device(e.source), _device(e.target))) not in shown]
+    return sorted(wired + extra, key=lambda e: (e.page, e.via, e.source, e.target))
 
 
 def plan_edges(path: Path) -> list[PlanEdge]:
