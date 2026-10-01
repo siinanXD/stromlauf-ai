@@ -13,7 +13,12 @@ Ablauf je Seite, deterministisch und ohne Modell:
    Zusammenhangskomponenten (networkx); freie Enden sind Endpunkte ohne Anschluss an ein anderes Segment.
 3. `page_wire_edges`: Jedes freie Ende sucht den naechsten Anschluss-Text: Geraeteanschluss wie in #102
    (`pdf_layout.pin_spots`), Klemme ("-X1:3", "X420 3") oder SPS-Adresse (E/A). Es gelten PIN_REACH und PIN_CLEAR.
-   Endet eine Leitung am Rand eines Symbols (SPS-Karte), gilt die Beschriftung im Symbol auf derselben Hoehe.
+   Klemmen und Adressen zaehlen nur am Anfang ihrer Zeile ("0 V ueber -X3:14" ist ein Hinweis). Dazu drei Regeln:
+   - Endet eine Leitung am Rand eines grossen Symbols (SPS-Karte, Geraet, Leuchte), gilt nur die Beschriftung im
+     Symbol auf derselben Hoehe; daneben stehen Texte anderer Zeilen.
+   - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite.
+   - Laeuft eine Leitung durch Klemme und Eingang hindurch (Kanaele in Spalten), gehoeren Klemmen und Adressen bis
+     BESIDE neben ihr zu ihrem Netz.
    Ein Netz verbindet seine benannten Enden. Netze mit einer Leitung ueber mehr als RAIL_SHARE der Blattbreite oder
    mehr als MAX_ENDS benannten Enden sind Potentialschienen und ergeben keine Kanten (wie die Versorgung im
    Klemmenplan, `signal_graph.SUPPLY_WORDS`).
@@ -57,17 +62,14 @@ WIDTH_STEP = 0.05  # pt: Strichstaerken auf dieses Raster gerundet
 AXIS = 0.035  # Steigung bis etwa 2 Grad gilt als waagerecht bzw. senkrecht; schraege Striche sind Symbole
 EDGE = 0.003  # relativ: Linien auf dem Rand des Spaltenrasters sind Rahmen
 HEADER_GAP = 0.01  # relativ: Spaltenkopf reicht so weit unter die Spaltennummern
-RAIL_SHARE = (
-    0.5  # Leitung ueber mehr als diesen Anteil der Blattbreite oder -hoehe: Potentialschiene
-)
-MAX_ENDS = 4  # mehr benannte Enden in einem Netz: Potentialschiene
+# Leitung ueber mehr als diesen Anteil der Blattbreite oder -hoehe, oder mehr benannte Enden: Potentialschiene
+RAIL_SHARE = 0.5
+MAX_ENDS = 4
 ROW = 3.0  # pt: gleiche Hoehe fuer Kanaele in Zeilen und fuer Beschriftungen im Symbol
-TERMINAL_MAX = (
-    8.0  # pt: groesste Seite eines Klemmensymbols; groessere Symbole sind Geraete, Karten, Leuchten
-)
-BESIDE = (
-    10.0  # pt: so nah steht eine Klemme oder Adresse an der Leitung, die durch sie hindurchlaeuft
-)
+# pt: groesste Seite eines Klemmensymbols; groessere Symbole sind Geraete, Karten, Leuchten
+TERMINAL_MAX = 8.0
+# pt: so nah steht eine Klemme oder Adresse an der Leitung, die durch sie hindurchlaeuft
+BESIDE = 10.0
 LAGE_MIN = 3  # so viele Kanaele muss eine Seite ohne Leiter in Zeilen oder Spalten zeigen
 SPACED_GAP = 10.0  # pt: "X420" und "3" stehen so nah nebeneinander (gemessen bis 9 pt)
 LINE = 2.0  # pt: Woerter mit hoechstens diesem Hoehenversatz stehen in einer Zeile
@@ -114,7 +116,7 @@ class _Box:
     y1: float
 
     def on_edge(self, x: float, y: float, tolerance: float = SNAP) -> str | None:
-        """ "side" (links/rechts) oder "end" (oben/unten), wenn der Punkt auf dem Rand liegt."""
+        """Seite des Rands, auf dem der Punkt liegt: "side" (links/rechts), "end" (oben/unten) oder None."""
         inside_y = self.y0 - tolerance <= y <= self.y1 + tolerance
         inside_x = self.x0 - tolerance <= x <= self.x1 + tolerance
         if inside_y and (abs(x - self.x0) <= tolerance or abs(x - self.x1) <= tolerance):
