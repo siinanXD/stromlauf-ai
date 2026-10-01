@@ -1,10 +1,16 @@
 "use client";
 
-import { AnswerView } from "@/components/chat/AnswerView";
+import { memo } from "react";
+
+import { AnswerView, type AnswerBlocksContext } from "@/components/chat/AnswerView";
 import type { PageTarget } from "@/components/PageViewer";
 import type { ChatMessage } from "@/lib/api";
 
-export function Message({
+/**
+ * Eine Nachricht im Verlauf. memo: beim Streamen aendert sich nur die letzte Antwort; die anderen behalten ihr
+ * Nachrichtenobjekt und werden nicht neu gerendert, solange der Aufrufer stabile Callbacks uebergibt.
+ */
+export const Message = memo(function Message({
   message,
   question,
   streaming,
@@ -13,9 +19,10 @@ export function Message({
   onOpen,
   onOpenPart,
   onShowInModel,
+  blocks,
 }: {
   message: ChatMessage;
-  /** Nutzerfrage zu dieser Antwort (fuer die Befundkarte). */
+  /** Nutzerfrage zu dieser Antwort (Befundkarte, Fehlerliste). */
   question: string;
   streaming: boolean;
   sourceIds: string[];
@@ -23,6 +30,7 @@ export function Message({
   onOpen: (target: PageTarget) => void;
   onOpenPart?: (tag: string) => void;
   onShowInModel?: (tags: string[]) => void;
+  blocks?: AnswerBlocksContext;
 }) {
   if (message.role === "user") {
     return (
@@ -41,6 +49,7 @@ export function Message({
       onOpen={onOpen}
       onOpenPart={onOpenPart}
       onShowInModel={onShowInModel}
+      blocks={blocks}
     />
   );
-}
+});
