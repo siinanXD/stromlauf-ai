@@ -13,8 +13,9 @@
  * Rot nur fuer Fehler und Not-Halt, Gruen = erledigt/geprueft.
  *
  * Kontrast (ux-spec: >= 4.5:1): Figma-Werte, die als Text darunter liegen, haben eine "-strong"-Variante fuer Text
- * und fuer Flaechen mit weisser Schrift (accent, look, error, ok); text/secondary ist im hellen Modus dunkler als in
- * Figma (#3c3c4399 -> #3c3c43c7). text/tertiary bleibt fuer Platzhalter und Symbole, nie fuer lesbaren Text.
+ * und fuer Flaechen mit Schrift (accent, look, error, ok; im Dunkeln heller als in Figma); text/secondary ist im
+ * hellen Modus dunkler als in Figma (#3c3c4399 -> #3c3c43c7). text/tertiary bleibt fuer Platzhalter und Symbole,
+ * nie fuer lesbaren Text.
  */
 @theme static {
   --color-bg-grouped: #f2f2f7;
@@ -127,13 +128,13 @@
   --color-line-strong: #48484a;
   --color-accent: #0a84ff;
   --color-accent-soft: #0a84ff38;
-  --color-accent-strong: #0a84ff;
+  --color-accent-strong: #409cff;
   --color-look: #ff9f0a;
   --color-look-soft: #ff9f0a38;
   --color-look-strong: #ff9f0a;
   --color-error: #ff453a;
   --color-error-soft: #ff453a38;
-  --color-error-strong: #ff453a;
+  --color-error-strong: #ff7b73;
   --color-ok: #30d158;
   --color-ok-soft: #30d15838;
   --color-ok-strong: #30d158;
@@ -178,6 +179,8 @@
 }
 
 [data-theme="dark"] {
+  /* Blau fuer Text ist im Dunkeln hell (#409cff); weisse Schrift darauf laege unter 4,5:1, deshalb dunkle Schrift */
+  --primary-foreground: #001a33;
   --signal-foreground: #fff1db;
   --nav: #2c2c2e;
   --nav-hover: #3a3a3c;
