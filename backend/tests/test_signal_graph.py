@@ -4,7 +4,8 @@ from pathlib import Path
 import openpyxl
 
 from app.ingestion.awl_parser import parse_symbol_table, read_text
-from app.ingestion.signal_graph import Graph, build_graph, signal_path
+from app.ingestion.plan_edges import PlanEdge
+from app.ingestion.signal_graph import Graph, add_plan_edges, build_graph, signal_path
 
 EXAMPLE = Path(__file__).resolve().parents[2] / "examples" / "foerderband"
 
@@ -134,3 +135,51 @@ def test_weg_vom_sensor_bis_zum_motor_bleibt_vollstaendig():
     """Spule und Kontakt kosten je Schaltgeraet zwei Stufen; der Weg -B1 -> ... -> -M1 darf nicht abbrechen."""
     level = levels(signal_path(fb01_graph(), "-B1"))
     assert "-M1" in level and level["-M1"] > level["-K1"] > level["-X3:9"] > 0
+
+
+# --- Herkunft und Kanten aus dem Stromlaufplan (Stoerfall-Arbeitsflaeche, Spur A3) ----------------
+
+
+def test_kanten_nennen_ihre_herkunft_klemmenplan_und_awl():
+    graph = fb01_graph()
+    assert graph.edges[("-X3:1", "E0.0")] == {"klemmenplan"}
+    awl = [(source, target) for source, target in graph.edges if target.startswith("FB 10/NW")]
+    assert awl and all(graph.edges[edge] == {"awl"} for edge in awl)
+    path = signal_path(graph, "-S1")
+    edge = next(e for e in path["edges"] if (e["source"], e["target"]) == ("-X3:1", "E0.0"))
+    assert edge["via"] == ["klemmenplan"] and edge["directed"] is True
+
+
+def test_plan_kante_macht_reine_pdf_quelle_verfolgbar():
+    """Nur ein Stromlaufplan, keine Tabellen: Taster -> Klemme -> Eingang aus den Leitungen."""
+    graph = add_plan_edges(
+        Graph(),
+        [
+            PlanEdge("-S1:14", "-X3:1", 4, "leitung"),
+            PlanEdge("-X3:1", "E0.0", 5, "leitung"),
+        ],
+    )
+    level = levels(signal_path(graph, "-S1"))
+    assert level["-S1"] < level["-S1:14"] < level["-X3:1"] < level["E0.0"]
+    assert graph.nodes["-S1:14"].kind == "pin" and graph.nodes["-S1:14"].label == "Schließer"
+    assert graph.nodes["-X3:1"].ref == "S. 4" and graph.edges[("-S1", "-S1:14")] == {"leitung"}
+    assert {e["via"][0] for e in signal_path(graph, "-S1")["edges"]} == {"leitung"}
+
+
+def test_ungerichtete_kante_bestimmt_keine_ebene_und_tabelle_gibt_die_richtung():
+    graph = add_plan_edges(
+        Graph(),
+        [PlanEdge("-X3:2", "-X3:1", 5, "leitung", directed=False), PlanEdge("-X3:1", "E0.0", 5, "leitung")],
+    )
+    assert ("-X3:1", "-X3:2") in graph.undirected
+    path = signal_path(graph, "-X3:1")
+    assert "-X3:2" not in levels(path)  # nur ueber die ungerichtete Kante erreichbar
+    graph.edge("-X3:2", "-X3:1", "klemmenplan")  # die Tabelle kennt die Richtung
+    assert graph.undirected == set() and graph.edges[("-X3:2", "-X3:1")] == {"leitung", "klemmenplan"}
+    assert ("-X3:1", "-X3:2") not in graph.edges
+
+
+def test_plan_kante_zu_bekannter_tabellenkante_ergaenzt_nur_die_herkunft():
+    graph = add_plan_edges(fb01_graph(), [PlanEdge("-X3:1", "E0.0", 5, "leitung", directed=False)])
+    assert graph.edges[("-X3:1", "E0.0")] == {"klemmenplan", "leitung"}
+    assert ("-X3:1", "E0.0") not in graph.undirected
