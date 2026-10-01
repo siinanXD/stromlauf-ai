@@ -25,4 +25,26 @@ describe("relatedParts", () => {
     );
     expect(relatedParts(data, "-K1")).toEqual([{ tag: "-M1", verb: "hängt an" }]);
   });
+
+  it("zaehlt Anschluesse als ihr Geraet: Spule und Kontakt liegen zwischen Klemme und Schuetz (Issue #98)", () => {
+    const data = path(
+      "-K1",
+      [
+        node("-X3:9", "terminal"),
+        node("-K1:A1", "pin", "Spule"),
+        node("-K1", "device"),
+        node("-K1:2", "pin", "Hauptkontakt"),
+        node("-X4:U", "terminal"),
+        node("-M1", "device"),
+      ],
+      [
+        ["-X3:9", "-K1:A1"],
+        ["-K1:A1", "-K1"],
+        ["-K1", "-K1:2"],
+        ["-K1:2", "-X4:U"],
+        ["-X4:U", "-M1"],
+      ],
+    );
+    expect(relatedParts(data, "-K1")).toEqual([{ tag: "-M1", verb: "hängt an" }]);
+  });
 });

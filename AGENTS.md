@@ -172,6 +172,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   Geraeteanschluesse wie `-K1:A1` oder `-K1:13` stehen als `device_pin` im Index (Issue #98, das Gold schreibt sie
   mit, nicht gegatet). `tags.pin_kind` gibt die Art nach IEC 60947-1 Anhang L, nur fuer Schaltgeraete K, Q, S, F, B:
   Spule A1/A2, Funktionsziffer 1-2/5-6 Oeffner, 3-4/7-8 Schliesser, einstellig 1 bis 6 Hauptkontakt (K, Q, F).
+  Im Signalweg laufen solche Anschluesse als Knoten `pin`: Klemme -> Spule -> Geraet -> Kontakt -> Klemme
+  (`signal_graph._ends`, `MAX_DEPTH` 16); ein gesuchter Anschluss ohne eigenen Knoten startet beim Geraet.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

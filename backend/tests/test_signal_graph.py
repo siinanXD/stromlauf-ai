@@ -92,11 +92,45 @@ def test_broken_files_do_not_raise(tmp_path):
 
 
 def test_safety_relay_input_terminals_count_as_inputs():
-    """S12/S22 eines Sicherheitsrelais sind Eingaenge: Not-Halt -> Klemme -> Relais, nicht umgekehrt."""
+    """S12/S22 eines Sicherheitsrelais sind Eingaenge: Not-Halt -> Klemme -> Relais, nicht umgekehrt. Die
+    Not-Halt-Kontakte stehen seit #98 als eigene Knoten im Weg (Oeffner 11/12)."""
     rows = [
         ["-X3", "-X3:40", "-K1:S12", "-S3:12 (Reihe: -S1, -S2, -S3)", "Not-Halt Kanal 1 Ende", "/7.2"],
         ["-X3", "-X3:39", "-K1:S11", "-S1:11", "Not-Halt Kanal 1 Beginn", "/7.2"],
     ]
     graph = build_graph(rows, [("-K1", "Sicherheitsrelais", "/7.2"), ("-S1", "Not-Halt", "/7.2"), ("-S3", "Not-Halt", "/7.2")], [], "")
-    assert ("-S3", "-X3:40") in graph.edges and ("-X3:40", "-K1") in graph.edges
-    assert ("-K1", "-X3:39") in graph.edges and ("-X3:39", "-S1") in graph.edges
+    assert {("-S3", "-S3:12"), ("-S3:12", "-X3:40"), ("-X3:40", "-K1")} <= graph.edges
+    assert {("-K1", "-X3:39"), ("-X3:39", "-S1:11"), ("-S1:11", "-S1")} <= graph.edges
+    assert ("-S3", "-X3:40") not in graph.edges
+
+
+def test_weg_fuehrt_ueber_die_spule_zu_den_kontakten_desselben_schuetzes():
+    """Issue #98: A4.0 schaltet die Spule -K1:A1, das Schuetz -K1 schliesst seine Hauptkontakte -K1:2/4/6."""
+    graph = fb01_graph()
+    level = levels(signal_path(graph, "A4.0"))
+    chain = ["A4.0", "-X3:9", "-K1:A1", "-K1", "-K1:2", "-X4:U", "-M1"]
+    assert all(tag in level for tag in chain), {tag: level.get(tag) for tag in chain}
+    assert [level[t] for t in chain] == list(range(level["A4.0"], level["A4.0"] + len(chain)))
+    coil, contact = graph.nodes["-K1:A1"], graph.nodes["-K1:2"]
+    assert (coil.kind, coil.label, coil.ref) == ("pin", "Spule", "/6.3")
+    assert (contact.kind, contact.label, contact.ref) == ("pin", "Hauptkontakt", "/3.5")
+
+
+def test_kontakte_als_quelle_einer_klemme():
+    """Taster-Schliesser -S1:13 meldet an E0.0, Freigabekontakt -K3:24 an E0.3, Meldekontakt -K3:32 schaltet -H3."""
+    graph = fb01_graph()
+    assert {("-S1", "-S1:13"), ("-S1:13", "-X3:1"), ("-X3:1", "E0.0")} <= graph.edges
+    assert {("-K3", "-K3:24"), ("-K3:24", "-X3:4")} <= graph.edges
+    assert {("-K3", "-K3:32"), ("-K3:32", "-X3:15"), ("-X3:15", "-H3")} <= graph.edges
+    assert graph.nodes["-K3:32"].label == "Öffner" and graph.nodes["-S1:13"].label == "Schließer"
+
+
+def test_anschluss_ohne_eigenen_knoten_startet_beim_geraet():
+    """Wer "-K2:13" sucht, landet bei -K2, wenn der Plan diesen Kontakt nicht nennt."""
+    assert signal_path(fb01_graph(), "-K2:13")["start"] == "-K2"
+
+
+def test_weg_vom_sensor_bis_zum_motor_bleibt_vollstaendig():
+    """Spule und Kontakt kosten je Schaltgeraet zwei Stufen; der Weg -B1 -> ... -> -M1 darf nicht abbrechen."""
+    level = levels(signal_path(fb01_graph(), "-B1"))
+    assert "-M1" in level and level["-M1"] > level["-K1"] > level["-X3:9"] > 0

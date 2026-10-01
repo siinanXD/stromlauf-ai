@@ -11,7 +11,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from app.ingestion.awl_parser import parse_awl
-from app.ingestion.tags import TagType, extract_tags, normalize_tag
+from app.ingestion.tags import TagType, extract_tags, normalize_tag, pin_kind
 
 ADDRESS = re.compile(r"(?<![\w.\-])([EAM])\s*(\d{1,4})\s*\.\s*([0-7])(?![\d])", re.I)
 WORD = re.compile(r"(?<![\w.\-])(MW|MB|MD|EW|AW|EB|AB)\s*(\d{1,4})(?![\d.])", re.I)
@@ -21,14 +21,15 @@ SUPPLY_WORDS = ("0 v", "+24", "24 v", "schutzleiter", "netz", "versorgung")
 SAFETY_INPUT = re.compile(r"-K\d+:S[12]2\b")
 READ_OPS = {"U", "UN", "O", "ON", "X", "XN", "L", "FP", "FN"}
 WRITE_OPS = {"=", "S", "R", "T", "SE", "SI", "SV", "SA", "SS", "ZV", "ZR"}
-MAX_DEPTH = 12
+# Seit #98 kostet ein Schaltgeraet im Weg bis zu zwei Stufen mehr (Spule -> Geraet -> Kontakt)
+MAX_DEPTH = 16
 HUB_DEGREE = 8
 
 
 @dataclass
 class Node:
     id: str
-    kind: str  # device | terminal | address | network | variable
+    kind: str  # device | pin | terminal | address | network | variable
     label: str = ""
     ref: str = ""
     detail: str = ""  # AWL-Code eines Netzwerks
@@ -77,6 +78,23 @@ def _devices_in(text: str) -> list[str]:
 # --- Klemmenplan ------------------------------------------------------------------------------
 
 
+def _ends(
+    graph: Graph, text: str, labels: dict[str, tuple[str, str]], ref: str
+) -> list[tuple[str, str]]:
+    """(Geraet, Knoten an der Klemme) je Geraet einer Zelle. Hat der Anschluss eine Art (Spule, Kontakt; Issue #98),
+    ist er der Knoten an der Klemme, und das Geraet steht nicht noch einmal ohne ihn da."""
+    tags = extract_tags(text)
+    pins = [t.tag for t in tags if t.tag_type == TagType.DEVICE_PIN and pin_kind(t.tag)]
+    ends = []
+    for pin in pins:
+        ends.append((pin.split(":", 1)[0], graph.node(pin, "pin", pin_kind(pin) or "", ref)))
+    with_pin = {device for device, _ in ends}
+    ends += [(device, device) for device in _devices_in(text) if device not in with_pin]
+    for device, _ in ends:
+        graph.node(device, "device", *labels.get(device, ("", "")))
+    return list(dict.fromkeys(ends))
+
+
 def _add_terminal_rows(graph: Graph, rows: list[list[str]], labels: dict[str, tuple[str, str]]) -> None:
     for row in rows:
         if len(row) < 6 or not row[1].startswith("-X") or ":" not in row[1]:
@@ -85,16 +103,18 @@ def _add_terminal_rows(graph: Graph, rows: list[list[str]], labels: dict[str, tu
         if any(word in function.lower() for word in SUPPLY_WORDS) or re.match(r"-X[12]:", terminal):
             continue  # Versorgung/Sammelschienen verbinden alles mit allem
         term = graph.node(normalize_tag(terminal), "terminal", function, ref)
-        intern_nodes = [graph.node(a, "address") for a in _addresses_in(intern)] or [
-            graph.node(d, "device", *labels.get(d, ("", ""))) for d in _devices_in(intern)
-        ]
-        extern_nodes = [graph.node(d, "device", *labels.get(d, ("", ""))) for d in _devices_in(extern)]
-        inputs = any(n.startswith("E") for n in intern_nodes) or bool(SAFETY_INPUT.search(intern))
-        sources, targets = (extern_nodes, intern_nodes) if inputs else (intern_nodes, extern_nodes)
-        for source in sources:
-            graph.edge(source, term)
-        for target in targets:
-            graph.edge(term, target)
+        addresses = [graph.node(a, "address") for a in _addresses_in(intern)]
+        intern_ends = [(a, a) for a in addresses] or _ends(graph, intern, labels, ref)
+        extern_ends = _ends(graph, extern, labels, ref)
+        inputs = any(a.startswith("E") for a in addresses) or bool(SAFETY_INPUT.search(intern))
+        sources, targets = (extern_ends, intern_ends) if inputs else (intern_ends, extern_ends)
+        # Der Weg laeuft durch das Geraet: Klemme -> Spule -> Geraet, Geraet -> Kontakt -> Klemme
+        for device, at in sources:
+            graph.edge(device, at)
+            graph.edge(at, term)
+        for device, at in targets:
+            graph.edge(term, at)
+            graph.edge(at, device)
 
 
 # --- AWL --------------------------------------------------------------------------------------
@@ -201,7 +221,9 @@ def build_graph(
 
 
 def _start_id(graph: Graph, tag: str) -> str | None:
-    for candidate in (tag.strip(), normalize_tag(tag), _address(tag) or ""):
+    key = normalize_tag(tag)
+    # ein Anschluss ohne eigenen Knoten ("-K2:13", der Plan nennt den Kontakt nicht) startet beim Geraet
+    for candidate in (tag.strip(), key, _address(tag) or "", key.split(":", 1)[0]):
         if candidate in graph.nodes:
             return candidate
     return None

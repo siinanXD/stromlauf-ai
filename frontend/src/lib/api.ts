@@ -794,7 +794,7 @@ export async function factCard(tag: string, sourceIds: string[]): Promise<FactCa
 
 // --- Signalweg ---------------------------------------------------------------------------------
 
-export type SignalNodeKind = "device" | "terminal" | "address" | "network" | "variable";
+export type SignalNodeKind = "device" | "pin" | "terminal" | "address" | "network" | "variable";
 
 export interface SignalNode {
   id: string;
