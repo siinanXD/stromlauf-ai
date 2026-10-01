@@ -472,6 +472,33 @@ def test_lage_nur_wo_keine_leitung_das_paar_schon_zeigt(tmp_path, monkeypatch):
     ]
 
 
+def test_lage_gibt_einer_ungerichteten_leitung_die_richtung(tmp_path, monkeypatch):
+    """Klemme und Umrichter verbindet die Leitung ohne Richtung; die Lage-Kante Ausgang -> Klemme -> Umrichter bleibt
+    dazu stehen, sonst fehlt dem Hauptweg die Richtung. Eine gerichtete Leitung deckt die Lage weiter ab."""
+    monkeypatch.setattr(
+        plan_wires,
+        "_wire_edges",
+        lambda *args: [
+            PlanEdge("-U1", "-X3:26", 1, "leitung", directed=False),
+            PlanEdge("A4.4", "-X3:26", 1, "leitung"),
+        ],
+    )
+    monkeypatch.setattr(
+        plan_wires,
+        "_layout_page",
+        lambda path, page, spots, spaced: [
+            PlanEdge("A4.4", "-X3:26", page, "lage"),
+            PlanEdge("-X3:26", "-U1", page, "lage"),
+        ],
+    )
+    path = _plan(tmp_path, lambda c: c.line(100, 100, 200, 100))
+    assert plan_wires.compute_edges(path) == [
+        PlanEdge("-X3:26", "-U1", 1, "lage"),
+        PlanEdge("-U1", "-X3:26", 1, "leitung", directed=False),
+        PlanEdge("A4.4", "-X3:26", 1, "leitung"),
+    ]
+
+
 def test_cache_wird_genutzt(tmp_path, cache, monkeypatch):
     """Zweiter Aufruf liest data/plan_cache statt die Seiten neu zu lesen."""
     calls = []

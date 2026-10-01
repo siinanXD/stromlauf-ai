@@ -31,8 +31,8 @@ Ablauf je Seite, deterministisch und ohne Modell:
 4. `plan_edges`: alle Seiten, mit Datei-Cache (`plan_edges.read_edges`/`write_edges`). Dazu die Lage im Plan
    (`via="lage"`) auf jeder Seite, mit und ohne Leiter: Kanaele in Spalten (#90) oder in Zeilen (Feldgeraet, Klemme
    und Adresse auf einer Linie +-ROW), wenn mindestens LAGE_MIN Kanaele so stehen. Eine Lage-Kante kommt nur dazu,
-   wenn keine Leitung dieselben Knoten (oder Anschluss und Geraet) schon verbindet. Das Feldgeraet steht jenseits der
-   Klemme, von der Adresse aus; eine Adresse in Klammern ist ein Verweis und keine Kanal-Adresse.
+   wenn keine Leitung dieselben Knoten (oder Anschluss und Geraet) schon gerichtet verbindet. Das Feldgeraet steht
+   jenseits der Klemme, von der Adresse aus; eine Adresse in Klammern ist ein Verweis und keine Kanal-Adresse.
 
 Richtung: Ein Netz mit E-Adresse laeuft zur Adresse, eins mit A-Adresse von ihr weg; eine Spule ist Ziel, ein Kontakt
 Quelle, wie in `signal_graph._add_terminal_rows`. Alles andere bleibt ungerichtet (`directed=False`).
@@ -1040,7 +1040,9 @@ def compute_edges(path: Path) -> list[PlanEdge]:
 
     Kanalblaetter tragen oft Leitungen, die durch Klemme und Eingang laufen, ohne dass jedes Ende benannt ist; die Lage
     (Feldgeraet, Klemme, Adresse in einer Spalte oder Zeile) ergaenzt dort, was die Leitungen offen lassen. Ob zwei
-    Knoten schon verbunden sind, gilt im ganzen Dokument und fuer Anschluss und Geraet gleich (-S1:14 wie -S1)."""
+    Knoten schon verbunden sind, gilt im ganzen Dokument und fuer Anschluss und Geraet gleich (-S1:14 wie -S1). Zeigt
+    die Leitung keine Richtung (Klemme und Umrichter), bleibt die Lage-Kante dazu stehen: Sie gibt dem Paar im
+    Signalgraphen die Richtung."""
     spaced = _spaced_style(path)
     wired: list[PlanEdge] = []
     placed: list[PlanEdge] = []
@@ -1052,7 +1054,7 @@ def compute_edges(path: Path) -> list[PlanEdge]:
         if any(not s.dashed for s in segments):
             wired += _wire_edges(geometry, segments, page, spaced)
         placed += _layout_page(path, page, list(geometry.spots), spaced)
-    shown = {frozenset((_device(e.source), _device(e.target))) for e in wired}
+    shown = {frozenset((_device(e.source), _device(e.target))) for e in wired if e.directed}
     extra = [e for e in placed if frozenset((_device(e.source), _device(e.target))) not in shown]
     return sorted(wired + extra, key=lambda e: (e.page, e.via, e.source, e.target))
 
