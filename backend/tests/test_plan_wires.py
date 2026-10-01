@@ -219,6 +219,77 @@ def test_klemmenbeschriftung_gehoert_zur_naechsten_klemme(tmp_path):
     assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-X1:2", "-X4:PE"))}
 
 
+def test_symbol_ohne_anschlussnummern_heisst_wie_sein_kennzeichen(tmp_path):
+    """Leitungen enden am Rand von Schutzschalter und Motor; deren Kennzeichen stehen daneben, nicht am Ende. Die
+    Klemme oben benennt ihr Ende wie bisher; Schalter und Motor heissen nach dem Kennzeichen neben dem Symbol."""
+
+    def draw(c):
+        c.line(200, 500, 200, 420)
+        c.drawString(204, 502, "-X1:1")
+        c.rect(180, 380, 40, 40)
+        c.drawRightString(177, 397, "-F2")  # links neben dem Schalter, 3 pt vom Rand
+        c.line(200, 380, 200, 322)
+        c.circle(200, 300, 22)
+        c.drawString(228, 302, "-M1  Motor 1,5 kW")  # rechts neben dem Motor, 6 pt vom Rand
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {
+        frozenset(("-X1:1", "-F2")),
+        frozenset(("-F2", "-M1")),
+    }
+
+
+def test_kennzeichen_zwischen_zwei_symbolen_benennt_keins(tmp_path):
+    """Steht ein Kennzeichen gleich nah an zwei Symbolen, ist offen, zu welchem es gehoert: keine Kante."""
+
+    def draw(c):
+        c.line(200, 500, 200, 420)
+        c.drawString(204, 502, "-X1:1")
+        c.rect(180, 380, 40, 40)
+        c.drawString(224, 397, "-F2")  # rechts neben dem ersten Symbol ...
+        c.rect(240, 380, 40, 40)  # ... und links neben dem zweiten
+
+    path = _plan(tmp_path, draw)
+    assert plan_wires.page_wire_edges(path, 1) == []
+
+
+def test_spule_mit_anschlussnummern_benennt_kein_nachbarende(tmp_path):
+    """Am Spulenkoerper stehen A1/A2: Nur sie benennen seine Zuleitungen. Die Leuchte darunter beruehrt die untere
+    Zuleitung (Symbole zu dicht gezeichnet), haengt aber nicht an -K1."""
+
+    def draw(c):
+        c.line(470, 318, 470, 308)  # Zuleitung A1 bis an den Spulenkoerper
+        c.rect(461, 292, 18, 16)
+        c.drawString(482, 298, "-K1")
+        c.drawString(482, 309, "A1")
+        c.drawString(482, 287, "A2")
+        c.line(470, 292, 470, 283)  # untere Zuleitung, endet auf der Leuchte darunter
+        c.circle(470, 274, 9)
+        c.drawString(482, 272, "-H1")
+
+    path = _plan(tmp_path, draw)
+    geometry = plan_wires._geometry(path, 1)
+    assert set(plan_wires._box_labels(geometry.boxes, list(geometry.spots)).values()) == {"-H1"}
+    assert plan_wires.page_wire_edges(path, 1) == []
+
+
+def test_anschluss_schlaegt_sein_geraet(tmp_path):
+    """Die Leitung von A1 endet am Rand von -K2: Das ist der Anschluss selbst, keine Verbindung -K2:A1 mit -K2. Unten
+    fuehrt die Leitung vom Rand von -K2 zur Klemme."""
+
+    def draw(c):
+        c.line(200, 440, 200, 410)
+        # mehr als 2 * LABEL_GAP ueber dem Symbol: kein Anschluss am Koerper
+        c.drawString(204, 432, "A1")
+        c.rect(180, 380, 40, 30)
+        c.drawString(223, 402, "-K2")
+        c.line(200, 380, 200, 340)
+        c.drawString(204, 336, "-X1:1")
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-K2", "-X1:1"))}
+
+
 @pytest.fixture
 def cache(tmp_path, monkeypatch) -> Path:
     directory = tmp_path / "plan_cache"
