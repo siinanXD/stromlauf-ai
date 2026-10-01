@@ -1,9 +1,10 @@
 """Hauptweg in festen Spalten (Stoerfall-Arbeitsflaeche, Spur A4), gegen den Beispielgraphen FB-01."""
 
+from test_signal_graph import fb01_graph
+
 from app.ingestion.plan_edges import PlanEdge
 from app.ingestion.signal_graph import Graph, add_plan_edges
 from app.ingestion.signal_view import COLUMNS, main_view
-from test_signal_graph import fb01_graph
 
 
 def _main(view: dict) -> list[dict]:
