@@ -4,6 +4,10 @@ Quellen: Klemmenplan (Feldgeraet -> Klemme -> SPS-Eingang bzw. Ausgang/Schaltger
 Verbraucher), Symboltabelle (Symbol = Adresse) und AWL (gelesene Groessen -> Netzwerk -> geschriebene
 Groessen; FB-Parameter werden ueber den CALL im OB bzw. den Deklarationskommentar an Adressen
 gebunden). Kein Sprachmodell.
+
+Jede Kante traegt ihre Herkunft (`via`): "klemmenplan", "awl" aus den Tabellen, "leitung", "lage" oder "modell" aus
+dem Stromlaufplan (`plan_edges`). Kanten ohne bekannte Richtung stehen zusaetzlich in `Graph.undirected`; sie
+erscheinen als Nachbarn, bestimmen aber keine Ebene und keinen Hauptweg.
 """
 
 import re
@@ -11,6 +15,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from app.ingestion.awl_parser import parse_awl
+from app.ingestion.plan_edges import PlanEdge
 from app.ingestion.tags import TagType, extract_tags, normalize_tag, pin_kind
 
 ADDRESS = re.compile(r"(?<![\w.\-])([EAM])\s*(\d{1,4})\s*\.\s*([0-7])(?![\d])", re.I)
@@ -38,7 +43,8 @@ class Node:
 @dataclass
 class Graph:
     nodes: dict[str, Node] = field(default_factory=dict)
-    edges: set[tuple[str, str]] = field(default_factory=set)
+    edges: dict[tuple[str, str], set[str]] = field(default_factory=dict)  # (Quelle, Ziel) -> Herkunft
+    undirected: set[tuple[str, str]] = field(default_factory=set)  # sortierte Paare ohne bekannte Richtung
 
     def node(self, node_id: str, kind: str, label: str = "", ref: str = "") -> str:
         existing = self.nodes.get(node_id)
@@ -49,9 +55,27 @@ class Graph:
             existing.ref = existing.ref or ref
         return node_id
 
-    def edge(self, source: str, target: str) -> None:
-        if source != target:
-            self.edges.add((source, target))
+    def edge(self, source: str, target: str, via: str = "klemmenplan", directed: bool = True) -> None:
+        """Kante mit Herkunft. Eine gerichtete Kante macht ein bisher ungerichtetes Paar gerichtet; eine ungerichtete
+        zu einem gerichteten Paar ergaenzt nur dessen Herkunft."""
+        if source == target:
+            return
+        pair = (min(source, target), max(source, target))
+        if directed:
+            if pair in self.undirected:
+                self.undirected.discard(pair)
+                self.edges.setdefault((source, target), set()).update(self.edges.pop(pair))
+            self.edges.setdefault((source, target), set()).add(via)
+            return
+        for key in ((source, target), (target, source)):
+            if key in self.edges and pair not in self.undirected:
+                self.edges[key].add(via)
+                return
+        self.edges.setdefault(pair, set()).add(via)
+        self.undirected.add(pair)
+
+    def directed_edges(self) -> list[tuple[str, str]]:
+        return [key for key in self.edges if key not in self.undirected]
 
 
 def _address(text: str) -> str | None:
@@ -188,9 +212,9 @@ def _add_awl(graph: Graph, awl_text: str, symbols: dict[str, str]) -> None:
             nw = graph.node(f"{name}/NW{network.number}", "network", network.title, f"{name} NW {network.number}")
             graph.nodes[nw].detail = "\n".join(line.rstrip() for line in network.lines)
             for node_id, kind in reads:
-                graph.edge(graph.node(node_id, kind, comments.get(node_id, "")), nw)
+                graph.edge(graph.node(node_id, kind, comments.get(node_id, "")), nw, "awl")
             for node_id, kind in writes:
-                graph.edge(nw, graph.node(node_id, kind, comments.get(node_id, "")))
+                graph.edge(nw, graph.node(node_id, kind, comments.get(node_id, "")), "awl")
 
 
 def build_graph(
@@ -217,6 +241,37 @@ def build_graph(
     return graph
 
 
+# --- Stromlaufplan ----------------------------------------------------------------------------
+
+
+def _plan_node(graph: Graph, node_id: str, page: int) -> str:
+    """Knoten fuer ein Ende einer Plan-Kante; Blatt-Verweis "S. n", wenn die Tabellen keinen nennen."""
+    ref = f"S. {page}"
+    if _address(node_id):
+        return graph.node(node_id, "address", "", ref)
+    if kind := pin_kind(node_id):
+        return graph.node(node_id, "pin", kind, ref)
+    if node_id.startswith("-X") and ":" in node_id:
+        return graph.node(node_id, "terminal", "", ref)
+    return graph.node(node_id, "device", "", ref)
+
+
+def add_plan_edges(graph: Graph, edges: list[PlanEdge]) -> Graph:
+    """Kanten aus dem Stromlaufplan (Leitung, Lage, Modell) in den Graphen. Ein Anschluss haengt wie im Klemmenplan
+    an seinem Geraet: Spule -> Geraet, Geraet -> Kontakt (Issue #98)."""
+    for plan in edges:
+        for node_id in (plan.source, plan.target):
+            _plan_node(graph, node_id, plan.page)
+            if kind := pin_kind(node_id):
+                device = _plan_node(graph, node_id.split(":", 1)[0], plan.page)
+                if kind == "Spule":
+                    graph.edge(node_id, device, plan.via)
+                else:
+                    graph.edge(device, node_id, plan.via)
+        graph.edge(plan.source, plan.target, plan.via, plan.directed)
+    return graph
+
+
 # --- Pfad -------------------------------------------------------------------------------------
 
 
@@ -236,7 +291,7 @@ def signal_path(graph: Graph, tag: str, depth: int = MAX_DEPTH, hub: int = HUB_D
         return None
     successors: dict[str, list[str]] = {}
     predecessors: dict[str, list[str]] = {}
-    for source, target in graph.edges:
+    for source, target in graph.directed_edges():
         successors.setdefault(source, []).append(target)
         predecessors.setdefault(target, []).append(source)
     degree = {n: len(successors.get(n, [])) + len(predecessors.get(n, [])) for n in graph.nodes}
@@ -257,9 +312,9 @@ def signal_path(graph: Graph, tag: str, depth: int = MAX_DEPTH, hub: int = HUB_D
                 queue.append((nxt, distance + 1))
 
     edges = [
-        {"source": s, "target": t}
-        for s, t in sorted(graph.edges)
-        if s in level and t in level and level[s] < level[t]
+        {"source": s, "target": t, "via": sorted(via), "directed": (s, t) not in graph.undirected}
+        for (s, t), via in sorted(graph.edges.items())
+        if s in level and t in level and ((s, t) in graph.undirected or level[s] < level[t])
     ]
     nodes = [
         {**vars(graph.nodes[node_id]), "level": lvl}
