@@ -145,6 +145,10 @@ export interface Conversation {
   title: string;
   source_ids: string[];
   updated_at: string;
+  /** Stoerfall: offen oder erledigt; fehlt bei Backends vor der Stoerfall-Arbeitsflaeche. */
+  outcome?: "open" | "resolved";
+  /** Befund beim Abschliessen, ein Satz; leer, solange offen. */
+  finding?: string;
 }
 
 export interface SourceRef {
@@ -171,6 +175,8 @@ export interface ChatMessage {
   cost_cents?: number;
   /** Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - kommt als letztes SSE-Event. */
   meta?: AnswerMeta;
+  /** Position im Verlauf (0 = erste Nachricht), fuer das Nachladen aelterer Nachrichten. */
+  index?: number;
 }
 
 export interface PageEvidence {
@@ -212,12 +218,55 @@ export interface CitationsValid {
   total: number;
 }
 
+/** Fundstelle eines Kennzeichens im Stromlaufplan, fuer den Block "Im Plan". */
+export interface PlanSpot {
+  tag: string;
+  document_id: string;
+  filename: string;
+  page: number;
+  sheet: number | null;
+  title: string;
+  column: number | null;
+}
+
 export interface AnswerMeta {
   referenced_tags: string[];
   citations: SourceRef[];
   evidence: Evidence[];
   citation_checks?: CitationCheck[];
   citations_valid?: CitationsValid;
+  /** Art je referenziertem Kennzeichen, z. B. {"-Q1": "Motorschutz"}; fehlt bei alten Antworten. */
+  part_kinds?: Record<string, string>;
+  /** Erstes referenziertes Kennzeichen mit Signalweg; null, wenn keins einen hat. */
+  signal_start?: string | null;
+  /** Hoechstens 4 Fundstellen im Stromlaufplan. */
+  plan_spots?: PlanSpot[];
+}
+
+export interface FaultHits {
+  faults: Fault[];
+  /** Treffer an anderen Maschinen: Erfahrung, kein Beleg fuer diese Maschine. */
+  experience: { machine_id: string; machine_name: string; fault: Fault }[];
+  /** Erledigte Stoerfaelle dieser Maschine mit Befund, die zur Meldung passen. */
+  incidents: { conversation_id: string; title: string; finding: string; updated_at: string }[];
+}
+
+export interface PlanReadStatus {
+  configured: boolean;
+  model: string;
+  cached: boolean;
+  edges: number;
+  dropped: number;
+  cost_usd: number | null;
+}
+
+export interface PlanReadResult {
+  model: string;
+  pages: number;
+  estimate_usd: number;
+  edges: number | null;
+  dropped: number | null;
+  cost_usd: number | null;
 }
 
 // --- Maschinenmodell "Schema" (GET /api/machines/{id}/map) ---------------------------------
@@ -354,6 +403,27 @@ export const api = {
   /** Verlauf mit meta je Antwort (Issue #47); machineId liefert die Schaltschrank-Belege dieser Maschine. */
   getMessages: (conversationId: string, machineId?: string) =>
     request<ChatMessage[]>(`/api/conversations/${conversationId}/messages${machineId ? `?machine_id=${encodeURIComponent(machineId)}` : ""}`),
+  /** Hoechstens limit Nachrichten vor Index before (exklusiv); ohne before die letzten limit. */
+  getMessagesPage: (conversationId: string, limit: number, before?: number, machineId?: string) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (before !== undefined) params.set("before", String(before));
+    if (machineId) params.set("machine_id", machineId);
+    return request<ChatMessage[]>(`/api/conversations/${conversationId}/messages?${params}`);
+  },
+  /** Stoerfall abschliessen oder wieder oeffnen. */
+  patchConversation: (id: string, patch: { outcome?: "open" | "resolved"; finding?: string }) =>
+    request<Conversation>(`/api/conversations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+  /** Fehlerliste, Erfahrung anderer Maschinen und erledigte Stoerfaelle zur Meldung, ohne Modell. */
+  faultHits: (machineId: string, q: string) =>
+    request<FaultHits>(`/api/machines/${machineId}/fault-hits?q=${encodeURIComponent(q)}`),
+  planReadStatus: (sourceId: string) => request<PlanReadStatus>(`/api/sources/${sourceId}/plan-read`),
+  /** dryRun: nur Seitenzahl und Kostenschaetzung; sonst kostet der Aufruf (ausser bei lokalem Modell). */
+  planRead: (sourceId: string, dryRun: boolean) =>
+    request<PlanReadResult>(`/api/sources/${sourceId}/plan-read?dry_run=${dryRun}`, { method: "POST" }),
   pageImageUrl: (documentId: string, page: number) =>
     withApiKey(`${API_URL}/api/documents/${documentId}/pages/${page}/image`),
 };
@@ -809,15 +879,85 @@ export interface SignalNode {
   level: number;
 }
 
+/** Herkunft einer Verbindung: Tabelle/Programm, Leitung im Plan, Lage im Plan oder Modell. */
+export type SignalVia = "klemmenplan" | "awl" | "symboltabelle" | "stueckliste" | "leitung" | "lage" | "modell";
+
 export interface SignalPathData {
   start: string;
   nodes: SignalNode[];
-  edges: { source: string; target: string }[];
+  edges: { source: string; target: string; via?: SignalVia[]; directed?: boolean }[];
   schematic: { document_id: string; filename: string } | null;
 }
 
 export const signalPath = (tag: string, sourceId: string) =>
   request<SignalPathData>(`/api/signal-path?tag=${encodeURIComponent(tag)}&source_id=${encodeURIComponent(sourceId)}`);
+
+/** Feste Spalten der Hauptweg-Sicht, in dieser Reihenfolge; die Antwort nennt nur belegte. */
+export type SignalColumn =
+  | "feld"
+  | "klemme_vor"
+  | "sps_eingang"
+  | "programm"
+  | "sps_ausgang"
+  | "klemme_nach"
+  | "schaltgeraet"
+  | "verbraucher";
+
+export interface SignalMainNode {
+  id: string;
+  kind: Exclude<SignalNodeKind, "pin">;
+  label: string;
+  ref: string;
+  detail: string;
+  /** true: auf dem Hauptweg; false: Abzweig eine Stufe tief, haengt an parent. */
+  main: boolean;
+  column: SignalColumn | null;
+  /** Position auf dem Hauptweg ab 0; null bei Abzweigen. */
+  order: number | null;
+  branches: number;
+  parent: string | null;
+}
+
+export interface SignalMainEdge {
+  source: string;
+  target: string;
+  via: SignalVia[];
+  directed: boolean;
+  /** Anschlussnummern an der Kante, z. B. {from: null, to: "A1"} fuer die Spule. */
+  pins: { from: string | null; to: string | null };
+}
+
+export interface SignalMainData {
+  start: string;
+  view: "main";
+  columns: SignalColumn[];
+  nodes: SignalMainNode[];
+  edges: SignalMainEdge[];
+  schematic: { document_id: string; filename: string } | null;
+}
+
+export type SignalMissingReason = "no_sources" | "unknown_tag";
+
+export type SignalMainResult =
+  | { ok: true; data: SignalMainData }
+  | { ok: false; reason: SignalMissingReason; message: string };
+
+/** Hauptweg in festen Spalten; ein 404 ist kein Fehler, sondern ein Grund fuer den leeren Zustand. */
+export async function signalPathMain(tag: string, sourceId: string): Promise<SignalMainResult> {
+  const params = new URLSearchParams({ tag, source_id: sourceId, view: "main" });
+  const response = await fetch(`${API_URL}/api/signal-path?${params}`, { headers: authHeaders() });
+  if (response.status === 404) {
+    const body = await response.json().catch(() => null);
+    const detail = body?.detail;
+    return {
+      ok: false,
+      reason: detail?.reason === "no_sources" ? "no_sources" : "unknown_tag",
+      message: typeof detail?.message === "string" ? detail.message : "",
+    };
+  }
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return { ok: true, data: await response.json() };
+}
 
 // --- Gefuehrte Fehlersuche -------------------------------------------------------------------
 

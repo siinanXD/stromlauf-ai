@@ -204,6 +204,18 @@ def test_validation_errors_name_the_field(backend):
         client.post("/api/calc", {})
 
 
+def test_missing_signal_path_names_the_reason_sentence(backend):
+    """Der Signalweg antwortet mit einem 404 samt Grund und Satz (Stoerfall-Arbeitsflaeche); das Werkzeug nennt den Satz."""
+
+    def missing(request):
+        detail = {"reason": "unknown_tag", "message": "-Q9 kommt im Signalweg nicht vor."}
+        return httpx.Response(404, json={"detail": detail})
+
+    client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(missing))
+    with pytest.raises(ToolError, match="404: -Q9 kommt im Signalweg nicht vor"):
+        client.get("/api/signal-path", tag="-Q9", source_id="src1")
+
+
 def test_search_tags_without_hits_says_so(server):
     result = tool(server, "search_tags")(query="-Q99")
     assert result["hits"] == [] and "Keine" in result["note"]
