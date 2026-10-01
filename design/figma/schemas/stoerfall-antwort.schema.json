@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stoerfall-antwort.schema.json",
+  "title": "Figma-Vorlage stoerfall-antwort",
+  "description": "Ein Störfall mit Meldung, Fehlerlisten-Treffern, Antwort, Bauteilen, Stellen im Plan und Signalweg. Nur die Felder der obersten Ebene sind für die Vorlage hinzugefügt, alles darunter hat die Form der API.",
+  "type": "object",
+  "required": ["vorlage", "version", "maschine", "frage", "zeit", "fault_hits", "antwort", "meta", "signal"],
+  "properties": {
+    "vorlage": { "const": "stoerfall-antwort" },
+    "version": { "const": 1 },
+    "maschine": { "type": "string", "description": "Name der Maschine" },
+    "frage": { "type": "string", "description": "Meldung oder Frage des Technikers" },
+    "zeit": { "type": "string", "description": "Uhrzeit der Antwort, HH:MM" },
+    "fault_hits": { "$ref": "defs.schema.json#/$defs/FaultHits" },
+    "antwort": { "type": "string", "description": "Antworttext mit Belegen [[Datei|Ort]]" },
+    "meta": { "$ref": "defs.schema.json#/$defs/AntwortMeta" },
+    "signal": {
+      "description": "Hauptweg des ersten verfolgbaren Bauteils; null, wenn keins einen Signalweg hat",
+      "anyOf": [{ "$ref": "defs.schema.json#/$defs/SignalMainData" }, { "type": "null" }]
+    }
+  },
+  "additionalProperties": false
+}

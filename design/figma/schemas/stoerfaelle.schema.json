@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stoerfaelle.schema.json",
+  "title": "Figma-Vorlage stoerfaelle",
+  "description": "Störfall-Liste einer Maschine: jeder Chat der Maschine ist ein Störfall, offen oder erledigt.",
+  "type": "object",
+  "required": ["vorlage", "version", "maschine", "ort", "conversations"],
+  "properties": {
+    "vorlage": { "const": "stoerfaelle" },
+    "version": { "const": 1 },
+    "maschine": { "type": "string", "description": "Name der Maschine" },
+    "ort": { "type": "string", "description": "Halle und Linie, z. B. \"Halle 1 (Beispiel)\"" },
+    "conversations": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/Conversation" } }
+  },
+  "additionalProperties": false
+}
