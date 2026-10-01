@@ -15,7 +15,7 @@ from pathlib import Path
 from app.config import get_settings
 
 # Erhoehen, sobald sich die Regeln des Leitungslesers aendern: alte Cache-Dateien gelten dann nicht mehr.
-PLAN_READER_VERSION = 1
+PLAN_READER_VERSION = 2
 VIA = ("leitung", "lage", "modell")
 
 
