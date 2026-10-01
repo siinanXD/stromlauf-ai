@@ -17,7 +17,13 @@ from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
-from app.ingestion.pdf_layout import SheetMap, column_texts, sheet_map, title_block_titles
+from app.ingestion.pdf_layout import (
+    SheetMap,
+    column_texts,
+    pin_labels,
+    sheet_map,
+    title_block_titles,
+)
 from app.ingestion.tags import detect_folio_style, detect_spaced_terminals, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
@@ -359,11 +365,19 @@ def document_pieces(
     # Laufen die Signalwege als Spalten, bekommt der Chat die Beschriftungen je Spalte statt in pdfium-Reihenfolge,
     # die Taster, Klemme und Eingang benachbarter Spalten mischt (Issue #90)
     columns = column_texts(path) if schematic else {}
+    # Anschlussnummern am Schaltzeichen ("A1", "13") stehen ohne Kennzeichen im Text; zugeordnet landen sie als
+    # -K1:A1 im Index (Issue #102). Stuecklistenseiten zaehlen nicht, dort sind Zahlen Mengen und Positionen.
+    pins = pin_labels(path) if schematic else {}
+
+    def page_text(p: ParsedPage) -> str:
+        text = p.with_labels(columns[p.page], "Beschriftungen je Spalte") if p.page in columns else p.text
+        if p.page in pins and p.page not in parts_pages:
+            text = f"{text}\n\n### Anschlüsse am Schaltzeichen\n{pins[p.page]}"
+        return text
+
     pieces = [
         Piece(
-            p.with_labels(columns[p.page], "Beschriftungen je Spalte")
-            if p.page in columns
-            else p.text,
+            page_text(p),
             kind="bom" if p.page in parts_pages else "text",
             page=p.page,
             section=titles.get(p.page, "") if p.page else "",
