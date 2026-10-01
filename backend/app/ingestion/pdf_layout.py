@@ -550,7 +550,19 @@ def _signal_paths(segments: list[list[_Token]], columns: list[Column]) -> list[t
     return sorted((sum(xs) / len(xs), n) for n, xs in best.items())
 
 
-def _page_column_text(page: pdfium.PdfPage) -> str | None:
+@dataclass
+class _ColumnLayout:
+    """Beschriftungen einer Seite, deren Signalwege als Spalten laufen: (Spalte, Woerter) je Beschriftung, Hinweise
+    ueber mehrere Spalten und das Schriftfeld."""
+
+    placed: list[tuple[int, list[_Token]]]
+    notes: list[list[_Token]]
+    title: list[_Token]
+
+
+def column_layout(page: pdfium.PdfPage) -> _ColumnLayout | None:
+    """Beschriftungen je Strompfad mit Wortpositionen (Issue #90); None ohne Spaltenraster, bei gedrehter Seite oder
+    wenn die Kanaele als Zeilen laufen. Grundlage fuer column_texts und den Leitungsleser (Lage im Plan)."""
     tokens = _tokens(page)
     columns, header = _column_grid(tokens)
     if not columns or _text_angle(page.get_textpage()) != 0:
@@ -575,15 +587,24 @@ def _page_column_text(page: pdfium.PdfPage) -> str | None:
         return n if abs(path_x - x) <= PATH_REACH * width else _column_at(x, columns)
 
     placed = [(column_of(s), s) for s in segments]
+    title = [t for t in tokens if id(t) not in numbers and t.top >= title_top]
+    return _ColumnLayout(placed, notes, title)
+
+
+def _page_column_text(page: pdfium.PdfPage) -> str | None:
+    layout = column_layout(page)
+    if layout is None:
+        return None
+    placed = layout.placed
     blocks = [
         f"Spalte {n}:\n" + "\n".join(_reading_order([s for c, s in placed if c == n]))
         for n in sorted({c for c, _ in placed})
     ]
-    if notes:
-        blocks.append("Hinweise:\n" + "\n".join(_reading_order(notes)))
-    title = [t for t in tokens if id(t) not in numbers and t.top >= title_top]
-    if title:
-        blocks.append("Schriftfeld:\n" + "\n".join(_reading_order(_segments(title, WORD_GAP))))
+    if layout.notes:
+        blocks.append("Hinweise:\n" + "\n".join(_reading_order(layout.notes)))
+    if layout.title:
+        title = _segments(layout.title, WORD_GAP)
+        blocks.append("Schriftfeld:\n" + "\n".join(_reading_order(title)))
     return "\n\n".join(blocks)
 
 
