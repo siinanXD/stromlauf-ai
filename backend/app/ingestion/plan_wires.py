@@ -16,7 +16,8 @@ Ablauf je Seite, deterministisch und ohne Modell:
    Klemmen und Adressen zaehlen nur am Anfang ihrer Zeile ("0 V ueber -X3:14" ist ein Hinweis). Dazu drei Regeln:
    - Endet eine Leitung am Rand eines grossen Symbols (SPS-Karte, Geraet, Leuchte), gilt nur die Beschriftung im
      Symbol auf derselben Hoehe; daneben stehen Texte anderer Zeilen.
-   - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite.
+   - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite. Eine
+     Beschriftung benennt nur Enden an der Klemme, der sie am naechsten steht.
    - Laeuft eine Leitung durch Klemme und Eingang hindurch (Kanaele in Spalten), gehoeren Klemmen und Adressen bis
      BESIDE neben ihr zu ihrem Netz.
    Ein Netz verbindet seine benannten Enden. Netze mit einer Leitung ueber mehr als RAIL_SHARE der Blattbreite oder
@@ -586,10 +587,27 @@ def _in_symbol(x: float, y: float, box: _Box, side: str, anchors: list[_Anchor])
     return hits.pop() if len(hits) == 1 else None
 
 
+def _center(box: _Box) -> tuple[float, float]:
+    return (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2
+
+
+def _terminal_of(
+    x: float, y: float, node: str, anchors: list[_Anchor], small: list[_Box]
+) -> _Box | None:
+    """Klemmensymbol, zu dem die Beschriftung node am Ende (x, y) gehoert: das naechste zu ihr. Steht sie naeher an
+    einer anderen Klemme (etwa "-X4:PE" neben der Nachbarklemme), benennt sie dieses Ende nicht."""
+    spot = min(
+        (a.spot for a in anchors if a.node == node), key=lambda s: math.hypot(s.x - x, s.y - y)
+    )
+    return min(small, key=lambda box: math.dist(_center(box), (spot.x, spot.y)), default=None)
+
+
 def _end_names(nets: list[Net], boxes: _Boxes, anchors: list[_Anchor]) -> list[list[str | None]]:
     """Name je freiem Ende. Am Rand eines grossen Symbols (Karte, Geraet, Leuchte) zaehlt nur die Beschriftung im
     Symbol: daneben stehen Texte anderer Zeilen. Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, denn
-    die Beschriftung steht nur an einer Seite der Klemme."""
+    die Beschriftung steht nur an einer Seite der Klemme; eine Beschriftung benennt nur Enden an ihrer naechsten
+    Klemme (`_terminal_of`)."""
+    small = [box for box in boxes.boxes if _small(box)]
     names: list[list[str | None]] = []
     at_terminal: dict[_Box, list[tuple[int, int]]] = defaultdict(list)
     for n, net in enumerate(nets):
@@ -602,7 +620,10 @@ def _end_names(nets: list[Net], boxes: _Boxes, anchors: list[_Anchor]) -> list[l
             box, side = touched
             if _small(box):
                 at_terminal[box].append((n, e))
-                row.append(_nearest(x, y, anchors))
+                name = _nearest(x, y, anchors)
+                row.append(
+                    name if name and _terminal_of(x, y, name, anchors, small) == box else None
+                )
             else:
                 row.append(_in_symbol(x, y, box, side, anchors))
         names.append(row)

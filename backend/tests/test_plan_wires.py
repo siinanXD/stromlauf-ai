@@ -201,6 +201,24 @@ def test_eingang_richtung_zur_adresse(tmp_path):
     }
 
 
+def test_klemmenbeschriftung_gehoert_zur_naechsten_klemme(tmp_path):
+    """Die Beschriftung "-X4:PE" steht zwischen zwei Klemmen, naeher an der PE-Klemme: Sie benennt die Leitung an der
+    PE-Klemme, aber nicht die an der Nachbarklemme, auch wenn deren Ende kein anderer Text naeher ist."""
+
+    def draw(c):
+        c.circle(300, 300, 3.2)
+        c.line(300, 304, 300, 360)  # von der Nachbarklemme nach oben
+        c.drawString(304, 362, "-X1:1")
+        c.circle(314, 300, 3.2)
+        c.line(314, 296, 314, 250)  # von der PE-Klemme nach unten
+        c.drawString(318, 246, "-X1:2")
+        c.setFont("Helvetica", 6)
+        c.drawString(306, 308, "-X4:PE")
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-X1:2", "-X4:PE"))}
+
+
 @pytest.fixture
 def cache(tmp_path, monkeypatch) -> Path:
     directory = tmp_path / "plan_cache"
