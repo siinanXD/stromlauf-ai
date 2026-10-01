@@ -1,0 +1,18 @@
+{
+  "vorlage": "stoerfaelle",
+  "version": 1,
+  "maschine": "Foerderband FB-01",
+  "ort": "Halle 1 (Beispiel)",
+  "conversations": [
+    {
+      "id": "offline-00dc41acfe48",
+      "title": "Störung Motorschutz Förderband",
+      "source_ids": [
+        "offline-507a41fb1820"
+      ],
+      "updated_at": "2026-10-01T07:41:00Z",
+      "outcome": "open",
+      "finding": ""
+    }
+  ]
+}

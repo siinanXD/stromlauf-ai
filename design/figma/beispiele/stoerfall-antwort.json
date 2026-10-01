@@ -1,0 +1,423 @@
+{
+  "vorlage": "stoerfall-antwort",
+  "version": 1,
+  "maschine": "Foerderband FB-01",
+  "frage": "Störung Motorschutz Förderband",
+  "zeit": "09:41",
+  "fault_hits": {
+    "faults": [
+      {
+        "code": "E-F2",
+        "symptom": "-H2 leuchtet, Band steht, Start ohne Wirkung",
+        "cause": "Motorschutz -F2 ausgeloest (E0.2 = 0)",
+        "fix": "-F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren.",
+        "doc_ref": "Betriebsanleitung Kap. 6, Stromlaufplan Blatt 3",
+        "tags": [
+          "-F2",
+          "-M1",
+          "-H2"
+        ],
+        "id": "offline-da196e81404d",
+        "machine_id": "offline-f44a92672993"
+      }
+    ],
+    "experience": [],
+    "incidents": []
+  },
+  "antwort": "E-F2: Motorschutz -F2 ausgeloest (E0.2 = 0) [[01_Stromlaufplan_FB-01.pdf|Blatt 3]]. -F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren [[06_Betriebsanleitung_FB-01.md|Kap. 6]].",
+  "meta": {
+    "referenced_tags": [
+      "-F2",
+      "-M1",
+      "-S1"
+    ],
+    "part_kinds": {
+      "-F2": "Schutz",
+      "-M1": "Motor",
+      "-S1": "Taster"
+    },
+    "plan_spots": [
+      {
+        "tag": "-F2",
+        "document_id": "offline-80616d191a31",
+        "filename": "01_Stromlaufplan_FB-01.pdf",
+        "page": 3,
+        "sheet": 3,
+        "title": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)",
+        "column": 2
+      },
+      {
+        "tag": "-M1",
+        "document_id": "offline-80616d191a31",
+        "filename": "01_Stromlaufplan_FB-01.pdf",
+        "page": 3,
+        "sheet": 3,
+        "title": "Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)",
+        "column": 5
+      },
+      {
+        "tag": "-S1",
+        "document_id": "offline-80616d191a31",
+        "filename": "01_Stromlaufplan_FB-01.pdf",
+        "page": 4,
+        "sheet": 4,
+        "title": "Not-Halt-Kreis und Bedientaster",
+        "column": 6
+      }
+    ],
+    "citations_valid": {
+      "valid": 2,
+      "checked": 1,
+      "total": 2
+    }
+  },
+  "signal": {
+    "start": "-F2",
+    "view": "main",
+    "columns": [
+      "feld",
+      "klemme_vor",
+      "sps_eingang",
+      "programm",
+      "sps_ausgang",
+      "klemme_nach",
+      "verbraucher"
+    ],
+    "nodes": [
+      {
+        "id": "-F2",
+        "kind": "device",
+        "label": "Motorschutzschalter Foerdermotor 2,5-4 A",
+        "ref": "/3.2",
+        "detail": "",
+        "main": true,
+        "column": "feld",
+        "order": 0,
+        "branches": 0,
+        "parent": null
+      },
+      {
+        "id": "-X3:3",
+        "kind": "terminal",
+        "label": "Motorschutz ok",
+        "ref": "/5.3",
+        "detail": "",
+        "main": true,
+        "column": "klemme_vor",
+        "order": 1,
+        "branches": 0,
+        "parent": null
+      },
+      {
+        "id": "E0.2",
+        "kind": "address",
+        "label": "MSS_OK · Motorschutz -F2 Hilfskontakt (1 = ok)",
+        "ref": "S. 5",
+        "detail": "",
+        "main": true,
+        "column": "sps_eingang",
+        "order": 2,
+        "branches": 1,
+        "parent": null
+      },
+      {
+        "id": "FB 10/NW4",
+        "kind": "network",
+        "label": "Stoerung Motorschutz",
+        "ref": "FB 10 NW 4",
+        "detail": "//Motorschutz -F2 ausgeloest: Sammelstoerung setzen. Quittierung mit Start bei stehendem Band.\n      UN    #MSS_OK;\n      S     #Stoerung;\n      U     #Start;\n      UN    #Freigabe;\n      U     #MSS_OK;\n      R     #Stoerung;",
+        "main": true,
+        "column": "programm",
+        "order": 3,
+        "branches": 2,
+        "parent": null
+      },
+      {
+        "id": "A4.3",
+        "kind": "address",
+        "label": "H2_Stoerung · Meldeleuchte -H2 Stoerung rot",
+        "ref": "S. 6",
+        "detail": "",
+        "main": true,
+        "column": "sps_ausgang",
+        "order": 4,
+        "branches": 3,
+        "parent": null
+      },
+      {
+        "id": "-X3:12",
+        "kind": "terminal",
+        "label": "Meldeleuchte Stoerung",
+        "ref": "/6.3",
+        "detail": "",
+        "main": true,
+        "column": "klemme_nach",
+        "order": 5,
+        "branches": 0,
+        "parent": null
+      },
+      {
+        "id": "-H2",
+        "kind": "device",
+        "label": "Meldeleuchte Stoerung (rot)",
+        "ref": "/6.5",
+        "detail": "",
+        "main": true,
+        "column": "verbraucher",
+        "order": 6,
+        "branches": 0,
+        "parent": null
+      },
+      {
+        "id": "FB 10/NW1",
+        "kind": "network",
+        "label": "Selbsthaltung Betrieb",
+        "ref": "FB 10 NW 1",
+        "detail": "//Start setzt die Freigabe, Stop (Oeffner), Motorschutz oder Not-Halt setzen zurueck.\n//Wiederanlaufsperre: nach Not-Halt ist ein neuer Start noetig.\n      U(    ;\n      O     #Start;\n      O     #Freigabe;\n      )     ;\n      U     #Stop;\n      U     #MSS_OK;\n      U     #NotHalt_OK;\n      UN    #Stoerung;\n      =     #Freigabe;",
+        "main": false,
+        "column": null,
+        "order": null,
+        "branches": 4,
+        "parent": "E0.2"
+      },
+      {
+        "id": "E0.0",
+        "kind": "address",
+        "label": "Start · Taster Start, Schliesser",
+        "ref": "S. 5",
+        "detail": "",
+        "main": false,
+        "column": null,
+        "order": null,
+        "branches": 2,
+        "parent": "FB 10/NW4"
+      },
+      {
+        "id": "FB 10#Freigabe",
+        "kind": "variable",
+        "label": "Selbsthaltung Betrieb",
+        "ref": "",
+        "detail": "",
+        "main": false,
+        "column": null,
+        "order": null,
+        "branches": 4,
+        "parent": "FB 10/NW4"
+      },
+      {
+        "id": "FB 10/NW5",
+        "kind": "network",
+        "label": "Stoerung Blockade Band",
+        "ref": "FB 10 NW 5",
+        "detail": "//Teil am Einlauf erkannt, aber innerhalb von 20 s nicht am Auslauf: Blockade.\n      U     #LS_Einlauf;\n      U     #Vorwaerts;\n      L     S5T#20S;\n      SE    T     5;\n      U     #LS_Auslauf;\n      R     T     5;\n      U     T     5;\n      S     #Stoerung;",
+        "main": false,
+        "column": null,
+        "order": null,
+        "branches": 4,
+        "parent": "A4.3"
+      },
+      {
+        "id": "OB 1/NW2",
+        "kind": "network",
+        "label": "Sammelstoerung Merker",
+        "ref": "OB 1 NW 2",
+        "detail": "//Stoerung fuer Visualisierung spiegeln\n      U     A      4.3;\n      =     M     10.0;",
+        "main": false,
+        "column": null,
+        "order": null,
+        "branches": 1,
+        "parent": "A4.3"
+      }
+    ],
+    "edges": [
+      {
+        "source": "-F2",
+        "target": "-X3:3",
+        "via": [
+          "klemmenplan",
+          "lage"
+        ],
+        "directed": true,
+        "pins": {
+          "from": "13",
+          "to": null
+        }
+      },
+      {
+        "source": "-X3:12",
+        "target": "-H2",
+        "via": [
+          "klemmenplan",
+          "lage"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "-X3:3",
+        "target": "E0.2",
+        "via": [
+          "klemmenplan",
+          "leitung"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "A4.3",
+        "target": "-X3:12",
+        "via": [
+          "klemmenplan",
+          "leitung"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "A4.3",
+        "target": "FB 10/NW1",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "A4.3",
+        "target": "OB 1/NW2",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "E0.0",
+        "target": "FB 10/NW1",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "E0.0",
+        "target": "FB 10/NW4",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "E0.2",
+        "target": "FB 10/NW1",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "E0.2",
+        "target": "FB 10/NW4",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "FB 10#Freigabe",
+        "target": "FB 10/NW1",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "FB 10#Freigabe",
+        "target": "FB 10/NW4",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "FB 10/NW1",
+        "target": "FB 10#Freigabe",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "FB 10/NW4",
+        "target": "A4.3",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      },
+      {
+        "source": "FB 10/NW5",
+        "target": "A4.3",
+        "via": [
+          "awl"
+        ],
+        "directed": true,
+        "pins": {
+          "from": null,
+          "to": null
+        }
+      }
+    ],
+    "schematic": {
+      "document_id": "offline-80616d191a31",
+      "filename": "01_Stromlaufplan_FB-01.pdf"
+    }
+  }
+}
