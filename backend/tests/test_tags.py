@@ -256,6 +256,23 @@ def test_normalize_versteht_klemmen_mit_leerzeichen():
     assert "-X420:3" in search_prefixes("x420 3")
 
 
+def test_adressbereich_einer_sps_karte_liefert_beide_enden():
+    """Issue #92: "E8.0..E9.7" auf der SPS-Uebersicht; ohne Leerzeichen fielen beide Enden weg."""
+    plc = TagType.PLC_ADDRESS
+    assert {("E8.0", plc), ("E9.7", plc)} <= _tags("SM 1221 E8.0..E9.7 DI 16x24VDC")
+    assert {("A16.0", plc), ("A17.7", plc)} <= _tags("SM 1222 A16.0..A17.7 DQ 16x24VDC")
+    both = _tags("CPU 1215C E0.0..E1.5 / A0.0..A1.1")
+    assert {("E0.0", plc), ("E1.5", plc), ("A0.0", plc), ("A1.1", plc)} <= both
+    assert {("E0.0", plc), ("E1.5", plc)} <= _tags("%I0.0..%I1.5")  # internationale Mnemonik
+    assert ("E8.1", plc) not in _tags("E8.0..E9.7")  # der Bereich wird nicht aufgeblaeht
+    (start,) = [t for t in extract_tags("Karte -D403 E8.0..E9.7") if t.tag == "E8.0"]
+    assert "E8.0..E9.7" in start.context
+
+
+def test_kein_adressbereich_aus_versionsnummern():
+    assert not [t for t in extract_tags("Firmware 1.0..2.0") if t.tag_type == TagType.PLC_ADDRESS]
+
+
 def test_tabellenzeile_wird_bereinigt_leere_und_verdoppelte_zellen():
     """Docling wiederholt verbundene Zellen und laesst leere stehen; der Kontext soll eine saubere Zeile sein."""
     row = "| 6 | 6 | Emergency Stop Circuit | Emergency Stop Circuit | 6KE1 | 6KE1 | | | Emergency Contactor | Schneider Electric |"
