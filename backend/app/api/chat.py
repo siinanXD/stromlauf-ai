@@ -4,7 +4,7 @@ import logging
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
 from sqlalchemy import select
@@ -24,6 +24,7 @@ from app.schemas import (
     CitationValidateOut,
     CitationValidateRequest,
     ConversationOut,
+    ConversationPatch,
     MessageOut,
     SourceRef,
     ToolCallOut,
@@ -133,12 +134,42 @@ async def _close_dangling_tool_calls(graph, config: dict) -> None:
 
 
 @router.get("/conversations", response_model=list[ConversationOut])
-def list_conversations(source_id: str | None = None, session: Session = Depends(get_session)):
-    """Alle Chats; mit source_id nur die, deren Scope genau diese Quelle ist (Maschinen-Chat)."""
+def list_conversations(
+    source_id: str | None = None,
+    machine_id: str | None = None,
+    session: Session = Depends(get_session),
+):
+    """Alle Chats; mit source_id nur die, deren Scope genau diese Quelle ist (Maschinen-Chat).
+
+    machine_id liefert dasselbe wie source_id mit der Quelle der Maschine: die Stoerfaelle der Maschinenseite kommen
+    so in einem Abruf, ohne erst die Maschine zu laden."""
+    if source_id is not None and machine_id is not None:
+        raise HTTPException(422, "Entweder source_id oder machine_id angeben, nicht beides")
+    if machine_id is not None:
+        machine = session.get(Machine, machine_id)
+        if machine is None or not same_workspace(machine):
+            raise HTTPException(404, "Maschine nicht gefunden")
+        if not machine.source_id:
+            raise HTTPException(404, "Maschine hat keine Wissensquelle und damit keine Stoerfaelle")
+        source_id = machine.source_id
     rows = session.scalars(select(Conversation).order_by(Conversation.updated_at.desc())).all()
     if source_id:
         rows = [c for c in rows if list(c.source_ids or []) == [source_id]]
     return rows
+
+
+@router.patch("/conversations/{conversation_id}", response_model=ConversationOut)
+def update_conversation(
+    conversation_id: str, body: ConversationPatch, session: Session = Depends(get_session)
+):
+    """Stoerfall abschliessen (outcome resolved, optional mit Befund) oder wieder oeffnen."""
+    conversation = session.get(Conversation, conversation_id)
+    if conversation is None or not same_workspace(conversation):
+        raise HTTPException(404, "Chat nicht gefunden")
+    for key, value in body.model_dump(exclude_unset=True, exclude_none=True).items():
+        setattr(conversation, key, value)
+    session.commit()
+    return conversation
 
 
 @router.delete("/conversations/{conversation_id}", status_code=204)
@@ -203,16 +234,34 @@ def _history_meta(
         ]
 
 
+MESSAGE_PAGE_MAX = 200
+
+
+def message_page(
+    history: list[MessageOut], limit: int | None, before: int | None
+) -> list[MessageOut]:
+    """Nachrichten mit ihrer Position im ganzen Verlauf (index). before ist exklusiv, limit nimmt die letzten
+    Nachrichten davor, in zeitlicher Reihenfolge; ohne beide kommt der ganze Verlauf."""
+    for index, message in enumerate(history):
+        message.index = index
+    end = len(history) if before is None else max(0, min(before, len(history)))
+    start = 0 if limit is None else max(0, end - limit)
+    return history[start:end]
+
+
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageOut])
 async def get_messages(
     conversation_id: str,
     request: Request,
     machine_id: str | None = None,
+    limit: int | None = Query(default=None, ge=1, le=MESSAGE_PAGE_MAX),
+    before: int | None = Query(default=None, ge=0),
     session: Session = Depends(get_session),
 ):
     """Verlauf eines Chats. Jede Antwort traegt ihr meta (Bauteile, Belege, geprueft Zitate) wie im Live-Stream,
     deterministisch nachgerechnet und ohne Modellaufruf; machine_id liefert die Schaltschrank-Belege der Maschine
-    (ohne Angabe: die Maschine der einzigen Quelle des Chats)."""
+    (ohne Angabe: die Maschine der einzigen Quelle des Chats). limit und before liefern ein Stueck des Verlaufs
+    (message_page); meta wird nur fuer dieses Stueck gerechnet."""
     conversation = session.get(Conversation, conversation_id)
     if conversation is None or not same_workspace(conversation):
         raise HTTPException(404, "Chat nicht gefunden")
@@ -225,7 +274,7 @@ async def get_messages(
         machine_id = ledger.machine_for_source(session, source_ids[0])
     graph = request.app.state.graph
     state = await graph.aget_state(_thread_config(conversation_id, []))
-    history = _history(state.values.get("messages", []))
+    history = message_page(_history(state.values.get("messages", [])), limit, before)
     # Im Threadpool: der Zitat-Resolver schlaegt Blaetter per pdfium (globaler Lock) nach
     metas = await run_in_threadpool(_history_meta, history, source_ids, machine_id)
     for message, meta in zip(history, metas, strict=True):

@@ -21,6 +21,7 @@ from app.models import (
     TagOccurrence,
 )
 from app.retrieval import hybrid_chunk_ids
+from app.werk.faults import fault_matches
 
 
 def _source_ids(config: RunnableConfig) -> list[str]:
@@ -268,20 +269,6 @@ def list_documents(config: RunnableConfig) -> str:
             f"document_id={document.id}"
             for document, source in rows
         )
-
-
-def fault_matches(fault: dict, query: str) -> bool:
-    """Woertlich in Code, Symptom, Ursache, Behebung oder als Kennzeichen in tags (Schreibweise egal)."""
-    needle = query.strip().lower()
-    if not needle:
-        return True
-    haystack = " ".join(
-        str(fault.get(k, "")) for k in ("code", "symptom", "cause", "fix", "doc_ref")
-    ).lower()
-    if needle in haystack:
-        return True
-    normalized = normalize_tag(query)
-    return any(normalize_tag(str(t)) == normalized for t in fault.get("tags") or [])
 
 
 def format_faults(rows: list[dict], query: str, limit: int = 20) -> str:

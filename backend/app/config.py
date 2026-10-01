@@ -62,6 +62,12 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3100"
 
+    # Planleser per Modell (app/ingestion/plan_model.py), zuschaltbar: leer = aus, keine Seite verlaesst den
+    # Rechner. Name wie CHAT_MODEL ("openai:gpt-5-mini"). Mit Basis-URL spricht "openai:<modell>" einen
+    # OpenAI-kompatiblen Endpunkt an (Ollama: http://localhost:11434/v1), der Schluessel darf dann fehlen.
+    plan_reader_model: str = ""
+    plan_reader_base_url: str = ""
+
     # Ablauf-Visualisierung (app/flow): kleines Modell fuer I/O und Sensor/Aktor, starkes fuer Schrittkette
     flow_model_small: str = "claude-haiku-4-5"
     flow_model_strong: str = "claude-opus-5"

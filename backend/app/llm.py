@@ -15,6 +15,8 @@ from app.config import get_settings
 
 PROVIDER_ENV = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}
 _OPENAI_PREFIXES = ("gpt-", "o1", "o3", "o4")
+# Platzhalter fuer lokale OpenAI-kompatible Endpunkte ohne Schluessel (Ollama prueft ihn nicht)
+LOCAL_API_KEY = "lokal"
 
 
 class MissingKeyError(RuntimeError):
@@ -63,6 +65,21 @@ def missing_key(name: str, settings=None) -> str | None:
     return None if api_key_for(provider, settings) else PROVIDER_ENV[provider]
 
 
+def is_reasoning_model(name: str) -> bool:
+    """OpenAI-Modell, das vor der Antwort nachdenkt (gpt-5*, o1/o3/o4, nicht gpt-5-chat): Die Denk-Tokens
+    zaehlen als Ausgabe und gegen max_tokens."""
+    try:
+        provider, model = split_model(name)
+    except ValueError:
+        return False
+    model = model.lower()
+    return (
+        provider == "openai"
+        and model.startswith(("gpt-5", "o1", "o3", "o4"))
+        and "chat" not in model
+    )
+
+
 def make_chat_model(
     name: str,
     *,
@@ -70,10 +87,25 @@ def make_chat_model(
     max_retries: int = 3,
     streaming: bool = False,
     timeout: float | None = None,
+    base_url: str | None = None,
+    reasoning_effort: str | None = None,
 ):
-    """Chatmodell fuer den Namen; bricht laut ab, wenn der Schluessel des Providers fehlt."""
+    """Chatmodell fuer den Namen; bricht laut ab, wenn der Schluessel des Providers fehlt.
+
+    base_url: OpenAI-kompatibler Endpunkt fuer "openai:<modell>", etwa Ollama unter http://localhost:11434/v1.
+    Der Schluessel des Anbieters geht nie an eine fremde Basis-URL; das OpenAI-SDK verlangt trotzdem einen
+    und bekommt LOCAL_API_KEY. Ein Endpunkt mit eigenem Schluessel wird damit (noch) nicht unterstuetzt.
+    reasoning_effort: "minimal" | "low" | "medium" | "high" fuer OpenAI-Reasoning-Modelle (is_reasoning_model);
+    Feld `reasoning_effort` von ChatOpenAI (langchain-openai 1.6). Andere Modelle lehnen den Parameter ab.
+    """
     provider, model = split_model(name)
-    key = api_key_for(provider)
+    if base_url and provider != "openai":
+        raise ValueError(
+            f"Basis-URL nur fuer OpenAI-kompatible Endpunkte; schreib openai:<modell> statt {name!r}"
+        )
+    if reasoning_effort and not is_reasoning_model(name):
+        raise ValueError(f"reasoning_effort nur fuer OpenAI-Reasoning-Modelle, nicht fuer {name!r}")
+    key = LOCAL_API_KEY if base_url else api_key_for(provider)
     if not key:
         raise MissingKeyError(
             PROVIDER_ENV[provider],
@@ -86,6 +118,10 @@ def make_chat_model(
         "max_retries": max_retries,
         "streaming": streaming,
     }
+    if base_url:
+        kwargs["base_url"] = base_url
+    if reasoning_effort:
+        kwargs["reasoning_effort"] = reasoning_effort
     if timeout is not None:
         kwargs["timeout"] = timeout
     return init_chat_model(model, **kwargs)
