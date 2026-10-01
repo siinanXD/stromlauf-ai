@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Factory, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Factory, Maximize2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { toast } from "sonner";
 
 import { api, locate, searchTags, type LocateResult } from "@/lib/api";
@@ -29,7 +30,6 @@ export interface PageTarget {
 export function PageViewer({ target, onClose, docked = false }: { target: PageTarget; onClose: () => void; docked?: boolean }) {
   const router = useRouter();
   const [page, setPage] = useState<number | null>(target.page ?? null);
-  const [zoomed, setZoomed] = useState(false);
   const [failed, setFailed] = useState(false);
   const [located, setLocated] = useState<LocateResult | null>(null);
   const [machineId, setMachineId] = useState<string | null>(null);
@@ -119,9 +119,6 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
       >
         <header className="flex items-center gap-2 bg-nav px-4 py-2.5 text-white">
           <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold uppercase tracking-[0.06em]">{title}</span>
-          <button className="p-1 hover:text-white/70" onClick={() => setZoomed(!zoomed)} aria-label={zoomed ? "Einpassen" : "Zoom"}>
-            {zoomed ? <ZoomOut className="size-4" /> : <ZoomIn className="size-4" />}
-          </button>
           <button className="p-1 hover:text-white/70" onClick={onClose} aria-label="Schließen">
             <X className="size-4" />
           </button>
@@ -130,35 +127,13 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
           {target.filename} · {page === null ? "Blatt wird gesucht …" : `S. ${page}`}
           {target.pageCount ? ` / ${target.pageCount}` : ""}
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-white">
+        <div className="min-h-0 flex-1 overflow-hidden bg-white">
           {page === null ? (
             <p className="p-8 text-center text-sm text-muted-foreground">Lade {target.reference} …</p>
           ) : failed ? (
             <p className="p-8 text-center text-sm text-muted-foreground">Seite {page} konnte nicht geladen werden.</p>
           ) : (
-            <div className={cn("relative", zoomed ? "w-[200%]" : "w-full")}>
-              {/* Seitenbilder kommen dynamisch vom Backend; next/image bringt hier nichts. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                key={page}
-                src={api.pageImageUrl(target.documentId, page)}
-                alt={`${target.filename}, Seite ${page}`}
-                onError={() => setFailed(true)}
-                onClick={() => setZoomed(!zoomed)}
-                className={cn("block h-auto w-full", zoomed ? "cursor-zoom-out" : "cursor-zoom-in")}
-              />
-              {box && (
-                <div
-                  className="pointer-events-none absolute border-2 border-primary bg-primary/10"
-                  style={{
-                    left: `${box.x0 * 100}%`,
-                    top: `${box.y0 * 100}%`,
-                    width: `${(box.x1 - box.x0) * 100}%`,
-                    height: `${(box.y1 - box.y0) * 100}%`,
-                  }}
-                />
-              )}
-            </div>
+            <PageCanvas documentId={target.documentId} filename={target.filename} page={page} box={box} onError={() => setFailed(true)} />
           )}
         </div>
         <footer className="flex items-center gap-3 border-t border-line px-4 py-2.5 text-sm">
@@ -181,5 +156,70 @@ export function PageViewer({ target, onClose, docked = false }: { target: PageTa
         </footer>
       </div>
     </div>
+  );
+}
+
+const zoomButton = "flex size-11 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground";
+
+/**
+ * Seitenbild mit Spaltenbox, zoom- und verschiebbar: Mausrad, Ziehen, zwei Finger, Doppelklick, dazu Knoepfe. Die
+ * Box liegt im Zoom-Inhalt und bleibt so ueber ihrer Spalte. Der Behaelter bestimmt die Groesse; das Bild fuellt
+ * seine Breite, eine hohe Seite verschiebt man.
+ */
+export function PageCanvas({
+  documentId,
+  filename,
+  page,
+  box,
+  onError,
+}: {
+  documentId: string;
+  filename: string;
+  page: number;
+  box: LocateResult["box"];
+  onError?: () => void;
+}) {
+  return (
+    <TransformWrapper key={`${documentId}:${page}`} minScale={1} maxScale={8} doubleClick={{ mode: "toggle", step: 1 }}>
+      {({ zoomIn, zoomOut, resetTransform }) => (
+        <div className="relative size-full">
+          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%" }}>
+            <div className="relative w-full cursor-grab active:cursor-grabbing">
+              {/* Seitenbilder kommen dynamisch vom Backend; next/image bringt hier nichts. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={api.pageImageUrl(documentId, page)}
+                alt={`${filename}, Seite ${page}`}
+                onError={onError}
+                draggable={false}
+                className="block h-auto w-full"
+              />
+              {box && (
+                <div
+                  className="pointer-events-none absolute border-2 border-primary bg-primary/10"
+                  style={{
+                    left: `${box.x0 * 100}%`,
+                    top: `${box.y0 * 100}%`,
+                    width: `${(box.x1 - box.x0) * 100}%`,
+                    height: `${(box.y1 - box.y0) * 100}%`,
+                  }}
+                />
+              )}
+            </div>
+          </TransformComponent>
+          <div className="absolute right-2 bottom-2 flex border border-line bg-card">
+            <button type="button" className={zoomButton} onClick={() => zoomIn()} aria-label="Vergrößern" title="Vergrößern">
+              <ZoomIn className="size-4" />
+            </button>
+            <button type="button" className={zoomButton} onClick={() => zoomOut()} aria-label="Verkleinern" title="Verkleinern">
+              <ZoomOut className="size-4" />
+            </button>
+            <button type="button" className={zoomButton} onClick={() => resetTransform()} aria-label="Einpassen" title="Einpassen">
+              <Maximize2 className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </TransformWrapper>
   );
 }
