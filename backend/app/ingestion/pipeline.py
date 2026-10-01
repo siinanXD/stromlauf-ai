@@ -4,7 +4,7 @@ import logging
 import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -18,7 +18,7 @@ from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
 from app.ingestion.pdf_layout import SheetMap, sheet_map
-from app.ingestion.tags import detect_folio_style, extract_tags
+from app.ingestion.tags import detect_folio_style, detect_spaced_terminals, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence, TagType
@@ -43,6 +43,7 @@ class Piece:
     meta: dict = field(default_factory=dict)
     plc_loose: bool = False  # "A 1.0" mit Leerzeichen als SPS-Adresse werten
     folio_style: bool = False  # Kennzeichen ohne Minus im Blatt-Stil (4Q1, 9K1) werten, siehe tags.detect_folio_style
+    spaced_terminals: bool = False  # "X420 3" als Klemme werten, siehe tags.detect_spaced_terminals
 
 
 @dataclass(frozen=True)
@@ -136,16 +137,9 @@ def _splitter() -> RecursiveCharacterTextSplitter:
 def _split(piece: Piece) -> list[Piece]:
     if len(piece.content) <= get_settings().chunk_size:
         return [piece]
+    # replace behaelt Seite, Abschnitt und jeden Lesemodus, auch spaeter hinzukommende
     return [
-        Piece(
-            part,
-            piece.kind,
-            piece.page,
-            piece.section,
-            dict(piece.meta),
-            piece.plc_loose,
-            piece.folio_style,
-        )
+        replace(piece, content=part, meta=dict(piece.meta))
         for part in _splitter().split_text(piece.content)
     ]
 
@@ -161,7 +155,10 @@ def tag_rows(pieces: list[Piece]) -> list[TagRow]:
     seen: set[tuple] = set()
     for piece in pieces:
         for tag in extract_tags(
-            piece.content, plc_loose=piece.plc_loose, folio_style=piece.folio_style
+            piece.content,
+            plc_loose=piece.plc_loose,
+            folio_style=piece.folio_style,
+            spaced_terminals=piece.spaced_terminals,
         ):
             key = (tag.tag, tag.tag_type, piece.page, piece.section)
             if key in seen:
@@ -327,6 +324,7 @@ def _image_pieces(path: Path) -> list[Piece]:
                 section=f"Seite {number}" if len(frames) > 1 else "",
                 meta=meta,
                 folio_style=detect_folio_style(text),
+                spaced_terminals=detect_spaced_terminals(text),
             )
         )
     return pieces
@@ -354,6 +352,7 @@ def document_pieces(
     sheet_of = sheet_map(path).page_sheets if path.suffix.lower() == ".pdf" else None
     titles, parts_pages = page_titles(parsed, sheet_of)
     folio = detect_folio_style("\n".join(p.raw_text or p.markdown for p in parsed))
+    spaced = detect_spaced_terminals("\n".join(p.raw_text or p.markdown for p in parsed))
     pieces = [
         Piece(
             p.text,
@@ -361,6 +360,7 @@ def document_pieces(
             page=p.page,
             section=titles.get(p.page, "") if p.page else "",
             folio_style=folio,
+            spaced_terminals=spaced,
         )
         for p in parsed
         if p.text.strip()

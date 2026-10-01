@@ -1,4 +1,10 @@
-from app.ingestion.tags import detect_folio_style, extract_tags, normalize_tag, search_prefixes
+from app.ingestion.tags import (
+    detect_folio_style,
+    detect_spaced_terminals,
+    extract_tags,
+    normalize_tag,
+    search_prefixes,
+)
 from app.models import TagType
 
 
@@ -207,6 +213,47 @@ def test_normalize_laesst_folio_kennzeichen_stehen():
     assert normalize_tag("9k1") == "9K1"
     assert normalize_tag(" 6KEP1 ") == "6KEP1"
     assert "9K1" in search_prefixes("9k1")
+
+
+# Schweizer Elektroschema (Issue #91): Klemmleiste ohne Minus, Leerzeichen statt Doppelpunkt
+SPACED_TEXT = """X420 1 X420 2
+-S421 Taster oben links X420 3 DI b .3 E1.3 -D401
+-S422 Taster oben rechts X420 4 DI a .1 E0.1 -D401
+-S423 X420 5 E0.2   -S424 X420 6 E0.3
+-H427 X420 9 A0.0 -W420 (10x4x0,5) PROFINET X1 P2 X1 P1
+"""
+
+
+def test_klemmen_mit_leerzeichen_nur_im_passenden_stil():
+    assert not {t.tag for t in extract_tags(SPACED_TEXT)} & {"-X420", "-X420:3"}
+    spaced = {t.tag: t for t in extract_tags(SPACED_TEXT, spaced_terminals=True)}
+    for tag in ("-X420", "-X420:1", "-X420:3", "-X420:9"):
+        assert tag in spaced and spaced[tag].tag_type == TagType.TERMINAL, tag
+    # der Kontext behaelt die Schreibweise des Dokuments
+    assert "X420 3" in spaced["-X420:3"].context
+    # Profinet-Ports und Leitungsangaben sind keine Klemmen, Geraete bleiben Geraete
+    for wrong in ("-X1", "-X1:P2", "-X10", "-X4"):
+        assert wrong not in spaced, wrong
+    assert spaced["-S421"].tag_type == TagType.DEVICE and "E1.3" in spaced
+
+
+def test_keine_klemme_mit_leerzeichen_aus_dezimalzahl_oder_minus_kennzeichen():
+    found = {t.tag for t in extract_tags("X2 2.5 mm X3 4,5 -X7 2", spaced_terminals=True)}
+    assert not {"-X2:2", "-X3:4", "-X7:2"} & found
+
+
+def test_stil_mit_leerzeichen_braucht_mehrere_klemmen_und_ueberwiegt_den_minus_stil():
+    assert detect_spaced_terminals(SPACED_TEXT) is True
+    # zu wenige Treffer fuer eine Stilentscheidung
+    assert detect_spaced_terminals("X1 1 X1 2 X1 3 X1 4") is False
+    dashed = " ".join(f"-X1:{n}" for n in range(1, 11))
+    assert detect_spaced_terminals(SPACED_TEXT + dashed) is False  # Minus-Stil ueberwiegt
+
+
+def test_normalize_versteht_klemmen_mit_leerzeichen():
+    assert normalize_tag("X420 3") == "-X420:3"
+    assert normalize_tag(" x7 12 ") == "-X7:12"
+    assert "-X420:3" in search_prefixes("x420 3")
 
 
 def test_tabellenzeile_wird_bereinigt_leere_und_verdoppelte_zellen():
