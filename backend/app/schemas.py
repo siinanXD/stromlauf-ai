@@ -127,6 +127,8 @@ class MessageOut(BaseModel):
     # Antwort-Vertrag wie das meta-Event des Streams (referenced_tags, citations, evidence, citation_checks,
     # citations_valid), fuer Antworten im Verlauf nachgerechnet (Issue #47); None bei Nutzerfragen
     meta: dict | None = None
+    # Position im ganzen Verlauf (0 = erste Nachricht), fuer das Nachladen aelterer Nachrichten
+    index: int = 0
 
 
 class ChatRequest(BaseModel):
