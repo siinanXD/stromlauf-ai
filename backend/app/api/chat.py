@@ -17,7 +17,7 @@ from app.api.answer_meta import build_meta, known_device_tags, tags_in_answer
 from app.citations import check_answer
 from app.config import get_settings
 from app.db import get_session, session_scope
-from app.llm import PROVIDER_ENV, api_key_for, split_model
+from app.llm import missing_key
 from app.models import Conversation, KnowledgeSource, Machine
 from app.schemas import (
     ChatRequest,
@@ -84,13 +84,12 @@ def effective_model(requested: str | None) -> str:
     settings = get_settings()
     name = (requested or "").strip() or settings.chat_model
     try:
-        provider, _ = split_model(name)
+        key = missing_key(name, settings)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    if not api_key_for(provider, settings):
+    if key:
         raise HTTPException(
-            400,
-            f"{PROVIDER_ENV[provider]} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten.",
+            400, f"{key} fehlt fuer Modell {name!r}. In .env eintragen und Backend neu starten."
         )
     return name
 

@@ -32,6 +32,19 @@ def test_effective_model_lehnt_unbekannte_modelle_und_fehlende_schluessel_mit_40
     assert "OPENAI_API_KEY" in missing.value.detail
 
 
+def test_effective_model_laesst_lokale_modelle_ohne_schluessel_durch(monkeypatch):
+    monkeypatch.setattr(
+        chat,
+        "get_settings",
+        lambda: SimpleNamespace(chat_model="claude-sonnet-5", anthropic_api_key=None, openai_api_key=None),
+    )
+    assert chat.effective_model("ollama:qwen3.5:4b") == "ollama:qwen3.5:4b"
+    assert chat.effective_model("ollama:qwen3.5:4b@low") == "ollama:qwen3.5:4b@low"
+    with pytest.raises(HTTPException) as bad:
+        chat.effective_model("openai:gpt-5.4-mini@turbo")
+    assert "Aufwand" in bad.value.detail
+
+
 def test_thread_config_traegt_das_modell():
     config = chat._thread_config("conv-1", ["s1"], model="openai:gpt-5-mini")
     assert config["configurable"]["model"] == "openai:gpt-5-mini"

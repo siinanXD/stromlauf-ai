@@ -852,6 +852,25 @@ def test_preis_mit_prompt_cache():
     assert cost_usd("claude-sonnet-5", 1_000_000, 0, cache_read=500_000) == 1.1
 
 
+def test_preise_der_modelle_vom_2026_10_02():
+    """Offizielle Listen (platform.claude.com/docs/en/about-claude/pricing, developers.openai.com/api/docs/pricing):
+    Cache-Treffer kosten meist ein Zehntel, bei Opus 5.5 und gpt-6.1-sol ein Zwanzigstel."""
+    from app.flow.pricing import cost_usd, prices_for
+
+    assert prices_for("claude-opus-5-5-20260901")[:2] == (4.0, 20.0)
+    assert prices_for("claude-sonnet-5-5")[:2] == (2.0, 10.0)
+    assert cost_usd("claude-opus-5-5", 1_000_000, 0, cache_read=1_000_000) == 0.2
+    assert cost_usd("claude-opus-5-5", 1_000_000, 0, cache_creation=1_000_000) == 5.0
+    assert cost_usd("openai:gpt-6.1-sol", 1_000_000, 0, cache_read=1_000_000) == 0.1
+    assert cost_usd("openai:gpt-6-astra", 1_000_000, 1_000_000) == 60.0
+    assert cost_usd("openai:gpt-5.6-terra-2026-06-01", 1_000_000, 1_000_000) == 14.0
+    assert cost_usd("openai:gpt-5.5", 1_000_000, 0) == 5.0  # nicht der gpt-5-Preis
+    assert cost_usd("openai:gpt-5.4-mini", 1_000_000, 0, cache_read=1_000_000) == 0.075
+    assert cost_usd("ollama:qwen3.5:4b", 1_000_000, 1_000_000) == 0.0 and prices_for(
+        "ollama:qwen3.5:4b"
+    ) == (0.0, 0.0, 0.0)
+
+
 def test_parse_sse_summiert_cache_tokens_und_ask_rechnet_sie_ein():
     lines = [
         "event: usage",
@@ -867,7 +886,8 @@ def test_parse_sse_summiert_cache_tokens_und_ask_rechnet_sie_ein():
     )
     run_eval = _load("run_eval")
     assert run_eval.usage_cost(meta["usage"]) == pytest.approx(
-        (200 * 2.0 + 1700 * 0.2 + 100 * 2.5 + 20 * 10.0) / 1_000_000  # 2000 Eingabe, 200 davon frisch
+        (200 * 2.0 + 1700 * 0.2 + 100 * 2.5 + 20 * 10.0)
+        / 1_000_000  # 2000 Eingabe, 200 davon frisch
     )
 
 
