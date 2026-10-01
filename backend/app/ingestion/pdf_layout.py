@@ -27,6 +27,16 @@ FALLBACK_BOTTOM = 0.85
 SEGMENT_GAP = 0.03  # groesserer Abstand in einer Zeile trennt zwei Felder des Schriftfelds
 FIELD_BELOW = 0.05  # Nummer unter einem allein stehenden Feldnamen, hoechstens so weit darunter
 ALIGNED = 0.02  # Feldnamen mit hoechstens diesem Versatz stehen in derselben Spalte
+# Text je Spalte (Issue #90). Woerter einer Beschriftung liegen enger als WORD_GAP, Beschriftungen benachbarter
+# Spalten weiter auseinander. Ab SIGNAL_COLUMNS SPS-Adressen nebeneinander in einer Zeile laufen die Kanaele als
+# Spalten. Bis PATH_REACH Spaltenbreiten gehoert eine Beschriftung zum naechsten Strompfad; breiter als NOTE_SPAN
+# Spalten ist sie ein Hinweis zum Blatt. Das Schriftfeld beginnt TITLE_BAND ueber der Blattnummer.
+WORD_GAP = 0.012
+SAME_ROW = 0.01  # Oberkanten mit hoechstens diesem Versatz stehen in einer Zeile
+SIGNAL_COLUMNS = 3
+PATH_REACH = 0.75
+NOTE_SPAN = 2.0
+TITLE_BAND = 0.02
 
 _LABEL = r"(?:Blatt|Bl\.|Seite|Sheet|Page|Folio)"
 # "Blatt 3 / 7", "Blatt 3 von 7", "Sheet 3 of 7", "Folio : 3", "Bl. 3"
@@ -179,7 +189,7 @@ def _tokens(page: pdfium.PdfPage, angle: int = 0, start: float = 0.0) -> list[_T
     return tokens
 
 
-def _segments(tokens: list[_Token]) -> list[list[_Token]]:
+def _segments(tokens: list[_Token], gap: float = SEGMENT_GAP) -> list[list[_Token]]:
     """Woerter derselben Zeile mit kleinem Abstand: ein Feld des Schriftfelds. Gleiche Zeile heisst ueberlappende
     Hoehe, weil Feldname und Nummer oft verschieden grosse Schrift haben."""
     segments: list[list[_Token]] = []
@@ -188,7 +198,7 @@ def _segments(tokens: list[_Token]) -> list[list[_Token]]:
             last = segment[-1]
             overlap = min(last.bottom, token.bottom) - max(last.top, token.top)
             smaller = max(min(last.bottom - last.top, token.bottom - token.top), 1e-6)
-            if overlap >= 0.5 * smaller and -0.005 <= token.left - last.right < SEGMENT_GAP:
+            if overlap >= 0.5 * smaller and -0.005 <= token.left - last.right < gap:
                 segment.append(token)
                 break
         else:
@@ -351,36 +361,30 @@ def sheet_page(path: Path, sheet: int) -> SheetPage:
     return sheet_map(path).page_of(sheet)
 
 
-def page_columns(path: Path, page: int) -> list[Column]:
-    """Spalten 1..N aus der Kopfzeile; leer, wenn keine erkennbare Nummerierung."""
-    with pdfium_lock:
-        pdf = pdfium.PdfDocument(str(path))
-        try:
-            if not 1 <= page <= len(pdf):
-                return []
-            tokens = _tokens(pdf[page - 1])
-        finally:
-            pdf.close()
+def _column_grid(tokens: list[_Token]) -> tuple[list[Column], list[_Token]]:
+    """Spalten aus der Kopfzeile und die Nummern selbst; ([], []) ohne erkennbare Nummerierung.
 
-    # Laengste Folge 1, 2, 3 ... von links. Nur Nachbarn muessen auf gleicher Hoehe liegen, nicht die ganze Zeile:
-    # Ein 0,5 Grad schief eingescannter Plan faellt ueber die Blattbreite um etwa 0,012 ab (Issue #65).
+    Laengste Folge 1, 2, 3 ... von links, oder 0, 1, 2 ... wie im Schweizer Elektroschema (Issue #90); n ist die
+    gedruckte Nummer. Nur Nachbarn muessen auf gleicher Hoehe liegen, nicht die ganze Zeile: Ein 0,5 Grad schief
+    eingescannter Plan faellt ueber die Blattbreite um etwa 0,012 ab (Issue #65).
+    """
     numbers = sorted(
         (t for t in tokens if t.text.isdigit() and t.top < 1 / 3), key=lambda t: t.left
     )
     best: list[_Token] = []
-    for start in (t for t in numbers if t.text == "1"):
+    for start in (t for t in numbers if t.text in ("0", "1")):
         run = [start]
         for token in numbers:
             if (
                 token.left > run[-1].left
-                and int(token.text) == len(run) + 1
+                and int(token.text) == int(start.text) + len(run)
                 and abs(token.top - run[-1].top) < ROW_TOLERANCE
             ):
                 run.append(token)
         if len(run) > len(best):
             best = run
     if len(best) < MIN_COLUMNS:
-        return []
+        return [], []
 
     centers = [(t.left + t.right) / 2 for t in best]
     half = (centers[-1] - centers[0]) / (len(centers) - 1) / 2
@@ -392,9 +396,10 @@ def page_columns(path: Path, page: int) -> list[Column]:
     top = min(t.top for t in best)
     title = [t.top for t in tokens if t.top > TITLE_BLOCK_START]
     bottom = min(title) - 0.01 if title else FALLBACK_BOTTOM
-    return [
+    first = int(best[0].text)
+    columns = [
         Column(
-            n=i + 1,
+            n=first + i,
             x0=max(bounds[i], 0.0),
             x1=min(bounds[i + 1], 1.0),
             y0=max(top - 0.01, 0.0),
@@ -402,3 +407,121 @@ def page_columns(path: Path, page: int) -> list[Column]:
         )
         for i in range(len(best))
     ]
+    return columns, best
+
+
+def page_columns(path: Path, page: int) -> list[Column]:
+    """Spalten aus der Kopfzeile (1..N oder 0..N); leer, wenn keine erkennbare Nummerierung."""
+    with pdfium_lock:
+        pdf = pdfium.PdfDocument(str(path))
+        try:
+            if not 1 <= page <= len(pdf):
+                return []
+            tokens = _tokens(pdf[page - 1])
+        finally:
+            pdf.close()
+    return _column_grid(tokens)[0]
+
+
+def _reading_order(segments: list[list[_Token]]) -> list[str]:
+    """Zeilen von oben nach unten, in einer Zeile von links nach rechts."""
+    lines: list[str] = []
+    row: list[list[_Token]] = []
+    for segment in sorted(segments, key=lambda s: min(t.top for t in s)):
+        if row and min(t.top for t in segment) - min(t.top for t in row[0]) > SAME_ROW:
+            lines += [_text(s) for s in sorted(row, key=lambda s: s[0].left)]
+            row = []
+        row.append(segment)
+    return lines + [_text(s) for s in sorted(row, key=lambda s: s[0].left)]
+
+
+def _center(segment: list[_Token]) -> float:
+    return (segment[0].left + segment[-1].right) / 2
+
+
+def _column_at(x: float, columns: list[Column]) -> int:
+    """Spalte der Kopfzeile, in der x liegt; ausserhalb des Rasters die naechste."""
+    return min(columns, key=lambda c: max(c.x0 - x, x - c.x1, 0.0)).n
+
+
+def _signal_paths(segments: list[list[_Token]], columns: list[Column]) -> list[tuple[float, int]]:
+    """Strompfade als (x, Spalte) aus der Zeile mit den meisten SPS-Adressen nebeneinander; leer, wenn dort weniger
+    als SIGNAL_COLUMNS stehen. Stehen die Adressen untereinander, laufen die Kanaele als Zeilen: Dann haelt der
+    Rohtext die Zeile zusammen und bleibt.
+
+    Massgeblich ist die Adresse, nicht die Spaltengrenze der Kopfzeile: Der Strompfad liegt oft neben der
+    Spaltenmitte, und Kennzeichen links von ihm ragen in die Nachbarspalte (Schweizer Elektroschema)."""
+    # erst hier importiert: tags importiert die Modelle, pdf_layout soll ohne sie ladbar bleiben
+    from app.ingestion.tags import TagType, extract_tags
+
+    addresses = sorted(
+        (min(t.top for t in segment), _center(segment))
+        for segment in segments
+        if any(tag.tag_type == TagType.PLC_ADDRESS for tag in extract_tags(_text(segment)))
+    )
+    best: dict[int, list[float]] = {}
+    for index, (top, _x) in enumerate(addresses):
+        row: dict[int, list[float]] = {}
+        for other, x in addresses[index:]:
+            if other - top > SAME_ROW:
+                break
+            row.setdefault(_column_at(x, columns), []).append(x)
+        if len(row) > len(best):
+            best = row
+    if len(best) < SIGNAL_COLUMNS:
+        return []
+    return sorted((sum(xs) / len(xs), n) for n, xs in best.items())
+
+
+def _page_column_text(page: pdfium.PdfPage) -> str | None:
+    tokens = _tokens(page)
+    columns, header = _column_grid(tokens)
+    if not columns or _text_angle(page.get_textpage()) != 0:
+        return None
+    label = _page_label(page)
+    # ohne Blattnummer kein eigener Schriftfeld-Block
+    title_top = label.top - TITLE_BAND if label else 2.0
+    numbers = {id(token) for token in header}
+    body = [t for t in tokens if id(t) not in numbers and t.top < title_top]
+    width = sorted(c.x1 - c.x0 for c in columns)[len(columns) // 2]
+    segments, notes = [], []
+    for segment in _segments(body, WORD_GAP):
+        wide = segment[-1].right - segment[0].left > NOTE_SPAN * width
+        (notes if wide else segments).append(segment)
+    paths = _signal_paths(segments, columns)
+    if not paths:
+        return None
+
+    def column_of(segment: list[_Token]) -> int:
+        x = _center(segment)
+        path_x, n = min(paths, key=lambda p: abs(p[0] - x))
+        return n if abs(path_x - x) <= PATH_REACH * width else _column_at(x, columns)
+
+    placed = [(column_of(s), s) for s in segments]
+    blocks = [
+        f"Spalte {n}:\n" + "\n".join(_reading_order([s for c, s in placed if c == n]))
+        for n in sorted({c for c, _ in placed})
+    ]
+    if notes:
+        blocks.append("Hinweise:\n" + "\n".join(_reading_order(notes)))
+    title = [t for t in tokens if id(t) not in numbers and t.top >= title_top]
+    if title:
+        blocks.append("Schriftfeld:\n" + "\n".join(_reading_order(_segments(title, WORD_GAP))))
+    return "\n\n".join(blocks)
+
+
+def column_texts(path: Path) -> dict[int, str]:
+    """Beschriftungen je Spalte fuer Seiten, deren Signalwege als Spalten laufen (Issue #90): "Spalte n:" mit den
+    Zeilen von oben nach unten, das Schriftfeld als eigener Block, die Spaltennummern selbst entfallen. Ein Satz
+    ueber mehrere Spalten bleibt ganz und steht in der Spalte seiner Mitte. Seiten ohne Spaltenraster, gedrehte
+    Seiten und Seiten mit Kanaelen als Zeilen fehlen im Ergebnis: Dort bleibt der Rohtext in pdfium-Reihenfolge."""
+    with pdfium_lock:
+        pdf = pdfium.PdfDocument(str(path))
+        try:
+            texts = {}
+            for index in range(len(pdf)):
+                if text := _page_column_text(pdf[index]):
+                    texts[index + 1] = text
+            return texts
+        finally:
+            pdf.close()

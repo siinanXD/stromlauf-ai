@@ -39,10 +39,14 @@ class ParsedPage:
         Stromlaufplan-Seiten sind fuer Docling oft ein einziges "Bild"; die Beschriftungen
         (BMK, Klemmen, Adressen) stecken dann nur im Rohtext.
         """
+        return self.with_labels(self.raw_text, "Beschriftungen (Rohtext)")
+
+    def with_labels(self, labels: str, heading: str) -> str:
+        """Wie `text`, aber mit anderen Beschriftungen, etwa je Spalte geordnet (pdf_layout.column_texts)."""
         markdown = self.markdown.replace("<!-- image -->", "").strip()
-        raw = self.raw_text.strip()
+        raw = labels.strip()
         if raw and len(markdown) < 0.6 * len(raw):
-            return f"{markdown}\n\n### Beschriftungen (Rohtext)\n{raw}".strip()
+            return f"{markdown}\n\n### {heading}\n{raw}".strip()
         return markdown
 
 
