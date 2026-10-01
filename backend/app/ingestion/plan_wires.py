@@ -70,6 +70,7 @@ ROW = 3.0  # pt: gleiche Hoehe fuer Kanaele in Zeilen und fuer Beschriftungen im
 TERMINAL_MAX = 8.0
 # pt: so nah steht eine Klemme oder Adresse an der Leitung, die durch sie hindurchlaeuft
 BESIDE = 10.0
+SKEW = 0.02  # Steigung einer Zeile auf einem schief eingescannten Blatt, etwa 1 Grad
 LAGE_MIN = 3  # so viele Kanaele muss eine Seite ohne Leiter in Zeilen oder Spalten zeigen
 SPACED_GAP = 10.0  # pt: "X420" und "3" stehen so nah nebeneinander (gemessen bis 9 pt)
 LINE = 2.0  # pt: Woerter mit hoechstens diesem Hoehenversatz stehen in einer Zeile
@@ -483,16 +484,25 @@ def _joined_spots(spots: list[_Spot]) -> list[_Spot]:
     return joined
 
 
+def _addresses(tags: list) -> set[str]:
+    """E/A-Bitadressen; "-A1.1" ist eine SPS-Karte, nicht die Adresse A1.1."""
+    devices = {t.tag for t in tags if t.tag_type == TagType.DEVICE}
+    return {
+        t.tag
+        for t in tags
+        if t.tag_type == TagType.PLC_ADDRESS
+        and _BIT.fullmatch(t.tag)
+        and f"-{t.tag}" not in devices
+    }
+
+
 def _anchor_node(text: str, spaced: bool) -> str | None:
     """Klemme mit Nummer oder E/A-Adresse, wenn das Wort genau eins davon nennt."""
-    found = [
-        t.tag
-        for t in extract_tags(text, spaced_terminals=spaced)
-        if (t.tag_type == TagType.TERMINAL and ":" in t.tag)
-        or (t.tag_type == TagType.PLC_ADDRESS and _BIT.fullmatch(t.tag))
-    ]
-    found = list(dict.fromkeys(found))
-    return found[0] if len(found) == 1 else None
+    tags = extract_tags(text, spaced_terminals=spaced)
+    found = {t.tag for t in tags if t.tag_type == TagType.TERMINAL and ":" in t.tag} | _addresses(
+        tags
+    )
+    return found.pop() if len(found) == 1 else None
 
 
 def _leading(spot: _Spot, spots: list[_Spot]) -> bool:
@@ -692,7 +702,7 @@ def _unique(edges: list[PlanEdge]) -> list[PlanEdge]:
 def _channel(texts: list[str], spaced: bool) -> tuple[str, str, str | None] | None:
     """(Adresse, Klemme, Feldgeraet oder Anschluss) eines Kanals; None, wenn Adresse oder Klemme nicht eindeutig."""
     tags = [t for text in texts for t in extract_tags(text, spaced_terminals=spaced)]
-    addresses = {t.tag for t in tags if t.tag_type == TagType.PLC_ADDRESS and _BIT.fullmatch(t.tag)}
+    addresses = _addresses(tags)
     terminals = {t.tag for t in tags if t.tag_type == TagType.TERMINAL and ":" in t.tag}
     if len(addresses) != 1 or len(terminals) != 1:
         return None
@@ -723,13 +733,26 @@ def _channel_edges(channels: list[tuple[str, str, str | None]], page: int) -> li
 
 
 def _row_channels(spots: list[_Spot], spaced: bool) -> list[tuple[str, str, str | None]]:
-    """Kanaele in Zeilen: Woerter auf der Hoehe einer Adresse (+-ROW)."""
+    """Kanaele in Zeilen: Woerter auf der Linie durch Adresse und Klemme (+-ROW). Die Linie folgt der Klemme, weil ein
+    schief eingescanntes Blatt ueber die Zeilenlaenge mehr als ROW abfaellt (bis SKEW, etwa 1 Grad)."""
     channels = []
     for spot in spots:
         node = _anchor_node(spot.text, False)
         if not node or not _BIT.fullmatch(node):
             continue
-        row = [s.text for s in spots if abs(s.y - spot.y) <= ROW]
+        terminals = [
+            s
+            for s in spots
+            if s is not spot
+            and abs(s.y - spot.y) <= ROW + SKEW * abs(s.x - spot.x)
+            and (found := _anchor_node(s.text, spaced))
+            and not _BIT.fullmatch(found)
+        ]
+        if not terminals:
+            continue
+        terminal = min(terminals, key=lambda s: abs(s.x - spot.x))
+        slope = (terminal.y - spot.y) / (terminal.x - spot.x) if terminal.x != spot.x else 0.0
+        row = [s.text for s in spots if abs(s.y - spot.y - slope * (s.x - spot.x)) <= ROW]
         if (channel := _channel([" ".join(row)], spaced)) and channel[0] == node:
             channels.append(channel)
     return list(dict.fromkeys(channels))
