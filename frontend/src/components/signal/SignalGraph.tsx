@@ -3,8 +3,6 @@
 import "@xyflow/react/dist/style.css";
 
 import {
-  Background,
-  BackgroundVariant,
   BaseEdge,
   Controls,
   EdgeLabelRenderer,
@@ -27,14 +25,15 @@ import type { SignalMainData, SignalMainNode } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { PROVENANCE_CAP, PROVENANCE_DASH, edgeText, onlyProven, provenanceOf, type Provenance } from "./provenance";
-import { SignalLegend } from "./SignalLegend";
-import { COLUMN_LABELS, KIND_LABELS, nodeTitle, orderInColumns, visibleColumns, type GridPosition } from "./signalColumns";
+import { Switch } from "./SignalLegend";
+import { COLUMN_LABELS, KIND_LABELS, nodeTitle, orderInColumns, sheetShort, visibleColumns, type GridPosition } from "./signalColumns";
 
-const COL_W = 236;
-const ROW_H = 92;
-const NODE_W = 192;
-const NODE_H = 64;
-const HEADER_Y = -52;
+// Figma "Desktop · Signalweg Vollbild": Karten 158 px breit, 38 px Verbindung dazwischen
+const COL_W = 196;
+const ROW_H = 140;
+const NODE_W = 158;
+const NODE_H = 116;
+const HEADER_Y = -26;
 
 type SignalNodeData = { node: SignalMainNode; start: boolean; selected: boolean };
 type HeaderNodeData = { label: string };
@@ -68,43 +67,37 @@ function handlesFor(source: GridPosition, target: GridPosition): [string, string
   return source.y <= target.y ? ["b-s", "t-t"] : ["t-s", "b-t"];
 }
 
+/**
+ * Karte eines Knotens: Kennzeichen, Klartext, Blatt, Abzweige. Start blau-hell mit blauem Kennzeichen, gewaehlt mit
+ * blauem Rahmen (beides wie in Figma); "Start" und "gewählt" stehen zusaetzlich im Namen fuer Screenreader.
+ */
 function SignalNodeView({ data }: NodeProps<SignalFlowNode>) {
   const { node, start, selected } = data;
+  const sheet = node.kind === "network" ? "AWL" : sheetShort(node.ref);
   return (
     <div
       className={cn(
-        "flex h-full cursor-pointer flex-col justify-center border px-2.5 py-1.5",
-        selected ? "border-2 border-primary bg-primary-soft" : node.main ? "border-line bg-card" : "border-border bg-secondary",
+        "flex h-full cursor-pointer flex-col gap-1 overflow-hidden rounded-[14px] border-2 p-3 shadow-card",
+        start ? "bg-primary-soft" : node.main ? "bg-card" : "bg-bg-grouped shadow-none",
+        selected ? "border-accent" : node.main ? "border-transparent" : "border-dashed border-line",
       )}
       title={[KIND_LABELS[node.kind], node.label, node.ref].filter(Boolean).join(" · ")}
     >
       <Handles />
-      <div className="flex items-baseline justify-between gap-2">
-        <span className={cn("truncate font-mono text-[13px] font-semibold", node.main ? "text-foreground" : "text-muted-foreground")}>
-          {nodeTitle(node)}
+      <span className={cn("truncate font-mono text-tag font-medium", start ? "text-primary" : node.main ? "text-foreground" : "text-muted-foreground")}>{nodeTitle(node)}</span>
+      <span className="line-clamp-2 text-footnote text-muted-foreground">{node.label || KIND_LABELS[node.kind]}</span>
+      {sheet && <span className="truncate text-caption-1 text-primary">{sheet}</span>}
+      {!start && node.branches > 0 && (
+        <span className="w-fit rounded-full bg-bg-fill px-2 py-0.5 text-caption-2 text-muted-foreground">
+          +{node.branches} {node.branches === 1 ? "Abzweig" : "Abzweige"}
         </span>
-        {start ? (
-          <span className="font-mono text-[10px] uppercase text-primary">Start</span>
-        ) : (
-          node.branches > 0 && (
-            <span className="font-mono text-[10px] text-muted-foreground" title={`${node.branches} Abzweige`}>
-              +{node.branches}
-            </span>
-          )
-        )}
-      </div>
-      <div className="truncate text-[11px] text-muted-foreground">{node.label || KIND_LABELS[node.kind]}</div>
-      {node.ref && node.kind !== "network" && <div className="truncate font-mono text-[10px] text-muted-foreground">{node.ref}</div>}
+      )}
     </div>
   );
 }
 
 function HeaderNodeView({ data }: NodeProps<HeaderFlowNode>) {
-  return (
-    <div className="w-full border-b-2 border-line pb-1 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-      {data.label}
-    </div>
-  );
+  return <div className="w-full text-caption-2 text-muted-foreground uppercase">{data.label}</div>;
 }
 
 /** Anschlussnummer am Kantenende, neben dem Griff und nach aussen versetzt. */
@@ -117,7 +110,7 @@ function PinLabel({ x, y, position, text }: { x: number; y: number; position: Po
   }[position];
   return (
     <div
-      className="nodrag nopan pointer-events-none absolute border border-line bg-card px-1 font-mono text-[10px] leading-4 text-foreground"
+      className="nodrag nopan pointer-events-none absolute rounded-xs bg-background/85 px-0.5 font-mono text-tag-sm font-medium text-primary"
       style={{ transform: `translate(${x}px, ${y}px) ${shift}` }}
     >
       {text}
@@ -187,7 +180,9 @@ function flowElements(all: SignalMainData, shown: SignalMainData, selected: stri
         height: NODE_H,
         data: { node, start: node.id === all.start, selected: node.id === selected },
         draggable: false,
-        ariaLabel: `${nodeTitle(node)}, ${node.label || KIND_LABELS[node.kind]}`,
+        ariaLabel: [nodeTitle(node), node.label || KIND_LABELS[node.kind], node.id === all.start ? "Start" : null, node.id === selected ? "gewählt" : null]
+          .filter(Boolean)
+          .join(", "),
       },
     ];
   });
@@ -198,7 +193,7 @@ function flowElements(all: SignalMainData, shown: SignalMainData, selected: stri
     if (!from || !to) return [];
     const [sourceHandle, targetHandle] = handlesFor(from, to);
     const onMain = main.has(edge.source) && main.has(edge.target);
-    const color = onMain ? "var(--foreground)" : "var(--muted-foreground)";
+    const color = onMain ? "var(--color-text-secondary)" : "var(--color-line-strong)";
     return [
       {
         id: `${index}:${edge.source}->${edge.target}`,
@@ -208,8 +203,8 @@ function flowElements(all: SignalMainData, shown: SignalMainData, selected: stri
         sourceHandle,
         targetHandle,
         data: { provenance: provenanceOf(edge.via), from: edge.pins?.from ?? null, to: edge.pins?.to ?? null },
-        style: { stroke: color, strokeWidth: onMain ? 1.75 : 1.25 },
-        markerEnd: edge.directed ? { type: MarkerType.ArrowClosed, color, width: 14, height: 14 } : undefined,
+        style: { stroke: color, strokeWidth: onMain ? 2 : 1.5 },
+        markerEnd: edge.directed ? { type: MarkerType.ArrowClosed, color, width: 12, height: 12 } : undefined,
         ariaLabel: `${edge.source} nach ${edge.target}: ${edgeText(edge)}${edge.directed ? "" : ", Richtung offen"}`,
         selectable: false,
       },
@@ -237,7 +232,7 @@ export function SignalGraph({
   const flow = useMemo(() => flowElements(data, shown, selected), [data, shown, selected]);
 
   return (
-    <div className="relative size-full">
+    <div className="relative size-full bg-background">
       <ReactFlow
         key={data.start}
         nodes={flow.nodes}
@@ -250,14 +245,19 @@ export function SignalGraph({
         nodesConnectable={false}
         nodesDraggable={false}
         fitView
-        fitViewOptions={{ padding: 0.12 }}
+        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
         minZoom={0.2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Lines} gap={24} color="var(--grid)" lineWidth={0.5} />
-        <Controls position="bottom-right" showInteractive={false} className="!rounded-none !shadow-none [&_button]:!border-border [&_button]:!bg-card" />
-        <Panel position="bottom-left" className="!m-2">
-          <SignalLegend onlyProven={proven} onOnlyProvenChange={setProven} />
+        <Controls
+          position="bottom-right"
+          showInteractive={false}
+          className="!overflow-hidden !rounded-md !shadow-card [&_button]:!size-11 [&_button]:!border-border [&_button]:!bg-card [&_button_svg]:!fill-foreground"
+        />
+        <Panel position="bottom-left" className="!m-3">
+          <div className="rounded-md bg-card px-3 shadow-card">
+            <Switch checked={proven} onChange={setProven} label="Nur Belegtes zeigen" className="gap-4 text-subhead" />
+          </div>
         </Panel>
       </ReactFlow>
     </div>

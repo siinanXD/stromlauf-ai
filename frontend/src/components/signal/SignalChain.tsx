@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Crosshair, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, Crosshair } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 import type { PageTarget } from "@/components/PageViewer";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { isPart, schematicTarget } from "./planTarget";
 import { edgeText, provenanceOf } from "./provenance";
-import { ProvenanceLine } from "./SignalLegend";
+import { PROVENANCE_BORDER, ProvenanceLine } from "./SignalLegend";
 import { COLUMN_LABELS, KIND_LABELS, mainPath, nodeTitle, sheetText } from "./signalColumns";
 
 export interface ChainBranch {
@@ -71,25 +71,15 @@ function relationText(branch: ChainBranch, parent: SignalMainNode): string {
   return branch.edge.source === parent.id ? `kommt von ${name}` : `geht zu ${name}`;
 }
 
-function Connector({ edge }: { edge: SignalMainEdge }) {
-  return (
-    <div className="flex items-center gap-2 py-0.5 pl-[18px] text-[11px] text-muted-foreground">
-      <ProvenanceLine provenance={provenanceOf(edge.via)} vertical className="text-foreground/70" />
-      <span>
-        <span className="sr-only">Herkunft: </span>
-        {edgeText(edge)}
-        {!edge.directed && " · Richtung offen"}
-      </span>
-    </div>
-  );
-}
-
-const followClass =
-  "flex w-12 shrink-0 items-center justify-center border-l border-line text-muted-foreground hover:bg-secondary hover:text-primary";
+/** Kleiner Textknopf (Blatt, AWL, Abzweige): 32 px sichtbar, Trefferflaeche per before: 44 px. */
+const LINK =
+  "relative inline-flex min-h-8 items-center gap-1 text-footnote text-primary before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-[''] hover:underline focus-visible:rounded-xs focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 /**
- * Signalweg als senkrechte Liste, ohne Grafik-Bibliothek: je Hauptwegknoten eine Zeile mit Kennzeichen,
- * Klartext, Blatt und Herkunft der Verbindung davor. Der Abzweig-Zaehler klappt die Abzweige darunter auf.
+ * Signalweg als senkrechte Kette (Figma "Signal-Schritt"), ohne Grafik-Bibliothek: links die Schiene mit Punkt
+ * (Start blau, Ende schwarz) und der Linie zum naechsten Schritt, deren Strichart die Herkunft zeigt (Tabelle
+ * durchgezogen, Leitung gestrichelt, Lage/Modell gepunktet); rechts Kennzeichen, Spalte, Klartext, Blatt als Link
+ * und die Herkunft als Text. Der Abzweig-Zaehler klappt die Abzweige darunter auf.
  */
 export function SignalChain({
   data,
@@ -121,122 +111,119 @@ export function SignalChain({
       return next;
     });
 
-  /** Netzwerk: AWL-Code auf-/zuklappen; Bauteil: Detail oeffnen; Variable: nichts. */
-  const activate = (node: SignalMainNode) => {
-    if (node.kind === "network") setCode((current) => (current === node.id ? null : node.id));
-    else if (isPart(node)) onOpenPart(node.id);
-  };
+  const toggleCode = (id: string) => setCode((current) => (current === id ? null : id));
 
-  const nodeButton = (node: SignalMainNode, children: ReactNode, className: string) => {
-    if (node.kind !== "network" && !isPart(node)) return <div className={className}>{children}</div>;
-    return (
-      <button
-        type="button"
-        className={cn(className, "text-left hover:bg-secondary")}
-        onClick={() => activate(node)}
-        aria-expanded={node.kind === "network" ? code === node.id : undefined}
-        title={node.kind === "network" ? "AWL-Code zeigen" : `${nodeTitle(node)} öffnen`}
-      >
+  /** Kennzeichen und Klartext; bei Bauteilen ein Knopf zum Bauteil-Detail. */
+  const title = (node: SignalMainNode, children: ReactNode, className: string) =>
+    isPart(node) ? (
+      <button type="button" className={cn(className, "rounded-xs text-left hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none")} onClick={() => onOpenPart(node.id)} title={`${nodeTitle(node)} öffnen`}>
         {children}
       </button>
+    ) : (
+      <div className={className}>{children}</div>
     );
-  };
 
   const followButton = (node: SignalMainNode) =>
     onFollow && node.id !== data.start ? (
       <button
         type="button"
-        className={followClass}
+        className="grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-bg-fill hover:text-primary"
         onClick={() => onFollow(node.id)}
         aria-label={`Von ${nodeTitle(node)} weiter verfolgen`}
         title="Von hier weiter verfolgen"
       >
-        <Crosshair className="size-4" />
+        <Crosshair className="size-5" />
       </button>
     ) : null;
 
+  const codeLink = (node: SignalMainNode) => (
+    <button type="button" className={LINK} onClick={() => toggleCode(node.id)} aria-expanded={code === node.id}>
+      {code === node.id ? "AWL ausblenden" : "AWL anzeigen"}
+    </button>
+  );
+
   return (
     <ol className="space-y-0" aria-label={`Signalweg ${data.start}`}>
-      {model.hiddenBefore > 0 && (
-        <li className="px-3 pb-1 text-[11px] text-muted-foreground">… {stepsText(model.hiddenBefore)} davor</li>
-      )}
-      {model.steps.map((step) => {
+      {model.hiddenBefore > 0 && <li className="pb-2 pl-9 text-footnote text-muted-foreground">… {stepsText(model.hiddenBefore)} davor</li>}
+      {model.steps.map((step, index) => {
         const { node } = step;
         const start = node.id === data.start;
+        const outgoing = model.steps[index + 1]?.incoming ?? null;
+        const end = index === model.steps.length - 1 && model.hiddenAfter === 0;
         const sheet = sheetText(node.ref);
         const plan = onOpenPlan ? schematicTarget(node, data.schematic) : null;
         const branchCount = Math.max(node.branches, step.branches.length);
         const expanded = open.has(node.id);
         return (
-          <li key={node.id} data-signal-step={node.id}>
-            {step.incoming && <Connector edge={step.incoming} />}
-            <div className={cn("border bg-card", start ? "border-primary" : "border-line")}>
-              <div className="flex">
-                {nodeButton(
-                  node,
-                  <>
-                    <span className="flex items-baseline gap-2">
-                      <span className="font-mono text-sm font-semibold text-primary">{nodeTitle(node)}</span>
-                      {node.column && <span className="text-[11px] text-muted-foreground">{COLUMN_LABELS[node.column]}</span>}
-                      {start && <span className="ml-auto bg-primary-soft px-1.5 font-mono text-[10px] uppercase text-primary">Start</span>}
-                    </span>
-                    <span className="block truncate text-[13px]">{node.label || KIND_LABELS[node.kind]}</span>
-                    {sheet && !plan && <span className="block font-mono text-[11px] text-muted-foreground">{sheet}</span>}
-                  </>,
-                  "min-h-12 min-w-0 flex-1 px-3 py-2",
-                )}
-                {followButton(node)}
-              </div>
-              {(plan || branchCount > 0) && (
-                <div className="flex flex-wrap border-t border-line">
-                  {plan && onOpenPlan && (
-                    <button
-                      type="button"
-                      className="flex min-h-11 items-center gap-1.5 px-3 font-mono text-[12px] text-primary hover:bg-secondary"
-                      onClick={() => onOpenPlan(plan)}
-                      title="Planseite öffnen"
-                    >
-                      <FileText className="size-3.5" />
+          <li key={node.id} data-signal-step={node.id} className="flex gap-3">
+            <div className="flex w-6 shrink-0 flex-col items-center gap-1 self-stretch px-0.5 py-1" aria-hidden>
+              <span className={cn("shrink-0 rounded-full", start ? "size-3.5 bg-accent" : cn("mt-0.5 size-2.5 border-2", end ? "border-foreground" : "border-line"))} />
+              {outgoing && <span className={cn("w-0 flex-1 border-l-2 border-line", PROVENANCE_BORDER[provenanceOf(outgoing.via)])} />}
+            </div>
+            <div className="min-w-0 flex-1 pb-3.5">
+              <div className="flex items-start gap-1">
+                <div className="min-w-0 flex-1">
+                  {title(
+                    node,
+                    <>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className={cn("font-mono text-tag font-medium", start ? "text-primary" : "text-foreground")}>{nodeTitle(node)}</span>
+                        {node.column && <span className="rounded-sm bg-bg-fill px-2 py-0.5 text-caption-2 text-muted-foreground">{COLUMN_LABELS[node.column]}</span>}
+                        {start && <span className="sr-only">Start</span>}
+                      </span>
+                      <span className="mt-0.5 block text-subhead">{node.label || KIND_LABELS[node.kind]}</span>
+                    </>,
+                    "block w-full pt-0.5",
+                  )}
+                  {plan && onOpenPlan ? (
+                    <button type="button" className={LINK} onClick={() => onOpenPlan(plan)} title="Planseite öffnen">
                       {sheet}
                     </button>
+                  ) : (
+                    sheet && <span className="block text-footnote text-muted-foreground">{sheet}</span>
+                  )}
+                  {node.kind === "network" && <div>{codeLink(node)}</div>}
+                  {outgoing && (
+                    <span className="block text-caption-1 text-muted-foreground">
+                      <span className="sr-only">Herkunft: </span>
+                      {edgeText(outgoing)}
+                      {!outgoing.directed && " · Richtung offen"}
+                    </span>
                   )}
                   {branchCount > 0 && (
-                    <button
-                      type="button"
-                      className="flex min-h-11 items-center gap-1 px-3 text-[12px] text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      onClick={() => toggle(node.id)}
-                      aria-expanded={expanded}
-                    >
-                      {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                    <button type="button" className={cn(LINK, "hover:no-underline")} onClick={() => toggle(node.id)} aria-expanded={expanded}>
+                      {expanded ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
                       {branchesText(branchCount)}
                     </button>
                   )}
                 </div>
-              )}
+                {followButton(node)}
+              </div>
               {expanded && (
-                <ul className="border-t border-line bg-secondary/50" aria-label={`Abzweige an ${nodeTitle(node)}`}>
+                <ul className="mt-1 divide-y-[0.5px] divide-border rounded-md bg-bg-grouped" aria-label={`Abzweige an ${nodeTitle(node)}`}>
                   {step.branches.map((branch) => (
-                    <li key={branch.node.id} data-signal-branch={branch.node.id} className="flex border-b border-dashed border-line last:border-b-0">
-                      {nodeButton(
+                    <li key={branch.node.id} data-signal-branch={branch.node.id} className="flex items-center gap-1 pl-3">
+                      {title(
                         branch.node,
                         <>
                           <span className="flex items-baseline gap-2">
-                            <span className="font-mono text-[13px] font-semibold text-primary">{nodeTitle(branch.node)}</span>
-                            <span className="truncate text-[12px]">{branch.node.label || KIND_LABELS[branch.node.kind]}</span>
+                            <span className="font-mono text-tag-sm font-medium">{nodeTitle(branch.node)}</span>
+                            <span className="truncate text-footnote">{branch.node.label || KIND_LABELS[branch.node.kind]}</span>
                           </span>
-                          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                            {branch.edge && <ProvenanceLine provenance={provenanceOf(branch.edge.via)} className="w-6" />}
+                          <span className="flex items-center gap-1.5 text-caption-1 text-muted-foreground">
+                            {branch.edge && <ProvenanceLine provenance={provenanceOf(branch.edge.via)} className="border-muted-foreground" />}
                             {relationText(branch, node)}
                             {branch.edge && ` · ${edgeText(branch.edge)}`}
                           </span>
                         </>,
-                        "min-h-11 min-w-0 flex-1 px-3 py-1.5",
+                        "block min-h-11 min-w-0 flex-1 py-2",
                       )}
+                      {branch.node.kind === "network" && codeLink(branch.node)}
                       {followButton(branch.node)}
                     </li>
                   ))}
                   {branchCount > step.branches.length && (
-                    <li className="px-3 py-2 text-[11px] text-muted-foreground">
+                    <li className="px-3 py-2 text-caption-1 text-muted-foreground">
                       {step.branches.length ? "… und " : ""}
                       {branchesText(branchCount - step.branches.length)} ohne weitere Angaben
                     </li>
@@ -247,9 +234,9 @@ export function SignalChain({
                 (shown) =>
                   shown.kind === "network" &&
                   code === shown.id && (
-                    <div key={`code-${shown.id}`} className="border-t border-line">
-                      {shown.label && <p className="px-3 pt-2 text-[13px] font-medium">{shown.label}</p>}
-                      <pre className="max-h-72 overflow-auto px-3 py-2 font-mono text-[12px] leading-5">{shown.detail || "Kein Code hinterlegt."}</pre>
+                    <div key={`code-${shown.id}`} className="mt-1 rounded-md bg-bg-grouped">
+                      {shown.label && <p className="px-3 pt-2 text-footnote font-semibold">{shown.label}</p>}
+                      <pre className="max-h-72 overflow-auto px-3 py-2 font-mono text-caption-1">{shown.detail || "Kein Code hinterlegt."}</pre>
                     </div>
                   ),
               )}
@@ -257,9 +244,7 @@ export function SignalChain({
           </li>
         );
       })}
-      {model.hiddenAfter > 0 && (
-        <li className="px-3 pt-1 text-[11px] text-muted-foreground">… {stepsText(model.hiddenAfter)} danach</li>
-      )}
+      {model.hiddenAfter > 0 && <li className="pl-9 text-footnote text-muted-foreground">… {stepsText(model.hiddenAfter)} danach</li>}
     </ol>
   );
 }

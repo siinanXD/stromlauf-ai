@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SignalMainData } from "@/lib/api";
 
-import { COLUMN_LABELS, nodeTitle, orderInColumns, sheetText, visibleColumns } from "./signalColumns";
+import { COLUMN_LABELS, nodeTitle, orderInColumns, sheetShort, sheetText, visibleColumns } from "./signalColumns";
 import { conveyor, mainEdge, mainNode } from "./signalTestData";
 
 const xs = (data: SignalMainData) => Object.fromEntries([...orderInColumns(data)].map(([id, at]) => [id, at.x]));
@@ -93,7 +93,8 @@ describe("orderInColumns: Baryzentrum", () => {
 
 describe("Texte", () => {
   it("nennt Blatt und Spalte nur bei Blattverweisen", () => {
-    expect(sheetText("/3.5")).toBe("Blatt 3, Spalte 5");
+    expect(sheetText("/3.5")).toBe("Blatt 3 · Spalte 5");
+    expect(sheetShort("/3.5")).toBe("Blatt 3 · Sp. 5");
     expect(sheetText("FC 1 NW 2")).toBeNull();
     expect(sheetText("")).toBeNull();
   });

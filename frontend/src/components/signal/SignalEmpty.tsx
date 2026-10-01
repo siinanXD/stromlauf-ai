@@ -113,25 +113,25 @@ export function SignalEmpty({
   }
 
   return (
-    <div className={cn("border border-line bg-card", compact ? "px-3 py-3" : "px-4 py-5")} data-signal-empty={reason}>
-      <p className="flex items-start gap-2 text-sm">
-        <Route className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+    <div className={cn("rounded-lg bg-card", compact ? "py-1" : "p-4 shadow-card")} data-signal-empty={reason}>
+      <p className="flex items-start gap-2 text-subhead">
+        <Route className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         <span>{emptyReasonText(reason, tag)}</span>
       </p>
-      {next && <p className="mt-1 pl-6 text-[13px] text-muted-foreground">{next}</p>}
+      {next && <p className="mt-1 pl-6 text-footnote text-muted-foreground">{next}</p>}
       {model?.status?.cached && (
-        <p className="mt-1 pl-6 text-[13px] text-muted-foreground">Auch das Modell hat hier keine Verbindung gefunden.</p>
+        <p className="mt-1 pl-6 text-footnote text-muted-foreground">Auch das Modell hat hier keine Verbindung gefunden.</p>
       )}
       {(plan || estimate) && (
         <div className="mt-3 flex flex-wrap gap-2 pl-6">
           {plan && (
-            <Button className="min-h-11 rounded-none" onClick={() => onOpenDetail({ kind: "plan", target: plan })}>
+            <Button className="min-h-11 px-4" onClick={() => onOpenDetail({ kind: "plan", target: plan })}>
               <FileText className="size-4" />
               Planseite öffnen
             </Button>
           )}
           {estimate && (
-            <Button variant="outline" className="min-h-11 rounded-none border-line" onClick={() => setAsking(true)}>
+            <Button variant="outline" className="min-h-11 px-4" onClick={() => setAsking(true)}>
               Mit Modell lesen, ca. {usdText(estimate.estimate_usd)} USD
             </Button>
           )}
@@ -139,16 +139,16 @@ export function SignalEmpty({
       )}
       {estimate && (
         <Dialog open={asking} onOpenChange={(open) => !reading && setAsking(open)}>
-          <DialogContent className="rounded-none" showCloseButton={false}>
+          <DialogContent showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle className="font-mono uppercase tracking-[0.04em]">Plan mit Modell lesen?</DialogTitle>
+              <DialogTitle>Plan mit Modell lesen?</DialogTitle>
               <DialogDescription>
                 {estimate.model} liest {estimate.pages} {estimate.pages === 1 ? "Seite" : "Seiten"} des Stromlaufplans. Das kostet
                 geschätzt ca. {usdText(estimate.estimate_usd)} USD. Erkannte Verbindungen erscheinen danach im Signalweg mit der
                 Herkunft „Modell“.
               </DialogDescription>
             </DialogHeader>
-            {failed && <p className="text-sm text-muted-foreground">Das Lesen hat nicht geklappt. Erneut versuchen?</p>}
+            {failed && <p className="text-subhead text-muted-foreground">Das Lesen hat nicht geklappt. Erneut versuchen?</p>}
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" className="min-h-11" disabled={reading}>

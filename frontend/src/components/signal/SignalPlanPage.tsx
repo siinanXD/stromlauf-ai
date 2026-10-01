@@ -1,6 +1,6 @@
 "use client";
 
-import { Expand } from "lucide-react";
+import { Expand, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageCanvas, type PageTarget } from "@/components/PageViewer";
@@ -66,19 +66,9 @@ export function SignalPlanPage({
   const pageKey = located ? `${target.documentId}:${located.page}` : null;
 
   return (
-    <section className="flex size-full min-h-0 flex-col" aria-label="Planseite">
-      <header className="flex items-center gap-2 border-b border-line px-3 py-1">
-        <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          {[target.label ?? target.filename, located ? `S. ${located.page}` : null, located?.column ? `Spalte ${located.column}` : null]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
-        <Button variant="ghost" className="min-h-11 rounded-none" onClick={() => onOpenPlan(target)}>
-          <Expand className="size-4" />
-          Groß öffnen
-        </Button>
-      </header>
-      <div className="min-h-0 flex-1 bg-white">
+    // Planseite-Karte (Figma): Seite mit markierter Spalte, darunter Blatt/Spalte und "Groß öffnen"
+    <section className="flex size-full min-h-0 flex-col gap-2" aria-label="Planseite">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border bg-white">
         {!located ? (
           <PlanPlaceholder text={`Lade ${target.reference ?? "Planseite"} …`} bare />
         ) : failedPage === pageKey ? (
@@ -93,14 +83,27 @@ export function SignalPlanPage({
           />
         )}
       </div>
+      <div className="flex items-center gap-2">
+        <FileText className="size-5 shrink-0 text-accent" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-subhead font-semibold">
+            {[located ? `Seite ${located.page}` : null, located?.column ? `Spalte ${located.column}` : null].filter(Boolean).join(" · ") || "Planseite"}
+          </span>
+          <span className="block truncate text-footnote text-muted-foreground">{target.label ?? target.filename}</span>
+        </span>
+        <Button variant="outline" className="min-h-11 shrink-0 px-3" onClick={() => onOpenPlan(target)}>
+          <Expand className="size-4" />
+          Groß öffnen
+        </Button>
+      </div>
     </section>
   );
 }
 
 function PlanPlaceholder({ text, bare = false }: { text: string; bare?: boolean }) {
   return (
-    <div className={bare ? "flex size-full items-center justify-center p-6" : "flex size-full items-center justify-center bg-secondary/50 p-6"}>
-      <p className="text-center text-sm text-muted-foreground">{text}</p>
+    <div className={bare ? "flex size-full items-center justify-center p-6" : "flex size-full items-center justify-center rounded-md bg-bg-grouped p-6"}>
+      <p className="text-center text-subhead text-muted-foreground">{text}</p>
     </div>
   );
 }
