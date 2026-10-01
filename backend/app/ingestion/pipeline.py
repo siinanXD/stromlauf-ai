@@ -24,6 +24,7 @@ from app.ingestion.pdf_layout import (
     sheet_map,
     title_block_titles,
 )
+from app.ingestion.plan_wires import plan_edges
 from app.ingestion.tags import detect_folio_style, detect_spaced_terminals, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
@@ -470,6 +471,15 @@ def _mark_reading(pieces: list[Piece], report: ocr.OcrReport | None, path: Path)
             piece.meta["read"] = "text"
 
 
+def _warm_plan_edges(path: Path) -> None:
+    """Leitungen des Stromlaufplans vorab lesen (data/plan_cache), damit der erste Signalweg nicht wartet. Ein Fehler
+    im Leitungsleser kostet nur den Vorlauf, nicht das Dokument."""
+    try:
+        plan_edges(path)
+    except Exception:
+        logger.exception("Leitungen im Plan nicht gelesen: %s", path.name)
+
+
 def ingest_document(document_id: str) -> None:
     """Hintergrundjob. Schreibt Status/Fehler ans Dokument, wirft nicht."""
     with session_scope() as session:
@@ -550,6 +560,9 @@ def ingest_document(document_id: str) -> None:
             document.status = DocStatus.READY
             document.page_count = page_count
             document.progress = progress_text(len(pieces), len(rows), note)
+        # nach dem Einlesen (OCR hat die Datei ggf. ersetzt): Leitungen fuer den Signalweg vorab rechnen
+        if doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf":
+            _warm_plan_edges(path)
     except Exception as exc:
         logger.exception("Ingestion fehlgeschlagen: %s", filename)
         with session_scope() as session:

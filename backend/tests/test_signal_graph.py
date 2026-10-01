@@ -99,8 +99,8 @@ def test_safety_relay_input_terminals_count_as_inputs():
         ["-X3", "-X3:39", "-K1:S11", "-S1:11", "Not-Halt Kanal 1 Beginn", "/7.2"],
     ]
     graph = build_graph(rows, [("-K1", "Sicherheitsrelais", "/7.2"), ("-S1", "Not-Halt", "/7.2"), ("-S3", "Not-Halt", "/7.2")], [], "")
-    assert {("-S3", "-S3:12"), ("-S3:12", "-X3:40"), ("-X3:40", "-K1")} <= graph.edges
-    assert {("-K1", "-X3:39"), ("-X3:39", "-S1:11"), ("-S1:11", "-S1")} <= graph.edges
+    assert {("-S3", "-S3:12"), ("-S3:12", "-X3:40"), ("-X3:40", "-K1")} <= graph.edges.keys()
+    assert {("-K1", "-X3:39"), ("-X3:39", "-S1:11"), ("-S1:11", "-S1")} <= graph.edges.keys()
     assert ("-S3", "-X3:40") not in graph.edges
 
 
@@ -119,9 +119,9 @@ def test_weg_fuehrt_ueber_die_spule_zu_den_kontakten_desselben_schuetzes():
 def test_kontakte_als_quelle_einer_klemme():
     """Taster-Schliesser -S1:13 meldet an E0.0, Freigabekontakt -K3:24 an E0.3, Meldekontakt -K3:32 schaltet -H3."""
     graph = fb01_graph()
-    assert {("-S1", "-S1:13"), ("-S1:13", "-X3:1"), ("-X3:1", "E0.0")} <= graph.edges
-    assert {("-K3", "-K3:24"), ("-K3:24", "-X3:4")} <= graph.edges
-    assert {("-K3", "-K3:32"), ("-K3:32", "-X3:15"), ("-X3:15", "-H3")} <= graph.edges
+    assert {("-S1", "-S1:13"), ("-S1:13", "-X3:1"), ("-X3:1", "E0.0")} <= graph.edges.keys()
+    assert {("-K3", "-K3:24"), ("-K3:24", "-X3:4")} <= graph.edges.keys()
+    assert {("-K3", "-K3:32"), ("-K3:32", "-X3:15"), ("-X3:15", "-H3")} <= graph.edges.keys()
     assert graph.nodes["-K3:32"].label == "Öffner" and graph.nodes["-S1:13"].label == "Schließer"
 
 
