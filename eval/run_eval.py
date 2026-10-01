@@ -32,6 +32,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# Das Backend neben diesem Skript, nicht das in der venv installierte (ein Worktree hat sonst den Stand des
+# Haupt-Checkouts: andere Preistabelle, andere cost_usd-Signatur)
+sys.path.insert(0, str(HERE.parent / "backend"))
 
 import evallib  # noqa: E402
 
