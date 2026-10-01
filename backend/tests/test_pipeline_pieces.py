@@ -43,16 +43,38 @@ def test_tag_rows_beachtet_plc_loose_und_blatt_stil():
     assert [r.tag for r in tag_rows([Piece("U A 1.0", plc_loose=True)])] == ["A1.0"]
     assert tag_rows([Piece("U A 1.0")]) == []  # "A 1.0" im Fliesstext ist meist eine Stromangabe
     assert "4K1" in [r.tag for r in tag_rows([Piece("Schuetz 4K1 schaltet", folio_style=True)])]
+    spaced = [r.tag for r in tag_rows([Piece("Taster auf X420 3", spaced_terminals=True)])]
+    assert spaced == ["-X420", "-X420:3"]
+    assert tag_rows([Piece("Taster auf X420 3")]) == []
 
 
 def test_split_pieces_teilt_lange_stuecke_und_behaelt_seite_abschnitt_und_modus():
     from app.ingestion.pipeline import split_pieces
 
-    long = Piece("-K1 " + "Text " * 2000, page=3, section="S", plc_loose=True)
+    long = Piece(
+        "-K1 " + "Text " * 2000, page=3, section="S", plc_loose=True, spaced_terminals=True
+    )
     parts = split_pieces([long, Piece("kurz", page=4)])
     assert len(parts) > 2
     assert all(p.page == 3 and p.section == "S" and p.plc_loose for p in parts[:-1])
+    assert all(p.spaced_terminals for p in parts[:-1])
     assert parts[-1].content == "kurz" and parts[-1].page == 4
+
+
+def test_klemmen_mit_leerzeichen_gelten_fuer_das_ganze_dokument(monkeypatch):
+    """Issue #91: Der Stil wird je Dokument erkannt; auch eine einzelne Klemme auf einer anderen Seite zaehlt dann."""
+    from app.ingestion import pipeline
+    from app.ingestion.docling_parser import ParsedPage
+
+    page_1 = "-S421 X420 3 E1.3  -S422 X420 4 E0.1  -S423 X420 5  -S424 X420 6  -H427 X420 9"
+    parsed = [
+        ParsedPage(page=1, markdown="", raw_text=page_1),
+        ParsedPage(page=2, markdown="", raw_text="Motor -M1042 an X1042 2"),
+    ]
+    monkeypatch.setattr(pipeline, "parse_document", lambda path: parsed)
+    read = pipeline.document_pieces(Path("plan.docx"), "schematic")
+    rows = {(r.tag, r.page) for r in pipeline.tag_rows(read.pieces)}
+    assert {("-X420:3", 1), ("-X420:9", 1), ("-X1042:2", 2), ("-X1042", 2)} <= rows
 
 
 def test_document_pieces_liest_ohne_datenbank_dasselbe_wie_der_upload():

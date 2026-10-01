@@ -28,6 +28,15 @@ _DEVICE_RE = re.compile(
 _FOLIO_DEVICE_RE = re.compile(r"(?<![\w.:/+=\-])(?P<folio>\d{1,2})(?P<letters>[A-Z]{1,3})(?P<number>\d{1,3})(?![\w.:])")
 FOLIO_MIN_HITS = 10
 
+# Schweizer Elektroschema (Issue #91): Klemmleiste ohne Minus, Leerzeichen statt Doppelpunkt ("X420 3" = -X420:3).
+# Nur wenn ein Dokument diesen Stil durchgaengig nutzt (detect_spaced_terminals); Dezimalzahlen ("X2 2.5"),
+# Profinet-Ports ("X1 P2") und Minus-Kennzeichen ("-X7 2") bleiben draussen.
+_SPACED_TERMINAL_RE = re.compile(
+    r"(?<![\w.:/+=\-])X(?P<strip>\d{1,4}) (?P<pin>\d{1,3})(?![\w.:/,])"
+)
+SPACED_MIN_HITS = 5
+_DASH_TERMINAL_RE = re.compile(r"(?<![\w.])-X\d{1,4}:[A-Za-z0-9]")
+
 # Bit-Adressen: E 0.0 / I0.0 / %I0.0 / %IX0.0 (deutsche und internationale Mnemonik)
 _PLC_BIT_RE = re.compile(r"(?<![\w.])%?(?P<area>[EAIQM])X?[ \t]{0,8}(?P<byte>\d{1,5})\.(?P<bit>[0-7])(?![\w.])")
 # Byte/Wort/Doppelwort: EB 4, MW 100, %QW20, PEW 256, PAW 256
@@ -59,6 +68,8 @@ def normalize_tag(raw: str) -> str:
     tags = extract_tags(text, plc_loose=True)
     if tags:
         return max(tags, key=lambda t: len(t.tag)).tag
+    if spaced := _SPACED_TERMINAL_RE.fullmatch(text):  # "X420 3" wie im Schweizer Elektroschema
+        return f"-X{spaced['strip']}:{spaced['pin']}"
     compact = re.sub(r"\s+", "", text)
     if re.fullmatch(r"[A-Z]{1,3}\d{1,4}(?:\.\d{1,3})?(?::[A-Z0-9./+\-]{1,8})?", compact):
         return "-" + compact
@@ -127,13 +138,31 @@ def detect_folio_style(text: str) -> bool:
     return folio >= FOLIO_MIN_HITS and folio > 2 * dash
 
 
-def extract_tags(text: str, *, plc_loose: bool = False, folio_style: bool = False) -> list[Tag]:
+def detect_spaced_terminals(text: str) -> bool:
+    """Schreibt das Dokument Klemmen als "X420 3" (Schweizer Elektroschema, Issue #91)?
+
+    Erst ab SPACED_MIN_HITS verschiedenen Klemmen und nur, wenn sie die Klemmen im Minus-Stil ("-X1:5")
+    ueberwiegen; ein zufaelliges "X1 2" in einem deutschen Plan schaltet den Stil nicht ein.
+    """
+    spaced = len({m.group(0) for m in _SPACED_TERMINAL_RE.finditer(text)})
+    dash = len({m.group(0) for m in _DASH_TERMINAL_RE.finditer(text)})
+    return spaced >= SPACED_MIN_HITS and spaced > dash
+
+
+def extract_tags(
+    text: str,
+    *,
+    plc_loose: bool = False,
+    folio_style: bool = False,
+    spaced_terminals: bool = False,
+) -> list[Tag]:
     """Findet alle Kennzeichen im Text.
 
     plc_loose=True akzeptiert auch "A 1.0" mit Leerzeichen in Fliesstext (AWL, Symboltabellen).
     In Plaenen/Handbuechern werden Bit-Adressen mit Leerzeichen nur fuer E/I/Q/M akzeptiert,
     weil "A 1.0" dort meist eine Stromangabe o.ae. ist.
     folio_style=True nimmt zusaetzlich Kennzeichen ohne Minus im Blatt-Stil (4Q1, 9K1), so wie sie dastehen.
+    spaced_terminals=True liest "X420 3" als Leiste -X420 und Klemme -X420:3 (detect_spaced_terminals).
     """
     found: dict[tuple[str, str], Tag] = {}
 
@@ -156,6 +185,11 @@ def extract_tags(text: str, *, plc_loose: bool = False, folio_style: bool = Fals
     if folio_style:
         for m in _FOLIO_DEVICE_RE.finditer(text):
             add(m.group(0), TagType.DEVICE, m)
+
+    if spaced_terminals:
+        for m in _SPACED_TERMINAL_RE.finditer(text):
+            add(f"-X{m['strip']}", TagType.TERMINAL, m)
+            add(f"-X{m['strip']}:{m['pin']}", TagType.TERMINAL, m)
 
     for m in _PLC_BIT_RE.finditer(text):
         has_space = " " in m.group(0) or "\t" in m.group(0)
