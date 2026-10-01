@@ -115,12 +115,20 @@ def test_cli_schreibt_ergebnis_und_scheitert_unter_der_precision(tmp_path):
     summary = result["summary"]
     assert summary["kanten"] == 4 and summary["gerichtet"] == 3
     assert summary["herkunft"] == {"lage": 1, "leitung": 3}
+    # Ebene 1 misst nur gezeichnete Leitungen: die Kante aus der Lage (Seite 3) zaehlt erst gegen die Tabellen
+    assert summary["leitungen"] == {
+        "tp": 2,
+        "fp": 1,
+        "fn": 1,
+        "precision": pytest.approx(2 / 3),
+        "recall": pytest.approx(2 / 3),
+    }
     assert summary["gate"]["verfehlt"] == [
-        "Leitungen: Precision 0.50 < 0.95",
+        "Leitungen: Precision 0.67 < 0.95",
         "Tabellen: Precision 0.67 < 0.95",
     ]
     markdown = next(tmp_path.glob("plan_graph_mini_*.md")).read_text(encoding="utf-8")
-    assert "| Leitungen | 3 | 4 | 2 | 0.50 | 0.67 |" in markdown
+    assert "| Leitungen | 3 | 3 | 2 | 0.67 | 0.67 |" in markdown
     assert "| Tabellen | 4 | 3 | 2 | 0.67 | 0.50 |" in markdown
     assert (
         run_plan_graph.main(

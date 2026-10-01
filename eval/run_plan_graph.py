@@ -3,9 +3,10 @@
 Aufruf:  python eval/run_plan_graph.py --gold eval/ingest_gold/fb01.json [--doc PFAD] [--min-precision 0.95]
                                        [--out eval/results]
 
-Ebene 1, Leitungen: `plan_wires.compute_edges` (ohne Cache) gegen "wires" im Gold, das
-scripts/example_docs/make_gold.py beim Zeichnen mitschreibt. Verglichen werden je Seite ungerichtete Paare, Precision
-und Recall ueber alle Seiten (micro).
+Ebene 1, Leitungen: die Kanten mit Herkunft "leitung" aus `plan_wires.compute_edges` (ohne Cache) gegen "wires" im
+Gold, das scripts/example_docs/make_gold.py beim Zeichnen mitschreibt. Verglichen werden je Seite ungerichtete Paare,
+Precision und Recall ueber alle Seiten (micro). Kanten aus der Lage im Plan sind keine gezeichneten Leitungen; sie
+zaehlen nur auf Ebene 2.
 
 Ebene 2, Tabellen: der Graph aus dem Plan gegen den Graphen aus Klemmenplan, Stueckliste, Symboltabelle und AWL im
 Ordner des Plans (`app.api.signal._graph`). Anschluesse gehen in ihrem Geraet auf ("-K1:A1" -> "-K1"). Gezaehlt
@@ -253,7 +254,7 @@ def main(
     doc = args.doc or ROOT / document
     edges, seconds = measure_fn(doc)
     found = by_page(edges)
-    wires, deviations = compare_wires(gold, found)
+    wires, deviations = compare_wires(gold, by_page(e for e in edges if e.via == "leitung"))
     graph = table_fn(doc)
     tables, foreign = (None, [])
     if graph is not None:
