@@ -45,6 +45,8 @@ class RecordingCanvas(canvas.Canvas):
         self.page_no = 1
         self.strings: dict[int, list[str]] = {}
         self.bmk: dict[int, set[str]] = {}
+        self.pins: dict[int, set[str]] = {}  # Anschlussnummern am Symbol als "-K1:A1" (Issue #102)
+        self.last_bmk: dict[int, str] = {}
 
     def _keep(self, text) -> None:
         self.strings.setdefault(self.page_no, []).append(str(text))
@@ -73,16 +75,32 @@ class _RecordsSymbols:
         if bmk:
             self.c.bmk.setdefault(self.c.page_no, set()).add(bmk)
 
+    def _pins(self, bmk: str, pins) -> None:
+        """Nummern am Symbol gehoeren zu dessen Geraet; ein Kontakt ohne eigenes BMK (zweiter Kanal einer
+        Reihenschaltung) zum Geraet derselben Zeile, also zum zuletzt gezeichneten. Nur Schaltgeraete, wie in
+        tags.pin_kind."""
+        from app.ingestion.tags import pin_kind
+
+        owner = bmk or self.c.last_bmk.get(self.c.page_no, "")
+        if bmk:
+            self.c.last_bmk[self.c.page_no] = bmk
+        for pin in pins or ():
+            tag = f"{owner}:{str(pin).upper()}"
+            if owner and pin_kind(tag):
+                self.c.pins.setdefault(self.c.page_no, set()).add(tag)
+
     def device(self, x, y, bmk, *args, **kwargs):
         self._bmk(bmk)
         return super().device(x, y, bmk, *args, **kwargs)
 
     def contact(self, x, y, bmk, *args, **kwargs):
         self._bmk(bmk)
+        self._pins(bmk, args[0] if args else kwargs.get("pins"))
         return super().contact(x, y, bmk, *args, **kwargs)
 
     def coil(self, x, y, bmk, *args, **kwargs):
         self._bmk(bmk)
+        self._pins(bmk, args[0] if args else kwargs.get("pins", ("A1", "A2")))
         return super().coil(x, y, bmk, *args, **kwargs)
 
 
@@ -176,6 +194,8 @@ def gold(name: str) -> dict:
                 by_type.setdefault(str(tag.tag_type), set()).add(tag.tag)
         for bmk in drawn.bmk.get(page, set()):
             by_type.setdefault("terminal" if bmk[1:].startswith("X") else "device", set()).add(bmk)
+        if drawn.pins.get(page):
+            by_type.setdefault("device_pin", set()).update(drawn.pins[page])
         pages[str(page)] = {kind: sorted(tags) for kind, tags in sorted(by_type.items())}
     return {
         "dokument": target.document,

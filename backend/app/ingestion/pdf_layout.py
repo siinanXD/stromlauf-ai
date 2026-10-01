@@ -38,6 +38,14 @@ SIGNAL_COLUMNS = 3
 PATH_REACH = 0.75
 NOTE_SPAN = 2.0
 TITLE_BAND = 0.02
+# Anschlussnummern am Schaltzeichen (Issue #102), Abstaende in pt: Eine Nummer gehoert zum naechsten Kennzeichen bis
+# PIN_REACH, wenn das zweitnaechste mindestens PIN_CLEAR-mal so weit weg ist (im Schweizer Elektroschema stehen
+# Kontaktnummern bis 38 pt vom Kennzeichen). Ein Kontaktspiegel (Nummern und Verweis in einer Zeile) darf bis
+# MIRROR_REACH unter seiner Spule stehen.
+PIN_REACH = 40.0
+PIN_CLEAR = 1.5
+MIRROR_REACH = 80.0
+MIRROR_ROW = 3.0
 
 _LABEL = r"(?:Blatt|Bl\.|Seite|Sheet|Page|Folio)"
 # "Blatt 3 / 7", "Blatt 3 von 7", "Sheet 3 of 7", "Folio : 3", "Bl. 3"
@@ -592,5 +600,99 @@ def column_texts(path: Path) -> dict[int, str]:
                 if text := _page_column_text(pdf[index]):
                     texts[index + 1] = text
             return texts
+        finally:
+            pdf.close()
+
+
+_PIN = re.compile(r"A[12]|[1-9][1-8]|[1-6]")  # Spule, Kontakt mit Ordnungs- und Funktionsziffer, Hauptkontakt
+_DEVICE_TOKEN = re.compile(r"(?:[=+][\w.+=]*?)?(-[A-Z]{1,3}\d{1,4}(?:\.\d{1,3})?)")
+_REF_TOKEN = re.compile(r"/\d{1,4}\.\d{1,2}")
+_STRIP_TOKEN = re.compile(r"X\d{1,4}")
+
+
+@dataclass
+class _Spot:
+    text: str
+    x: float  # Mitte in pt, Leserichtung
+    y: float
+    left: float
+
+
+def _spots(page: pdfium.PdfPage) -> list[_Spot]:
+    """Woerter der Seite mit Mittelpunkt in pt; bei gedrehtem Text ist die Breite der Leserichtung die Seitenhoehe."""
+    angle = _text_angle(page.get_textpage())
+    width, height = page.get_size()
+    sx, sy = (height, width) if angle in (90, 270) else (width, height)
+    return [
+        _Spot(t.text, (t.left + t.right) / 2 * sx, (t.top + t.bottom) / 2 * sy, t.left * sx)
+        for t in _tokens(page, angle)
+    ]
+
+
+def _nearest(spot: _Spot, devices: list[tuple[str, _Spot]], reach: float) -> str | None:
+    """Kennzeichen, zu dem spot eindeutig gehoert: am naechsten, innerhalb reach, das naechste deutlich weiter weg."""
+    ranked = sorted((math.dist((spot.x, spot.y), (d.x, d.y)), tag) for tag, d in devices)
+    if not ranked or ranked[0][0] > reach:
+        return None
+    if len(ranked) > 1 and ranked[1][0] < PIN_CLEAR * ranked[0][0]:
+        return None
+    return ranked[0][1]
+
+
+def _page_pins(spots: list[_Spot]) -> str:
+    # erst hier importiert: tags importiert die Modelle, pdf_layout soll ohne sie ladbar bleiben
+    from app.ingestion.tags import pin_kind
+
+    devices = [(m.group(1), s) for s in spots if (m := _DEVICE_TOKEN.fullmatch(s.text))]
+    if not devices:
+        return ""
+    # Klemmleisten ohne Minus ("X1041 3", Schweizer Elektroschema) behalten ihre Klemmennummern: Anker ohne Kennzeichen
+    anchors = devices + [("", s) for s in spots if _STRIP_TOKEN.fullmatch(s.text)]
+    pins = [s for s in spots if _PIN.fullmatch(s.text)]
+    used: set[int] = set()
+    lines: list[tuple[float, float, str]] = []
+    # Kontaktspiegel: Nummern links neben einem Verweis in derselben Zeile, unter einer Spule
+    for ref in (s for s in spots if _REF_TOKEN.fullmatch(s.text)):
+        beside = (p for p in pins if abs(p.y - ref.y) <= MIRROR_ROW and 0 < ref.x - p.x <= 40)
+        row = sorted(beside, key=lambda p: p.x)
+        if not 2 <= len(row) <= 3:
+            continue
+        above = [(tag, d) for tag, d in devices if d.y < row[0].y]
+        coils = [(tag, d) for tag, d in above if pin_kind(f"{tag}:A1") == "Spule"]
+        tag = _nearest(row[0], coils, MIRROR_REACH)
+        if tag is None or not all(pin_kind(f"{tag}:{p.text}") for p in row):
+            continue
+        used.update(id(p) for p in row)
+        contact = " ".join(f"{tag}:{p.text}" for p in row)
+        lines.append((row[0].y, row[0].x, f"{contact} {ref.text}"))
+    # einzelne Nummern am Symbol
+    loose: dict[str, list[_Spot]] = {}
+    for pin in pins:
+        if id(pin) in used:
+            continue
+        tag = _nearest(pin, anchors, PIN_REACH)
+        if tag and pin_kind(f"{tag}:{pin.text}"):
+            loose.setdefault(tag, []).append(pin)
+    anchor = {tag: d for tag, d in devices}
+    for tag, found in loose.items():
+        found.sort(key=lambda p: (p.y, p.x))
+        joined = " ".join(dict.fromkeys(f"{tag}:{p.text}" for p in found))
+        lines.append((anchor[tag].y - 0.5, anchor[tag].x, joined))
+    lines.sort(key=lambda line: (round(line[0]), line[1]))
+    return "\n".join(line for *_, line in lines)
+
+
+def pin_labels(path: Path) -> dict[int, str]:
+    """Anschluesse am Schaltzeichen je Seite (Issue #102): Nummern wie "A1", "13", die als eigene kurze Texte am Symbol
+    stehen, mit dem naechsten Kennzeichen als "-K1:A1"; Kontaktspiegel als "-K1:13 -K1:14 /5.3". Nur Schaltgeraete
+    (tags.pin_kind); liegen zwei Kennzeichen etwa gleich nah, wird nichts zugeordnet. Seiten ohne Treffer fehlen."""
+    with pdfium_lock:
+        pdf = pdfium.PdfDocument(str(path))
+        try:
+            labels = {}
+            for index in range(len(pdf)):
+                if text := _page_pins(_spots(pdf[index])):
+                    labels[index + 1] = text
+            return labels
         finally:
             pdf.close()

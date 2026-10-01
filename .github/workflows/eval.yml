@@ -61,18 +61,19 @@ jobs:
           # torch und torchvision aus demselben Index, sonst passt torchvision (PyPI, CUDA-Build) nicht zum CPU-torch
           pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
           pip install -e ".[dev]"
+      # Geraeteanschluesse am Schaltzeichen (Issue #102): lieber weglassen als falsch zuordnen, darum Recall 0,90
       - name: "Ingest-Benchmark FB-01 (Kennzeichen je Seite gegen Ground Truth, Issue #63, ohne Modell und ohne DB)"
-        run: python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95 --types device,terminal,plc_address
+        run: python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95 --types device,terminal,plc_address,device_pin --min-for device_pin=0.90
       - name: "Ingest-Benchmark UR-01 und PM1-AR (Issue #68, zwei weitere Layouts)"
         run: |
-          python eval/run_ingest.py --gold eval/ingest_gold/ur01.json --min 0.95 --types device,terminal,plc_address
-          python eval/run_ingest.py --gold eval/ingest_gold/pm1_ar.json --min 0.95 --types device,terminal,plc_address
+          python eval/run_ingest.py --gold eval/ingest_gold/ur01.json --min 0.95 --types device,terminal,plc_address,device_pin --min-for device_pin=0.90
+          python eval/run_ingest.py --gold eval/ingest_gold/pm1_ar.json --min 0.95 --types device,terminal,plc_address,device_pin --min-for device_pin=0.90
       # Klemmen neben dem Klemmenkreis liest die OCR als "O X1:2" (gemessen 0,81, Issue #65); Schwelle darum 0,75
       - name: "Ingest-Benchmark Voll-Scan mit OCR (Issue #66, RapidOCR lokal auf der CPU)"
         run: >-
           python eval/run_ingest.py --gold eval/ingest_gold/fb01.json
           --doc examples/scan/01_Stromlaufplan_FB-01_scan.pdf --label scan-ocr --ocr
-          --min 0.95 --min-for terminal=0.75 --types device,terminal,plc_address
+          --min 0.95 --min-for terminal=0.75 --min-for device_pin=0.90 --types device,terminal,plc_address,device_pin
       - uses: actions/upload-artifact@v4
         if: always()
         with:

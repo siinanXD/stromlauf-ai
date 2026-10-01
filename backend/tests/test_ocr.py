@@ -17,7 +17,7 @@ from PIL import Image
 
 from app.ingestion import ocr
 from app.ingestion.docling_parser import pdf_raw_text
-from app.ingestion.pdf_layout import page_columns, sheet_map
+from app.ingestion.pdf_layout import page_columns, pin_labels, sheet_map
 from app.ingestion.tags import extract_tags
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -269,5 +269,8 @@ def test_hochkant_gescanntes_blatt_wird_gedreht_erkannt(tmp_path):
     report = ocr.searchable_pdf(SIDEWAYS, out)
     assert [page.page for page in report.pages] == [4] and report.pages[0].rotation in (90, 270)
     gold = {(tag, kind) for kind, tags in GOLD["4"].items() if kind != "cross_ref" for tag in tags}
-    found = {(tag.tag, str(tag.tag_type)) for tag in extract_tags(pdf_raw_text(out)[4])}
+    # Anschlussnummern am Schaltzeichen ordnet pin_labels zu (Issue #102), auch auf dem gedrehten Blatt
+    text = pdf_raw_text(out)[4] + "\n" + pin_labels(out).get(4, "")
+    found = {(tag.tag, str(tag.tag_type)) for tag in extract_tags(text)}
     assert len(gold & found) / len(gold) >= 0.8
+    assert {f for f in found if f[1] == "device_pin"} <= gold  # keine Nummer am falschen Geraet
