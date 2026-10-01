@@ -155,7 +155,10 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   zur Leiste `IncidentRail`.
 - Planleser (Issue #106): `ingestion/plan_wires.py` liest Leiter aus der Vektorebene (pypdfium2-Rohschnittstelle samt
   Matrizen und Form-XObjects), rastet Endpunkte per scipy `cKDTree` ein und bildet Netze mit networkx; eine Kreuzung ohne
-  Punkt verbindet nicht, Netzenden benennt der Anschlusstext wie in #102. Dazu `lage` aus Kanaelen in Spalten und Zeilen,
+  Punkt verbindet nicht, Netzenden benennt der Anschlusstext wie in #102 (an einer Klemme nur der Text, der ihr am
+  naechsten steht), am Rand eines Geraetesymbols ohne Anschlussnummern das Kennzeichen daneben, eine Zeile nur aus
+  Klemmen einer Leiste ihre Klemmen von links nach rechts (Lernfaelle aus dem Lehrerlauf:
+  `.ai/research/2026-10-02-planleser-lernfaelle.md`). Dazu `lage` aus Kanaelen in Spalten und Zeilen,
   auch auf Seiten mit Leitern. Kantenformat `ingestion/plan_edges.py` (`PlanEdge`, Cache
   `data/plan_cache/<sha256>-v<PLAN_READER_VERSION>.json`; bei geaenderten Regeln die Version erhoehen), vorab gerechnet in
   `ingest_document`. Der Signalgraph fuehrt je Kante die Herkunft (`via`: klemmenplan, awl, leitung, lage, modell), reine
