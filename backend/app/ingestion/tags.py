@@ -39,6 +39,12 @@ _DASH_TERMINAL_RE = re.compile(r"(?<![\w.])-X\d{1,4}:[A-Za-z0-9]")
 
 # Bit-Adressen: E 0.0 / I0.0 / %I0.0 / %IX0.0 (deutsche und internationale Mnemonik)
 _PLC_BIT_RE = re.compile(r"(?<![\w.])%?(?P<area>[EAIQM])X?[ \t]{0,8}(?P<byte>\d{1,5})\.(?P<bit>[0-7])(?![\w.])")
+# Adressbereich einer SPS-Karte: E8.0..E9.7 (Issue #92). Ohne Leerzeichen schliesst _PLC_BIT_RE beide Enden aus,
+# weil ein Punkt angrenzt; beide Enden sind Adressen, der Bereich dazwischen wird nicht aufgezaehlt.
+_PLC_RANGE_RE = re.compile(
+    r"(?<![\w.])%?(?P<area>[EAIQM])X?(?P<byte>\d{1,5})\.(?P<bit>[0-7]) ?\.\. ?"
+    r"%?(?P<area2>[EAIQM])X?(?P<byte2>\d{1,5})\.(?P<bit2>[0-7])(?![\w.])"
+)
 # Byte/Wort/Doppelwort: EB 4, MW 100, %QW20, PEW 256, PAW 256
 _PLC_WORD_RE = re.compile(r"(?<![\w.])%?(?P<area>P?[EAIQM])(?P<size>[BWD])[ \t]{0,8}(?P<addr>\d{1,5})(?![\w.])")
 # Datenbaustein-Adressen: DB10.DBX 2.0, DB10.DBW4
@@ -196,6 +202,11 @@ def extract_tags(
         if has_space and not plc_loose and m["area"] == "A":
             continue
         add(f"{_german(m['area'])}{int(m['byte'])}.{m['bit']}", TagType.PLC_ADDRESS, m)
+
+    # nach den einzelnen Adressen: "E0.6 .. E1.7" mit Leerzeichen fanden die schon, ihr Kontext bleibt
+    for m in _PLC_RANGE_RE.finditer(text):
+        add(f"{_german(m['area'])}{int(m['byte'])}.{m['bit']}", TagType.PLC_ADDRESS, m)
+        add(f"{_german(m['area2'])}{int(m['byte2'])}.{m['bit2']}", TagType.PLC_ADDRESS, m)
 
     for m in _PLC_WORD_RE.finditer(text):
         add(f"{_german(m['area'])}{m['size']}{int(m['addr'])}", TagType.PLC_ADDRESS, m)

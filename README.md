@@ -453,7 +453,8 @@ Power Supply“). Die Blattnummer kommt aus dem Schriftfeld, auch hinter einem D
 Zone nach der Seite („Seite 4“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld; Seiten mit Titel
 „Stückliste“, „Nomenclature“ oder „Parts list“ liefern die Bezeichnungen. Kennzeichen ohne Minus im Blatt-Stil
 (`4Q1`, `9K1`) werden erkannt, wenn ein Dokument diesen Stil durchgängig nutzt, ebenso Klemmen wie im Schweizer
-Elektroschema (`X420 3` wird zu `-X420:3`, auch in der Suche). Bestehende Quellen brauchen dafür „Neu verarbeiten“.
+Elektroschema (`X420 3` wird zu `-X420:3`, auch in der Suche) und Adressbereiche einer SPS-Karte wie `E8.0..E9.7`
+mit beiden Enden. Bestehende Quellen brauchen dafür „Neu verarbeiten“.
 Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 
 ## Architektur

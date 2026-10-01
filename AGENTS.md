@@ -163,6 +163,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   statt Doppelpunkt, Issue #91) erkennt `tags.detect_spaced_terminals` je Dokument: ab 5 verschiedenen und nur, wenn
   sie den Minus-Stil `-X1:5` ueberwiegen. Dann stehen `-X420` und `-X420:3` im Index (`Piece.spaced_terminals`);
   `normalize_tag("X420 3")` ergibt `-X420:3`, damit die Suche die Schreibweise des Dokuments versteht.
+  Adressbereiche einer SPS-Karte wie `E8.0..E9.7` (`tags._PLC_RANGE_RE`, Issue #92) liefern beide Enden als
+  `plc_address`, nie die Adressen dazwischen; mit Leerzeichen (`E0.6 .. E1.7`) fand sie schon `_PLC_BIT_RE`.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
