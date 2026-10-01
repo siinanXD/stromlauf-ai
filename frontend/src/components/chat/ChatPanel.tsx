@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowDown } from "lucide-react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useStickToBottom } from "use-stick-to-bottom";
 
+import { prefetchFaultHits } from "@/components/answer/faultHitsStore";
+import type { AnswerBlocksContext } from "@/components/chat/AnswerView";
 import { Message } from "@/components/Message";
 import type { PageTarget } from "@/components/PageViewer";
 import { api, streamChat, type AnswerMeta, type ChatMessage } from "@/lib/api";
 import { lastAnswerMeta } from "@/lib/chatMemory";
+
+import { friendlyError, olderBefore, olderPage, PAGE_SIZE } from "./history";
 
 const EMPTY_META: AnswerMeta = { referenced_tags: [], citations: [], evidence: [] };
 
@@ -16,9 +22,20 @@ export interface ChatScope {
   machineId?: string;
 }
 
+/** Nachricht im Verlauf mit stabilem Schluessel, auch wenn aeltere Seiten vorne dazukommen. */
+type Entry = ChatMessage & { key: string };
+
+/** Platzhalter: keine Konversation gehoert gerade dem eigenen Stream. */
+const NOT_OWNED = "#nicht-eigen";
+
+let liveCounter = 0;
+const liveKey = () => `l${(liveCounter += 1)}`;
+const withKeys = (messages: ChatMessage[]): Entry[] => messages.map((m, i) => ({ ...m, key: typeof m.index === "number" ? `m${m.index}` : `h${i}` }));
+
 /**
  * Nachrichtenliste plus Eingabe; der Verlauf haengt an conversationId. Wechselt die ID von aussen,
- * laedt das Panel den Verlauf; null = neuer Chat. Die vom Stream vergebene ID meldet es per onConversationId.
+ * laedt das Panel die letzten 30 Nachrichten, aeltere beim Hochscrollen; null = neuer Chat. Die vom Stream
+ * vergebene ID meldet es per onConversationId. autoSend schickt eine Meldung sofort ab (neuer Stoerfall).
  */
 export function ChatPanel({
   scope,
@@ -34,10 +51,12 @@ export function ChatPanel({
   onMeta,
   onOpenPart,
   onShowInModel,
+  blocks,
+  autoSend,
 }: {
   scope: ChatScope;
   conversationId: string | null;
-  onConversationId: (id: string) => void;
+  onConversationId: (id: string, title: string) => void;
   onConversationsChanged: () => void;
   onOpenPage: (target: PageTarget) => void;
   activeReference: string | null;
@@ -47,18 +66,25 @@ export function ChatPanel({
   placeholder?: string;
   /** Antwort-Vertrag am Ende des Streams: Maschinenseite markiert die Bauteile im Modell. */
   onMeta?: (meta: AnswerMeta) => void;
-  /** Klick auf einen Bauteil-Chip unter der Antwort. */
+  /** Klick auf einen Bauteil-Chip unter der Antwort (werksweiter Chat). */
   onOpenPart?: (tag: string) => void;
   /** "Im Modell zeigen" unter der Antwort. */
   onShowInModel?: (tags: string[]) => void;
+  /** Maschinen-Chat: Antworten als Bloecke, Fehlerliste startet beim Senden parallel. */
+  blocks?: AnswerBlocksContext;
+  /** Meldung, die beim Erscheinen sofort gesendet wird; key verhindert doppeltes Senden. */
+  autoSend?: { key: string; text: string };
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Entry[]>([]);
   const [input, setInput] = useState(initialInput);
   const [streaming, setStreaming] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [older, setOlder] = useState<"idle" | "loading" | "error">("idle");
   const abortRef = useRef<AbortController | null>(null);
   const ownedIdRef = useRef<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const sentKeyRef = useRef<string | null>(null);
+  const anchorRef = useRef<{ height: number; top: number } | null>(null);
+  const { scrollRef, contentRef, isAtBottom, scrollToBottom } = useStickToBottom({ initial: "instant", resize: "smooth" });
 
   // Neue Vorbelegung von aussen (z. B. Klick auf eine Fehlerzeile) uebernehmen: Zustand beim Rendern angleichen
   const [lastInitial, setLastInitial] = useState(initialInput);
@@ -68,36 +94,64 @@ export function ChatPanel({
   }
 
   const machineId = scope.machineId;
+
+  // Verlauf anzeigen; als Ereignis, damit wechselnde Callbacks des Aufrufers kein neues Laden ausloesen
+  const showHistory = useEffectEvent((result: ChatMessage[]) => {
+    setMessages(withKeys(result));
+    setOlder("idle");
+    onMeta?.(lastAnswerMeta(result) ?? EMPTY_META);
+    void scrollToBottom("instant");
+  });
+
   useEffect(() => {
-    if (conversationId === ownedIdRef.current) return; // vom eigenen Stream vergeben: Verlauf ist schon da
+    // Vom eigenen Stream vergeben (oder neuer Chat beim Start): der Verlauf ist schon da
+    if (conversationId === ownedIdRef.current) return;
     abortRef.current?.abort();
-    ownedIdRef.current = conversationId;
+    // Ab jetzt gehoert keine ID mehr dem Stream; so laedt auch ein zweiter Effektlauf (StrictMode) den Verlauf
+    ownedIdRef.current = NOT_OWNED;
     let cancelled = false;
     // null = neuer Chat: leerer Verlauf (asynchron wie das Laden, damit kein setState direkt im Effekt steht).
     // Der Verlauf traegt das meta je Antwort (Issue #47): die Maschinenseite markiert die letzte Antwort im Modell
-    // oder hebt eine alte Markierung auf.
-    const load = conversationId ? api.getMessages(conversationId, machineId) : Promise.resolve<ChatMessage[]>([]);
+    // oder hebt eine alte Markierung auf. Ein Server ohne Seiten liefert alles; das Nachladen entfaellt dann.
+    const load = conversationId ? api.getMessagesPage(conversationId, PAGE_SIZE, undefined, machineId) : Promise.resolve<ChatMessage[]>([]);
     load
       .then((result) => {
-        if (cancelled) return;
-        setMessages(result);
-        onMeta?.(lastAnswerMeta(result) ?? EMPTY_META);
+        if (!cancelled) showHistory(result);
       })
       .catch(() => {
-        if (cancelled) return;
-        setMessages([]);
-        onMeta?.(EMPTY_META);
+        if (!cancelled) showHistory([]);
       });
     return () => {
       cancelled = true;
     };
-  }, [conversationId, machineId, onMeta]);
+  }, [conversationId, machineId]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
+  // Aeltere Seite vorne angefuegt: Scrollposition halten, damit der Leser an derselben Stelle bleibt
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    const element = scrollRef.current;
+    if (!anchor || !element) return;
+    anchorRef.current = null;
+    element.scrollTop = anchor.top + (element.scrollHeight - anchor.height);
+  }, [messages, scrollRef]);
 
-  function updateLast(change: (message: ChatMessage) => ChatMessage) {
+  const before = olderBefore(messages);
+
+  async function loadOlder() {
+    if (!conversationId || before === null || older === "loading") return;
+    const element = scrollRef.current;
+    setOlder("loading");
+    try {
+      const page = await api.getMessagesPage(conversationId, PAGE_SIZE, before, machineId);
+      if (element) anchorRef.current = { height: element.scrollHeight, top: element.scrollTop };
+      setMessages((current) => [...withKeys(olderPage(current, page)), ...current]);
+      setOlder("idle");
+    } catch {
+      setOlder("error");
+    }
+  }
+
+  function updateLast(change: (message: Entry) => Entry) {
     setMessages((current) => {
       const last = current[current.length - 1];
       if (last?.role !== "assistant") return current;
@@ -110,22 +164,22 @@ export function ChatPanel({
     if (!question || streaming) return;
     setInput("");
     setStreaming(true);
+    // Fehlerliste parallel zum Chat, ohne Modell: der erste Block steht, bevor der Text kommt
+    if (blocks && machineId) void prefetchFaultHits(machineId, question);
     setMessages((current) => [
       ...current,
-      { role: "user", content: question, tool_calls: [], sources: [] },
-      { role: "assistant", content: "", tool_calls: [], sources: [] },
+      { role: "user", content: question, tool_calls: [], sources: [], key: liveKey() },
+      { role: "assistant", content: "", tool_calls: [], sources: [], key: liveKey() },
     ]);
+    void scrollToBottom("smooth");
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const events = streamChat(
-        { conversation_id: conversationId, message: question, source_ids: scope.sourceIds, machine_id: scope.machineId },
-        controller.signal,
-      );
+      const events = streamChat({ conversation_id: conversationId, message: question, source_ids: scope.sourceIds, machine_id: machineId }, controller.signal);
       for await (const { event, data } of events) {
         if (event === "conversation") {
           ownedIdRef.current = data.id;
-          onConversationId(data.id);
+          onConversationId(data.id, data.title);
         } else if (event === "token") updateLast((m) => ({ ...m, content: m.content + data.text }));
         else if (event === "tool_start") updateLast((m) => ({ ...m, tool_calls: [...m.tool_calls, { ...data, done: false }] }));
         else if (event === "tool_end")
@@ -138,15 +192,14 @@ export function ChatPanel({
         else if (event === "meta") {
           updateLast((m) => ({ ...m, meta: data }));
           onMeta?.(data);
-          const n = data.referenced_tags.length;
-          setAnnouncement(n > 0 ? `Antwort fertig, ${n} ${n === 1 ? "Bauteil" : "Bauteile"} im Modell markiert.` : "Antwort fertig.");
-        }
-        else if (event === "error") updateLast((m) => ({ ...m, error: data.message }));
+          const n = Array.isArray(data.referenced_tags) ? data.referenced_tags.length : 0;
+          setAnnouncement(n > 0 ? `Antwort fertig, ${n} ${n === 1 ? "Bauteil" : "Bauteile"} in der Antwort.` : "Antwort fertig.");
+        } else if (event === "error") updateLast((m) => ({ ...m, error: friendlyError(data.message) }));
       }
     } catch (err) {
       if (!controller.signal.aborted) {
         const message = (err as Error).message;
-        updateLast((m) => ({ ...m, error: message }));
+        updateLast((m) => ({ ...m, error: friendlyError(message) }));
         // 402 vom Backend: Banner in der AppShell aktualisieren
         if (message.includes("Monatslimit")) window.dispatchEvent(new CustomEvent("stromlauf:budget"));
       }
@@ -158,17 +211,56 @@ export function ChatPanel({
     }
   }
 
+  /** Letzte Frage nach einem Fehler noch einmal senden: fehlgeschlagenes Paar entfernen, neu abschicken. */
+  function retry() {
+    const last = messages[messages.length - 1];
+    const question = messages[messages.length - 2];
+    if (!last?.error || question?.role !== "user") return;
+    setMessages((current) => current.slice(0, -2));
+    void send(question.content);
+  }
+
+  const sendFromOutside = useEffectEvent((text: string) => {
+    void send(text);
+  });
+  useEffect(() => {
+    if (!autoSend || autoSend.key === sentKeyRef.current) return;
+    sentKeyRef.current = autoSend.key;
+    sendFromOutside(autoSend.text);
+  }, [autoSend]);
+
+  const lastMessage = messages[messages.length - 1];
+  const canRetry = !streaming && Boolean(lastMessage?.error) && messages[messages.length - 2]?.role === "user";
+
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col">
       {banner && <p className="border-b border-border bg-primary/10 px-4 py-2 text-sm">{banner}</p>}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto"
+        onScroll={(event) => {
+          if (event.currentTarget.scrollTop < 120 && before !== null && older === "idle") void loadOlder();
+        }}
+      >
+        <div ref={contentRef} className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+          {before !== null && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => void loadOlder()}
+                disabled={older === "loading"}
+                className="min-h-11 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:border-primary hover:text-foreground disabled:opacity-60"
+              >
+                {older === "loading" ? "Lade ältere Nachrichten …" : older === "error" ? "Ältere Nachrichten: erneut versuchen" : "Ältere Nachrichten laden"}
+              </button>
+            </div>
+          )}
           {messages.length === 0 ? (
-            <div className="pt-[8vh]">{typeof emptyState === "function" ? null : emptyState}</div>
+            <div className="pt-[8vh]">{emptyState}</div>
           ) : (
             messages.map((message, index) => (
               <Message
-                key={index}
+                key={message.key}
                 message={message}
                 question={messages[index - 1]?.role === "user" ? messages[index - 1].content : ""}
                 streaming={streaming && index === messages.length - 1}
@@ -177,12 +269,29 @@ export function ChatPanel({
                 onOpen={onOpenPage}
                 onOpenPart={onOpenPart}
                 onShowInModel={onShowInModel}
+                blocks={blocks}
               />
             ))
           )}
-          <div ref={bottomRef} />
+          {canRetry && (
+            <div className="flex justify-start">
+              <button type="button" onClick={retry} className="min-h-11 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:border-primary">
+                Erneut versuchen
+              </button>
+            </div>
+          )}
         </div>
       </div>
+      {!isAtBottom && messages.length > 0 && (
+        <button
+          type="button"
+          onClick={() => void scrollToBottom("smooth")}
+          className="absolute bottom-24 left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium shadow-md hover:border-primary"
+        >
+          <ArrowDown className="size-3.5" aria-hidden />
+          Zum Ende
+        </button>
+      )}
       <p className="sr-only-live" aria-live="polite" role="status">
         {announcement}
       </p>
@@ -190,7 +299,7 @@ export function ChatPanel({
         className="border-t border-border bg-card px-4 py-3"
         onSubmit={(event) => {
           event.preventDefault();
-          send(input);
+          void send(input);
         }}
       >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
@@ -200,19 +309,20 @@ export function ChatPanel({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                send(input);
+                void send(input);
               }
             }}
             rows={Math.min(6, input.split("\n").length)}
             placeholder={placeholder}
-            className="min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary"
+            aria-label={placeholder}
+            className="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary"
           />
           {streaming ? (
-            <button type="button" onClick={() => abortRef.current?.abort()} className="rounded-xl border border-border px-4 py-2.5 font-medium hover:bg-secondary">
+            <button type="button" onClick={() => abortRef.current?.abort()} className="min-h-11 rounded-xl border border-border px-4 py-2.5 font-medium hover:bg-secondary">
               Stopp
             </button>
           ) : (
-            <button disabled={!input.trim()} className="rounded-xl bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-40">
+            <button disabled={!input.trim()} className="min-h-11 rounded-xl bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-40">
               Senden
             </button>
           )}
@@ -227,7 +337,7 @@ export function ExampleQuestions({ examples, onPick }: { examples: string[]; onP
   return (
     <div className="mt-6 grid gap-2 sm:grid-cols-2">
       {examples.map((example) => (
-        <button key={example} onClick={() => onPick(example)} className="rounded-xl border border-border bg-card p-3 text-left text-sm hover:border-primary">
+        <button key={example} onClick={() => onPick(example)} className="min-h-11 rounded-xl border border-border bg-card p-3 text-left text-sm hover:border-primary">
           {example}
         </button>
       ))}
