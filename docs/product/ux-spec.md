@@ -17,7 +17,7 @@ Color variables (collection `Vision Colors`, modes Light / Dark): `bg/canvas`, `
 Typography: Inter (UI), IBM Plex Mono (part identifiers). Scale: Display 28 / Title 20 / Heading 16 / Body 15 / Body 14 / Label 13 / Caption 12 / Overline 11 / Mono 13 / Mono 12.
 Spacing 8-px grid; radii 8 (chips/inputs), 12 (cards), 14–16 (panels/sheets); rail width 280.
 
-Implementation: CSS variables in `frontend/src/app/globals.css` (today: Blaupause light theme) with `prefers-color-scheme` + `data-theme` override; Tailwind 4 and shadcn are already in use and map to these variables.
+Implementation: CSS variables in `frontend/src/app/globals.css` with `prefers-color-scheme` + `data-theme` override; Tailwind 4 and shadcn are already in use and map to these variables. Since 2026-10-01 the variables follow the approved Figma file "iOS clean" (`wtxajO1YC5HvtQG7CI44BC`): collections `Color` (Light/Dark) and `Layout`, text styles `iOS/…` in Inter and `Tag/…` in JetBrains Mono; the token list above describes the earlier "Vision" file. Where a Figma color is below 4.5:1 as text, a `-strong` variant is used for text.
 
 ## 3. Screens and states
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { AlertTriangle, Boxes } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -114,18 +113,18 @@ export default function MachinePage() {
   const onListReady = useCallback(() => setListReady(true), []);
 
   const openPart = view.detail?.kind === "part" ? view.detail.tag : (view.tag ?? "");
-  const areaButton = (area: MachineView["area"], label: string, Icon: typeof AlertTriangle) => (
+  // Segment (Figma "Segment"): 32 px hoch wie iOS, die Trefferflaeche reicht per before: auf 44 px
+  const areaButton = (area: MachineView["area"], label: string) => (
     <button
       type="button"
       aria-pressed={view.area === area}
       onClick={() => (area === "aufbau" ? navigate({ ...STOERFAELLE, area: "aufbau" }, "push") : navigate(STOERFAELLE, "push"))}
       className={cn(
-        "flex min-h-11 items-center gap-1.5 rounded-md px-3 text-[13px]",
-        view.area === area ? "bg-primary-soft font-semibold text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+        "relative flex h-7 flex-1 items-center justify-center rounded-[7px] text-subhead text-foreground before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
+        view.area === area ? "bg-popover font-semibold shadow-card" : "hover:bg-bg-fill",
       )}
       data-testid={`area-${area}`}
     >
-      <Icon className="size-4" aria-hidden />
       {label}
     </button>
   );
@@ -160,39 +159,54 @@ export default function MachinePage() {
       }
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden" data-testid="machine-page" data-area={view.area} data-open-part={openPart}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-card px-3 py-1.5 md:px-6">
-          {machine ? (
-            <>
-              <h1 className="min-w-0 truncate text-[18px] font-semibold tracking-tight md:text-[20px]">{machine.name}</h1>
-              <span className="hidden rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline">{MACHINE_TYPE_LABELS[machine.machine_type]}</span>
-              <span className="hidden text-[11px] text-muted-foreground xl:inline">
-                {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente
-              </span>
-            </>
-          ) : (
-            <h1 className="min-w-0 text-[18px] font-semibold md:text-[20px]">
-              <span className="inline-block h-6 w-40 animate-pulse rounded bg-secondary align-middle" aria-hidden />
-              <span className="sr-only">{failed ? "Maschine" : "Lade Maschine …"}</span>
-            </h1>
+        {/* Kopf (Figma "Kopfzeile"): Halle und Art ueber dem Namen, rechts das Segment; am Handy darunter in voller Breite */}
+        {/* Am Handy hat ein offener Stoerfall seine eigene Nav-Leiste; der Kopf gehoert zur Liste */}
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-x-4 gap-y-3 border-b-[0.5px] border-border bg-bg-bar px-4 pt-2 pb-3 backdrop-blur-bar md:flex-nowrap md:px-6 md:py-3",
+            view.area === "stoerfaelle" && level !== "list" && "max-lg:hidden",
           )}
+        >
+          <div className="min-w-0 flex-1 basis-full md:basis-auto">
+            {machine ? (
+              <>
+                <p className="truncate text-footnote text-muted-foreground">
+                  {[machine.hall_name || "Halle", MACHINE_TYPE_LABELS[machine.machine_type]].join(" · ")}
+                  <span className="hidden xl:inline">
+                    {" · "}
+                    {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente
+                  </span>
+                </p>
+                <h1 className="truncate text-large-title md:text-title-2">{machine.name}</h1>
+              </>
+            ) : (
+              <>
+                <span className="block h-[18px] w-32 animate-pulse rounded-xs bg-bg-fill" aria-hidden />
+                <h1 className="text-large-title md:text-title-2">
+                  <span className="mt-1 inline-block h-8 w-56 animate-pulse rounded-sm bg-bg-fill align-middle md:h-6 md:w-48" aria-hidden />
+                  <span className="sr-only">{failed ? "Maschine" : "Lade Maschine …"}</span>
+                </h1>
+              </>
+            )}
+          </div>
           {/* Kostenchip erst nach der Liste, damit seine Anfrage die Stoerfaelle nicht aufhaelt; links der Bereiche,
               damit beim Erscheinen nichts verrutscht */}
           {machine && (listReady || view.area === "aufbau") && (
-            <span className="hidden md:inline">
+            <span className="hidden shrink-0 md:inline">
               <MachineCostChip machineId={id} refreshKey={0} />
             </span>
           )}
-          <nav aria-label="Bereiche der Maschine" className="ml-auto flex items-center gap-1">
-            {areaButton("stoerfaelle", "Störfälle", AlertTriangle)}
-            {areaButton("aufbau", "Aufbau", Boxes)}
+          <nav aria-label="Bereiche der Maschine" className="flex h-8 w-full shrink-0 gap-0.5 rounded-sm bg-bg-fill p-0.5 md:w-60">
+            {areaButton("stoerfaelle", "Störfälle")}
+            {areaButton("aufbau", "Aufbau")}
           </nav>
         </div>
 
         {!machine ? (
           failed ? (
             <div className="space-y-3 p-8" role="status">
-              <p className="text-muted-foreground">Die Maschine konnte nicht geladen werden.</p>
-              <button type="button" onClick={() => void loadMachine()} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
+              <p className="text-body text-muted-foreground">Die Maschine konnte nicht geladen werden.</p>
+              <button type="button" onClick={() => void loadMachine()} className="min-h-11 rounded-md bg-bg-fill px-4 text-subhead font-semibold text-primary hover:bg-muted">
                 Erneut versuchen
               </button>
             </div>

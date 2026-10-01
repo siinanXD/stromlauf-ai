@@ -20,7 +20,7 @@ export function railInitials(title: string): string {
 export function listColumnLayout(level: Level, detailOpen: boolean) {
   return {
     column: cn(
-      "min-h-0 w-full flex-col bg-card lg:flex lg:shrink-0 lg:border-r lg:border-border 2xl:w-[300px]",
+      "min-h-0 w-full flex-col bg-background lg:flex lg:shrink-0 lg:border-r-[0.5px] lg:border-border 2xl:w-[300px]",
       detailOpen ? "lg:w-[68px] xl:w-[260px]" : "lg:w-[260px]",
       level === "list" ? "flex" : "hidden",
     ),
@@ -53,11 +53,11 @@ export function IncidentRail({
         onClick={onExpand}
         aria-label="Störfall-Liste zeigen und Detail schließen"
         title="Liste zeigen"
-        className="grid size-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+        className="grid size-11 shrink-0 place-items-center rounded-full text-primary hover:bg-bg-fill"
       >
-        <PanelLeftOpen className="size-4" aria-hidden />
+        <PanelLeftOpen className="size-5" aria-hidden />
       </button>
-      <ul className="flex flex-col items-center gap-1">
+      <ul className="flex flex-col items-center gap-1.5">
         {shown.map((incident) => {
           const active = incident.id === activeId;
           return (
@@ -69,15 +69,12 @@ export function IncidentRail({
                 aria-label={`${incident.title}, ${stateLabel(incident, false)}`}
                 title={incident.title}
                 data-incident={incident.id}
-                className={cn(
-                  "relative grid size-11 place-items-center rounded-lg border",
-                  active ? "border-primary bg-primary-soft" : "border-transparent hover:bg-secondary",
-                )}
+                className={cn("relative grid size-11 place-items-center rounded-md", active ? "bg-primary-soft text-primary" : "bg-bg-fill text-muted-foreground hover:text-foreground")}
               >
-                <span className="font-mono text-[12px] font-semibold" aria-hidden>
+                <span className="text-footnote font-semibold" aria-hidden>
                   {railInitials(incident.title)}
                 </span>
-                <StateIcon incident={incident} className="absolute right-0.5 top-0.5 size-3" />
+                <StateIcon incident={incident} size="sm" className="absolute -top-0.5 -right-0.5 ring-2 ring-background" />
               </button>
             </li>
           );

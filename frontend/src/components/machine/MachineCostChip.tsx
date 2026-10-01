@@ -34,8 +34,8 @@ export function MachineCostChip({ machineId, refreshKey = 0 }: { machineId: stri
     .join("\n");
   return (
     <span
-      className={`inline-flex items-center gap-1 border px-2 py-0.5 font-mono text-[11px] ${
-        data.workspace.exceeded ? "border-danger text-danger" : "border-border text-muted-foreground"
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-footnote whitespace-nowrap ${
+        data.workspace.exceeded ? "bg-error-soft text-danger" : "bg-bg-fill text-muted-foreground"
       }`}
       title={title}
       data-testid="machine-cost-chip"

@@ -1,9 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { countByOutcome, outcomeOf, visibleIncidents, type Incident, type IncidentFilter } from "./incidents";
@@ -28,13 +27,23 @@ export function handleComposerKey(
 
 function Skeleton() {
   return (
-    <ul className="space-y-2 p-3" aria-busy="true" aria-label="Störfälle werden geladen">
+    <ul className="space-y-1 rounded-lg bg-card p-1 lg:bg-transparent lg:p-0" aria-busy="true" aria-label="Störfälle werden geladen">
       {Array.from({ length: 4 }, (_, i) => (
-        <li key={i} className="h-14 animate-pulse rounded-lg bg-secondary" />
+        <li key={i} className="flex items-center gap-3 p-3">
+          <span className="size-[26px] shrink-0 animate-pulse rounded-full bg-bg-fill" />
+          <span className="flex-1 space-y-1.5">
+            <span className={cn("block h-4 animate-pulse rounded-xs bg-bg-fill", i % 2 ? "w-2/3" : "w-5/6")} />
+            <span className="block h-3 w-1/3 animate-pulse rounded-xs bg-bg-fill" />
+          </span>
+        </li>
       ))}
     </ul>
   );
 }
+
+/** Filter-Pille (Figma "Filter"): 32 px sichtbar, Trefferflaeche per before: 44 px. */
+const PILL =
+  "relative rounded-full px-3.5 py-1.5 text-subhead before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-[''] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 /**
  * Stoerfaelle der Maschine: oben das Eingabefeld "Meldung oder Frage" (Enter legt sofort an), darunter offen und
@@ -77,20 +86,24 @@ export function IncidentList({
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="incident-list">
-      <div className="space-y-2 border-b border-border p-3">
+      <div className="space-y-3 px-4 pt-3 pb-3 lg:pt-4">
         {unavailable ? (
-          <div className="rounded-lg border border-dashed border-border p-3 text-sm" data-testid="incidents-unavailable">
+          <div className="rounded-lg bg-card p-4 text-subhead shadow-card" data-testid="incidents-unavailable">
             <p className="text-muted-foreground">{unavailable.reason}</p>
             {unavailable.action && (
-              <button type="button" onClick={unavailable.action.onClick} className="mt-2 min-h-11 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground">
+              <button type="button" onClick={unavailable.action.onClick} className="mt-3 min-h-11 rounded-md bg-primary px-4 font-semibold text-primary-foreground">
                 {unavailable.action.label}
               </button>
             )}
           </div>
         ) : (
-          <label className="block">
+          // Meldung-Eingabe (Figma): gefuelltes Feld mit blauem Plus, Enter legt den Stoerfall an
+          <label className="flex h-11 cursor-text items-center gap-2 rounded-md bg-bg-fill px-3 focus-within:ring-3 focus-within:ring-ring/50 has-disabled:cursor-default has-disabled:opacity-60">
+            <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-accent text-white" aria-hidden>
+              <Plus className="size-3.5" strokeWidth={3} />
+            </span>
             <span className="sr-only">Meldung oder Frage</span>
-            <Input
+            <input
               value={text}
               onChange={(event) => setText(event.target.value)}
               onKeyDown={(event) => {
@@ -100,48 +113,50 @@ export function IncidentList({
               disabled={composerDisabled}
               enterKeyHint="send"
               autoComplete="off"
-              className="h-11 bg-background text-[15px]"
+              className="h-full min-w-0 flex-1 bg-transparent text-body outline-none"
               data-testid="incident-input"
             />
           </label>
         )}
-        <div className="flex gap-1" role="group" aria-label="Störfälle filtern">
+        <div className="flex gap-2" role="group" aria-label="Störfälle filtern">
           {(["open", "resolved"] as const).map((value) => (
             <button
               key={value}
               type="button"
               aria-pressed={filter === value}
               onClick={() => onFilter(value)}
-              className={cn(
-                "min-h-11 flex-1 rounded-md border px-2 text-[13px]",
-                filter === value ? "border-primary bg-primary-soft font-semibold text-foreground" : "border-border text-muted-foreground hover:text-foreground",
-              )}
+              className={cn(PILL, filter === value ? "bg-primary-soft font-semibold text-primary" : "bg-bg-fill text-muted-foreground hover:text-foreground")}
             >
-              {value === "open" ? "Offen" : "Erledigt"} ({counts[value]})
+              {value === "open" ? "Offen" : "Erledigt"} {counts[value]}
             </button>
           ))}
         </div>
         {filter === "resolved" && counts.resolved > 0 && (
-          <label className="relative block">
+          <label className="flex h-11 items-center gap-2 rounded-md bg-bg-fill px-3 focus-within:ring-3 focus-within:ring-ring/50">
             <span className="sr-only">Erledigte Störfälle durchsuchen</span>
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Titel oder Befund suchen" className="h-11 pl-8" />
+            <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Titel oder Befund suchen"
+              className="h-full min-w-0 flex-1 bg-transparent text-body outline-none"
+            />
           </label>
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {loading && incidents.length === 0 ? (
           <Skeleton />
         ) : failed && incidents.length === 0 ? (
-          <div className="space-y-2 p-4 text-sm" role="status">
+          <div className="space-y-3 py-2 text-subhead" role="status">
             <p className="text-muted-foreground">Die Störfälle konnten nicht geladen werden.</p>
-            <button type="button" onClick={onRetry} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
+            <button type="button" onClick={onRetry} className="min-h-11 rounded-md bg-bg-fill px-4 font-semibold text-primary hover:bg-muted">
               Erneut versuchen
             </button>
           </div>
         ) : shown.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground" data-testid="incidents-empty">
+          <p className="py-2 text-subhead text-muted-foreground" data-testid="incidents-empty">
             {filter === "open"
               ? unavailable
                 ? "Noch keine Störfälle."
@@ -151,7 +166,11 @@ export function IncidentList({
                 : "Noch nichts erledigt. Erledigte Störfälle bleiben hier mit ihrem Befund und helfen bei der nächsten Meldung."}
           </p>
         ) : (
-          <ul className="space-y-1 p-2" aria-label={filter === "open" ? "Offene Störfälle" : "Erledigte Störfälle"}>
+          // Handy: Zeilen in einer weissen Karte mit Trennern; PC: Zeilen direkt auf dem grauen Grund (Figma)
+          <ul
+            className="rounded-lg bg-card p-1 lg:space-y-0.5 lg:bg-transparent lg:p-0 [&>li+li]:border-t-[0.5px] [&>li+li]:border-border lg:[&>li+li]:border-t-0"
+            aria-label={filter === "open" ? "Offene Störfälle" : "Erledigte Störfälle"}
+          >
             {shown.map((incident) => {
               const active = incident.id === activeId;
               const resolved = outcomeOf(incident) === "resolved";
@@ -165,22 +184,22 @@ export function IncidentList({
                     data-pending={incident.pending ? "true" : undefined}
                     data-failed={incident.failed ? "true" : undefined}
                     className={cn(
-                      "flex min-h-14 w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left",
-                      active ? "border-primary bg-primary-soft" : "border-transparent hover:bg-secondary",
+                      "flex min-h-11 w-full items-center gap-3 rounded-md p-3 text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                      active ? "bg-primary-soft" : "hover:bg-bg-fill",
                     )}
                   >
-                    <StateIcon incident={incident} className="mt-0.5" />
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 text-[14px] font-medium leading-snug">{incident.title}</span>
-                      <span className={cn("block text-xs", incident.failed ? "text-danger" : "text-muted-foreground")}>{stateLabel(incident)}</span>
-                      {resolved && incident.finding && <span className="block truncate text-xs text-muted-foreground">Befund: {incident.finding}</span>}
+                    <StateIcon incident={incident} />
+                    <span className="min-w-0 flex-1 space-y-0.5">
+                      <span className="line-clamp-2 text-body">{incident.title}</span>
+                      <span className={cn("block text-footnote", incident.failed ? "text-danger" : "text-muted-foreground")}>{stateLabel(incident)}</span>
+                      {resolved && incident.finding && <span className="line-clamp-2 text-footnote text-muted-foreground">Befund: {incident.finding}</span>}
                     </span>
                   </button>
                   {incident.failed && onRetryIncident && (
                     <button
                       type="button"
                       onClick={() => onRetryIncident(incident.id)}
-                      className="ml-8 min-h-11 rounded-md px-2 text-xs font-medium text-primary hover:underline"
+                      className="mb-1 ml-[50px] min-h-11 rounded-md px-2 text-subhead font-semibold text-primary hover:bg-bg-fill"
                       aria-label={`„${incident.title}“ erneut senden`}
                     >
                       Erneut versuchen

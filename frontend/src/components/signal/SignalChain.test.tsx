@@ -82,7 +82,7 @@ describe("SignalChain: Herkunft als Text", () => {
 
   it("zeigt Kennzeichen, Klartext, Spalte und Blatt je Zeile", () => {
     const plain = text(renderToStaticMarkup(<SignalChain data={conveyor()} onOpenPart={noop} />));
-    expect(plain).toContain("-K1 Schaltgerät Start Schütz Förderband Blatt 3, Spalte 5");
+    expect(plain).toContain("-K1 Schaltgerät Start Schütz Förderband Blatt 3 · Spalte 5");
     expect(plain).toContain("FC 1 NW 2 Programm Band schalten");
   });
 

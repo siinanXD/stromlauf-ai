@@ -33,7 +33,7 @@ export function PartNode({ data, selected, width = 0, height = 0 }: NodeProps<Pa
         className={cn(
           "relative size-full border-[1.5px] border-line bg-card",
           circle && "rounded-full",
-          belt && "bg-[repeating-linear-gradient(90deg,transparent_0,transparent_11px,rgba(20,38,61,0.25)_11px,rgba(20,38,61,0.25)_12px)] bg-accent",
+          belt && "bg-[repeating-linear-gradient(90deg,transparent_0,transparent_11px,rgba(20,38,61,0.25)_11px,rgba(20,38,61,0.25)_12px)] bg-muted",
           part.kind === "Rahmen" && "bg-transparent",
           emergency && "border-[#8f1424] bg-danger",
           proposal && "border-dashed border-primary bg-primary/5",

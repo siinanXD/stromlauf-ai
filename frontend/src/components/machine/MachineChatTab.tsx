@@ -21,6 +21,7 @@ export function MachineChatTab({
   conversationId,
   autoSend,
   activeReference,
+  activePart = null,
   onConversationId,
   onSendStart,
   onSendSettled,
@@ -40,6 +41,8 @@ export function MachineChatTab({
   conversationId: string | null;
   autoSend?: { key: string; text: string };
   activeReference: string | null;
+  /** Bauteil, das gerade im Detail offen ist. */
+  activePart?: string | null;
   onConversationId: (id: string, title: string) => void;
   onSendStart?: () => void;
   /** conversationId null: der Server hat keinen Chat angelegt, der neue Stoerfall gilt als "nicht angelegt". */
@@ -57,7 +60,10 @@ export function MachineChatTab({
   const sourceId = machine.source_id;
   const machineId = machine.id;
   const scope = useMemo<ChatScope>(() => ({ sourceIds: sourceId ? [sourceId] : [], machineId }), [sourceId, machineId]);
-  const blocks = useMemo<AnswerBlocksContext>(() => ({ machineId, sourceId, onOpenDetail, onOpenIncident }), [machineId, sourceId, onOpenDetail, onOpenIncident]);
+  const blocks = useMemo<AnswerBlocksContext>(
+    () => ({ machineId, sourceId, onOpenDetail, onOpenIncident, activePart }),
+    [machineId, sourceId, onOpenDetail, onOpenIncident, activePart],
+  );
   const openPage = useCallback((target: PageTarget) => onOpenDetail({ kind: "plan", target }), [onOpenDetail]);
 
   return (
@@ -78,7 +84,7 @@ export function MachineChatTab({
         blocks={blocks}
         autoSend={autoSend}
         emptyState={
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-subhead text-muted-foreground">
             {incident.pending
               ? "Die Meldung wird gesendet …"
               : incident.failed
