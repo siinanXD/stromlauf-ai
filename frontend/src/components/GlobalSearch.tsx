@@ -9,6 +9,7 @@ import { searchTags, type TagSearchHit } from "@/lib/api";
 
 const TYPE_LABELS: Record<string, string> = {
   device: "Betriebsmittel",
+  device_pin: "Geräteanschluss",
   terminal: "Klemme",
   plc_address: "SPS-Adresse",
   plc_symbol: "Symbol",

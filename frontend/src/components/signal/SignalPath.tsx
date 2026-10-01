@@ -33,6 +33,7 @@ type SignalFlowNode = Node<SignalNodeData, "signal">;
 
 const KIND_LABEL: Record<SignalNode["kind"], string> = {
   device: "Betriebsmittel",
+  pin: "Anschluss",
   terminal: "Klemme",
   address: "SPS-Adresse",
   network: "Netzwerk",
@@ -148,7 +149,8 @@ export function SignalPath({ sourceId, initialTag, onOpen }: { sourceId: string;
         filename: data.schematic.filename,
         reference: node.ref,
         label: `Stromlaufplan ${node.ref} · ${node.id}`,
-        tag: node.kind === "device" ? node.id : null,
+        // Anschluss -K1:A1 gehoert zum Geraet -K1
+        tag: node.kind === "device" ? node.id : node.kind === "pin" ? node.id.split(":")[0] : null,
       });
     }
   }

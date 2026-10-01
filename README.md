@@ -322,8 +322,10 @@ Die Beispielanlage FB-01 hat genau eine Lücke: Symbol `M10.1` ohne Verwendung i
 Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:
 
 - **Signalweg** (Maschinenseite, Tab „Signalweg“): Graph aus Klemmenplan, Stueckliste,
-  Symboltabelle und AWL. Links die Quellen, rechts die Folgen, z. B. `-S1 → -X3:1 → E0.0 →
-  FB 10 NW 1 → Freigabe → NW 2 → A4.0 → -X3:9 → -K1 → -X4:U → -M1`. Klick oeffnet das Blatt
+  Symboltabelle und AWL. Links die Quellen, rechts die Folgen, z. B. `-S1 → -S1:13 → -X3:1 → E0.0 →
+  FB 10 NW 1 → Freigabe → NW 2 → A4.0 → -X3:9 → -K1:A1 → -K1 → -K1:2 → -X4:U → -M1`. Schaltgeräte
+  laufen über ihre Anschlüsse nach IEC 60947-1: erst die Spule `A1/A2`, dann das Gerät, dann der
+  Schließer, Öffner oder Hauptkontakt, der weiterschaltet. Klick oeffnet das Blatt
   mit markierter Spalte bzw. den AWL-Code, Doppelklick verfolgt ab dort. `GET /api/signal-path`.
 - **Gefuehrte Fehlersuche** (Tab „Fehler“, „Diagnose“): Pruefschritte aus der Behebung eines
   Fehlereintrags mit Blatt-Verweisen, abhaken (ok / Fehler / uebersprungen), Befund datiert in die

@@ -12,8 +12,9 @@ backend/app/ingestion/pipeline.py. Das Gold entsteht beim Zeichnen des Beispielp
 (scripts/example_docs/make_gold.py) und misst damit das Lesen, nicht die Kennzeichen-Grammatik;
 die prueft backend/tests/test_tags.py.
 
-Recall und Precision je Typ (device, terminal, plc_address, cross_ref) werden ueber alle Seiten
-summiert (micro). Ergebnis: eval/results/ingest_<gold>_<zeitstempel>.json und .md.
+Recall und Precision je Typ (device, terminal, plc_address, cross_ref, device_pin) werden ueber alle Seiten
+summiert (micro). Ergebnis: eval/results/ingest_<gold>_<zeitstempel>.json und .md. Geraeteanschluesse wie
+-K1:A1 (device_pin, Issue #98) werden gemessen, aber nicht gegatet.
 Exit 1, wenn Recall oder Precision eines gegateten Typs unter --min liegen.
 """
 
@@ -32,7 +33,7 @@ sys.path.insert(0, str(HERE))
 
 import evallib  # noqa: E402
 
-TAG_TYPES = ("device", "terminal", "plc_address", "cross_ref")
+TAG_TYPES = ("device", "terminal", "plc_address", "cross_ref", "device_pin")
 GATED_DEFAULT = ("device", "terminal", "plc_address")
 NO_PAGE = 0  # Funde ohne Seite (Nicht-PDF) landen hier statt verloren zu gehen
 
