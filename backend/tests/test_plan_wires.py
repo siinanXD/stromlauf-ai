@@ -282,7 +282,70 @@ def test_sps_karte_ist_keine_adresse():
     """In "-A1.1" findet extract_tags auch die Adresse A1.1; als Anschluss zaehlt nur die Karte nicht."""
     assert plan_wires._anchor_node("-A1.1,", False) is None
     assert plan_wires._anchor_node("(E0.0", False) == "E0.0"
-    assert plan_wires._channel(["-A1.1 E0.0 -X3:1 von -S1"], False) == ("E0.0", "-X3:1", "-S1")
+    row = [(0.0, "-A1.1"), (1.0, "E0.0"), (2.0, "-X3:1"), (3.0, "von"), (4.0, "-S1")]
+    assert plan_wires._channel(row, False) == ("E0.0", "-X3:1", "-S1")
+
+
+def test_kanal_feldgeraet_steht_jenseits_der_klemme():
+    """Spalte von oben: Taster, Leitung (-W), Klemme, Eingang, SPS-Baugruppe. Die Baugruppe bei der Adresse und die
+    Leitung sind kein Feldgeraet; eine Adresse in Klammern verweist auf eine Spule und ist keine Kanal-Adresse."""
+    column = [(0.0, "-S7"), (1.0, "-W7"), (2.0, "X420 3"), (3.0, "E0.0"), (4.0, "-D1")]
+    assert plan_wires._channel(column, True) == ("E0.0", "-X420:3", "-S7")
+    assert (
+        plan_wires._channel([(0.0, "-K5"), (1.0, "(A20.2)"), (2.0, "-X9:1"), (3.0, "-M5")], False)
+        is None
+    )
+    assert plan_wires._channel([(0.0, "A20.2"), (1.0, "-X9:1"), (2.0, "-M5")], False) == (
+        "A20.2",
+        "-X9:1",
+        "-M5",
+    )
+
+
+def _column_sheet(c) -> None:
+    """Kanaele in Spalten mit Spaltenkopf. Die Leitung laeuft nur von der Klemme zum Eingang; der Taster darueber ist
+    nicht angeschlossen gezeichnet und steht nur in derselben Spalte."""
+    for n in range(1, 9):
+        c.drawCentredString(W * 0.1 * n, H - 30, str(n))
+    for i in range(1, 5):
+        x = W * 0.1 * (i + 1)
+        c.drawCentredString(x, H - 150, f"-S{i}")
+        c.drawString(x + 3, H - 300, f"-X1:{i}")
+        c.line(x, H - 305, x, H - 440)
+        c.drawString(x + 3, H - 452, f"E0.{i - 1}")
+
+
+def test_kanal_in_spalten_ergaenzt_lage_auch_auf_blatt_mit_leitungen(tmp_path, cache):
+    """Die Leitung verbindet Klemme und Eingang; den Taster in derselben Spalte ergaenzt die Lage im Plan. Fuer das
+    Paar, das die Leitung schon zeigt, entsteht keine zweite Kante."""
+    path = _plan(tmp_path, _column_sheet)
+    assert plan_wires.page_segments(path, 1)
+    edges = set(plan_wires.plan_edges(path))
+    for i in range(1, 5):
+        assert PlanEdge(f"-X1:{i}", f"E0.{i - 1}", 1, "leitung", True) in edges
+        assert PlanEdge(f"-S{i}", f"-X1:{i}", 1, "lage", True) in edges
+    assert {edge.via for edge in edges if edge.target.startswith("E")} == {"leitung"}
+    assert len(edges) == 8
+
+
+def test_lage_nur_wo_keine_leitung_das_paar_schon_zeigt(tmp_path, monkeypatch):
+    """Auch ueber Blaetter und fuer Anschluss wie Geraet: -S1:14 -> -X1:1 als Leitung deckt -S1 -> -X1:1 aus der Lage."""
+    monkeypatch.setattr(
+        plan_wires, "_wire_edges", lambda *args: [PlanEdge("-S1:14", "-X1:1", 2, "leitung")]
+    )
+    monkeypatch.setattr(
+        plan_wires,
+        "_layout_page",
+        lambda path, page, spots, spaced: [
+            PlanEdge("-S1", "-X1:1", page, "lage"),
+            PlanEdge("-X1:1", "E0.0", page, "lage"),
+        ],
+    )
+    path = _plan(tmp_path, lambda c: c.line(100, 100, 200, 100))
+    assert plan_wires.compute_edges(path) == [
+        PlanEdge("-X1:1", "E0.0", 1, "lage"),
+        PlanEdge("-S1:14", "-X1:1", 2, "leitung"),
+    ]
 
 
 def test_cache_wird_genutzt(tmp_path, cache, monkeypatch):
