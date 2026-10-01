@@ -68,25 +68,3 @@ export function nudge(box: Box, key: string, shift: boolean, step = 0.005): Box 
 export function sameBox(a: Box, b: Box, epsilon = 1e-6): boolean {
   return Math.abs(a.x - b.x) < epsilon && Math.abs(a.y - b.y) < epsilon && Math.abs(a.w - b.w) < epsilon && Math.abs(a.h - b.h) < epsilon;
 }
-
-/** Beziehung zum Nachbarn aus dem Kennbuchstaben des Nachbarn (Bauteil-Sheet, Relations-Chips). */
-export function relationVerb(neighborTag: string): string {
-  const letter = neighborTag.toUpperCase().replace(/^\+[^-]*/, "").replace(/^-/, "").charAt(0);
-  switch (letter) {
-    case "F":
-    case "Q":
-      return "schützt";
-    case "K":
-      return "schaltet";
-    case "A":
-      return "steuert";
-    case "G":
-    case "T":
-    case "U":
-      return "versorgt";
-    case "X":
-      return "verbindet";
-    default:
-      return "hängt an";
-  }
-}

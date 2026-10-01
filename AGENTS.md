@@ -54,6 +54,13 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   zaehlen als Stuecklistenzeilen (Bezeichnung, kein Blatt). Kennzeichen ohne Minus im Blatt-Stil (`4Q1`, `9K1`,
   QElectroTech) erkennt `tags.detect_folio_style` je Dokument, damit Bestellnummern (`6ES7`) in deutschen Plaenen
   keine Treffer werden. Testdaten dafuer: `testdata/qelectrotech/` (lokal, `python scripts/fetch_testdata.py`).
+- Kennbuchstaben je Ausgabe (Issue #99): `ingestion/letter_codes.py` bestimmt je Quelle die Lesart (`detect_edition`:
+  `alt` = DIN 40719-2 und franzoesische Paare, `2019` = IEC 81346-2:2019, `offen`) und daraus Art und Verb der Teile im
+  Maschinenmodell (`kind_of`, `verb_of`; API `letter_codes`, `MapPart.verb`, das Bauteil-Sheet liest das Verb). Fuer
+  2019 zaehlen nur primaer belegte Unterklassen und die dritte Buchstabenebene, fuer `alt` Buchstaben, die 2019 nicht
+  zulaessig oder reserviert sind (A, D, J, L, V, Y, Z), franzoesische Paare und der Blatt-Stil; gewinnen muss eine Seite
+  mit mindestens doppelt so vielen Kennzeichen. Bei `offen` keine Art fuer H, K, N, Q, U; ein Teil bleibt Teil
+  (`is_part`). Keine Wikipedia-Tabellen im Repo (CC BY-SA); Recherche `.ai/research/2026-10-01-iec81346-2-kennbuchstaben.md`.
 - Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken

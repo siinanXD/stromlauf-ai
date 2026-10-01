@@ -14,11 +14,19 @@ BOM = [
 
 
 def test_zonen_aus_einbauorten_mit_klartext():
+    """Nur Einzelbuchstaben: Die Lesart bleibt offen (Issue #99), -K1 ist Schuetz oder Relais und bekommt keine Art."""
     result = build_map(BOM, legend=LEGEND).as_dict()
     zones = {z["code"]: z for z in result["zones"]}
     assert zones["+ST1"]["name"] == "Schaltschrank" and zones["+FE1"]["name"] == "Feld"
-    assert [p["tag"] for p in zones["+ST1"]["parts"]] == ["-K1", "-F2"]  # nach Art sortiert (Schuetz < Schutz), -K1 nur einmal
-    assert zones["+ST1"]["parts"][0] == {"tag": "-K1", "label": "Schütz Hauptantrieb", "kind": "Schuetz/Relais", "source": "bom"}
+    assert [p["tag"] for p in zones["+ST1"]["parts"]] == ["-K1", "-F2"]  # nach Art sortiert (ohne Art vorn), -K1 nur einmal
+    assert zones["+ST1"]["parts"][0] == {
+        "tag": "-K1",
+        "label": "Schütz Hauptantrieb",
+        "kind": "",
+        "source": "bom",
+        "verb": "hängt an",
+    }
+    assert result["letter_codes"]["edition"] == "offen"
     assert [p["tag"] for p in zones["+FE1"]["parts"]] == ["-M1"]
     assert zones["?"]["name"] == "Ohne Einbauort" and [p["tag"] for p in zones["?"]["parts"]] == ["-B7"]
     assert result["part_count"] == 4
@@ -45,7 +53,49 @@ def test_draufsicht_und_index_fuellen_auf():
 
 
 def test_leer_ohne_daten():
-    assert build_map([]).as_dict() == {"zones": [], "connectors": [], "part_count": 0}
+    result = build_map([]).as_dict()
+    assert (result["zones"], result["connectors"], result["part_count"]) == ([], [], 0)
+    assert result["letter_codes"]["edition"] == "offen"
+
+
+def test_modell_liest_kennbuchstaben_in_der_lesart_der_quelle():
+    """Issue #99: Unterklassen wie QA und KF zeigen IEC 81346-2:2019; -QA1 ist dann das Schuetz, -KF1 Relais/SPS."""
+    bom = [
+        ("-QA1", "| -QA1 | Schuetz Pumpe | +ST1 |"),
+        ("-KF1", "| -KF1 | SPS | +ST1 |"),
+        ("-BG1", "| -BG1 | Endschalter | +FE1 |"),
+        ("-MB1", "| -MB1 | Ventilspule | +FE1 |"),
+    ]
+    result = build_map(bom, legend=LEGEND).as_dict()
+    parts = {p["tag"]: (p["kind"], p["verb"]) for z in result["zones"] for p in z["parts"]}
+    assert result["letter_codes"]["edition"] == "2019" and "-QA1" in result["letter_codes"]["reason"]
+    assert parts == {
+        "-QA1": ("Schütz/Leistungsschalter", "schaltet"),
+        "-KF1": ("Relais/SPS", "steuert"),
+        "-BG1": ("Sensor", "hängt an"),
+        "-MB1": ("Elektromagnet", "hängt an"),
+    }
+
+
+def test_beispielmaschine_fb01_behaelt_ihre_arten():
+    """Issue #99: FB-01 folgt der aelteren Lesart (SPS -A1); Schuetz, Hauptschalter und Meldeleuchte bleiben, was sie
+    vorher waren."""
+    from pathlib import Path
+
+    from app.ingestion.docling_parser import pdf_raw_text
+    from app.ingestion.tags import TagType, extract_tags
+
+    pdf = Path(__file__).resolve().parents[2] / "examples" / "foerderband" / "01_Stromlaufplan_FB-01.pdf"
+    hits = [
+        (tag.tag, page, "", page)
+        for page, text in sorted(pdf_raw_text(pdf).items())
+        for tag in extract_tags(text)
+        if tag.tag_type == TagType.DEVICE
+    ]
+    result = build_map([], index_hits=hits).as_dict()
+    kinds = {p["tag"]: p["kind"] for z in result["zones"] for p in z["parts"]}
+    assert result["letter_codes"]["edition"] == "alt"
+    assert (kinds["-K1"], kinds["-Q1"], kinds["-H1"]) == ("Schuetz/Relais", "Schalter", "Meldung")
 
 
 def test_art_aus_kennbuchstabe():
@@ -101,7 +151,7 @@ def test_stuecklistenzeile_ohne_ort_gibt_bezeichnung_und_blatt_zone():
     (zone,) = result["zones"]
     assert zone["code"] == "Blatt 6"
     assert zone["parts"] == [{"tag": "6KE1", "label": "Emergency Contactor Emergency Contactor 1 Schneider Electric",
-                              "kind": "Schuetz/Relais", "source": "bom"}]
+                              "kind": "Schuetz/Relais", "source": "bom", "verb": "schaltet"}]
 
 
 def test_einbauort_schlaegt_blatt_zone():

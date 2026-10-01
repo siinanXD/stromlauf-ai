@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clampBox, moveBy, nudge, relationVerb, resizeBy, sameBox, toPixels } from "./bbox";
+import { clampBox, moveBy, nudge, resizeBy, sameBox, toPixels } from "./bbox";
 
 describe("bbox", () => {
   const box = { x: 0.2, y: 0.3, w: 0.1, h: 0.12 };
@@ -37,14 +37,5 @@ describe("bbox", () => {
     expect(nudge(box, "Enter", false)).toBeNull();
     expect(sameBox(box, { ...box })).toBe(true);
     expect(sameBox(box, { ...box, x: 0.21 })).toBe(false);
-  });
-
-  it("Relationsverb aus dem Kennbuchstaben", () => {
-    expect(relationVerb("-F2")).toBe("schützt");
-    expect(relationVerb("+ST1-K1")).toBe("schaltet");
-    expect(relationVerb("-A1")).toBe("steuert");
-    expect(relationVerb("-G1")).toBe("versorgt");
-    expect(relationVerb("-X1")).toBe("verbindet");
-    expect(relationVerb("-M1")).toBe("hängt an");
   });
 });
