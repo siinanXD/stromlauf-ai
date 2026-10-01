@@ -10,6 +10,8 @@ export type IncidentFilter = Outcome;
 export interface Incident extends Conversation {
   /** Angelegt, der Server hat die ID noch nicht vergeben. */
   pending?: boolean;
+  /** Senden scheiterte, bevor der Server einen Chat angelegt hat: "nicht angelegt", Text bleibt fuer "Erneut versuchen". */
+  failed?: boolean;
   /** In dieser Sitzung angelegt: bleibt sichtbar, auch wenn eine aeltere Serverliste ihn noch nicht kennt. */
   local?: boolean;
 }
@@ -49,14 +51,32 @@ export function addPending(list: Incident[], input: { id: string; title: string;
 export function confirmPending(list: Incident[], tempId: string, conversation: { id: string; title?: string }): Incident[] {
   const pending = list.find((i) => i.id === tempId);
   if (!pending) return list;
-  const confirmed: Incident = { ...pending, id: conversation.id, title: conversation.title || pending.title, pending: false };
+  const confirmed: Incident = { ...pending, id: conversation.id, title: conversation.title || pending.title, pending: false, failed: false };
   return list.filter((i) => i.id !== conversation.id).map((i) => (i.id === tempId ? confirmed : i));
+}
+
+/** Fehler vor dem Ereignis "conversation": kein Spinner mehr, der Eintrag bleibt mit seinem Text stehen. */
+export function markFailed(list: Incident[], id: string): Incident[] {
+  return list.map((i) => (i.id === id && isTempId(i.id) ? { ...i, pending: false, failed: true } : i));
+}
+
+/**
+ * Ende eines Sendens: kam kein Ereignis "conversation" (conversationId null, etwa HTTP 400 ohne Modell-Schluessel),
+ * hat der Server nichts angelegt und der vorlaeufige Eintrag gilt als "nicht angelegt". Sonst bleibt alles.
+ */
+export function settleSend(list: Incident[], key: string, conversationId: string | null): Incident[] {
+  return conversationId === null && isTempId(key) ? markFailed(list, key) : list;
+}
+
+/** "Erneut versuchen": wieder "wird angelegt …". */
+export function markRetry(list: Incident[], id: string): Incident[] {
+  return list.map((i) => (i.id === id && i.failed ? { ...i, pending: true, failed: false } : i));
 }
 
 /** Serverliste gewinnt; lokale Eintraege, die der Server noch nicht kennt, bleiben stehen. */
 export function mergeServer(list: Incident[], server: Conversation[]): Incident[] {
   const known = new Set(server.map((c) => c.id));
-  const local = list.filter((i) => (i.pending || i.local) && !known.has(i.id));
+  const local = list.filter((i) => (i.pending || i.failed || i.local) && !known.has(i.id));
   return [...local, ...server];
 }
 

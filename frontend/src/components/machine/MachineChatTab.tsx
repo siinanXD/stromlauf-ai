@@ -22,6 +22,8 @@ export function MachineChatTab({
   autoSend,
   activeReference,
   onConversationId,
+  onSendStart,
+  onSendSettled,
   onConversationsChanged,
   onOpenDetail,
   onOpenIncident,
@@ -39,6 +41,9 @@ export function MachineChatTab({
   autoSend?: { key: string; text: string };
   activeReference: string | null;
   onConversationId: (id: string, title: string) => void;
+  onSendStart?: () => void;
+  /** conversationId null: der Server hat keinen Chat angelegt, der neue Stoerfall gilt als "nicht angelegt". */
+  onSendSettled?: (result: { conversationId: string | null; failed: boolean }) => void;
   onConversationsChanged: () => void;
   onOpenDetail: (detail: DetailRef) => void;
   onOpenIncident: (conversationId: string) => void;
@@ -62,6 +67,8 @@ export function MachineChatTab({
         scope={scope}
         conversationId={conversationId}
         onConversationId={onConversationId}
+        onSendStart={onSendStart}
+        onSendSettled={onSendSettled}
         onConversationsChanged={onConversationsChanged}
         onOpenPage={openPage}
         activeReference={activeReference}
@@ -72,7 +79,11 @@ export function MachineChatTab({
         autoSend={autoSend}
         emptyState={
           <p className="text-center text-sm text-muted-foreground">
-            {incident.pending ? "Die Meldung wird gesendet …" : "In diesem Störfall steht noch nichts. Stell unten eine Frage zur Meldung."}
+            {incident.pending
+              ? "Die Meldung wird gesendet …"
+              : incident.failed
+                ? "Die Meldung wurde nicht angelegt. In der Liste lässt sie sich erneut senden."
+                : "In diesem Störfall steht noch nichts. Stell unten eine Frage zur Meldung."}
           </p>
         }
       />

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Conversation } from "@/lib/api";
 
 import { handleComposerKey, IncidentList } from "./IncidentList";
-import { addPending, confirmPending, countByOutcome, isTempId, mergeServer, newTempId, outcomeOf, visibleIncidents, type Incident } from "./incidents";
+import { addPending, confirmPending, countByOutcome, isTempId, markRetry, mergeServer, newTempId, outcomeOf, settleSend, visibleIncidents, type Incident } from "./incidents";
 
 const SOURCE = "s-fb01";
 const OLD: Conversation = { id: "conv-1", title: "Band steht nach Not-Halt", source_ids: [SOURCE], updated_at: "2026-09-29T10:00:00Z" };
@@ -26,8 +26,15 @@ function render(incidents: Incident[], filter: "open" | "resolved" = "open", act
       onFilter={() => {}}
       onCreate={() => {}}
       onSelect={() => {}}
+      onRetryIncident={() => {}}
     />,
   );
+}
+
+/** HTML des Listeneintrags mit dieser ID (li bis zum naechsten li). */
+function itemHtml(html: string, id: string) {
+  const start = html.lastIndexOf("<li>", html.indexOf(`data-incident="${id}"`));
+  return html.slice(start, html.indexOf("</li>", start) + 5);
 }
 
 describe("IncidentList: Enter legt sofort an", () => {
@@ -105,5 +112,37 @@ describe("filter, order and old servers", () => {
     const emptyClass = empty.match(/<p class="([^"]*)" data-testid="incidents-empty"/)?.[1] ?? "";
     expect(emptyClass).toContain("text-muted-foreground");
     expect(emptyClass).not.toMatch(/danger|destructive/);
+  });
+});
+
+describe("Stoerfall nicht angelegt (Fehler vor dem Ereignis conversation)", () => {
+  const temp = "tmp-test-1";
+  const pending = addPending([OLD], { id: temp, title: "Störung Motorschutz Förderband", sourceId: SOURCE });
+
+  it("stops the spinner and marks the entry 'nicht angelegt', keeping its text", () => {
+    const failed = settleSend(pending, temp, null);
+    expect(failed[0]).toMatchObject({ id: temp, title: "Störung Motorschutz Förderband", pending: false, failed: true });
+
+    const item = itemHtml(render(failed), temp);
+    expect(item).toContain("nicht angelegt");
+    expect(item).toContain("Störung Motorschutz Förderband");
+    expect(item).not.toContain("animate-spin");
+    expect(item).not.toContain("wird angelegt");
+    expect(item).toContain("Erneut versuchen");
+    // nicht als Ganzes rot: nur die Statuszeile
+    const button = item.match(/<button type="button"[^>]*data-incident[^>]*class="([^"]*)"/)?.[1] ?? "";
+    expect(button).not.toMatch(/danger|destructive/);
+    expect(item).toMatch(/<span class="block text-xs text-danger">nicht angelegt<\/span>/);
+  });
+
+  it("leaves created incidents and follow-up errors alone", () => {
+    expect(settleSend(pending, temp, "conv-9")).toBe(pending);
+    expect(settleSend([OLD], "conv-1", null)).toEqual([OLD]);
+  });
+
+  it("goes back to 'wird angelegt' on retry and stays in the list until the server knows it", () => {
+    const failed = settleSend(pending, temp, null);
+    expect(markRetry(failed, temp)[0]).toMatchObject({ pending: true, failed: false });
+    expect(mergeServer(failed, [OLD]).map((i) => i.id)).toEqual([temp, "conv-1"]);
   });
 });

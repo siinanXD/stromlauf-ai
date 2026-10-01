@@ -14,10 +14,12 @@ import {
   addPending,
   confirmPending,
   isTempId,
+  markRetry,
   mergeServer,
   newTempId,
   removeIncident,
   replaceIncident,
+  settleSend,
   type Incident,
   type IncidentFilter,
 } from "./incidents";
@@ -67,8 +69,12 @@ export function IncidentWorkspace({
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">(sourceId ? "loading" : "ready");
   const [filter, setFilter] = useState<IncidentFilter>("open");
-  /** Meldungen neuer Stoerfaelle, die ihr Chat beim Erscheinen sendet (je vorlaeufiger ID). */
-  const [sends, setSends] = useState<Record<string, string>>({});
+  /**
+   * Meldungen neuer Stoerfaelle, die ihr Chat beim Erscheinen sendet (je vorlaeufiger ID). attempt macht jedes
+   * "Erneut versuchen" zu einem neuen Auftrag; active=false nach einem Fehlschlag, damit ein neu geoeffneter Chat
+   * nicht von selbst wieder sendet.
+   */
+  const [sends, setSends] = useState<Record<string, { text: string; attempt: number; active: boolean }>>({});
   /** Echte ID -> vorlaeufige ID: der Chat behaelt seinen Zustand, wenn die ID wechselt. */
   const [aliases, setAliases] = useState<Record<string, string>>({});
 
@@ -120,7 +126,7 @@ export function IncidentWorkspace({
     if (!sourceId) return;
     const id = newTempId();
     setIncidents((list) => addPending(list, { id, title: text, sourceId }));
-    setSends((current) => ({ ...current, [id]: text }));
+    setSends((current) => ({ ...current, [id]: { text, attempt: 1, active: true } }));
     setFilter("open");
     // Fehlerliste sofort, noch vor dem Chat: der erste Block steht in unter einer Sekunde
     void prefetchFaultHits(machine.id, text);
@@ -139,6 +145,29 @@ export function IncidentWorkspace({
     // Nur umschreiben, wenn der Stoerfall noch offen ist; die URL ist die Wahrheit, nicht ein alter Zustand
     const current = viewFromParams(new URLSearchParams(window.location.search));
     if (current.fall === key && id !== key) navigate({ ...current, fall: id }, "replace");
+  }
+
+  /** Ein Senden beginnt (auch "Erneut versuchen" im Chat): "nicht angelegt" wird wieder "wird angelegt …". */
+  function started(key: string) {
+    setIncidents((list) => markRetry(list, key));
+  }
+
+  /** Senden beendet ohne Chat vom Server (Fehler vor "conversation"): der Eintrag bleibt als "nicht angelegt". */
+  function settled(key: string, result: { conversationId: string | null }) {
+    if (result.conversationId !== null || !isTempId(key)) return;
+    setIncidents((list) => settleSend(list, key, result.conversationId));
+    setSends((current) => (current[key] ? { ...current, [key]: { ...current[key], active: false } } : current));
+  }
+
+  /** "Erneut versuchen" in der Liste: dieselbe Meldung noch einmal senden und den Stoerfall zeigen. */
+  function retry(id: string) {
+    const target = incidents.find((i) => i.id === id);
+    if (!target) return;
+    setIncidents((list) => markRetry(list, id));
+    setSends((current) => ({ ...current, [id]: { text: current[id]?.text ?? target.title, attempt: (current[id]?.attempt ?? 0) + 1, active: true } }));
+    void prefetchFaultHits(machine.id, target.title);
+    const current = viewFromParams(new URLSearchParams(window.location.search));
+    if (current.fall !== id || current.detail) navigate({ ...current, fall: id, detail: null }, "push");
   }
 
   async function patch(target: Incident, change: { outcome: "open" | "resolved"; finding?: string }): Promise<boolean> {
@@ -163,6 +192,12 @@ export function IncidentWorkspace({
   }
 
   async function remove(target: Incident): Promise<boolean> {
+    if (isTempId(target.id)) {
+      // Nie beim Server angekommen: nur aus der Liste nehmen
+      setIncidents((list) => removeIncident(list, target.id));
+      navigate({ ...view, fall: null, detail: null }, "replace");
+      return true;
+    }
     try {
       await api.deleteConversation(target.id);
       setIncidents((list) => removeIncident(list, target.id));
@@ -192,6 +227,7 @@ export function IncidentWorkspace({
           onFilter={setFilter}
           onCreate={create}
           onSelect={openIncident}
+          onRetryIncident={retry}
           unavailable={
             sourceId
               ? undefined
@@ -207,9 +243,11 @@ export function IncidentWorkspace({
             machine={machine}
             incident={incident}
             conversationId={isTempId(incident.id) ? null : incident.id}
-            autoSend={sends[chatKey] !== undefined ? { key: chatKey, text: sends[chatKey] } : undefined}
+            autoSend={sends[chatKey]?.active ? { key: `${chatKey}#${sends[chatKey].attempt}`, text: sends[chatKey].text } : undefined}
             activeReference={activeReference}
             onConversationId={(id, title) => confirmed(chatKey, id, title)}
+            onSendStart={() => started(chatKey)}
+            onSendSettled={(result) => settled(chatKey, result)}
             onConversationsChanged={() => void load()}
             onOpenDetail={openDetail}
             onOpenIncident={openIncident}

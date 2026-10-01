@@ -1,12 +1,13 @@
 "use client";
 
-import { CheckCircle2, CircleDot, Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-import { countByOutcome, outcomeOf, relativeTime, visibleIncidents, type Incident, type IncidentFilter } from "./incidents";
+import { countByOutcome, outcomeOf, visibleIncidents, type Incident, type IncidentFilter } from "./incidents";
+import { stateLabel, StateIcon } from "./IncidentStatus";
 
 /**
  * Enter im Eingabefeld legt den Stoerfall an (Shift+Enter und eine laufende Wortbildung der Tastatur nicht).
@@ -49,6 +50,7 @@ export function IncidentList({
   onFilter,
   onCreate,
   onSelect,
+  onRetryIncident,
   unavailable,
 }: {
   incidents: Incident[];
@@ -60,6 +62,8 @@ export function IncidentList({
   onFilter: (filter: IncidentFilter) => void;
   onCreate: (text: string) => void;
   onSelect: (id: string) => void;
+  /** Nicht angelegter Stoerfall: Meldung erneut senden. */
+  onRetryIncident?: (id: string) => void;
   /** Ohne verknuepfte Doku gibt es keine Stoerfaelle: Grund und naechste Aktion statt Eingabefeld. */
   unavailable?: { reason: string; action?: { label: string; onClick: () => void } };
 }) {
@@ -155,26 +159,29 @@ export function IncidentList({
                     aria-current={active ? "true" : undefined}
                     data-incident={incident.id}
                     data-pending={incident.pending ? "true" : undefined}
+                    data-failed={incident.failed ? "true" : undefined}
                     className={cn(
                       "flex min-h-14 w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left",
                       active ? "border-primary bg-primary-soft" : "border-transparent hover:bg-secondary",
                     )}
                   >
-                    {incident.pending ? (
-                      <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
-                    ) : resolved ? (
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    ) : (
-                      <CircleDot className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    )}
+                    <StateIcon incident={incident} className="mt-0.5" />
                     <span className="min-w-0 flex-1">
                       <span className="line-clamp-2 text-[14px] font-medium leading-snug">{incident.title}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {incident.pending ? "wird angelegt …" : `${resolved ? "Erledigt" : "Offen"} · ${relativeTime(incident.updated_at)}`}
-                      </span>
+                      <span className={cn("block text-xs", incident.failed ? "text-danger" : "text-muted-foreground")}>{stateLabel(incident)}</span>
                       {resolved && incident.finding && <span className="block truncate text-xs text-muted-foreground">Befund: {incident.finding}</span>}
                     </span>
                   </button>
+                  {incident.failed && onRetryIncident && (
+                    <button
+                      type="button"
+                      onClick={() => onRetryIncident(incident.id)}
+                      className="ml-8 min-h-11 rounded-md px-2 text-xs font-medium text-primary hover:underline"
+                      aria-label={`„${incident.title}“ erneut senden`}
+                    >
+                      Erneut versuchen
+                    </button>
+                  )}
                 </li>
               );
             })}

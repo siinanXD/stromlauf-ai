@@ -1,13 +1,14 @@
 "use client";
 
-import { CheckCircle2, ChevronLeft, CircleDot, RotateCcw, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronLeft, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-import { outcomeOf, type Incident } from "./incidents";
+import { isTempId, outcomeOf, type Incident } from "./incidents";
+import { stateLabel, StateIcon } from "./IncidentStatus";
 
 export const MAX_FINDING = 2000;
 
@@ -33,6 +34,8 @@ export function IncidentHeader({
   const [busy, setBusy] = useState(false);
   const resolved = outcomeOf(incident) === "resolved";
   const pending = Boolean(incident.pending);
+  // Ohne Server-ID (wird angelegt oder nicht angelegt) gibt es nichts zu erledigen
+  const local = isTempId(incident.id);
 
   async function run(action: () => Promise<boolean>) {
     setBusy(true);
@@ -52,18 +55,18 @@ export function IncidentHeader({
       <div className="min-w-0 flex-1 py-1">
         <h2 className="line-clamp-2 text-[15px] font-semibold leading-snug">{incident.title}</h2>
         <p className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="incident-status">
-          {resolved ? <CheckCircle2 className="size-3.5" aria-hidden /> : <CircleDot className="size-3.5" aria-hidden />}
-          {pending ? "wird angelegt …" : resolved ? "Erledigt" : "Offen"}
+          <StateIcon incident={incident} className="size-3.5" />
+          <span className={incident.failed ? "text-danger" : undefined}>{stateLabel(incident, false)}</span>
           {resolved && incident.finding && <span className="min-w-0 truncate">· Befund: {incident.finding}</span>}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {resolved ? (
-          <Button variant="outline" className="h-11 px-3" disabled={busy || pending} onClick={() => void run(onReopen)}>
+          <Button variant="outline" className="h-11 px-3" disabled={busy || local} onClick={() => void run(onReopen)}>
             <RotateCcw /> Wieder öffnen
           </Button>
         ) : (
-          <Button className="h-11 px-3" disabled={busy || pending} onClick={() => setDialog("resolve")}>
+          <Button className="h-11 px-3" disabled={busy || local} onClick={() => setDialog("resolve")}>
             <CheckCircle2 /> Erledigt
           </Button>
         )}

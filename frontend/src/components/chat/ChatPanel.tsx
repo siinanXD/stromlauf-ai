@@ -53,6 +53,8 @@ export function ChatPanel({
   onShowInModel,
   blocks,
   autoSend,
+  onSendStart,
+  onSendSettled,
 }: {
   scope: ChatScope;
   conversationId: string | null;
@@ -74,6 +76,10 @@ export function ChatPanel({
   blocks?: AnswerBlocksContext;
   /** Meldung, die beim Erscheinen sofort gesendet wird; key verhindert doppeltes Senden. */
   autoSend?: { key: string; text: string };
+  /** Ein Senden beginnt (auch "Erneut versuchen"). */
+  onSendStart?: () => void;
+  /** Senden beendet: conversationId null heisst, der Server hat keinen Chat angelegt (Fehler vor "conversation"). */
+  onSendSettled?: (result: { conversationId: string | null; failed: boolean }) => void;
 }) {
   const [messages, setMessages] = useState<Entry[]>([]);
   const [input, setInput] = useState(initialInput);
@@ -164,6 +170,9 @@ export function ChatPanel({
     if (!question || streaming) return;
     setInput("");
     setStreaming(true);
+    onSendStart?.();
+    let received: string | null = null;
+    let failed = false;
     // Fehlerliste parallel zum Chat, ohne Modell: der erste Block steht, bevor der Text kommt
     if (blocks && machineId) void prefetchFaultHits(machineId, question);
     setMessages((current) => [
@@ -179,6 +188,7 @@ export function ChatPanel({
       for await (const { event, data } of events) {
         if (event === "conversation") {
           ownedIdRef.current = data.id;
+          received = data.id;
           onConversationId(data.id, data.title);
         } else if (event === "token") updateLast((m) => ({ ...m, content: m.content + data.text }));
         else if (event === "tool_start") updateLast((m) => ({ ...m, tool_calls: [...m.tool_calls, { ...data, done: false }] }));
@@ -196,10 +206,12 @@ export function ChatPanel({
           setAnnouncement(n > 0 ? `Antwort fertig, ${n} ${n === 1 ? "Bauteil" : "Bauteile"} in der Antwort.` : "Antwort fertig.");
         } else if (event === "error") {
           // Rohtext merken; die Antwort zeigt einen Satz fuer Menschen und den Text nur unter "Details"
+          failed = true;
           updateLast((m) => ({ ...m, error: data.message || "Fehler ohne Text" }));
         }
       }
     } catch (err) {
+      failed = true;
       if (!controller.signal.aborted) {
         const message = (err as Error).message;
         updateLast((m) => ({ ...m, error: message || "Fehler ohne Text" }));
@@ -211,6 +223,7 @@ export function ChatPanel({
       setStreaming(false);
       abortRef.current = null;
       onConversationsChanged();
+      onSendSettled?.({ conversationId: received ?? conversationId, failed });
     }
   }
 
