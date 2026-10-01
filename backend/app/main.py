@@ -18,6 +18,7 @@ from app.api import (
     machine_map,
     onboarding,
     orders,
+    plan_read,
     planning,
     plant,
     search,
@@ -96,6 +97,7 @@ app.include_router(planning.router)
 app.include_router(search.router)
 app.include_router(orders.router)
 app.include_router(flow.router)
+app.include_router(plan_read.router)
 
 
 @app.get("/api/health")
