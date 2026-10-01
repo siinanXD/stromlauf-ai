@@ -1,4 +1,4 @@
-/** Verlauf in Seiten und Fehlertexte fuer den Chat, rein und ohne React. */
+/** Verlauf in Seiten fuer den Chat, rein und ohne React. */
 import type { ChatMessage } from "@/lib/api";
 
 /** So viele Nachrichten laedt der Chat beim Oeffnen und je Nachladen. */
@@ -19,13 +19,4 @@ export function olderPage<T extends Pick<ChatMessage, "index">>(current: T[], pa
   if (before === null) return [];
   const known = new Set(current.map((m) => m.index));
   return page.filter((m) => typeof m.index === "number" && m.index < before && !known.has(m.index));
-}
-
-const TECHNICAL = /failed to fetch|networkerror|load failed|localhost|https?:\/\/|\/api\/|:\d{2,5}\b|traceback|exception|^\d{3}\b/i;
-
-/** Fehlertext fuer Menschen: keine Ports, Pfade oder HTTP-Codes; Hinweise des Servers (Monatslimit) bleiben. */
-export function friendlyError(raw: string | undefined | null): string {
-  const text = (raw ?? "").trim();
-  if (!text || TECHNICAL.test(text)) return "Die Antwort konnte nicht geladen werden.";
-  return text;
 }

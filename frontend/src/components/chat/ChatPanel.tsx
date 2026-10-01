@@ -11,7 +11,7 @@ import type { PageTarget } from "@/components/PageViewer";
 import { api, streamChat, type AnswerMeta, type ChatMessage } from "@/lib/api";
 import { lastAnswerMeta } from "@/lib/chatMemory";
 
-import { friendlyError, olderBefore, olderPage, PAGE_SIZE } from "./history";
+import { olderBefore, olderPage, PAGE_SIZE } from "./history";
 
 const EMPTY_META: AnswerMeta = { referenced_tags: [], citations: [], evidence: [] };
 
@@ -194,12 +194,15 @@ export function ChatPanel({
           onMeta?.(data);
           const n = Array.isArray(data.referenced_tags) ? data.referenced_tags.length : 0;
           setAnnouncement(n > 0 ? `Antwort fertig, ${n} ${n === 1 ? "Bauteil" : "Bauteile"} in der Antwort.` : "Antwort fertig.");
-        } else if (event === "error") updateLast((m) => ({ ...m, error: friendlyError(data.message) }));
+        } else if (event === "error") {
+          // Rohtext merken; die Antwort zeigt einen Satz fuer Menschen und den Text nur unter "Details"
+          updateLast((m) => ({ ...m, error: data.message || "Fehler ohne Text" }));
+        }
       }
     } catch (err) {
       if (!controller.signal.aborted) {
         const message = (err as Error).message;
-        updateLast((m) => ({ ...m, error: friendlyError(message) }));
+        updateLast((m) => ({ ...m, error: message || "Fehler ohne Text" }));
         // 402 vom Backend: Banner in der AppShell aktualisieren
         if (message.includes("Monatslimit")) window.dispatchEvent(new CustomEvent("stromlauf:budget"));
       }
@@ -220,7 +223,10 @@ export function ChatPanel({
     void send(question.content);
   }
 
+  // Meldung von aussen (neuer Stoerfall oder "Erneut versuchen" in der Liste): ein fehlgeschlagenes Paar ersetzen
   const sendFromOutside = useEffectEvent((text: string) => {
+    const last = messages[messages.length - 1];
+    if (last?.error && messages[messages.length - 2]?.role === "user") setMessages((current) => current.slice(0, -2));
     void send(text);
   });
   useEffect(() => {

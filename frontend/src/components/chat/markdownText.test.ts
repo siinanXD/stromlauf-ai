@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { friendlyError, olderBefore, olderPage } from "./history";
+import { olderBefore, olderPage } from "./history";
 import { partHref, remarkPartTags, splitBlocks, tagFromHref, tagPattern, type MdNode } from "./markdownText";
 
 describe("splitBlocks", () => {
@@ -84,18 +84,5 @@ describe("history pages", () => {
     expect(olderPage(current, [{ index: 0 }, { index: 1 }])).toEqual([{ index: 0 }, { index: 1 }]);
     expect(olderPage(current, [{ index: 0 }, { index: 1 }, { index: 2 }, { index: 3 }])).toEqual([{ index: 0 }, { index: 1 }]);
     expect(olderPage([{ index: 0 }], [{ index: 0 }])).toEqual([]);
-  });
-});
-
-describe("friendlyError", () => {
-  it("hides developer texts like ports, paths and HTTP codes", () => {
-    expect(friendlyError("Failed to fetch")).toBe("Die Antwort konnte nicht geladen werden.");
-    expect(friendlyError("500 Internal Server Error")).toBe("Die Antwort konnte nicht geladen werden.");
-    expect(friendlyError("Backend nicht erreichbar unter http://localhost:8010/api/chat")).toBe("Die Antwort konnte nicht geladen werden.");
-    expect(friendlyError("")).toBe("Die Antwort konnte nicht geladen werden.");
-  });
-
-  it("keeps readable server messages", () => {
-    expect(friendlyError("KI-Monatslimit erreicht.")).toBe("KI-Monatslimit erreicht.");
   });
 });

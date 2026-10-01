@@ -18,6 +18,7 @@ import type { ChatMessage, SourceRef, ToolCall } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
 import { costText } from "@/lib/format";
 
+import { AnswerError } from "./chatError";
 import { CitationChip } from "./CitationChip";
 import { EvidenceRow } from "./EvidenceRow";
 import { FactCard } from "./FactCard";
@@ -244,7 +245,7 @@ export function AnswerView({
         </section>
       )}
 
-      {message.error && <p className="border border-danger/40 px-3 py-2 text-sm text-danger">{message.error}</p>}
+      {message.error && <AnswerError raw={message.error} faultList={Boolean(blocks && question.trim())} />}
     </>
   );
 
