@@ -53,5 +53,7 @@ class StromlaufClient:
                     f"{'.'.join(str(part) for part in item.get('loc', [])[1:])}: {item.get('msg', item)}"
                     for item in detail
                 )
+            elif isinstance(detail, dict) and "message" in detail:  # 404 mit Grund, etwa beim Signalweg
+                detail = detail["message"]
             raise ToolError(f"Stromlauf meldet {response.status_code}: {detail}")
         return response.json() if response.content else None
