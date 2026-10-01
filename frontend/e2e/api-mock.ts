@@ -96,6 +96,10 @@ const ANSWER_META = {
     { text: "[[01_Stromlaufplan_FB-01.pdf|S. 9]]", file: "01_Stromlaufplan_FB-01.pdf", locator: "S. 9", valid: false, checked: true, reason: "Seite 9 nicht in 01_Stromlaufplan_FB-01.pdf (7 Seiten)" },
   ],
   citations_valid: { valid: 1, checked: 3, total: 3 },
+  // Stoerfall-Arbeitsflaeche: Art je Kennzeichen, Start des Signalwegs, Fundstellen im Stromlaufplan
+  part_kinds: { "-K1": "Schütz", "-F2": "Motorschutz" },
+  signal_start: "-K1",
+  plan_spots: [{ tag: "-K1", document_id: DOC_ID, filename: "01_Stromlaufplan_FB-01.pdf", page: 3, sheet: 3, title: "Motor Förderband", column: 4 }],
 };
 
 export const CHAT_STREAM = sse([
@@ -109,12 +113,20 @@ export const CHAT_STREAM = sse([
   ["done", {}],
 ]);
 
-/** Gespeicherter Chat conv-1 (Issue #47): der Verlauf traegt dasselbe meta wie der Stream, aber keine Kosten. */
-const CONVERSATIONS = [{ id: "conv-1", title: "-K1 zieht nicht an", source_ids: [SOURCE_ID], updated_at: "2026-09-29T10:00:00Z" }];
+/** Gespeicherter Stoerfall conv-1 (Issue #47): der Verlauf traegt dasselbe meta wie der Stream, aber keine Kosten. */
+type MockConversation = { id: string; title: string; source_ids: string[]; updated_at: string; outcome?: string; finding?: string };
+const CONVERSATION_1: MockConversation = { id: "conv-1", title: "-K1 zieht nicht an", source_ids: [SOURCE_ID], updated_at: "2026-09-29T10:00:00Z", outcome: "open", finding: "" };
 const HISTORY = [
-  { role: "user", content: "-K1 zieht nicht an", tool_calls: [], sources: [] },
-  { role: "assistant", content: ANSWER_TEXT, tool_calls: [{ name: "find_tag", args: { tag: "-K1" } }], sources: ANSWER_SOURCES, meta: ANSWER_META },
+  { role: "user", content: "-K1 zieht nicht an", tool_calls: [], sources: [], index: 0 },
+  { role: "assistant", content: ANSWER_TEXT, tool_calls: [{ name: "find_tag", args: { tag: "-K1" } }], sources: ANSWER_SOURCES, meta: ANSWER_META, index: 1 },
 ];
+
+/** Fehlerliste zur Meldung (GET /api/machines/{id}/fault-hits), ohne Modell. */
+const FAULT_HITS = {
+  faults: [{ id: "f1", machine_id: MACHINE_ID, code: "E03", symptom: "Band steht", tags: ["-K1"], cause: "Motorschutz -F2 ausgelöst", fix: "-F2 zurücksetzen", doc_ref: "" }],
+  experience: [],
+  incidents: [],
+};
 
 const factCard = {
   tag: "-K1",
@@ -159,7 +171,14 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-export async function mockApi(page: Page) {
+/**
+ * withHistory: conv-1 gibt es schon (Verlauf, Reload). Ohne legt erst der Chat-Stream conv-1 an, wie der Server.
+ * Der Zustand gilt je Seite, PATCH aendert outcome und finding.
+ */
+export async function mockApi(page: Page, { withHistory = true, chatFailures = 0 }: { withHistory?: boolean; chatFailures?: number } = {}) {
+  const conversations: MockConversation[] = withHistory ? [{ ...CONVERSATION_1 }] : [];
+  // chatFailures: so oft antwortet POST /api/chat mit 400 wie ohne Modell-Schluessel, bevor er gelingt
+  let failuresLeft = chatFailures;
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
@@ -197,9 +216,23 @@ export async function mockApi(page: Page) {
     if (path === "/api/sources") return json(route, [{ id: SOURCE_ID, name: "FB-01 Doku", description: "", document_count: 3, created_at: "2026-09-01T00:00:00Z" }]);
     if (path === `/api/sources/${SOURCE_ID}/documents`)
       return json(route, [{ id: DOC_ID, source_id: SOURCE_ID, filename: "01_Stromlaufplan_FB-01.pdf", doc_type: "schematic", status: "ready", progress: "", error: null, page_count: 12, vision_enrichment: false, created_at: "2026-09-01T00:00:00Z" }]);
-    if (path === "/api/conversations") return json(route, url.searchParams.get("source_id") === SOURCE_ID || !url.searchParams.get("source_id") ? CONVERSATIONS : []);
+    if (path === "/api/conversations") return json(route, url.searchParams.get("source_id") === SOURCE_ID || !url.searchParams.get("source_id") ? conversations : []);
     if (path === "/api/conversations/conv-1/messages") return json(route, HISTORY);
-    if (path === "/api/chat" && method === "POST") return route.fulfill({ status: 200, contentType: "text/event-stream", body: CHAT_STREAM });
+    if (path === "/api/conversations/conv-1" && method === "PATCH") {
+      const target = conversations.find((c) => c.id === "conv-1");
+      if (!target) return json(route, { detail: "nicht gefunden" }, 404);
+      Object.assign(target, route.request().postDataJSON() as Partial<MockConversation>, { updated_at: "2026-10-01T09:00:00Z" });
+      return json(route, target);
+    }
+    if (path === `/api/machines/${MACHINE_ID}/fault-hits`) return json(route, FAULT_HITS);
+    if (path === "/api/chat" && method === "POST") {
+      if (failuresLeft > 0) {
+        failuresLeft -= 1;
+        return json(route, { detail: "ANTHROPIC_API_KEY fehlt fuer Modell 'claude-sonnet-5'. In .env eintragen und Backend neu starten." }, 400);
+      }
+      if (!conversations.some((c) => c.id === "conv-1")) conversations.unshift({ ...CONVERSATION_1, updated_at: "2026-10-01T08:00:00Z" });
+      return route.fulfill({ status: 200, contentType: "text/event-stream", body: CHAT_STREAM });
+    }
     if (path.endsWith("/image") || /\/pages\/\d+\/image$/.test(path)) return route.fulfill({ status: 200, contentType: "image/png", body: PNG });
     if (path === "/api/tags/search") return json(route, []);
     return json(route, { detail: `nicht gemockt: ${method} ${path}` }, 404);

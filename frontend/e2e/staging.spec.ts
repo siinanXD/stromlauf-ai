@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Abnahme-Durchlauf gegen ein echtes Backend (Staging oder lokal), ohne Mocks (Issue #29, Teil 2):
- * Login -> Maschinenuebersicht -> Maschine -> Modell -> Bauteil-Sheet -> Schaltschrankfoto [-> Frage -> Markierung].
+ * Login -> Maschinenuebersicht -> Maschine -> Aufbau/Modell -> Bauteil-Sheet -> Schaltschrankfoto
+ * [-> Stoerfall mit Meldung -> Antwortbloecke -> Markierung im Modell].
  *
  * Laeuft nur mit E2E_API_URL (Backend-URL). E2E_BASE_URL zeigt auf ein laufendes Frontend (Vercel-Preview);
  * ohne E2E_BASE_URL startet playwright.config.ts den lokalen Server gegen E2E_API_URL.
@@ -66,8 +67,10 @@ test.describe("Abnahme gegen echtes Backend", () => {
     const machineId = new URL(page.url()).pathname.split("/").pop() ?? "";
     testInfo.annotations.push({ type: "machine", description: `${MACHINE} (${machineId})` });
 
-    // Maschinenansicht: Modell mit Zonen und Teilen ueber dem Chat
+    // Maschinenansicht: Stoerfaelle zuerst, das Modell mit Zonen und Teilen liegt im Bereich Aufbau
     await expect(page.getByRole("heading", { level: 1, name: MACHINE })).toBeVisible();
+    await expect(page.getByTestId("incident-list")).toBeVisible();
+    await page.getByTestId("area-aufbau").click();
     await expect(page.getByTestId("model-panel")).toBeVisible();
     const zones = page.getByRole("list", { name: "Zonen der Maschine" });
     await expect(zones).toBeVisible();
@@ -96,11 +99,13 @@ test.describe("Abnahme gegen echtes Backend", () => {
       testInfo.annotations.push({ type: "frage", description: "uebersprungen (E2E_ASK=1 fuer eine bezahlte Antwort)" });
       return;
     }
-    // Frage an den Agenten: Antwort markiert Teile im Modell
-    const composer = page.getByPlaceholder(/Frag etwas zu/);
-    await composer.fill("-K1 zieht nicht an");
-    await composer.press("Enter");
+    // Meldung als neuer Stoerfall: Antwort mit Bauteil-Block, "Im Modell zeigen" markiert die Teile
+    await page.getByTestId("area-stoerfaelle").click();
+    const input = page.getByTestId("incident-input");
+    await input.fill("-K1 zieht nicht an");
+    await input.press("Enter");
     await expect(page.getByTestId("referenced-parts")).toBeVisible({ timeout: 180_000 });
+    await page.getByRole("button", { name: "Im Modell zeigen" }).click();
     await expect(page.getByTestId("highlight-count")).toContainText("markiert");
     await expect(zones.locator('button.part-chip[data-referenced="true"]').first()).toBeVisible();
   });

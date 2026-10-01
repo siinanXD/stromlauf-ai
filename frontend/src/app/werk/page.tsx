@@ -1,13 +1,19 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { SiteCanvas } from "@/components/site/SiteCanvas";
 import { HALL_KIND_LABELS, plant, type HallKind, type SiteData, type SiteFlow } from "@/lib/api";
 import type { Rect } from "@/lib/site";
 import { cn } from "@/lib/utils";
+
+// @xyflow/react erst laden, wenn der Standortplan gezeigt wird (eigener Bundle-Teil)
+const SiteCanvas = dynamic(() => import("@/components/site/SiteCanvas").then((m) => m.SiteCanvas), {
+  ssr: false,
+  loading: () => <div className="h-full min-h-[420px] animate-pulse bg-secondary/50" aria-busy="true" />,
+});
 
 const KINDS = Object.keys(HALL_KIND_LABELS) as HallKind[];
 

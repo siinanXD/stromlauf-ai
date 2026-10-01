@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { ChatNotice, homeNotice } from "@/components/chat/chatError";
 import { ChatPanel, ExampleQuestions } from "@/components/chat/ChatPanel";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Sidebar } from "@/components/Sidebar";
-import { api, type Conversation, type Health, type KnowledgeSource } from "@/lib/api";
+import { api, API_URL, type Conversation, type Health, type KnowledgeSource } from "@/lib/api";
 
 const EXAMPLES = [
   "Wo ist Schütz -K12 verbaut und was schaltet es?",
@@ -44,7 +45,8 @@ export default function Home() {
         const question = params.get("q");
         if (question) setInitialInput(question);
       })
-      .catch(() => setBackendError("Backend nicht erreichbar. Läuft es auf Port 8010?"));
+      // Technische Angaben nur fuer "Details"; angezeigt wird ein Satz (ChatNotice)
+      .catch((err: Error) => setBackendError(`Backend unter ${API_URL} nicht erreichbar: ${err.message}`));
   }, [loadSources, loadConversations]);
 
   function selectConversation(conversation: Conversation) {
@@ -65,8 +67,8 @@ export default function Home() {
     loadConversations();
   }
 
-  const banner =
-    backendError ?? (health && !health.api_key_configured ? "ANTHROPIC_API_KEY fehlt: In .env eintragen und das Backend neu starten. Upload und Verwaltung funktionieren bereits." : null);
+  const notice = homeNotice({ health, unreachable: backendError });
+  const banner = notice ? <ChatNotice raw={notice} /> : null;
 
   return (
     <AppShell breadcrumb={[{ label: "Chat" }]}>

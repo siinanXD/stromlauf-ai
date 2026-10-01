@@ -309,6 +309,16 @@ export interface Health {
   api_key_configured: boolean;
 }
 
+/**
+ * Fehlertext aus einer Fehlerantwort: detail als Text, beim neuen Vertrag {reason, message} dessen message;
+ * sonst wie bisher detail selbst oder Status und Statustext.
+ */
+export function errorDetail(body: unknown, response: Pick<Response, "status" | "statusText">): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (detail && typeof detail === "object" && typeof (detail as { message?: unknown }).message === "string") return (detail as { message: string }).message;
+  return (detail as string | undefined) ?? `${response.status} ${response.statusText}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, headers: authHeaders(init?.headers) });
   if (response.status === 401 && !path.startsWith("/api/auth/")) {
@@ -317,7 +327,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.detail ?? `${response.status} ${response.statusText}`);
+    throw new Error(errorDetail(body, response));
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
@@ -398,6 +408,23 @@ export const api = {
   /** Alle Chats; mit sourceId nur die, deren Scope genau diese Quelle ist (Maschinen-Chat). */
   listConversations: (sourceId?: string) =>
     request<Conversation[]>(`/api/conversations${sourceId ? `?source_id=${encodeURIComponent(sourceId)}` : ""}`),
+  /**
+   * Stoerfaelle einer Maschine (GET /api/conversations?machine_id=), ohne vorher die Maschine zu laden.
+   * null, wenn der Server den Parameter nicht kennt (404/422, aelteres Backend): dann source_id nehmen.
+   */
+  listConversationsForMachine: async (machineId: string): Promise<Conversation[] | null> => {
+    const response = await fetch(`${API_URL}/api/conversations?machine_id=${encodeURIComponent(machineId)}`, { headers: authHeaders() });
+    if (response.status === 401) {
+      clearToken();
+      redirectToLogin();
+    }
+    if (response.status === 404 || response.status === 422) return null;
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(errorDetail(body, response));
+    }
+    return response.json();
+  },
   deleteConversation: (id: string) =>
     request<void>(`/api/conversations/${id}`, { method: "DELETE" }),
   /** Verlauf mit meta je Antwort (Issue #47); machineId liefert die Schaltschrank-Belege dieser Maschine. */
@@ -452,7 +479,7 @@ export async function* streamChat(
   });
   if (!response.ok || !response.body) {
     const detail = await response.json().catch(() => null);
-    throw new Error(detail?.detail ?? `${response.status} ${response.statusText}`);
+    throw new Error(errorDetail(detail, response));
   }
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -805,7 +832,7 @@ export const layout = {
     if (response.status === 404) return null;
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      throw new Error(body?.detail ?? `${response.status} ${response.statusText}`);
+      throw new Error(errorDetail(body, response));
     }
     return response.json();
   },

@@ -1,11 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { HallCanvas } from "@/components/HallCanvas";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import {
   api,
@@ -19,6 +19,12 @@ import {
   type Machine,
   type MachineType,
 } from "@/lib/api";
+
+// @xyflow/react erst laden, wenn der Hallen-Baukasten gezeigt wird (eigener Bundle-Teil)
+const HallCanvas = dynamic(() => import("@/components/HallCanvas").then((m) => m.HallCanvas), {
+  ssr: false,
+  loading: () => <div className="h-full min-h-[420px] animate-pulse bg-secondary/50" aria-busy="true" />,
+});
 
 const TYPES = Object.keys(MACHINE_TYPE_LABELS) as MachineType[];
 const KINDS = Object.keys(HALL_KIND_LABELS) as HallKind[];

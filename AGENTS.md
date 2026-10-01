@@ -138,10 +138,38 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   von FB-01, UR-01, PM1-AR) und gedrehte Seiten behalten den Rohtext. `document_pieces` nutzt das nur fuer
   `schematic`-PDFs (`### Beschriftungen je Spalte`); der Kennzeichen-Index bleibt gleich. Die Kopfzeile darf bei 0
   beginnen (`page_columns`, Querverweise wie `/40.0`). Tests `test_column_text.py` mit synthetischen Seiten.
-- Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
-  erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
-  Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
-  Konversationen mit `source_ids == [source_id]` (`GET /api/conversations?source_id=`), keine neue Spalte.
+- Stoerfall-Arbeitsflaeche (Issues #107, #110): Die Maschinenseite hat zwei Bereiche, Stoerfaelle (Standard; offener
+  Fall `?fall=`, Detail `?detail=` ueber `lib/detail.ts`) und Aufbau (`?bereich=aufbau&tab=…`; alte Links mit `?tab=…`
+  oeffnen den Aufbau, `?tab=chat` die Stoerfaelle). Jeder Chat einer Maschine ist ein Stoerfall: Konversation mit
+  `source_ids == [source_id]` und `conversations.outcome` (open|resolved) plus `finding` (Alembic `0004_stoerfall_felder`),
+  `PATCH /api/conversations/{id}`, Liste ueber `GET /api/conversations?machine_id=` (aeltere Server: `source_id`), Verlauf in
+  Seiten (`?limit=&before=`, `MessageOut.index`). `ChatRequest.machine_id` erzwingt Scope = Quelle der Maschine
+  (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`); Werkzeug `search_faults` durchsucht
+  Fehlerlisten ALLER Maschinen (bewusst global). Frontend `components/incident/*` (Liste, Kopf, Detailspalte, URL in
+  `view.ts`), Antwortbloecke `components/answer/blocks/*` in fester Reihenfolge: Fehlerliste sofort ueber
+  `GET /api/machines/{id}/fault-hits` (Trefferlogik `app/werk/faults.py`, dieselbe wie `search_faults`; andere Maschinen als
+  „Erfahrung“), Text, Bauteile, Signalweg, Im Plan, Im Schrank, Belege; Bloecke ohne Inhalt entfallen, Inhalte laden erst
+  bei Sichtbarkeit. `meta.part_kinds`, `signal_start` und `plan_spots` kommen aus `api/answer_meta.py` (Spalte je
+  Kennzeichen `ingestion/tag_columns.py`); alte Antworten ohne diese Felder bekommen keine neuen Bloecke. Endnutzer sehen
+  Fehler als Satz (`chat/chatError.tsx`), den Rohtext nur unter „Details“. Unter 1280 px mit offenem Detail wird die Liste
+  zur Leiste `IncidentRail`.
+- Planleser (Issue #106): `ingestion/plan_wires.py` liest Leiter aus der Vektorebene (pypdfium2-Rohschnittstelle samt
+  Matrizen und Form-XObjects), rastet Endpunkte per scipy `cKDTree` ein und bildet Netze mit networkx; eine Kreuzung ohne
+  Punkt verbindet nicht, Netzenden benennt der Anschlusstext wie in #102. Dazu `lage` aus Kanaelen in Spalten und Zeilen,
+  auch auf Seiten mit Leitern. Kantenformat `ingestion/plan_edges.py` (`PlanEdge`, Cache
+  `data/plan_cache/<sha256>-v<PLAN_READER_VERSION>.json`; bei geaenderten Regeln die Version erhoehen), vorab gerechnet in
+  `ingest_document`. Der Signalgraph fuehrt je Kante die Herkunft (`via`: klemmenplan, awl, leitung, lage, modell), reine
+  PDF-Quellen sind verfolgbar. `GET /api/signal-path?view=main` (`ingestion/signal_view.py`): Hauptweg in festen Spalten
+  feld … verbraucher, Pins an den Kanten, Abzweige je Knoten (`branches`); 404 mit `detail.reason` no_sources|unknown_tag.
+  Gate `eval/run_plan_graph.py` im Ingest-Job: Precision >= 0,95 gegen `wires` im Gold und gegen den Graphen aus den
+  Tabellen, Recall nur berichtet.
+- Planleser per Modell (Issue #108): `PLAN_READER_MODEL` (leer = aus), `PLAN_READER_BASE_URL` (OpenAI-kompatibel, auch
+  lokal, etwa Ollama `qwen3.5:4b`), `ingestion/plan_model.py`, `POST/GET /api/sources/{id}/plan-read` (`dry_run` =
+  Schaetzung). Lehrer `eval/plan_teacher.py`: nur oeffentliche Plaene (`examples/`, `testdata/qelectrotech/`), Modellaufruf
+  nur mit `--yes`, `--from-result` rechnet ohne Aufruf neu; bezahlte Laeufe nur nach Freigabe des Owners.
+- Signalweg-Ansicht (Issue #109): `components/signal/SignalView.tsx` mit `compact` im Antwortblock und `auto` (unter
+  1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
+  Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
   `LayoutCanvas.highlightTags`, `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
