@@ -54,6 +54,29 @@ def test_filename_hints():
     assert filename_doc_type("4711.pdf") is None
 
 
+# Schweizer Elektroschema (Issue #93) in pdfium-Reihenfolge: Datum, Titel und Nummer, Zeichner, Anlage, dann der
+# Spaltenkopf 0 bis 9 und "Elektroschema" aus dem Schriftfeld; frei erfunden
+SWISS_SAMPLE = """4. März 2019
+Eingaenge Band 2 12 M. Muster Verteilung Muster
+0 1 2 3 4 5 6 7 8 9
+Elektroschema Blatt
++24VDC /11.7
+E0.3
+-S11 X5 3 /14.2 /13.0
+"""
+
+
+def test_schweizer_elektroschema_ist_ein_stromlaufplan():
+    found = guess_doc_type(SWISS_SAMPLE)
+    assert found.doc_type == DocType.SCHEMATIC and "Elektroschema" in found.reason
+    assert filename_doc_type("Anlage_7_Elektroschema_Rev2.pdf") == DocType.SCHEMATIC
+
+
+def test_spaltenkopf_ab_null_zaehlt_als_merkmal_eines_stromlaufplans():
+    found = guess_doc_type("0 1 2 3 4 5 6 7 8 9\n-K1 /3.4 /5.6 /7.8\n")
+    assert found.doc_type == DocType.SCHEMATIC and "Spaltenkopf" in found.reason
+
+
 def test_manual_beats_bom_when_manual_mentions_parts_list():
     text = "# Betriebsanleitung Presse P7\n\nZugehoerige Dokumente: Stueckliste P7, Klemmenplan P7.\n\n## Wartung\n\nVor der Inbetriebnahme Sicherheitshinweise lesen. " * 2
     assert guess_doc_type(text).doc_type == DocType.MANUAL

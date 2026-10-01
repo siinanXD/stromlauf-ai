@@ -264,7 +264,8 @@ erste Zeilen einer Tabelle oder Textdatei) und schlägt den Typ mit Begründung 
 „Kopfzeile Klemmleiste;Klemme;Ziel“ oder „Schriftfeld Blatt n / m; Spaltenkopf 1 … 8“. Der Dialog
 zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochgeladen. Reihenfolge:
 Endung (.awl, .scl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
-`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
+`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt. Ein Schweizer
+„Elektroschema“ mit Spaltenkopf 0 … 9 gilt als Stromlaufplan.
 
 ## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
 
