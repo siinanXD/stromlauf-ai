@@ -1,148 +1,79 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 
-import { ChatPanel, ExampleQuestions } from "@/components/chat/ChatPanel";
+import type { AnswerBlocksContext } from "@/components/chat/AnswerView";
+import { ChatPanel, type ChatScope } from "@/components/chat/ChatPanel";
+import { IncidentHeader } from "@/components/incident/IncidentHeader";
+import type { Incident } from "@/components/incident/incidents";
 import type { PageTarget } from "@/components/PageViewer";
-import { api, type AnswerMeta, type Conversation, type MachineDetail } from "@/lib/api";
-import { recallConversation, rememberConversation } from "@/lib/chatMemory";
+import type { AnswerMeta, MachineDetail } from "@/lib/api";
+import type { DetailRef } from "@/lib/detail";
 
 /**
- * Chat je Maschine (chat-first, MB-4): Scope ist fest ihre Wissensquelle (Backend erzwingt das ueber
- * machine_id). Der Verlauf sitzt als Auswahl in der Kopfzeile; der Composer bleibt unten. Der zuletzt
- * geoeffnete Chat wird je Maschine im Browser gemerkt und nach einem Reload wieder geladen (Issue #47).
+ * Chat eines Stoerfalls (frueher Tab „Chat“ der Maschine): Scope ist fest die Wissensquelle der Maschine (Backend
+ * erzwingt das ueber machine_id), Antworten erscheinen als Bloecke. Ein neuer Stoerfall schickt seine Meldung
+ * sofort ab (autoSend); die vom Server vergebene ID meldet onConversationId.
  */
 export function MachineChatTab({
   machine,
-  onOpenPage,
+  incident,
+  conversationId,
+  autoSend,
   activeReference,
-  onMeta,
-  onOpenPart,
+  onConversationId,
+  onConversationsChanged,
+  onOpenDetail,
+  onOpenIncident,
   onShowInModel,
-  onGoToDocuments,
+  onMeta,
+  onBack,
+  onResolve,
+  onReopen,
+  onDelete,
 }: {
   machine: MachineDetail;
-  onOpenPage: (target: PageTarget) => void;
+  incident: Incident;
+  /** Echte Konversations-ID; null, solange der Server sie noch nicht vergeben hat. */
+  conversationId: string | null;
+  autoSend?: { key: string; text: string };
   activeReference: string | null;
+  onConversationId: (id: string, title: string) => void;
+  onConversationsChanged: () => void;
+  onOpenDetail: (detail: DetailRef) => void;
+  onOpenIncident: (conversationId: string) => void;
+  onShowInModel: (tags: string[]) => void;
   onMeta?: (meta: AnswerMeta) => void;
-  onOpenPart?: (tag: string) => void;
-  onShowInModel?: (tags: string[]) => void;
-  onGoToDocuments?: () => void;
+  onBack: () => void;
+  onResolve: (finding: string) => Promise<boolean>;
+  onReopen: () => Promise<boolean>;
+  onDelete: () => Promise<boolean>;
 }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [conversationId, setConversationIdState] = useState<string | null>(null);
-  const [initialInput, setInitialInput] = useState("");
   const sourceId = machine.source_id;
   const machineId = machine.id;
-
-  const setConversationId = useCallback(
-    (id: string | null) => {
-      setConversationIdState(id);
-      rememberConversation(machineId, id);
-    },
-    [machineId],
-  );
-
-  const loadConversations = useCallback((): Promise<Conversation[]> => {
-    if (!sourceId) return Promise.resolve([]);
-    return api
-      .listConversations(sourceId)
-      .then((list) => {
-        setConversations(list);
-        return list;
-      })
-      .catch(() => []);
-  }, [sourceId]);
-
-  // Beim Oeffnen der Maschine: Liste laden und den gemerkten Chat wieder waehlen, sofern es ihn noch gibt
-  useEffect(() => {
-    let cancelled = false;
-    loadConversations().then((list) => {
-      if (cancelled) return;
-      const remembered = recallConversation(machineId);
-      if (remembered && list.some((c) => c.id === remembered)) setConversationIdState(remembered);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadConversations, machineId]);
-
-  if (!sourceId) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center" data-testid="chat-no-source">
-        <p className="text-sm text-muted-foreground">Keine Dokumentation verknüpft. Ohne Doku gibt es keine belegten Antworten.</p>
-        {onGoToDocuments && (
-          <button type="button" onClick={onGoToDocuments} className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground">
-            Dokumente verknüpfen
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  async function remove() {
-    const conversation = conversations.find((c) => c.id === conversationId);
-    if (!conversation || !confirm(`Chat „${conversation.title}“ löschen?`)) return;
-    await api.deleteConversation(conversation.id).catch(() => {});
-    setConversationId(null);
-    loadConversations();
-  }
-
-  const examples = [
-    `Welche Bedingungen müssen erfüllt sein, damit ${machine.name} anläuft?`,
-    "Was steht in der Fehlerliste zu „steht“ oder „Störung“?",
-    "Welche Not-Halt-Kette hat diese Maschine?",
-    "Welche SPS-Eingänge gehören zu den Sensoren am Einlauf?",
-  ];
+  const scope = useMemo<ChatScope>(() => ({ sourceIds: sourceId ? [sourceId] : [], machineId }), [sourceId, machineId]);
+  const blocks = useMemo<AnswerBlocksContext>(() => ({ machineId, sourceId, onOpenDetail, onOpenIncident }), [machineId, sourceId, onOpenDetail, onOpenIncident]);
+  const openPage = useCallback((target: PageTarget) => onOpenDetail({ kind: "plan", target }), [onOpenDetail]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-1.5 text-xs">
-        <label className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0 text-muted-foreground">Verlauf</span>
-          <select
-            value={conversationId ?? ""}
-            onChange={(e) => setConversationId(e.target.value || null)}
-            aria-label="Chatverlauf wählen"
-            className="h-7 min-w-0 max-w-[16rem] rounded-md border border-border bg-background px-1.5"
-          >
-            <option value="">Neuer Chat</option>
-            {conversations.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" onClick={() => setConversationId(null)} className="rounded-md border border-border p-1 hover:border-primary" aria-label="Neuer Chat" title="Neuer Chat">
-          <Plus className="size-3.5" />
-        </button>
-        {conversationId && (
-          <button type="button" onClick={remove} className="text-muted-foreground hover:text-danger">
-            Löschen
-          </button>
-        )}
-        <span className="ml-auto hidden truncate text-muted-foreground sm:inline">Antworten nur aus {machine.source_name ?? "dieser Wissensquelle"}</span>
-      </div>
+    <div className="flex h-full min-h-0 flex-col" data-testid="incident-chat">
+      <IncidentHeader incident={incident} onBack={onBack} onResolve={onResolve} onReopen={onReopen} onDelete={onDelete} />
       <ChatPanel
-        scope={{ sourceIds: [sourceId], machineId: machine.id }}
+        scope={scope}
         conversationId={conversationId}
-        onConversationId={setConversationId}
-        onConversationsChanged={loadConversations}
-        onOpenPage={onOpenPage}
+        onConversationId={onConversationId}
+        onConversationsChanged={onConversationsChanged}
+        onOpenPage={openPage}
         activeReference={activeReference}
-        initialInput={initialInput}
-        placeholder={`Frag etwas zu ${machine.name} …`}
+        placeholder="Nachfrage zu diesem Störfall …"
         onMeta={onMeta}
-        onOpenPart={onOpenPart}
         onShowInModel={onShowInModel}
+        blocks={blocks}
+        autoSend={autoSend}
         emptyState={
-          <>
-            <h2 className="text-xl font-semibold tracking-tight">Was willst du über {machine.name} wissen?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Jede Antwort zeigt die Bauteile im Modell oben und belegt sie mit Seiten aus der Doku.</p>
-            <ExampleQuestions examples={examples} onPick={setInitialInput} />
-          </>
+          <p className="text-center text-sm text-muted-foreground">
+            {incident.pending ? "Die Meldung wird gesendet …" : "In diesem Störfall steht noch nichts. Stell unten eine Frage zur Meldung."}
+          </p>
         }
       />
     </div>
