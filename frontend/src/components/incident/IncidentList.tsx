@@ -52,6 +52,7 @@ export function IncidentList({
   onSelect,
   onRetryIncident,
   unavailable,
+  composerDisabled = false,
 }: {
   incidents: Incident[];
   loading: boolean;
@@ -66,6 +67,8 @@ export function IncidentList({
   onRetryIncident?: (id: string) => void;
   /** Ohne verknuepfte Doku gibt es keine Stoerfaelle: Grund und naechste Aktion statt Eingabefeld. */
   unavailable?: { reason: string; action?: { label: string; onClick: () => void } };
+  /** Platzhalter, solange die Maschine laedt: gleiche Form, Eingabe noch gesperrt. */
+  composerDisabled?: boolean;
 }) {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
@@ -94,6 +97,7 @@ export function IncidentList({
                 if (handleComposerKey(event, text, onCreate)) setText("");
               }}
               placeholder="Meldung oder Frage"
+              disabled={composerDisabled}
               enterKeyHint="send"
               autoComplete="off"
               className="h-11 bg-background text-[15px]"

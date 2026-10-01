@@ -1,11 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { prefetchFaultHits } from "@/components/answer/faultHitsStore";
-import { MachineChatTab } from "@/components/machine/MachineChatTab";
 import { api, type AnswerMeta, type MachineDetail, type MachineMap } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
 import { cn } from "@/lib/utils";
@@ -23,9 +22,18 @@ import {
   type Incident,
   type IncidentFilter,
 } from "./incidents";
+import { incidentsFor, takeIncidents } from "./initialLoad";
 import { IncidentList } from "./IncidentList";
 import { IncidentRail, listColumnLayout } from "./IncidentRail";
 import { levelOf, viewFromParams, type AufbauTab, type MachineView } from "./view";
+
+// Chat mit Markdown und Antwortbloecken erst laden, wenn ein Stoerfall offen ist; die Liste braucht ihn nicht
+const loadChat = () => import("@/components/machine/MachineChatTab");
+const MachineChatTab = dynamic(() => loadChat().then((m) => m.MachineChatTab), {
+  loading: () => <div className="flex-1 animate-pulse bg-secondary/40" aria-busy="true" />,
+});
+/** Vorladen, sobald jemand in die Liste tippt oder zeigt: der Chat ist dann da, wenn Enter kommt. */
+const preloadChat = () => void loadChat();
 
 // Gleiche Breite wie DETAIL_WIDTH in DetailPane.tsx; ein statischer Import wuerde das Nachladen aufheben
 const DETAIL_WIDTH_CLASS = "lg:w-[min(560px,45%)]";
@@ -53,6 +61,7 @@ export function IncidentWorkspace({
   onShowInModel,
   onGoToAufbau,
   onMachineChanged,
+  onListReady,
 }: {
   machine: MachineDetail;
   view: MachineView;
@@ -65,6 +74,8 @@ export function IncidentWorkspace({
   onShowInModel: (tags: string[]) => void;
   onGoToAufbau: (tab: AufbauTab) => void;
   onMachineChanged: () => void;
+  /** Die Liste ist geladen (oder gescheitert). */
+  onListReady?: () => void;
 }) {
   const sourceId = machine.source_id;
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -79,20 +90,30 @@ export function IncidentWorkspace({
   /** Echte ID -> vorlaeufige ID: der Chat behaelt seinen Zustand, wenn die ID wechselt. */
   const [aliases, setAliases] = useState<Record<string, string>>({});
 
-  const load = useCallback(() => {
-    if (!sourceId) return Promise.resolve();
-    return api
-      .listConversations(sourceId)
-      .then((list) => {
-        setIncidents((current) => mergeServer(current, list));
-        setStatus("ready");
-      })
-      .catch(() => setStatus((s) => (s === "ready" ? s : "failed")));
-  }, [sourceId]);
+  const machineId = machine.id;
+  // Der erste Abruf lief schon parallel zur Maschine (initialLoad); spaetere holen den neuesten Stand
+  const firstLoad = useRef(true);
+  const load = useCallback(async () => {
+    if (!sourceId) return;
+    const request = firstLoad.current ? takeIncidents(machineId) : api.listConversationsForMachine(machineId);
+    firstLoad.current = false;
+    try {
+      const list = await incidentsFor(request, sourceId);
+      setIncidents((current) => mergeServer(current, list));
+      setStatus("ready");
+    } catch {
+      setStatus((s) => (s === "ready" ? s : "failed"));
+    }
+  }, [machineId, sourceId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Liste steht: jetzt duerfen Nebensachen (Kostenchip) ihre Anfragen stellen
+  useEffect(() => {
+    if (status !== "loading") onListReady?.();
+  }, [status, onListReady]);
 
   const level = levelOf(view);
   const fall = view.fall;
@@ -221,7 +242,7 @@ export function IncidentWorkspace({
             <IncidentRail incidents={incidents} filter={filter} activeId={incident?.id ?? fall} onSelect={openIncident} onExpand={goBack} />
           </div>
         )}
-        <div className={columns.listClass}>
+        <div className={columns.listClass} onFocusCapture={preloadChat} onPointerOverCapture={preloadChat}>
           <IncidentList
             incidents={incidents}
             loading={status === "loading"}

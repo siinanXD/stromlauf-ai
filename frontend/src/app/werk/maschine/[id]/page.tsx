@@ -6,12 +6,14 @@ import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { startInitialLoad, takeMachine } from "@/components/incident/initialLoad";
+import { IncidentList } from "@/components/incident/IncidentList";
+import { listColumnLayout } from "@/components/incident/IncidentRail";
 import { IncidentWorkspace, type Navigate } from "@/components/incident/IncidentWorkspace";
-import { parentView, STOERFAELLE, viewFromParams, viewToQuery, type AufbauTab, type MachineView } from "@/components/incident/view";
+import { levelOf, parentView, STOERFAELLE, viewFromParams, viewToQuery, type AufbauTab, type MachineView } from "@/components/incident/view";
 import { MachineCostChip } from "@/components/machine/MachineCostChip";
 import { MACHINE_TYPE_LABELS, plant, type AnswerMeta, type MachineDetail, type MachineMap } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
 
 // Der Aufbau (Tabs mit Tabellen, Editoren, Draufsicht) laedt erst, wenn er geoeffnet wird
 const AufbauArea = dynamic(() => import("./AufbauArea").then((m) => m.AufbauArea), {
@@ -36,6 +38,9 @@ export default function MachinePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = useMemo(() => viewFromParams(searchParams), [searchParams]);
+  // Maschine und Stoerfaelle sofort und gleichzeitig anfragen, noch vor den Effekten von Kopfzeile und Kostenchip
+  useState(() => startInitialLoad(id));
+  const [listReady, setListReady] = useState(false);
   const [loaded, setLoaded] = useState<MachineDetail | null>(null);
   const [failed, setFailed] = useState(false);
   const [mapState, setMapState] = useState<{ id: string; map: MachineMap | null } | null>(null);
@@ -45,17 +50,17 @@ export default function MachinePage() {
   const machine = loaded?.id === id ? loaded : null;
   const map = mapState?.id === id ? mapState.map : undefined;
 
-  const loadMachine = useCallback(
-    () =>
-      plant
-        .getMachine(id)
+  const showMachine = useCallback(
+    (request: Promise<MachineDetail>) =>
+      request
         .then((result) => {
           setLoaded(result);
           setFailed(false);
         })
         .catch(() => setFailed(true)),
-    [id],
+    [],
   );
+  const loadMachine = useCallback(() => showMachine(plant.getMachine(id)), [id, showMachine]);
   const loadMap = useCallback(() => {
     mapRequested.current = id;
     return plant
@@ -65,8 +70,8 @@ export default function MachinePage() {
   }, [id]);
 
   useEffect(() => {
-    void loadMachine();
-  }, [loadMachine]);
+    void showMachine(takeMachine(id));
+  }, [id, showMachine]);
 
   // Das Modell braucht nur der Aufbau und das Bauteil-Detail
   const needsMap = view.area === "aufbau" || view.detail?.kind === "part";
@@ -106,30 +111,7 @@ export default function MachinePage() {
     [navigate],
   );
   const onMeta = useCallback((meta: AnswerMeta) => setReferencedTags(Array.isArray(meta.referenced_tags) ? meta.referenced_tags : []), []);
-
-  if (!machine) {
-    return (
-      <AppShell breadcrumb={[{ label: "Werk", href: "/werk" }, { label: "…" }]}>
-        {failed ? (
-          <div className="space-y-3 p-8" role="status">
-            <p className="text-muted-foreground">Die Maschine konnte nicht geladen werden.</p>
-            <button type="button" onClick={() => void loadMachine()} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
-              Erneut versuchen
-            </button>
-          </div>
-        ) : (
-          <div className="flex h-full flex-col" aria-busy="true">
-            <span className="sr-only">Lade Maschine …</span>
-            <div className="h-14 border-b border-border bg-card" />
-            <div className="flex min-h-0 flex-1 gap-3 p-3">
-              <div className="w-full animate-pulse rounded-lg bg-secondary lg:w-[280px]" />
-              <div className="hidden flex-1 animate-pulse rounded-lg bg-secondary/60 lg:block" />
-            </div>
-          </div>
-        )}
-      </AppShell>
-    );
-  }
+  const onListReady = useCallback(() => setListReady(true), []);
 
   const openPart = view.detail?.kind === "part" ? view.detail.tag : (view.tag ?? "");
   const areaButton = (area: MachineView["area"], label: string, Icon: typeof AlertTriangle) => (
@@ -148,31 +130,76 @@ export default function MachinePage() {
     </button>
   );
 
+  const level = levelOf(view);
+  const noop = () => {};
+  // Platzhalter in der Form der fertigen Seite: Liste mit Eingabe und Filter, daneben der Chat (nichts springt)
+  const placeholder =
+    view.area === "aufbau" ? (
+      <div className="flex-1 animate-pulse bg-secondary/40" aria-busy="true" />
+    ) : (
+      <div className="flex min-h-0 flex-1" aria-busy="true">
+        <div className={listColumnLayout(level, false).column}>
+          <IncidentList incidents={[]} loading failed={false} onRetry={noop} activeId={null} filter="open" onFilter={noop} onCreate={noop} onSelect={noop} composerDisabled />
+        </div>
+        <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden")}>
+          <div className="flex-1 animate-pulse bg-secondary/40" />
+        </div>
+      </div>
+    );
+
   return (
     <AppShell
-      breadcrumb={[
-        { label: "Werk", href: "/werk" },
-        { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
-        { label: machine.name },
-      ]}
+      breadcrumb={
+        machine
+          ? [
+              { label: "Werk", href: "/werk" },
+              { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
+              { label: machine.name },
+            ]
+          : [{ label: "Werk", href: "/werk" }, { label: "…" }]
+      }
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden" data-testid="machine-page" data-area={view.area} data-open-part={openPart}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-card px-3 py-1.5 md:px-6">
-          <h1 className="min-w-0 truncate text-[18px] font-semibold tracking-tight md:text-[20px]">{machine.name}</h1>
-          <span className="hidden rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline">{MACHINE_TYPE_LABELS[machine.machine_type]}</span>
-          <span className="hidden text-[11px] text-muted-foreground xl:inline">
-            {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente
-          </span>
+          {machine ? (
+            <>
+              <h1 className="min-w-0 truncate text-[18px] font-semibold tracking-tight md:text-[20px]">{machine.name}</h1>
+              <span className="hidden rounded-md bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline">{MACHINE_TYPE_LABELS[machine.machine_type]}</span>
+              <span className="hidden text-[11px] text-muted-foreground xl:inline">
+                {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente
+              </span>
+            </>
+          ) : (
+            <h1 className="min-w-0 text-[18px] font-semibold md:text-[20px]">
+              <span className="inline-block h-6 w-40 animate-pulse rounded bg-secondary align-middle" aria-hidden />
+              <span className="sr-only">{failed ? "Maschine" : "Lade Maschine …"}</span>
+            </h1>
+          )}
+          {/* Kostenchip erst nach der Liste, damit seine Anfrage die Stoerfaelle nicht aufhaelt; links der Bereiche,
+              damit beim Erscheinen nichts verrutscht */}
+          {machine && (listReady || view.area === "aufbau") && (
+            <span className="hidden md:inline">
+              <MachineCostChip machineId={id} refreshKey={0} />
+            </span>
+          )}
           <nav aria-label="Bereiche der Maschine" className="ml-auto flex items-center gap-1">
             {areaButton("stoerfaelle", "Störfälle", AlertTriangle)}
             {areaButton("aufbau", "Aufbau", Boxes)}
           </nav>
-          <span className="hidden md:inline">
-            <MachineCostChip machineId={id} refreshKey={0} />
-          </span>
         </div>
 
-        {view.area === "aufbau" ? (
+        {!machine ? (
+          failed ? (
+            <div className="space-y-3 p-8" role="status">
+              <p className="text-muted-foreground">Die Maschine konnte nicht geladen werden.</p>
+              <button type="button" onClick={() => void loadMachine()} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
+                Erneut versuchen
+              </button>
+            </div>
+          ) : (
+            placeholder
+          )
+        ) : view.area === "aufbau" ? (
           <AufbauArea
             key={machine.id}
             machine={machine}
@@ -197,6 +224,7 @@ export default function MachinePage() {
             onShowInModel={showInModel}
             onGoToAufbau={goToAufbau}
             onMachineChanged={() => void loadMachine()}
+            onListReady={onListReady}
           />
         )}
       </div>

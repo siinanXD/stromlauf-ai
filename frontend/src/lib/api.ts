@@ -408,6 +408,23 @@ export const api = {
   /** Alle Chats; mit sourceId nur die, deren Scope genau diese Quelle ist (Maschinen-Chat). */
   listConversations: (sourceId?: string) =>
     request<Conversation[]>(`/api/conversations${sourceId ? `?source_id=${encodeURIComponent(sourceId)}` : ""}`),
+  /**
+   * Stoerfaelle einer Maschine (GET /api/conversations?machine_id=), ohne vorher die Maschine zu laden.
+   * null, wenn der Server den Parameter nicht kennt (404/422, aelteres Backend): dann source_id nehmen.
+   */
+  listConversationsForMachine: async (machineId: string): Promise<Conversation[] | null> => {
+    const response = await fetch(`${API_URL}/api/conversations?machine_id=${encodeURIComponent(machineId)}`, { headers: authHeaders() });
+    if (response.status === 401) {
+      clearToken();
+      redirectToLogin();
+    }
+    if (response.status === 404 || response.status === 422) return null;
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(errorDetail(body, response));
+    }
+    return response.json();
+  },
   deleteConversation: (id: string) =>
     request<void>(`/api/conversations/${id}`, { method: "DELETE" }),
   /** Verlauf mit meta je Antwort (Issue #47); machineId liefert die Schaltschrank-Belege dieser Maschine. */
