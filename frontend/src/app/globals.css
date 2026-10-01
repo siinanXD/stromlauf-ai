@@ -6,79 +6,181 @@
    oder prefers-color-scheme, damit shadcn-dark:-Klassen und die Variablen dasselbe schalten. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Vision – Machine Assistant, Figma "Foundations" (2OqLHx6iMLcQetq6uM90FC): Inter fuer UI, IBM Plex Mono
-   fuer Kennzeichen, 8-px-Raster, Radius 8/12/16. Signal-Amber nur fuer "hier schauen", Brand-Blau fuer
-   Aktionen, Rot fuer Fehler und Not-Halt. Hell und dunkel (data-theme). */
-:root {
-  --background: #f5f6f8; /* bg/canvas */
-  --foreground: #111827; /* fg/primary */
-  --card: #ffffff; /* bg/surface */
-  --card-foreground: #111827;
-  --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #2563eb; /* accent/brand */
-  --primary-foreground: #ffffff;
-  --primary-soft: #dbeafe; /* accent/brand-soft */
-  --secondary: #eef0f3; /* bg/surface-2 */
-  --secondary-foreground: #111827;
-  --muted: #eef0f3;
-  --muted-foreground: #5b6472; /* fg/secondary */
-  --accent: #eef0f3;
-  --accent-foreground: #111827;
-  --destructive: #dc2626; /* status/error */
-  --border: #e3e6eb; /* border/subtle */
-  --input: #c9ced6; /* border/strong */
-  --ring: #2563eb;
-  --radius: 0.5rem;
+/*
+ * Design "iOS clean" (Figma wtxajO1YC5HvtQG7CI44BC, freigegeben 2026-10-01). Die Variablen tragen die Namen und
+ * Werte der Figma-Collections "Color" (Light hier, Dark unter [data-theme="dark"]) und "Layout"; Code-Syntax in Figma
+ * ist var(--color-…), var(--space-…), var(--radius-…). Blau = Aktion und Auswahl, Orange = "hier schauen",
+ * Rot nur fuer Fehler und Not-Halt, Gruen = erledigt/geprueft.
+ *
+ * Kontrast (ux-spec: >= 4.5:1): Figma-Werte, die als Text darunter liegen, haben eine "-strong"-Variante fuer Text
+ * und fuer Flaechen mit weisser Schrift (accent, look, error, ok); text/secondary ist im hellen Modus dunkler als in
+ * Figma (#3c3c4399 -> #3c3c43c7). text/tertiary bleibt fuer Platzhalter und Symbole, nie fuer lesbaren Text.
+ */
+@theme static {
+  --color-bg-grouped: #f2f2f7;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-fill: #7676801f;
+  --color-bg-bar: #f9f9f9f0;
+  --color-text-primary: #000000;
+  --color-text-secondary: #3c3c43c7;
+  --color-text-tertiary: #3c3c434d;
+  --color-text-on-accent: #ffffff;
+  --color-line-separator: #3c3c434a;
+  --color-line-strong: #c7c7cc;
+  --color-accent: #007aff;
+  --color-accent-soft: #007aff1f;
+  --color-accent-strong: #0060c8;
+  --color-look: #ff9500;
+  --color-look-soft: #ff950024;
+  --color-look-strong: #9a4d00;
+  --color-error: #ff3b30;
+  --color-error-soft: #ff3b301f;
+  --color-error-strong: #c4000f;
+  --color-ok: #34c759;
+  --color-ok-soft: #34c75924;
+  --color-ok-strong: #17722f;
 
-  --ok: #16a34a; /* status/ok */
-  --warn: #d97706; /* status/warn */
-  --danger: #dc2626;
-  --signal: #f59e0b; /* accent/signal: "hier schauen" */
-  --signal-soft: #fef3c7;
-  --signal-foreground: #1f1300;
-  --nav: #12151b; /* bg/rail */
-  --nav-hover: #1c2029;
-  --nav-foreground: #8b93a1; /* fg/on-rail-muted */
-  --nav-foreground-strong: #e5e7eb; /* fg/on-rail */
-  --grid: #e3e6eb;
-  --line: #c9ced6; /* border/strong */
+  /* Collection "Layout" */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 22px;
+  --radius-3xl: 999px;
+  --radius-4xl: 999px;
+  --radius-full: 999px;
+  --size-target: 44px;
+  --size-target-glove: 48px;
+
+  /* Effekt-Stile Elevation/Card, Elevation/Floating, Material/Bar (Figma-Radius 30 = CSS-Blur 15) */
+  --shadow-card: 0 1px 2px #0000000a, 0 8px 24px #0000000f;
+  --shadow-floating: 0 4px 12px #0000000f, 0 20px 48px #00000024;
+  --blur-bar: 15px;
+
+  /* Textstile "iOS/…" (Inter) und "Tag/…" (JetBrains Mono, dazu font-mono font-medium); Laufweite in Prozent */
+  --text-large-title: 34px;
+  --text-large-title--line-height: 41px;
+  --text-large-title--letter-spacing: -0.022em;
+  --text-large-title--font-weight: 700;
+  --text-title-1: 28px;
+  --text-title-1--line-height: 34px;
+  --text-title-1--letter-spacing: -0.022em;
+  --text-title-1--font-weight: 700;
+  --text-title-2: 22px;
+  --text-title-2--line-height: 28px;
+  --text-title-2--letter-spacing: -0.016em;
+  --text-title-2--font-weight: 700;
+  --text-title-3: 20px;
+  --text-title-3--line-height: 25px;
+  --text-title-3--letter-spacing: -0.016em;
+  --text-title-3--font-weight: 600;
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-headline--letter-spacing: -0.011em;
+  --text-headline--font-weight: 600;
+  --text-body: 17px;
+  --text-body--line-height: 22px;
+  --text-body--letter-spacing: -0.011em;
+  --text-callout: 16px;
+  --text-callout--line-height: 21px;
+  --text-callout--letter-spacing: -0.011em;
+  --text-subhead: 15px;
+  --text-subhead--line-height: 20px;
+  --text-subhead--letter-spacing: -0.011em;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-footnote--letter-spacing: -0.004em;
+  --text-caption-1: 12px;
+  --text-caption-1--line-height: 16px;
+  --text-caption-1--letter-spacing: -0.004em;
+  --text-caption-2: 11px;
+  --text-caption-2--line-height: 13px;
+  --text-caption-2--letter-spacing: -0.004em;
+  --text-caption-2--font-weight: 500;
+  --text-tag: 15px;
+  --text-tag--line-height: 20px;
+  --text-tag-sm: 13px;
+  --text-tag-sm--line-height: 16px;
 }
 
 [data-theme="dark"] {
-  --background: #0f1115;
-  --foreground: #f3f4f6;
-  --card: #171a20;
-  --card-foreground: #f3f4f6;
-  --popover: #171a20;
-  --popover-foreground: #f3f4f6;
-  --primary: #60a5fa;
-  --primary-foreground: #0f1115;
-  --primary-soft: #172554;
-  --secondary: #1f232b;
-  --secondary-foreground: #f3f4f6;
-  --muted: #1f232b;
-  --muted-foreground: #a3acba;
-  --accent: #1f232b;
-  --accent-foreground: #f3f4f6;
-  --destructive: #f87171;
-  --border: #2a2f39;
-  --input: #3a4150;
-  --ring: #60a5fa;
-
-  --ok: #4ade80;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --signal: #fbbf24;
-  --signal-soft: #3a2e0b;
-  --signal-foreground: #fef3c7;
-  --nav: #0a0c10;
-  --nav-hover: #151920;
-  --nav-foreground: #8b93a1;
-  --nav-foreground-strong: #e5e7eb;
-  --grid: #2a2f39;
-  --line: #3a4150;
+  --color-bg-grouped: #000000;
+  --color-bg-surface: #1c1c1e;
+  --color-bg-elevated: #2c2c2e;
+  --color-bg-fill: #7676803d;
+  --color-bg-bar: #1d1d1df0;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ebebf599;
+  --color-text-tertiary: #ebebf54d;
+  --color-text-on-accent: #ffffff;
+  --color-line-separator: #545458a6;
+  --color-line-strong: #48484a;
+  --color-accent: #0a84ff;
+  --color-accent-soft: #0a84ff38;
+  --color-accent-strong: #0a84ff;
+  --color-look: #ff9f0a;
+  --color-look-soft: #ff9f0a38;
+  --color-look-strong: #ff9f0a;
+  --color-error: #ff453a;
+  --color-error-soft: #ff453a38;
+  --color-error-strong: #ff453a;
+  --color-ok: #30d158;
+  --color-ok-soft: #30d15838;
+  --color-ok-strong: #30d158;
   color-scheme: dark;
+}
+
+/* shadcn- und App-Namen zeigen auf die Figma-Variablen, damit bestehende Komponenten mitgehen. */
+:root {
+  --background: var(--color-bg-grouped);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-surface);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-accent-strong);
+  --primary-foreground: var(--color-text-on-accent);
+  --primary-soft: var(--color-accent-soft);
+  --secondary: var(--color-bg-fill);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-bg-fill);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--color-bg-fill);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-error-strong);
+  --border: var(--color-line-separator);
+  --input: var(--color-line-strong);
+  --ring: var(--color-accent);
+  --radius: var(--radius-md);
+
+  --warn: var(--color-look-strong);
+  --danger: var(--color-error-strong);
+  --signal: var(--color-look);
+  --signal-soft: var(--color-look-soft);
+  --signal-foreground: #1f1300; /* Text auf Orange und Orange-hell */
+  /* Dunkle Kopfleisten (Seitenansicht, Werk-Bloecke) mit weisser Schrift */
+  --nav: #1c1c1e;
+  --nav-hover: #2c2c2e;
+  --nav-foreground: #aeaeb2;
+  --nav-foreground-strong: #ffffff;
+  --grid: var(--color-line-separator);
+  --line: var(--color-line-strong);
+}
+
+[data-theme="dark"] {
+  --signal-foreground: #fff1db;
+  --nav: #2c2c2e;
+  --nav-hover: #3a3a3c;
 }
 
 @theme inline {
@@ -90,39 +192,29 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
   --color-signal: var(--signal);
   --color-signal-soft: var(--signal-soft);
   --color-signal-foreground: var(--signal-foreground);
-  --color-primary-soft: var(--primary-soft);
   --color-nav: var(--nav);
   --color-nav-hover: var(--nav-hover);
   --color-nav-foreground: var(--nav-foreground);
   --color-nav-foreground-strong: var(--nav-foreground-strong);
   --color-grid: var(--grid);
   --color-line: var(--line);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-plex-mono);
-  --font-heading: var(--font-inter);
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
-  --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
-  --radius-2xl: var(--radius);
-  --radius-3xl: var(--radius);
-  --radius-4xl: var(--radius);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -133,11 +225,14 @@
     @apply bg-background text-foreground;
     overflow-x: hidden; /* breite Inhalte scrollen in ihrem Container (ux-spec §4) */
   }
+  ::placeholder {
+    color: var(--color-text-tertiary);
+  }
 }
 
 /* Markdown in Chat-Antworten */
 .markdown {
-  line-height: 1.65;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 .markdown > * + * {
@@ -159,16 +254,15 @@
 .markdown li + li { margin-top: 0.25em; }
 .markdown a { color: var(--primary); text-decoration: underline; }
 .markdown code {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--secondary);
-  border-radius: 0;
+  background: var(--color-bg-fill);
+  border-radius: var(--radius-xs);
   padding: 0.1em 0.35em;
 }
 .markdown pre {
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  border-radius: 0;
+  background: var(--color-bg-fill);
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   overflow-x: auto;
 }
@@ -181,20 +275,20 @@
 }
 .markdown th,
 .markdown td {
-  border: 1px solid var(--border);
+  border-bottom: 0.5px solid var(--color-line-separator);
   padding: 0.35rem 0.6rem;
   text-align: left;
   vertical-align: top;
 }
-.markdown th { background: var(--secondary); font-weight: 600; }
+.markdown th { color: var(--color-text-secondary); font-weight: 600; }
 .markdown blockquote {
-  border-left: 3px solid var(--border);
+  border-left: 3px solid var(--color-line-strong);
   color: var(--muted-foreground);
   padding-left: 0.9em;
 }
-.markdown hr { border-color: var(--border); }
+.markdown hr { border-color: var(--color-line-separator); }
 
-/* Pruefschritte als nummerierte Karten (Chat-Antwort, Abschnitt "Pruefen") */
+/* Pruefschritte als nummerierte Zeilen (Chat-Antwort, Abschnitt "Pruefen") */
 .answer-steps ol {
   counter-reset: step;
   list-style: none;
@@ -203,9 +297,9 @@
 .answer-steps ol > li {
   counter-increment: step;
   position: relative;
-  border: 1px solid var(--border);
-  background: var(--card);
-  padding: 0.45rem 0.75rem 0.45rem 2.25rem;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-grouped);
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
 }
 .answer-steps ol > li + li {
   margin-top: 0.375rem;
@@ -214,10 +308,17 @@
   content: counter(step);
   position: absolute;
   left: 0.75rem;
-  top: 0.45rem;
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  top: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
   font-weight: 600;
-  color: var(--primary);
+  line-height: 1;
 }
 
 /* Modell: Bauteil aus der Antwort ("hier schauen") - Puls nur ohne reduced motion */
