@@ -24,6 +24,7 @@ from app.schemas import (
     CitationValidateOut,
     CitationValidateRequest,
     ConversationOut,
+    ConversationPatch,
     MessageOut,
     SourceRef,
     ToolCallOut,
@@ -139,6 +140,20 @@ def list_conversations(source_id: str | None = None, session: Session = Depends(
     if source_id:
         rows = [c for c in rows if list(c.source_ids or []) == [source_id]]
     return rows
+
+
+@router.patch("/conversations/{conversation_id}", response_model=ConversationOut)
+def update_conversation(
+    conversation_id: str, body: ConversationPatch, session: Session = Depends(get_session)
+):
+    """Stoerfall abschliessen (outcome resolved, optional mit Befund) oder wieder oeffnen."""
+    conversation = session.get(Conversation, conversation_id)
+    if conversation is None or not same_workspace(conversation):
+        raise HTTPException(404, "Chat nicht gefunden")
+    for key, value in body.model_dump(exclude_unset=True, exclude_none=True).items():
+        setattr(conversation, key, value)
+    session.commit()
+    return conversation
 
 
 @router.delete("/conversations/{conversation_id}", status_code=204)

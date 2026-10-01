@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,6 +52,16 @@ class ConversationOut(BaseModel):
     title: str
     source_ids: list[str]
     updated_at: datetime
+    # Stoerfall (jeder Chat einer Maschine): open | resolved, dazu der Befund beim Abschliessen
+    outcome: str = "open"
+    finding: str = ""
+
+
+class ConversationPatch(BaseModel):
+    """Stoerfall abschliessen oder wieder oeffnen; fehlende Felder bleiben, wie sie sind."""
+
+    outcome: Literal["open", "resolved"] | None = None
+    finding: str | None = Field(default=None, max_length=2000)
 
 
 class CitedFile(BaseModel):
