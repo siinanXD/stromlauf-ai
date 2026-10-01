@@ -26,6 +26,28 @@ describe("relatedParts", () => {
     expect(relatedParts(data, "-K1")).toEqual([{ tag: "-M1", verb: "hängt an" }]);
   });
 
+  it("nennt das Kennzeichen, nicht die Bezeichnung aus der Stueckliste", () => {
+    // Geraeteknoten tragen die Stuecklisten-Bezeichnung als label; der Chip braucht das Kennzeichen, das Verb auch
+    const data = path(
+      "-K1",
+      [
+        node("-K1", "device", "Schuetz Foerdermotor vorwaerts"),
+        node("-X4:U", "terminal", "Motor Phase U"),
+        node("-M1", "device", "Foerdermotor 3~ 1,5 kW"),
+        node("-F2", "device", "Motorschutzschalter"),
+      ],
+      [
+        ["-K1", "-X4:U"],
+        ["-X4:U", "-M1"],
+        ["-F2", "-K1"],
+      ],
+    );
+    expect(relatedParts(data, "-K1")).toEqual([
+      { tag: "-M1", verb: "hängt an" },
+      { tag: "-F2", verb: "schützt" },
+    ]);
+  });
+
   it("zaehlt Anschluesse als ihr Geraet: Spule und Kontakt liegen zwischen Klemme und Schuetz (Issue #98)", () => {
     const data = path(
       "-K1",
