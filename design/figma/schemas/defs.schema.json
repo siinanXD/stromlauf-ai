@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "defs.schema.json",
+  "title": "Stromlauf AI: gemeinsame Typen der Figma-Vorlagen",
+  "description": "Formen wie die API-Typen in frontend/src/lib/api.ts (gleiche Feldnamen). Zusätzliche Felder der API sind erlaubt, damit neue Felder keine Datei ungültig machen.",
+  "$defs": {
+    "Fault": {
+      "description": "Eintrag einer Fehlerliste (api.ts: Fault).",
+      "type": "object",
+      "required": ["id", "machine_id", "code", "symptom", "cause", "fix", "doc_ref", "tags"],
+      "properties": {
+        "id": { "type": "string" },
+        "machine_id": { "type": "string" },
+        "code": { "type": "string" },
+        "symptom": { "type": "string" },
+        "cause": { "type": "string" },
+        "fix": { "type": "string" },
+        "doc_ref": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "ExperienceHit": {
+      "description": "Treffer an einer anderen Maschine: Erfahrung, kein Beleg (api.ts: FaultHits.experience).",
+      "type": "object",
+      "required": ["machine_id", "machine_name", "fault"],
+      "properties": {
+        "machine_id": { "type": "string" },
+        "machine_name": { "type": "string" },
+        "fault": { "$ref": "#/$defs/Fault" }
+      },
+      "additionalProperties": true
+    },
+    "IncidentHit": {
+      "description": "Erledigter Störfall dieser Maschine mit Befund (api.ts: FaultHits.incidents).",
+      "type": "object",
+      "required": ["conversation_id", "title", "finding", "updated_at"],
+      "properties": {
+        "conversation_id": { "type": "string" },
+        "title": { "type": "string" },
+        "finding": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "FaultHits": {
+      "description": "GET /api/machines/{id}/fault-hits?q= (api.ts: FaultHits).",
+      "type": "object",
+      "required": ["faults", "experience", "incidents"],
+      "properties": {
+        "faults": { "type": "array", "items": { "$ref": "#/$defs/Fault" } },
+        "experience": { "type": "array", "items": { "$ref": "#/$defs/ExperienceHit" } },
+        "incidents": { "type": "array", "items": { "$ref": "#/$defs/IncidentHit" } }
+      },
+      "additionalProperties": true
+    },
+    "PlanSpot": {
+      "description": "Fundstelle eines Kennzeichens im Stromlaufplan (api.ts: PlanSpot).",
+      "type": "object",
+      "required": ["tag", "document_id", "filename", "page", "sheet", "title", "column"],
+      "properties": {
+        "tag": { "type": "string" },
+        "document_id": { "type": "string" },
+        "filename": { "type": "string" },
+        "page": { "type": "integer" },
+        "sheet": { "type": ["integer", "null"] },
+        "title": { "type": "string" },
+        "column": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "CitationsValid": {
+      "description": "Geprüfte Belege einer Antwort (api.ts: CitationsValid).",
+      "type": "object",
+      "required": ["valid", "checked", "total"],
+      "properties": {
+        "valid": { "type": "integer" },
+        "checked": { "type": "integer" },
+        "total": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "AntwortMeta": {
+      "description": "Auszug aus AnswerMeta (api.ts) für den Störfall-Screen: Bauteile mit Art, Stellen im Plan, Belege.",
+      "type": "object",
+      "required": ["referenced_tags", "part_kinds", "plan_spots", "citations_valid"],
+      "properties": {
+        "referenced_tags": { "type": "array", "items": { "type": "string" } },
+        "part_kinds": { "type": "object", "additionalProperties": { "type": "string" } },
+        "plan_spots": { "type": "array", "items": { "$ref": "#/$defs/PlanSpot" } },
+        "citations_valid": { "$ref": "#/$defs/CitationsValid" }
+      },
+      "additionalProperties": true
+    },
+    "SignalVia": {
+      "description": "Herkunft einer Verbindung (api.ts: SignalVia).",
+      "enum": ["klemmenplan", "awl", "symboltabelle", "stueckliste", "leitung", "lage", "modell"]
+    },
+    "SignalColumn": {
+      "description": "Feste Spalte der Hauptweg-Sicht (api.ts: SignalColumn).",
+      "enum": [
+        "feld",
+        "klemme_vor",
+        "sps_eingang",
+        "programm",
+        "sps_ausgang",
+        "klemme_nach",
+        "schaltgeraet",
+        "verbraucher"
+      ]
+    },
+    "SignalMainNode": {
+      "description": "Knoten der Hauptweg-Sicht (api.ts: SignalMainNode).",
+      "type": "object",
+      "required": ["id", "kind", "label", "ref", "detail", "main", "column", "order", "branches", "parent"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["device", "terminal", "address", "network", "variable"] },
+        "label": { "type": "string" },
+        "ref": { "type": "string" },
+        "detail": { "type": "string" },
+        "main": { "type": "boolean" },
+        "column": { "anyOf": [{ "$ref": "#/$defs/SignalColumn" }, { "type": "null" }] },
+        "order": { "type": ["integer", "null"] },
+        "branches": { "type": "integer" },
+        "parent": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "SignalMainEdge": {
+      "description": "Kante der Hauptweg-Sicht mit Herkunft und Anschlussnummern (api.ts: SignalMainEdge).",
+      "type": "object",
+      "required": ["source", "target", "via", "directed", "pins"],
+      "properties": {
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "via": { "type": "array", "items": { "$ref": "#/$defs/SignalVia" } },
+        "directed": { "type": "boolean" },
+        "pins": {
+          "type": "object",
+          "required": ["from", "to"],
+          "properties": {
+            "from": { "type": ["string", "null"] },
+            "to": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "SignalMainData": {
+      "description": "GET /api/signal-path?view=main (api.ts: SignalMainData).",
+      "type": "object",
+      "required": ["start", "view", "columns", "nodes", "edges", "schematic"],
+      "properties": {
+        "start": { "type": "string" },
+        "view": { "const": "main" },
+        "columns": { "type": "array", "items": { "$ref": "#/$defs/SignalColumn" } },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/SignalMainNode" } },
+        "edges": { "type": "array", "items": { "$ref": "#/$defs/SignalMainEdge" } },
+        "schematic": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": ["document_id", "filename"],
+              "properties": {
+                "document_id": { "type": "string" },
+                "filename": { "type": "string" }
+              },
+              "additionalProperties": true
+            },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "Conversation": {
+      "description": "Störfall = Chat einer Maschine, GET /api/conversations?machine_id= (api.ts: Conversation).",
+      "type": "object",
+      "required": ["id", "title", "source_ids", "updated_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "source_ids": { "type": "array", "items": { "type": "string" } },
+        "updated_at": { "type": "string" },
+        "outcome": { "enum": ["open", "resolved"] },
+        "finding": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

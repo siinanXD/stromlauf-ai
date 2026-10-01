@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "signalweg.schema.json",
+  "title": "Figma-Vorlage signalweg",
+  "description": "Hauptweg eines Kennzeichens in festen Spalten (Kette am Handy, Grafik am PC).",
+  "type": "object",
+  "required": ["vorlage", "version", "maschine", "signal"],
+  "properties": {
+    "vorlage": { "const": "signalweg" },
+    "version": { "const": 1 },
+    "maschine": { "type": "string", "description": "Name der Maschine" },
+    "signal": { "$ref": "defs.schema.json#/$defs/SignalMainData" }
+  },
+  "additionalProperties": false
+}
