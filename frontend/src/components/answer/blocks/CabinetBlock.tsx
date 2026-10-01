@@ -35,7 +35,7 @@ export function CabinetBlock({ evidence, onOpenDetail }: { evidence: CabinetEvid
                 <span className="flex items-center gap-2">
                   <Camera className="size-5 shrink-0 text-accent" aria-hidden />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-mono text-tag-sm font-medium">{item.tag}</span>
+                    <span className="block truncate font-mono text-tag-sm leading-5 font-medium">{item.tag}</span>
                     <span className="block truncate text-footnote text-muted-foreground">
                       {item.cabinet_title}
                       {!item.confirmed && " · unbestätigt"}

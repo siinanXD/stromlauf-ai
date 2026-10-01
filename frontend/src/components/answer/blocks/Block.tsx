@@ -56,8 +56,18 @@ export function BlockSkeleton({ rows = 2, tiles = 0, label = "Lädt …" }: { ro
       <span className="sr-only">{label}</span>
       {tiles > 0 ? (
         <div className="flex gap-3" aria-hidden>
+          {/* Gleiche Hoehe wie die fertige Karte (Bild 184 px, Abstand, zwei Zeilen Unterschrift): nichts springt */}
           {Array.from({ length: tiles }, (_, i) => (
-            <div key={i} className="h-[184px] w-[min(326px,80%)] shrink-0 animate-pulse rounded-md bg-bg-fill" />
+            <div key={i} className="w-[min(326px,85%)] shrink-0 space-y-2">
+              <div className="h-[184px] animate-pulse rounded-md bg-bg-fill" />
+              <div className="flex h-[38px] items-center gap-2">
+                <div className="size-5 animate-pulse rounded-xs bg-bg-fill" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 w-1/2 animate-pulse rounded-xs bg-bg-fill" />
+                  <div className="h-3 w-3/4 animate-pulse rounded-xs bg-bg-fill" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

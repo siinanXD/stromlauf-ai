@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 import { hasHits, peekFaultHits, prefetchFaultHits } from "../faultHitsStore";
 import { useInView } from "../useInView";
-import { Block, BlockSkeleton } from "./Block";
+import { Block } from "./Block";
 
 /** Fehler-Zeile (Figma): Code-Pille, Symptom, Ursache, Chevron; ganze Zeile tippbar. */
 const ROW =
@@ -63,7 +63,15 @@ export function FaultHitsBlock({
   if (hits === undefined) {
     return (
       <Block kind="faults" title="Fehlerliste" source="wird durchsucht" innerRef={ref} testId="block-faults">
-        <BlockSkeleton rows={1} label="Fehlerliste wird durchsucht" />
+        {/* In der Form einer Fehler-Zeile, damit beim Eintreffen der Treffer wenig springt */}
+        <div className="flex items-center gap-3 px-1 py-2" aria-busy="true">
+          <span className="sr-only">Fehlerliste wird durchsucht</span>
+          <span className="h-6 w-12 shrink-0 animate-pulse rounded-sm bg-bg-fill" aria-hidden />
+          <span className="flex-1 space-y-2" aria-hidden>
+            <span className="block h-4 w-2/3 animate-pulse rounded-xs bg-bg-fill" />
+            <span className="block h-3.5 w-1/2 animate-pulse rounded-xs bg-bg-fill" />
+          </span>
+        </div>
       </Block>
     );
   }
