@@ -12,40 +12,9 @@ import re
 from dataclasses import dataclass, field
 
 from app.ingestion.fact_card import LOCATION_CELL, _mentions, _rows, location_names, locations_in
+from app.ingestion.letter_codes import OFFEN, Edition, detect_edition, is_part, kind_of, verb_of
 from app.ingestion.page_titles import is_parts_list
 
-# Art aus dem Kennbuchstaben (DIN EN 81346-2), fuer Icon und Filter im Modell
-KIND_BY_LETTER = {
-    "A": "Baugruppe",
-    "B": "Sensor",
-    "E": "Heizung/Leuchte",
-    "F": "Schutz",
-    "G": "Versorgung",
-    "H": "Meldung",
-    "K": "Schuetz/Relais",
-    "M": "Motor",
-    "P": "Anzeige",
-    "Q": "Schalter",
-    "R": "Widerstand",
-    "S": "Taster",
-    "T": "Trafo",
-    "U": "Umrichter",
-    "W": "Leitung",
-    "X": "Klemme",
-    "Y": "Ventil",
-}
-# Zweibuchstabige Kennbuchstaben (franzoesisch/international: QF Leistungsschalter, KM Schuetz, EV Elektroventil)
-KIND_BY_PAIR = {
-    "QF": "Schutz",
-    "FU": "Schutz",
-    "KM": "Schuetz/Relais",
-    "KA": "Schuetz/Relais",
-    "KE": "Schuetz/Relais",
-    "EV": "Ventil",
-    "SB": "Taster",
-    "HL": "Meldung",
-}
-_TAG_LETTER = re.compile(r"^(?:=[\w.]+)?(?:\+[\w-]+)?-?\d{0,2}([A-Z]{1,3})")  # auch Blatt-Stil ohne Minus: 9K1
 _ORDER_NO = re.compile(r"^[\dA-Z][\w./-]{4,}$")
 
 
@@ -55,6 +24,7 @@ class Part:
     label: str = ""
     kind: str = ""
     source: str = "bom"  # bom | layout | index
+    verb: str = ""  # Beziehung im Bauteil-Sheet ("schaltet"), aus der Art (Issue #99)
 
 
 @dataclass
@@ -77,6 +47,7 @@ class Connector:
 class MachineMap:
     zones: list[Zone]
     connectors: list[Connector]
+    edition: Edition = field(default_factory=lambda: Edition(OFFEN, ""))
 
     def as_dict(self) -> dict:
         return {
@@ -85,15 +56,8 @@ class MachineMap:
             ],
             "connectors": [c.__dict__ for c in self.connectors],
             "part_count": sum(len(z.parts) for z in self.zones),
+            "letter_codes": {"edition": self.edition.name, "reason": self.edition.reason},
         }
-
-
-def kind_of(tag: str) -> str:
-    match = _TAG_LETTER.match(tag.upper())
-    if not match:
-        return ""
-    letters = match.group(1)
-    return KIND_BY_PAIR.get(letters[:2]) or KIND_BY_LETTER.get(letters[0], "")
 
 
 def _label(cells: list[str], tag: str) -> str:
@@ -139,10 +103,21 @@ def build_map(
     zuerst vorkommt (Issue #39); Teile ohne beides landen in "Ohne Einbauort". Die Blatt-Zone traegt die Nummer aus
     dem Schriftfeld; ohne gelesene Nummer heisst sie nach der Seite (Issue #67)."""
     names = location_names(legend)
+    # Lesart der Kennbuchstaben aus allen Kennzeichen der Quelle (Issue #99)
+    edition = detect_edition(
+        [tag for tag, _ in bom_rows]
+        + [tag for tag, _ in layout_tags or []]
+        + [hit[0] for hit in index_hits or []]
+        + sorted(known_tags or ())
+    )
     zones: dict[str, Zone] = {}
     placed: dict[str, str] = {}
     connectors: list[Connector] = []
     labels: dict[str, str] = {}  # Bezeichnung aus einer Stuecklistenzeile ohne Einbauort
+
+    def part(tag: str, label: str, source: str) -> Part:
+        kind = kind_of(tag, edition.name)
+        return Part(tag, label, kind, source, verb_of(kind))
 
     def zone(zone_id: str, code: str | None = None, name: str = "", page: int | None = None) -> Zone:
         if zone_id not in zones:
@@ -167,7 +142,7 @@ def build_map(
                 break
             if codes:
                 target = zone(codes[0])
-                target.parts.append(Part(tag, label, kind_of(tag), "bom"))
+                target.parts.append(part(tag, label, "bom"))
                 placed[tag] = target.id
             else:
                 labels.setdefault(tag, label)  # Zone kommt aus dem Plan, sonst "Ohne Einbauort"
@@ -175,14 +150,14 @@ def build_map(
 
     for tag, label in layout_tags or []:
         if tag and tag not in placed:
-            zone("anlage").parts.append(Part(tag, label, kind_of(tag), "layout"))
+            zone("anlage").parts.append(part(tag, label, "layout"))
             placed[tag] = "anlage"
 
     only_on_parts_list: list[str] = []
     cable_labels = {c.label for c in connectors}
     for tag, page, section, sheet in index_hits or []:
         # Leitungen, Klemmen und Namen ohne Kennbuchstabe (Potentiale wie 24V1) sind keine Teile des Modells
-        if not tag or tag in placed or tag in cable_labels or kind_of(tag) in {"", "Leitung", "Klemme"}:
+        if not tag or tag in placed or tag in cable_labels or not is_part(tag, edition.name):
             continue
         if page is None or is_parts_list(section):
             only_on_parts_list.append(tag)
@@ -192,17 +167,17 @@ def build_map(
         else:  # keine Blattnummer im Schriftfeld gelesen: nicht raten, die Seite nennen
             target = zone(f"seite-{page}", f"Seite {page}", section, page)
         label = labels.pop(tag, None)  # Bezeichnung aus der Stueckliste, wenn es eine Zeile ohne Ort gab
-        target.parts.append(Part(tag, label or "", kind_of(tag), "bom" if label is not None else "index"))
+        target.parts.append(part(tag, label or "", "bom" if label is not None else "index"))
         placed[tag] = target.id
 
     for tag, label in labels.items():
         if tag not in placed:
-            zone("?").parts.append(Part(tag, label, kind_of(tag), "bom"))
+            zone("?").parts.append(part(tag, label, "bom"))
             placed[tag] = "?"
 
     for tag in list(dict.fromkeys(only_on_parts_list)) + sorted(known_tags or ()):
-        if tag not in placed and kind_of(tag) not in {"", "Leitung", "Klemme"}:
-            zone("?").parts.append(Part(tag, "", kind_of(tag), "index"))
+        if tag not in placed and is_part(tag, edition.name):
+            zone("?").parts.append(part(tag, "", "index"))
             placed[tag] = "?"
 
     for zone_id, z in zones.items():
@@ -215,4 +190,4 @@ def build_map(
     rank = {"anlage": 2, "?": 3}
     ordered = sorted(zones.values(), key=lambda z: (rank.get(z.id, 1 if z.page else 0), z.page or 0, z.id))
     ordered = [z for z in ordered if z.parts or any(c.source == z.id or c.target == z.id for c in connectors)]
-    return MachineMap(ordered, connectors)
+    return MachineMap(ordered, connectors, edition)
