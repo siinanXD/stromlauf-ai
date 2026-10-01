@@ -34,8 +34,9 @@ export const Message = memo(function Message({
 }) {
   if (message.role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap bg-primary/10 px-4 py-2.5 text-[14px]">{message.content}</div>
+      // Frage-Blase (Figma): blau, rechtsbuendig, hoechstens 280 px breit; ab der zweiten Frage mit Abstand zur Antwort davor
+      <div className="flex justify-end [&:not(:first-child)]:pt-5">
+        <div className="max-w-[min(280px,85%)] rounded-xl bg-primary px-4 py-3 text-body break-words whitespace-pre-wrap text-primary-foreground">{message.content}</div>
       </div>
     );
   }

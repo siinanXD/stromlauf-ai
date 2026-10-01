@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Square } from "lucide-react";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 
@@ -253,7 +253,7 @@ export function ChatPanel({
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col">
-      {banner && <div className="border-b border-border bg-primary/10 px-4 py-2 text-sm">{banner}</div>}
+      {banner && <div className="border-b-[0.5px] border-border bg-primary-soft px-4 py-2 text-footnote">{banner}</div>}
       <div
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto"
@@ -261,14 +261,14 @@ export function ChatPanel({
           if (event.currentTarget.scrollTop < 120 && before !== null && older === "idle") void loadOlder();
         }}
       >
-        <div ref={contentRef} className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        <div ref={contentRef} className="mx-auto max-w-3xl space-y-3 px-4 pt-4 pb-6 lg:px-6">
           {before !== null && (
             <div className="flex justify-center">
               <button
                 type="button"
                 onClick={() => void loadOlder()}
                 disabled={older === "loading"}
-                className="min-h-11 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:border-primary hover:text-foreground disabled:opacity-60"
+                className="min-h-11 rounded-full bg-bg-fill px-4 text-footnote font-semibold text-primary hover:bg-muted disabled:opacity-60"
               >
                 {older === "loading" ? "Lade ältere Nachrichten …" : older === "error" ? "Ältere Nachrichten: erneut versuchen" : "Ältere Nachrichten laden"}
               </button>
@@ -294,7 +294,7 @@ export function ChatPanel({
           )}
           {canRetry && (
             <div className="flex justify-start">
-              <button type="button" onClick={retry} className="min-h-11 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:border-primary">
+              <button type="button" onClick={retry} className="min-h-11 rounded-md bg-bg-fill px-4 text-subhead font-semibold text-primary hover:bg-muted">
                 Erneut versuchen
               </button>
             </div>
@@ -305,7 +305,7 @@ export function ChatPanel({
         <button
           type="button"
           onClick={() => void scrollToBottom("smooth")}
-          className="absolute bottom-24 left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium shadow-md hover:border-primary"
+          className="absolute bottom-24 left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-full bg-popover px-4 text-footnote font-semibold text-primary shadow-floating"
         >
           <ArrowDown className="size-3.5" aria-hidden />
           Zum Ende
@@ -314,35 +314,52 @@ export function ChatPanel({
       <p className="sr-only-live" aria-live="polite" role="status">
         {announcement}
       </p>
+      {/* Eingabe (Figma "Eingabe"): Milchglas-Leiste, darin das gefuellte Feld wie die Meldung-Eingabe */}
       <form
-        className="border-t border-border bg-card px-4 py-3"
+        className="border-t-[0.5px] border-border bg-bg-bar px-4 pt-3 pb-4 backdrop-blur-bar lg:px-6"
         onSubmit={(event) => {
           event.preventDefault();
           void send(input);
         }}
       >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void send(input);
-              }
-            }}
-            rows={Math.min(6, input.split("\n").length)}
-            placeholder={placeholder}
-            aria-label={placeholder}
-            className="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary"
-          />
+          <label className="flex min-h-11 min-w-0 flex-1 cursor-text items-start gap-2 rounded-md bg-bg-fill px-3 focus-within:ring-3 focus-within:ring-ring/50">
+            <span className="mt-[11px] grid size-[22px] shrink-0 place-items-center rounded-full bg-accent text-white" aria-hidden>
+              <Plus className="size-3.5" strokeWidth={3} />
+            </span>
+            <textarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void send(input);
+                }
+              }}
+              rows={Math.min(6, input.split("\n").length)}
+              placeholder={placeholder}
+              aria-label={placeholder}
+              className="min-h-11 min-w-0 flex-1 resize-none bg-transparent py-[11px] text-body outline-none"
+            />
+          </label>
           {streaming ? (
-            <button type="button" onClick={() => abortRef.current?.abort()} className="min-h-11 rounded-xl border border-border px-4 py-2.5 font-medium hover:bg-secondary">
-              Stopp
+            <button
+              type="button"
+              onClick={() => abortRef.current?.abort()}
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-bg-fill text-foreground hover:bg-muted"
+              aria-label="Stopp"
+              title="Stopp"
+            >
+              <Square className="size-4 fill-current" aria-hidden />
             </button>
           ) : (
-            <button disabled={!input.trim()} className="min-h-11 rounded-xl bg-primary px-4 py-2.5 font-medium text-primary-foreground disabled:opacity-40">
-              Senden
+            <button
+              disabled={!input.trim()}
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:bg-bg-fill disabled:text-muted-foreground"
+              aria-label="Senden"
+              title="Senden (Enter)"
+            >
+              <ArrowUp className="size-5" strokeWidth={2.5} aria-hidden />
             </button>
           )}
         </div>
@@ -356,7 +373,7 @@ export function ExampleQuestions({ examples, onPick }: { examples: string[]; onP
   return (
     <div className="mt-6 grid gap-2 sm:grid-cols-2">
       {examples.map((example) => (
-        <button key={example} onClick={() => onPick(example)} className="min-h-11 rounded-xl border border-border bg-card p-3 text-left text-sm hover:border-primary">
+        <button key={example} onClick={() => onPick(example)} className="min-h-11 rounded-lg bg-card p-3 text-left text-subhead shadow-card hover:bg-bg-fill">
           {example}
         </button>
       ))}
