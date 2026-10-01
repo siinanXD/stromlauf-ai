@@ -20,6 +20,7 @@ VARIANTS = [
     "sheet_of.pdf",
     "getrennte_felder.pdf",
     "eplan_seitenname.pdf",
+    "elektroschema.pdf",
 ]
 LOCAL = ROOT / "testdata"
 QET = [

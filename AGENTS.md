@@ -47,7 +47,10 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `api/machine_map.py::pdf_sheets` aus dem Schriftfeld (Blatt-Map, Issue #67); ohne gelesene Nummer heisst die Zone
   `Seite 4`. Blatttitel liefert
   `ingestion/page_titles.py` (Inhaltsverzeichnis/Folio-Liste + Schriftfeld) und die Pipeline schreibt sie als
-  `section` an Chunks und Fundstellen; Seiten mit Titel „Stueckliste/Nomenclature/Parts list“ (Chunk-`kind` `bom`)
+  `section` an Chunks und Fundstellen. Ohne Inhaltsverzeichnis (Schweizer Elektroschema, Issue #93) nimmt sie bei
+  Stromlaufplaenen `pdf_layout.title_block_titles`: das einzige Feld ab `TITLE_BAND` ueber der Blattnummer, das nicht auf
+  mehr als der Haelfte der Blaetter gleich steht und kein Datum ist, sonst kein Titel. Seiten mit Titel
+  „Stueckliste/Nomenclature/Parts list“ (Chunk-`kind` `bom`)
   zaehlen als Stuecklistenzeilen (Bezeichnung, kein Blatt). Kennzeichen ohne Minus im Blatt-Stil (`4Q1`, `9K1`,
   QElectroTech) erkennt `tags.detect_folio_style` je Dokument, damit Bestellnummern (`6ES7`) in deutschen Plaenen
   keine Treffer werden. Testdaten dafuer: `testdata/qelectrotech/` (lokal, `python scripts/fetch_testdata.py`).
@@ -57,6 +60,7 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
   Dokumenttyp bei Upload „auto“: `ingestion/doctype.py` aus Textprobe (Endung > Inhalt > Dateiname), Vorschau
   `POST /api/documents/detect`, Bestaetigung je Datei im Quellen-Panel; Tests gegen alle Beispieldateien.
+  „Elektroschema“ (Schweiz) und ein Spaltenkopf ab 0 zaehlen als Stromlaufplan.
   Tabellen entstehen per `create_all`; neue Spalten auf bestehenden Tabellen gehoeren in
   `backend/app/migrations.py` (`ADD COLUMN IF NOT EXISTS`, laeuft beim Start). Bilder liegen unter
   `backend/data/images/`. Ingestion laeuft im Prozess; nach Neustart reiht `ingestion/resume.py`

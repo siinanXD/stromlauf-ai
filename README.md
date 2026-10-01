@@ -264,7 +264,8 @@ erste Zeilen einer Tabelle oder Textdatei) und schlägt den Typ mit Begründung 
 „Kopfzeile Klemmleiste;Klemme;Ziel“ oder „Schriftfeld Blatt n / m; Spaltenkopf 1 … 8“. Der Dialog
 zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochgeladen. Reihenfolge:
 Endung (.awl, .scl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
-`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt.
+`POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt. Ein Schweizer
+„Elektroschema“ mit Spaltenkopf 0 … 9 gilt als Stromlaufplan.
 
 ## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
 
@@ -450,8 +451,10 @@ Kommt die Dokumentation als **eine PDF** (EPLAN-, QElectroTech-Export mit Deckbl
 Klemmenplan und Stückliste), gibt es keine Stücklisten-Datei. Dann entsteht das Modell aus dem Kennzeichen-Index:
 Teile sind die Betriebsmittel der Planseiten, Zonen die Blätter, auf denen sie zuerst vorkommen („Blatt 4 · Mains
 Power Supply“). Die Blattnummer kommt aus dem Schriftfeld, auch hinter einem Deckblatt; ohne lesbare Nummer heißt die
-Zone nach der Seite („Seite 4“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld; Seiten mit Titel
-„Stückliste“, „Nomenclature“ oder „Parts list“ liefern die Bezeichnungen. Kennzeichen ohne Minus im Blatt-Stil
+Zone nach der Seite („Seite 4“). Die Blatttitel liest die Ingestion aus Inhaltsverzeichnis und Schriftfeld. Fehlt das
+Inhaltsverzeichnis, wie im Schweizer Elektroschema, gilt das Feld im Schriftfeld als Titel, das sich von Blatt zu Blatt
+ändert; Dokumentart, Anlage und Zeichner stehen überall gleich, das Datum zählt nicht. Bleiben zwei Felder übrig, bekommt
+das Blatt keinen Titel. Seiten mit Titel „Stückliste“, „Nomenclature“ oder „Parts list“ liefern die Bezeichnungen. Kennzeichen ohne Minus im Blatt-Stil
 (`4Q1`, `9K1`) werden erkannt, wenn ein Dokument diesen Stil durchgängig nutzt, ebenso Klemmen wie im Schweizer
 Elektroschema (`X420 3` wird zu `-X420:3`, auch in der Suche) und Adressbereiche einer SPS-Karte wie `E8.0..E9.7`
 mit beiden Enden. Bestehende Quellen brauchen dafür „Neu verarbeiten“.

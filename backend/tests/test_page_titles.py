@@ -103,6 +103,126 @@ def test_schriftfeld_fixtures_bekommen_die_titel_ihrer_blaetter(name):
     assert parts == set()
 
 
+def test_titel_aus_dem_schweizer_schriftfeld():
+    """Issue #93: Der Blatttitel ist das Feld des Schriftfelds, das sich von Blatt zu Blatt aendert. Dokumentart,
+    Anlage und Zeichner stehen auf jedem Blatt, das Datum ist ein Datum; Deckblatt und Inhaltsverzeichnis ohne
+    Blattnummer bekommen keinen Titel."""
+    from app.ingestion.pdf_layout import title_block_titles
+
+    expected = dict(enumerate(SHEET_TITLES, start=3))
+    assert title_block_titles(SCHRIFTFELD / "elektroschema.pdf") == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "blatt_schraegstrich.pdf",
+        "blatt_von.pdf",
+        "bl_punkt.pdf",
+        "sheet_of.pdf",
+        "getrennte_felder.pdf",
+        "eplan_seitenname.pdf",
+    ],
+)
+def test_titel_aus_dem_schriftfeld_stimmen_mit_dem_inhaltsverzeichnis_ueberein(name):
+    from app.ingestion.pdf_layout import title_block_titles
+
+    assert title_block_titles(SCHRIFTFELD / name) == dict(enumerate(SHEET_TITLES, start=3))
+
+
+_Line = tuple[str, float, float, float, float]
+
+
+def _ocr_pdf(tmp_path: Path, pages: list[list[_Line]]) -> Path:
+    """Leere Seiten mit unsichtbaren Zeilen (Text, links, rechts, oben, Hoehe; relativ, Ursprung oben links)."""
+    import pypdfium2 as pdfium
+
+    from app.ingestion.ocr import OcrLine, write_text_layer
+
+    def ocr_line(text: str, x0: float, x1: float, top: float, height: float) -> OcrLine:
+        return OcrLine(text, ((x0, top), (x1, top), (x1, top + height), (x0, top + height)), 0.99)
+
+    src, out = tmp_path / "leer.pdf", tmp_path / "plan.pdf"
+    pdf = pdfium.PdfDocument.new()
+    for _ in pages:
+        pdf.new_page(842, 595)
+    pdf.save(src)
+    pdf.close()
+    lines = {no: [ocr_line(*line) for line in page] for no, page in enumerate(pages, start=1)}
+    write_text_layer(src, out, lines)
+    return out
+
+
+def _fit(text: str, x0: float, top: float, height: float = 0.016) -> _Line:
+    """Zeile so breit wie ihr Text, wie eine OCR-Box. In einer gedehnten Box ruecken Woerter bis an WORD_GAP
+    auseinander, und je nach Schrift der Plattform wird ein Wort zum eigenen Feld (so geschehen unter Linux)."""
+    return (text, x0, x0 + 0.4 * height * len(text), top, height)
+
+
+def test_zeile_an_der_grenze_des_schriftfelds_zaehlt_ganz_oder_gar_nicht(tmp_path):
+    """Schneidet die Obergrenze des Schriftfelds eine Zeile, ragen Grossbuchstaben und Oberlaengen darueber, die
+    Kleinbuchstaben nicht. Wortreste wie "rennen" duerfen kein zweites Feld werden, sonst fehlt der Titel."""
+    from app.ingestion.pdf_layout import title_block_titles
+
+    sheets = [("Trennen", "Netzteil 24 V"), ("Verteilen", "Motor Band"), ("Pruefen", "Not-Halt")]
+    pages = [
+        [
+            (f"Station {station}", 0.05, 0.30, 0.895, 0.05),
+            _fit(title, 0.40, 0.93),
+            ("Blatt", 0.80, 0.86, 0.93, 0.016),
+            (str(sheet), 0.88, 0.90, 0.93, 0.016),
+        ]
+        for sheet, (station, title) in enumerate(sheets, start=1)
+    ]
+    expected = {1: "Netzteil 24 V", 2: "Motor Band", 3: "Not-Halt"}
+    assert title_block_titles(_ocr_pdf(tmp_path, pages)) == expected
+
+
+def test_inhaltsverzeichnis_und_stuecklistenzeile_gehen_dem_schriftfeld_vor():
+    pages = [
+        _page(1, "Inhaltsverzeichnis", "Blatt 3", "Einspeisung 400 V"),
+        _page(3, "Einspeisung 400 V"),
+        _page(4, "irgendwas"),
+        _page(5, "Stueckliste", "-K1 Schuetz"),
+    ]
+    block = {3: "Einspeisung", 4: "Steuerung 24 V", 5: "Bauteile"}
+    titles, parts = page_titles(pages, block_titles=block)
+    assert titles == {3: "Einspeisung 400 V", 4: "Steuerung 24 V", 5: "Stueckliste"}
+    assert parts == {5}
+
+
+def test_pipeline_titel_aus_dem_schriftfeld_ohne_inhaltsverzeichnis(tmp_path, monkeypatch):
+    """Drei Blaetter ohne Inhaltsverzeichnis, Schriftfeld als Kastenreihe wie im Schweizer Elektroschema."""
+    from app.ingestion import pipeline
+    from app.ingestion.docling_parser import pdf_raw_text
+
+    titles = ["Uebersicht SPS", "Netzteil 24 V", "Eingaenge Band 2"]
+    dates = ["4. März 2019", "12. Oktober 2018", "07. Mai 2020"]
+    pages = [
+        [
+            ("-K1", 0.40, 0.44, 0.40, 0.016),
+            ("Elektroschema", 0.03, 0.15, 0.93, 0.016),
+            _fit("Verteilung Muster", 0.18, 0.93),
+            _fit(title, 0.40, 0.93),
+            _fit(date, 0.65, 0.915, 0.012),
+            _fit("M. Muster", 0.65, 0.945, 0.012),
+            ("Blatt", 0.80, 0.86, 0.93, 0.016),
+            (str(sheet), 0.88, 0.91, 0.93, 0.016),
+        ]
+        for sheet, title, date in zip((40, 41, 42), titles, dates, strict=True)
+    ]
+    path = _ocr_pdf(tmp_path, pages)
+
+    def docling_ohne_ocr(target: Path) -> list[ParsedPage]:
+        raw = pdf_raw_text(target)
+        return [ParsedPage(page=no, markdown="", raw_text=text) for no, text in raw.items()]
+
+    monkeypatch.setattr(pipeline, "parse_document", docling_ohne_ocr)
+    read = pipeline.document_pieces(path, "schematic")
+    assert read.titles == dict(enumerate(titles, start=1))
+    assert [piece.section for piece in read.pieces] == titles
+
+
 @pytest.mark.skipif(not QET.exists(), reason="QElectroTech-Testdaten liegen nur lokal (testdata/qelectrotech)")
 def test_echte_qet_pdf_bekommt_folio_titel_und_stuecklistenseiten():
     from app.ingestion.docling_parser import pdf_raw_text

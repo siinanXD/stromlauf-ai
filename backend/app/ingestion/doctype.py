@@ -21,7 +21,7 @@ _FILENAME_HINTS: list[tuple[str, DocType]] = [
     (r"klemm", DocType.TERMINAL_PLAN),
     (r"symbol", DocType.PLC_SYMBOLS),
     (r"\bawl\b|\bscl\b|sps|plc", DocType.PLC_PROGRAM),
-    (r"stromlauf|schaltplan|eplan|schematic|elektroplan", DocType.SCHEMATIC),
+    (r"stromlauf|schaltplan|eplan|schematic|elektroplan|elektroschema", DocType.SCHEMATIC),
     (r"handbuch|manual|anleitung|betriebsanl|datasheet|datenblatt", DocType.MANUAL),
 ]
 
@@ -48,11 +48,13 @@ _SHEET_FRAME = re.compile(r"\bblatt\s*\d+\s*/\s*\d+|\bsheet\s*\d+\s*(?:/|of)\s*\
 _FOLIO_FRAME = re.compile(r"\bfolio\s*:\s*\d+", re.I)  # QElectroTech-Schriftfeld
 _SHEET_LIST = re.compile(r"\b(folio list|sheet list|inhaltsverzeichnis|table of contents)\b", re.I)
 _COLUMN_HEADER = re.compile(
-    r"^\s*1\s+2\s+3\s+4\s+5\s+6\s+7\s+8(?:\s+\d{1,2})*\s*$", re.M
-)  # Raster 1..8 oder 1..18
+    r"^\s*(?:0\s+)?1\s+2\s+3\s+4\s+5\s+6\s+7\s+8(?:\s+\d{1,2})*\s*$", re.M
+)  # Raster 1..8 oder 1..18, im Schweizer Elektroschema 0..9
 _RAILS = re.compile(r"^L1\s*$\s*^L2\s*$\s*^L3\s*$", re.M)
+# "Elektroschema" ist das Schweizer Wort fuer Stromlaufplan (Issue #93)
 _SCHEMATIC_TITLE = re.compile(
-    r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan|electrical cabinet", re.I
+    r"stromlaufplan|schaltplan|circuit diagram|wiring diagram|elektroplan|elektroschema|electrical cabinet",
+    re.I,
 )
 _CROSS_REF = re.compile(r"(?<![\w/.])/\d{1,4}\.\d{1,2}(?![\w.])")
 _MANUAL_TITLE = re.compile(
@@ -165,12 +167,13 @@ def _score(text: str) -> dict[DocType, tuple[int, list[str]]]:
         add(DocType.SCHEMATIC, 4, "Schriftfeld „Folio : n“")
     if _SHEET_LIST.search(text):
         add(DocType.SCHEMATIC, 2, "Blattliste/Inhaltsverzeichnis")
-    if _COLUMN_HEADER.search(text):
-        add(DocType.SCHEMATIC, 4, "Spaltenkopf 1 … 8")
+    if grid := _COLUMN_HEADER.search(text):
+        numbers = grid.group(0).split()
+        add(DocType.SCHEMATIC, 4, f"Spaltenkopf {numbers[0]} … {numbers[-1]}")
     if _RAILS.search(text):
         add(DocType.SCHEMATIC, 2, "Netzschienen L1 L2 L3")
-    if _SCHEMATIC_TITLE.search(head):
-        add(DocType.SCHEMATIC, 5, "Titel „Stromlaufplan“")
+    if title := _SCHEMATIC_TITLE.search(head):
+        add(DocType.SCHEMATIC, 5, f"Titel „{title.group(0)}“")
     refs = len(_CROSS_REF.findall(text))
     if refs >= 3 and DocType.TERMINAL_PLAN not in scores and DocType.BOM not in scores:
         add(DocType.SCHEMATIC, 3, f"{refs} Blattverweise /n.m")

@@ -11,6 +11,7 @@ Schriftfeld Seite = Blatt, sonst aus der Seitenfolge) und markiert das, statt st
 
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -47,6 +48,12 @@ _LABEL_ALONE = re.compile(rf"^({_LABEL})\s*:?$", re.I)
 _VALUE = re.compile(r"^(\d{1,4})(?:\s*(?:/|von|of)\s*(\d{1,4}))?(?![\w.])", re.I)
 # EPLAN-Seitenname "=ANL+ORT/3"; Querverweise "=ANL+ORT/3.8" haben eine Spalte und zaehlen nicht
 _PAGE_NAME = re.compile(r"(?<!\S)[^\s/]*[=+][^\s/]*/(\d{1,4})(?![\w./])")
+# Felder des Schriftfelds, die kein Blatttitel sind (Issue #93): Nummer allein ("3", "3 von 7") und Datum
+# ("4. März 2019", "12.10.2018", "2026-09", "01/09/2018")
+_NUMBER_FIELD = re.compile(r"\d{1,4}(?:\s*(?:/|von|of)\s*\d{1,4})?", re.I)
+_DATE = re.compile(
+    r"\d{1,2}\.\s?(?:\d{1,2}\.\s?|[A-Za-zÄÖÜäöü]+\s)\d{2,4}|\d{4}-\d{2}(?:-\d{2})?|\d{1,2}/\d{1,2}/\d{2,4}"
+)
 
 
 @dataclass(frozen=True)
@@ -359,6 +366,68 @@ def known_sheets(path: Path) -> set[int]:
 def sheet_page(path: Path, sheet: int) -> SheetPage:
     """PDF-Seite (1-basiert) eines Blatts und ob sie nur angenommen ist."""
     return sheet_map(path).page_of(sheet)
+
+
+def _no_title(text: str) -> bool:
+    """Blattnummer samt Feldname ("Blatt 3 / 7", "Blatt", "3", "=ANL+ORT/3") oder Datum."""
+    return bool(
+        _LABELED.search(text)
+        or _LABEL_ALONE.match(text)
+        or _PAGE_NAME.search(text)
+        or _NUMBER_FIELD.fullmatch(text)
+        or _DATE.fullmatch(text)
+    )
+
+
+def _stacks(segments: list[list[_Token]]) -> list[list[list[_Token]]]:
+    """Felder, die sich waagerecht ueberlappen, stehen untereinander im selben Kasten, etwa ein zweizeiliger Titel."""
+    stacks: list[list[list[_Token]]] = []
+    for segment in sorted(segments, key=lambda s: s[0].left):
+        if stacks and segment[0].left < max(s[-1].right for s in stacks[-1]):
+            stacks[-1].append(segment)
+        else:
+            stacks.append([segment])
+    return stacks
+
+
+def title_block_titles(path: Path) -> dict[int, str]:
+    """Blatttitel je Seite aus dem Schriftfeld, fuer Plaene ohne Inhaltsverzeichnis (Issue #93).
+
+    Der Titel ist das Feld, das sich von Blatt zu Blatt aendert: Dokumentart, Anlage und Zeichner stehen auf mehr als
+    der Haelfte der Blaetter gleich, Blattnummer und Datum erkennt ihre Form. Bleibt mehr als ein Feld oder Stapel
+    untereinander uebrig, fehlt der Titel, statt geraten zu werden. Das Schriftfeld beginnt TITLE_BAND ueber der
+    Blattnummer; Seiten ohne gelesene Blattnummer bekommen keinen Titel.
+    """
+    with pdfium_lock:
+        pdf = pdfium.PdfDocument(str(path))
+        try:
+            labels: dict[int, int] = {}
+            fields: dict[int, list[list[_Token]]] = {}
+            for index in range(len(pdf)):
+                page = pdf[index]
+                angle = _text_angle(page.get_textpage())
+                label = _page_sheet(_candidates(_tokens(page, angle, TITLE_BLOCK_START)))
+                if label is None:
+                    continue
+                labels[index + 1] = label.sheet
+                # Eine Zeile an der Obergrenze zaehlt ganz oder gar nicht: Grossbuchstaben ragen darueber, die
+                # Kleinbuchstaben nicht, und Wortreste wie "rennen" wuerden ein eigenes Feld
+                top = label.top - TITLE_BAND
+                block = _segments(_tokens(page, angle, top - TITLE_BAND), WORD_GAP)
+                fields[index + 1] = [
+                    s for s in block if min(t.top for t in s) >= top and not _no_title(_text(s))
+                ]
+        finally:
+            pdf.close()
+    pages = _without_strays(labels)
+    seen = Counter(text for page in pages for text in {_text(s) for s in fields[page]})
+    constant = {text for text, count in seen.items() if count > len(pages) / 2}
+    titles: dict[int, str] = {}
+    for page in pages:
+        stacks = _stacks([s for s in fields[page] if _text(s) not in constant])
+        if len(stacks) == 1:
+            titles[page] = " ".join(_reading_order(stacks[0]))
+    return titles
 
 
 def _column_grid(tokens: list[_Token]) -> tuple[list[Column], list[_Token]]:
