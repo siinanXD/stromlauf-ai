@@ -275,6 +275,7 @@ export function IncidentWorkspace({
             conversationId={isTempId(incident.id) ? null : incident.id}
             autoSend={sends[chatKey]?.active ? { key: `${chatKey}#${sends[chatKey].attempt}`, text: sends[chatKey].text } : undefined}
             activeReference={activeReference}
+            activePart={view.detail?.kind === "part" ? view.detail.tag : null}
             onConversationId={(id, title) => confirmed(chatKey, id, title)}
             onSendStart={() => started(chatKey)}
             onSendSettled={(result) => settled(chatKey, result)}

@@ -9,8 +9,9 @@ import { useInView } from "../useInView";
 export type BlockKind = "faults" | "text" | "parts" | "signal" | "plan" | "cabinet" | "citations";
 
 /**
- * Rahmen eines Antwortblocks: Titel und Quelle stehen immer da, damit jeder Block sagt, woher er kommt
- * ("Fehlerliste", "Blatt 3"). Grau ist der Normalzustand; Farbe nur an Bedienelementen.
+ * Rahmen eines Antwortblocks (Figma "Block-Karte"): weisse Karte, 16 px Radius, Kartenschatten; im Kopf Titel in
+ * Grossbuchstaben und rechts die Quelle, damit jeder Block sagt, woher er kommt ("Fehlerliste", "Blatt 3").
+ * Grau ist der Normalzustand; Farbe nur an Bedienelementen.
  */
 export function Block({
   kind,
@@ -32,13 +33,18 @@ export function Block({
   innerRef?: (node: HTMLElement | null) => void;
 }) {
   return (
-    <section ref={innerRef} data-block={kind} data-testid={testId} aria-label={title} className={cn("rounded-lg border border-border bg-card", className)}>
-      <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3 pt-2.5">
-        <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</h3>
-        {source && <span className="min-w-0 truncate text-[11px] text-muted-foreground">· {source}</span>}
-        {action && <span className="ml-auto">{action}</span>}
+    <section ref={innerRef} data-block={kind} data-testid={testId} aria-label={title} className={cn("rounded-lg bg-card px-4 py-3 shadow-card", className)}>
+      <header className="flex min-h-[18px] items-center gap-2 text-footnote">
+        <h3 className="shrink-0 font-semibold text-muted-foreground uppercase">{title}</h3>
+        {source && (
+          <span className="min-w-0 flex-1 truncate text-right text-muted-foreground">
+            <span className="sr-only">Quelle: </span>
+            {source}
+          </span>
+        )}
+        {action && <span className={cn("-my-3 shrink-0", !source && "ml-auto")}>{action}</span>}
       </header>
-      <div className="px-3 pb-3 pt-2">{children}</div>
+      <div className="pt-2">{children}</div>
     </section>
   );
 }
@@ -51,11 +57,11 @@ export function BlockSkeleton({ rows = 2, tiles = 0, label = "Lädt …" }: { ro
       {tiles > 0 ? (
         <div className="flex gap-3" aria-hidden>
           {Array.from({ length: tiles }, (_, i) => (
-            <div key={i} className="aspect-[4/3] w-40 shrink-0 animate-pulse rounded-lg bg-secondary" />
+            <div key={i} className="h-[184px] w-[min(326px,80%)] shrink-0 animate-pulse rounded-md bg-bg-fill" />
           ))}
         </div>
       ) : (
-        Array.from({ length: rows }, (_, i) => <div key={i} aria-hidden className={cn("h-4 animate-pulse rounded bg-secondary", i % 2 ? "w-2/3" : "w-full")} />)
+        Array.from({ length: rows }, (_, i) => <div key={i} aria-hidden className={cn("h-4 animate-pulse rounded-xs bg-bg-fill", i % 2 ? "w-2/3" : "w-full")} />)
       )}
     </div>
   );
