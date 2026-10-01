@@ -20,6 +20,9 @@ Ablauf je Seite, deterministisch und ohne Modell:
      Anschlussnummern (Spule A1/A2). Ein Anschluss schlaegt dabei sein Geraet ("-K1:A1" und "-K1" in einem Netz).
    - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite. Eine
      Beschriftung benennt nur Enden an der Klemme, der sie am naechsten steht.
+   - Eine Zeile nur aus Klemmen einer Leiste ("-X4:U -X4:V -X4:W") benennt die Klemmen in ihrer Naehe (PIN_REACH)
+     von links nach rechts, wenn es genau so viele in einer Reihe sind; Klemmen mit eigener Beschriftung zaehlen
+     nicht mit. Eine Zeile mit mehreren Klemmen benennt nie ein Leitungsende nach Naehe.
    - Laeuft eine Leitung durch Klemme und Eingang hindurch (Kanaele in Spalten), gehoeren Klemmen und Adressen bis
      BESIDE neben ihr zu ihrem Netz.
    Ein Netz verbindet seine benannten Enden. Netze mit einer Leitung ueber mehr als RAIL_SHARE der Blattbreite oder
@@ -650,8 +653,74 @@ def _next_word(spot: _Spot, spots: list[_Spot]) -> _Spot | None:
     return min(after, key=lambda s: s.left) if after else None
 
 
+def _terminal(text: str, spaced: bool) -> str | None:
+    node = _anchor_node(text, spaced)
+    return node if node and not _BIT.fullmatch(node) else None
+
+
+TerminalRun = list[tuple[str, _Spot]]
+
+
+def _terminal_runs(spots: list[_Spot], spaced: bool) -> list[tuple[TerminalRun, bool]]:
+    """Mindestens zwei Klemmen derselben Leiste direkt hintereinander am Anfang einer Zeile ("-X4:U -X4:V -X4:W"),
+    dazu, ob die Zeile damit endet (Sammelbeschriftung) oder weitergeht ("-X4:U -X4:V (Leitung -W4)": ein Hinweis)."""
+    runs = []
+    for spot in spots:
+        node = _terminal(spot.text, spaced)
+        if not node or not _leading(spot, spots):
+            continue
+        strip = node.split(":", 1)[0]
+        run = [(node, spot)]
+        alone = True
+        while (following := _next_word(run[-1][1], spots)) is not None:
+            found = _terminal(following.text, spaced)
+            if not found or found.split(":", 1)[0] != strip:
+                alone = False
+                break
+            run.append((found, following))
+        if len(run) >= 2 and len({name for name, _spot in run}) == len(run):
+            runs.append((run, alone))
+    return runs
+
+
 def _center(box: _Box) -> tuple[float, float]:
     return (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2
+
+
+def _listed_terminals(
+    lists: list[TerminalRun], boxes: tuple[_Box, ...], anchors: list[_Anchor]
+) -> dict[_Box, str]:
+    """Namen der Klemmensymbole einer Sammelbeschriftung, von links nach rechts. Gezaehlt werden die Klemmen bis
+    PIN_REACH um die Beschriftung, ohne die mit eigener Beschriftung (deren naechste Klemme, PIN_CLEAR-mal naeher als
+    jede andere). Es muessen genau so viele sein, wie die Zeile nennt, und sie stehen in einer Reihe (+-ROW)."""
+    small = list(dict.fromkeys(box for box in boxes if _small(box)))
+    if not lists or not small:
+        return {}
+    listed = {id(spot) for run in lists for _node, spot in run}
+    claimed = set()
+    for anchor in anchors:
+        if id(anchor.spot) in listed or pin_kind(anchor.node) or _BIT.fullmatch(anchor.node):
+            continue
+        point = (anchor.spot.x, anchor.spot.y)
+        ranked = sorted((math.dist(_center(box), point), i) for i, box in enumerate(small))
+        if ranked[0][0] <= PIN_REACH and (
+            len(ranked) == 1 or ranked[1][0] >= PIN_CLEAR * ranked[0][0]
+        ):
+            claimed.add(small[ranked[0][1]])
+    names: dict[_Box, str] = {}
+    for run in lists:
+        words = [spot for _node, spot in run]
+        y = sum(spot.y for spot in words) / len(words)
+        area = _Box(min(s.left for s in words), y - LINE, max(_right(s) for s in words), y + LINE)
+        row = [
+            box for box in small if box not in claimed and _to_box(*_center(box), area) <= PIN_REACH
+        ]
+        heights = [_center(box)[1] for box in row]
+        if len(row) != len(run) or max(heights) - min(heights) > ROW or set(row) & set(names):
+            continue
+        for box, (node, _spot) in zip(sorted(row, key=lambda b: b.x0), run, strict=True):
+            names[box] = node
+    return names
 
 
 def _terminal_of(
@@ -670,12 +739,15 @@ def _end_names(
     boxes: _Boxes,
     anchors: list[_Anchor],
     labels: dict[_Box, str] | None = None,
+    terminals: dict[_Box, str] | None = None,
 ) -> list[list[str | None]]:
     """Name je freiem Ende. Am Rand eines grossen Symbols (Karte, Geraet, Leuchte) zaehlt nur die Beschriftung im
     Symbol: daneben stehen Texte anderer Zeilen. Steht im Symbol kein Anschluss, gilt sein Kennzeichen daneben
     (`_box_labels`). Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, denn die Beschriftung steht nur an
-    einer Seite der Klemme; eine Beschriftung benennt nur Enden an ihrer naechsten Klemme (`_terminal_of`)."""
+    einer Seite der Klemme; eine Beschriftung benennt nur Enden an ihrer naechsten Klemme (`_terminal_of`), eine Klemme
+    aus einer Sammelbeschriftung (`_listed_terminals`) traegt deren Namen."""
     labels = labels or {}
+    terminals = terminals or {}
     small = [box for box in boxes.boxes if _small(box)]
     names: list[list[str | None]] = []
     at_terminal: dict[_Box, list[tuple[int, int]]] = defaultdict(list)
@@ -698,9 +770,9 @@ def _end_names(
             else:
                 row.append(labels.get(box))
         names.append(row)
-    for members in at_terminal.values():
+    for box, members in at_terminal.items():
         found = {names[n][e] for n, e in members} - {None}
-        shared = found.pop() if len(found) == 1 else None
+        shared = terminals.get(box) or (found.pop() if len(found) == 1 else None)
         for n, e in members:
             names[n][e] = shared
     return names
@@ -772,10 +844,15 @@ def _wire_edges(
     labels = _box_labels(geometry.boxes, spots)
     if not anchors and not labels:
         return []
+    runs = _terminal_runs(spots, spaced)
+    terminals = _listed_terminals([run for run, alone in runs if alone], geometry.boxes, anchors)
+    # Eine Zeile mit mehreren Klemmen steht nicht am Ende einer bestimmten Leitung: Sie benennt hoechstens Klemmen
+    listed = {id(spot) for run, _alone in runs for _node, spot in run}
+    anchors = [anchor for anchor in anchors if id(anchor.spot) not in listed]
     nets = page_nets(segments, geometry.dots)
     beside = _beside(nets, anchors)
     edges: list[PlanEdge] = []
-    ends_named = _end_names(nets, _Boxes(geometry.boxes), anchors, labels)
+    ends_named = _end_names(nets, _Boxes(geometry.boxes), anchors, labels, terminals)
     for n, (net, ends) in enumerate(zip(nets, ends_named, strict=True)):
         names = _without_own_device(
             list(dict.fromkeys([name for name in ends if name] + beside.get(n, [])))

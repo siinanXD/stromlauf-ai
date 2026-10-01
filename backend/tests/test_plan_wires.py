@@ -290,6 +290,41 @@ def test_anschluss_schlaegt_sein_geraet(tmp_path):
     assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-K2", "-X1:1"))}
 
 
+def _terminal_row(c, list_text: str) -> None:
+    """Umrichter -U1, drei Klemmen U/V/W mit Sammelbeschriftung darunter, dazu eine PE-Klemme mit eigener
+    Beschriftung, darunter der Motor -M1. Die PE-Beschriftung steht naeher an der Klemme W als die Sammelbeschriftung."""
+    c.rect(277, 340, 46, 50)
+    c.drawRightString(274, 362, "-U1")
+    for x in (292, 300, 308):
+        c.line(x, 340, x, 304)
+        c.circle(x, 300, 3.2)
+        c.line(x, 296, x, 252)
+    c.circle(322, 300, 3.2)
+    c.setFont("Helvetica", 6)
+    c.drawString(314, 308, "-X4:PE")
+    c.setFont("Helvetica", 7)
+    c.drawString(270, 286, list_text)
+    c.circle(300, 230, 22)
+    c.drawString(328, 234, "-M1  Motor")
+
+
+def test_sammelbeschriftung_benennt_klemmen_von_links_nach_rechts(tmp_path):
+    """Sammelbeschriftung "-X4:U -X4:V -X4:W" unter drei Klemmen: U, V, W in dieser Reihenfolge. Die PE-Klemme hat
+    ihre eigene Beschriftung und zaehlt nicht mit; an keine Leitung kommt -X4:PE."""
+    path = _plan(tmp_path, lambda c: _terminal_row(c, "-X4:U -X4:V -X4:W"))
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {
+        frozenset((device, f"-X4:{phase}")) for device in ("-U1", "-M1") for phase in "UVW"
+    }
+
+
+def test_klemmen_in_einem_hinweis_benennen_keine_leitung(tmp_path):
+    """Geht die Zeile weiter ("(Leitung -W4)"), ist sie ein Hinweis und keine Sammelbeschriftung. Die Klemme W bekommt
+    auch nicht die PE-Beschriftung daneben: Die gehoert zur PE-Klemme, die ihr naeher ist."""
+    path = _plan(tmp_path, lambda c: _terminal_row(c, "-X4:U -X4:V -X4:W (Leitung -W4)"))
+    edges = plan_wires.page_wire_edges(path, 1)
+    assert not [e for e in edges if {e.source, e.target} & {"-X4:U", "-X4:V", "-X4:W", "-X4:PE"}]
+
+
 @pytest.fixture
 def cache(tmp_path, monkeypatch) -> Path:
     directory = tmp_path / "plan_cache"
