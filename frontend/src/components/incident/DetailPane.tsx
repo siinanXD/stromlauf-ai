@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Pencil, X } from "lucide-react";
+import { ChevronLeft, Pencil } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState, type ReactNode } from "react";
 
@@ -39,10 +39,10 @@ const TITLES: Record<Exclude<DetailRef["kind"], "plan">, string> = {
 
 function Empty({ children, action }: { children: ReactNode; action?: { label: string; onClick: () => void } }) {
   return (
-    <div className="space-y-3 p-4 text-sm" data-testid="detail-empty">
+    <div className="space-y-3 p-4 text-subhead" data-testid="detail-empty">
       <p className="text-muted-foreground">{children}</p>
       {action && (
-        <button type="button" onClick={action.onClick} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
+        <button type="button" onClick={action.onClick} className="min-h-11 rounded-md bg-bg-fill px-4 font-semibold text-primary hover:bg-muted">
           {action.label}
         </button>
       )}
@@ -82,11 +82,15 @@ export function DetailPane({
   let body: ReactNode;
   if (detail.kind === "signal") {
     title = `Signalweg ${detail.tag}`;
-    body = machine.source_id ? (
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <SignalView sourceId={machine.source_id} tag={detail.tag} variant="auto" onOpenDetail={onOpenDetail} />
-      </div>
-    ) : (
+    // Signalweg im Vollbild (Figma): die Ansicht bringt ihren Kopf mit "‹ Störfall" selbst mit
+    if (machine.source_id) {
+      return (
+        <PaneFrame title={title} onClose={onClose} kind="signal" bare wide>
+          <SignalView sourceId={machine.source_id} tag={detail.tag} variant="auto" onOpenDetail={onOpenDetail} onClose={onClose} />
+        </PaneFrame>
+      );
+    }
+    body = (
       <Empty action={{ label: "Dokumente verknüpfen", onClick: () => onGoToAufbau("dokumente") }}>Keine Dokumentation verknüpft, deshalb gibt es keinen Signalweg.</Empty>
     );
   } else if (detail.kind === "part") {
@@ -120,20 +124,48 @@ export function DetailPane({
   );
 }
 
-function PaneFrame({ title, onClose, kind, children, footer }: { title: ReactNode; onClose: () => void; kind: string; children: ReactNode; footer?: ReactNode }) {
+/**
+ * Rahmen des Details: am Handy eine Nav-Leiste mit "‹ Zurück", am PC die rechte Spalte mit "Schließen" (Figma).
+ * bare: die Ansicht bringt ihren Kopf selbst mit; wide: nimmt am PC den Platz des Chats ein (Signalweg im Vollbild).
+ */
+function PaneFrame({
+  title,
+  onClose,
+  kind,
+  children,
+  footer,
+  bare = false,
+  wide = false,
+}: {
+  title: ReactNode;
+  onClose: () => void;
+  kind: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  bare?: boolean;
+  wide?: boolean;
+}) {
   return (
-    <aside className={cn("flex min-h-0 w-full flex-1 flex-col bg-card lg:flex-none lg:border-l lg:border-border", DETAIL_WIDTH)} aria-label="Detail" data-testid="detail-pane" data-detail={kind}>
-      <header className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-        <button type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden" aria-label="Zurück">
-          <ChevronLeft className="size-5" />
-        </button>
-        <h2 className="min-w-0 flex-1 truncate px-1 text-[15px] font-semibold">{title}</h2>
-        <button type="button" onClick={onClose} className="hidden size-11 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground lg:grid" aria-label="Detail schließen">
-          <X className="size-4" />
-        </button>
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
-      {footer && <footer className="flex flex-wrap gap-2 border-t border-border px-4 py-3">{footer}</footer>}
+    <aside
+      className={cn("flex min-h-0 w-full flex-1 flex-col bg-card lg:border-l-[0.5px] lg:border-border", wide ? "bg-background" : cn("lg:flex-none", DETAIL_WIDTH))}
+      aria-label="Detail"
+      data-testid="detail-pane"
+      data-detail={kind}
+    >
+      {!bare && (
+        <header className="flex min-h-[52px] items-center gap-1 border-b-[0.5px] border-border bg-bg-bar px-1 py-1 backdrop-blur-bar lg:px-3">
+          <button type="button" onClick={onClose} className="flex min-h-11 shrink-0 items-center rounded-md pr-1.5 text-body text-primary hover:bg-bg-fill lg:hidden" aria-label="Zurück">
+            <ChevronLeft className="size-6" aria-hidden />
+            <span aria-hidden>Zurück</span>
+          </button>
+          <h2 className="min-w-0 flex-1 truncate px-1 text-center text-headline lg:text-left">{title}</h2>
+          <button type="button" onClick={onClose} className="hidden min-h-11 shrink-0 rounded-md px-2 text-body text-primary hover:bg-bg-fill lg:block" aria-label="Detail schließen">
+            <span aria-hidden>Schließen</span>
+          </button>
+        </header>
+      )}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+      {footer && <footer className="flex flex-wrap gap-2 border-t-[0.5px] border-border bg-bg-bar px-4 py-3 backdrop-blur-bar">{footer}</footer>}
     </aside>
   );
 }
@@ -164,11 +196,11 @@ function PartPane({
   };
   return (
     <PaneFrame title={`Bauteil ${tag}`} onClose={onClose} kind="part" footer={<PartFooter tag={tag} data={data} actions={actions} />}>
-      <div className="space-y-4 px-4 py-4" data-testid="part-detail">
+      <div className="space-y-5 px-5 py-5" data-testid="part-detail">
         <div>
           <PartHeaderChips tag={tag} data={data} />
-          <p className="mt-1.5 text-[16px] font-semibold leading-tight">{data.title || `Bauteil ${tag}`}</p>
-          <p className="text-xs text-muted-foreground">{partDescription(data)}</p>
+          <p className="mt-4 text-title-3">{data.title || `Bauteil ${tag}`}</p>
+          <p className="mt-0.5 text-footnote text-muted-foreground">{partDescription(data)}</p>
         </div>
         <PartBody tag={tag} data={data} actions={actions} />
       </div>
@@ -195,7 +227,7 @@ function CabinetDetail({
   const ratio = cabinet.width > 0 && cabinet.height > 0 ? `${cabinet.width} / ${cabinet.height}` : "4 / 3";
   return (
     <div className="space-y-3 p-3" data-testid="cabinet-detail">
-      <div className="relative w-full overflow-hidden rounded-lg border border-border bg-secondary" style={{ aspectRatio: ratio }}>
+      <div className="relative w-full overflow-hidden rounded-md bg-bg-fill" style={{ aspectRatio: ratio }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={plant.cabinetImageUrl(cabinet.id)} alt={`${cabinet.title}${active ? `: ${active.tag} markiert` : ""}`} className="absolute inset-0 size-full object-contain" />
         {cabinet.hotspots.map((h) => {
@@ -214,7 +246,7 @@ function CabinetDetail({
           );
         })}
       </div>
-      {active && !active.confirmed && <p className="text-xs text-muted-foreground">Markierung unbestätigt: vorgeschlagen, noch nicht geprüft.</p>}
+      {active && !active.confirmed && <p className="text-footnote text-muted-foreground">Markierung unbestätigt: vorgeschlagen, noch nicht geprüft.</p>}
       <ul className="flex flex-wrap gap-1.5" aria-label="Markierte Bauteile">
         {cabinet.hotspots.map((h) => (
           <li key={h.id}>
@@ -222,7 +254,7 @@ function CabinetDetail({
           </li>
         ))}
       </ul>
-      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border px-3 text-sm hover:border-primary">
+      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-bg-fill px-4 text-subhead font-semibold text-primary hover:bg-muted">
         <Pencil className="size-4" aria-hidden /> Groß ansehen und Markierung korrigieren
       </button>
       {editing && <CabinetLightbox cabinet={cabinet} hotspotId={active?.id ?? null} referencedTags={referencedTags} onClose={() => setEditing(false)} onChanged={onChanged} />}
@@ -233,8 +265,8 @@ function CabinetDetail({
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
-      <dd className="whitespace-pre-wrap text-sm">{children}</dd>
+      <dt className="text-footnote font-semibold text-muted-foreground uppercase">{label}</dt>
+      <dd className="text-body whitespace-pre-wrap">{children}</dd>
     </div>
   );
 }
@@ -244,7 +276,7 @@ function FaultDetail({ fault, otherMachine, onOpenDetail, onShowList }: { fault:
   return (
     <div className="space-y-4 p-4" data-testid="fault-detail">
       {otherMachine && (
-        <p className="rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-md bg-bg-grouped px-3 py-2 text-footnote text-muted-foreground">
           Erfahrung von {otherMachine}: kein Beleg für diese Maschine.
         </p>
       )}
@@ -264,7 +296,7 @@ function FaultDetail({ fault, otherMachine, onOpenDetail, onShowList }: { fault:
         </ul>
       )}
       {!otherMachine && (
-        <button type="button" onClick={onShowList} className="min-h-11 rounded-lg border border-border px-3 text-sm hover:border-primary">
+        <button type="button" onClick={onShowList} className="min-h-11 rounded-md bg-bg-fill px-4 text-subhead font-semibold text-primary hover:bg-muted">
           In der Fehlerliste zeigen
         </button>
       )}

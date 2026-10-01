@@ -19,10 +19,10 @@ const MAX_VALUES = 6;
 
 function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="space-y-1.5">
-      <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+    <section className="space-y-2">
+      <h3 className="text-footnote font-semibold text-muted-foreground uppercase">
         {title}
-        {note && <span className="ml-2 font-sans text-[11px] font-normal normal-case tracking-normal">{note}</span>}
+        {note && <span className="ml-2 font-normal normal-case">{note}</span>}
       </h3>
       {children}
     </section>
@@ -83,9 +83,13 @@ type PartData = ReturnType<typeof usePartData>;
 
 export function PartHeaderChips({ tag, data }: { tag: string; data: PartData }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <PartChip tag={tag} referenced />
-      {data.zone && <span className="rounded-md bg-secondary px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{zoneTitle(data.zone)}</span>}
+    // Bauteil-Chip "Aktiv" (Figma): das gerade offene Bauteil, dazu der Einbauort
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-2">
+        <span className="font-mono text-tag-sm font-medium text-primary">{tag}</span>
+        {data.part?.kind && <span className="text-footnote text-muted-foreground">{data.part.kind}</span>}
+      </span>
+      {data.zone && <span className="rounded-full bg-bg-fill px-3 py-2 font-mono text-tag-sm font-medium text-muted-foreground">{zoneTitle(data.zone)}</span>}
     </div>
   );
 }
@@ -98,19 +102,19 @@ export function partDescription(data: PartData): string {
 export function PartBody({ tag, data, actions }: { tag: string; data: PartData; actions: PartActions }) {
   const { photos, datasheet, lookup, rows, related, hits, loading, card } = data;
   return (
-    <div className="space-y-5 text-sm">
+    <div className="space-y-5 text-subhead">
       {photos.length > 0 && (
         <Section title="Im Schaltschrank">
           <ul className="flex gap-3 overflow-x-auto" aria-label="Fotos mit diesem Bauteil">
             {photos.map(({ cabinet, hotspot }) => (
-              <li key={hotspot.id} className="w-44 shrink-0">
-                <button type="button" onClick={() => actions.onShowPhoto(cabinet.id, hotspot.id)} className="block w-full overflow-hidden rounded-xl border border-border text-left hover:border-primary" aria-label={`${cabinet.title}: ${tag} im Foto zeigen`}>
-                  <span className="relative block aspect-[4/3] w-full overflow-hidden bg-secondary">
+              <li key={hotspot.id} className="w-48 shrink-0">
+                <button type="button" onClick={() => actions.onShowPhoto(cabinet.id, hotspot.id)} className="block w-full space-y-1 text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" aria-label={`${cabinet.title}: ${tag} im Foto zeigen`}>
+                  <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-md bg-bg-fill">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={plant.cabinetImageUrl(cabinet.id)} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
                     <span aria-hidden className="absolute rounded-sm border-2 border-signal" style={{ left: `${hotspot.x * 100}%`, top: `${hotspot.y * 100}%`, width: `${hotspot.w * 100}%`, height: `${hotspot.h * 100}%` }} />
                   </span>
-                  <span className="block truncate px-2 py-1 text-[11px] text-muted-foreground">{cabinet.title}{!hotspot.confirmed && " · unbestätigt"}</span>
+                  <span className="block truncate text-footnote text-muted-foreground">{cabinet.title}{!hotspot.confirmed && " · unbestätigt"}</span>
                 </button>
               </li>
             ))}
@@ -123,40 +127,41 @@ export function PartBody({ tag, data, actions }: { tag: string; data: PartData; 
           <button
             type="button"
             onClick={() => actions.onOpenPage({ documentId: datasheet.document_id, filename: datasheet.filename, page: datasheet.page ?? undefined, label: `${datasheet.filename} S. ${datasheet.page}`, tag })}
-            className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-border p-2.5 text-left hover:border-primary"
+            className="flex min-h-11 w-full items-center gap-2 rounded-[14px] bg-bg-grouped px-3.5 py-2.5 text-left hover:bg-bg-fill"
             data-testid="datasheet-open"
           >
-            <FileText className="size-4 shrink-0 text-primary" />
+            <FileText className="size-5 shrink-0 text-accent" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{datasheet.filename}</span>
-              <span className="block text-xs text-muted-foreground">Seite {datasheet.page}</span>
+              <span className="block truncate font-semibold">{datasheet.filename}</span>
+              <span className="block text-footnote text-muted-foreground">Seite {datasheet.page}</span>
             </span>
-            <span className="text-xs font-medium text-primary">Öffnen</span>
+            <span className="text-footnote font-semibold text-primary">Öffnen</span>
           </button>
         ) : (
-          <div className="rounded-xl border border-dashed border-border p-2.5" data-testid="datasheet-missing">
+          <div className="rounded-[14px] bg-bg-grouped px-3.5 py-2.5" data-testid="datasheet-missing">
             <p className="text-muted-foreground">Kein Datenblatt verknüpft{lookup?.bom_line ? "; Stücklistenzeile vorhanden" : ""}.</p>
-            <button type="button" onClick={actions.onUploadDatasheet} className="mt-1.5 inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-              <Upload className="size-3.5" /> Datenblatt hochladen
+            <button type="button" onClick={actions.onUploadDatasheet} className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-primary hover:underline">
+              <Upload className="size-4" /> Datenblatt hochladen
             </button>
           </div>
         )}
-        {lookup?.bom_line && <p className="truncate font-mono text-[11px] text-muted-foreground" title={lookup.bom_line}>{lookup.bom_line}</p>}
+        {lookup?.bom_line && <p className="truncate font-mono text-caption-1 text-muted-foreground" title={lookup.bom_line}>{lookup.bom_line}</p>}
       </Section>
 
       {rows.length > 0 && (
         <Section title="Befundkarte" note="aus dem Dokument-Index">
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1.5 text-[13px]" data-testid="part-fact-card">
+          {/* Befundkarte (Figma): gruppierte Liste mit Trennern, Bezeichnung links, Werte rechts */}
+          <dl className="divide-y-[0.5px] divide-border overflow-hidden rounded-[14px] bg-bg-grouped" data-testid="part-fact-card">
             {rows.map((row) => (
-              <div key={row.label} className="contents">
-                <dt className="text-muted-foreground">{row.label}</dt>
-                <dd className="flex flex-wrap gap-1">
+              <div key={row.label} className="flex items-start gap-3 px-3.5 py-[11px]">
+                <dt className="w-[110px] shrink-0 text-muted-foreground">{row.label}</dt>
+                <dd className="flex min-w-0 flex-1 flex-wrap justify-end gap-1 text-right">
                   {row.values.slice(0, MAX_VALUES).map((value) => {
                     const pdf = value.filename?.toLowerCase().endsWith(".pdf");
                     const open = value.document_id && pdf ? () => actions.onOpenPage({ documentId: value.document_id!, filename: value.filename!, page: value.page ?? undefined, reference: value.ref, label: `${row.label} ${value.text}`, tag }) : undefined;
                     return <CitationChip key={value.text} label={value.text} onClick={open} title={value.filename ?? undefined} />;
                   })}
-                  {row.values.length > MAX_VALUES && <span className="text-[11px] text-muted-foreground">+{row.values.length - MAX_VALUES}</span>}
+                  {row.values.length > MAX_VALUES && <span className="text-footnote text-muted-foreground">+{row.values.length - MAX_VALUES}</span>}
                 </dd>
               </div>
             ))}
@@ -166,10 +171,10 @@ export function PartBody({ tag, data, actions }: { tag: string; data: PartData; 
 
       {related.length > 0 && (
         <Section title="Verbundene Bauteile">
-          <ul className="flex flex-wrap gap-1.5" aria-label="Verbundene Bauteile">
+          <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label="Verbundene Bauteile">
             {related.map((r) => (
-              <li key={r.tag} className="flex items-center gap-1">
-                <span className="text-[11px] text-muted-foreground">{r.verb}</span>
+              <li key={r.tag} className="flex items-center gap-1.5">
+                <span className="text-footnote text-muted-foreground">{r.verb}</span>
                 <PartChip tag={r.tag} onClick={() => actions.onOpenPart(r.tag)} className="min-h-11" />
               </li>
             ))}
@@ -183,11 +188,11 @@ export function PartBody({ tag, data, actions }: { tag: string; data: PartData; 
             {hits.slice(0, 8).map((hit, i) => {
               const pdf = hit.filename.toLowerCase().endsWith(".pdf") && hit.page;
               return (
-                <li key={`${hit.document_id}-${hit.page}-${i}`} className="flex items-baseline gap-2 text-[13px]">
+                <li key={`${hit.document_id}-${hit.page}-${i}`} className="flex items-baseline gap-2 text-footnote">
                   {pdf ? (
                     <CitationChip label={`${hit.filename} S. ${hit.page}`} onClick={() => actions.onOpenPage({ documentId: hit.document_id, filename: hit.filename, page: hit.page!, tag })} />
                   ) : (
-                    <span className="font-mono text-[11px] text-muted-foreground">{hit.filename}</span>
+                    <span className="font-mono text-caption-1 text-muted-foreground">{hit.filename}</span>
                   )}
                   <span className="min-w-0 truncate text-muted-foreground">{hit.context}</span>
                 </li>
@@ -206,12 +211,22 @@ export function PartFooter({ tag, data, actions }: { tag: string; data: PartData
   return (
     <>
       {first && (
-        <button type="button" onClick={() => actions.onShowPhoto(first.cabinet.id, first.hotspot.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-signal px-3 py-1.5 text-sm font-medium text-signal-foreground" data-testid="show-in-photo">
-          <Camera className="size-4" /> Im Foto zeigen
+        <button
+          type="button"
+          onClick={() => actions.onShowPhoto(first.cabinet.id, first.hotspot.id)}
+          className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-[14px] bg-secondary px-4 text-headline text-primary hover:bg-muted"
+          data-testid="show-in-photo"
+        >
+          <Camera className="size-5" /> Im Foto zeigen
         </button>
       )}
-      <button type="button" onClick={() => actions.onShowSignal(tag)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm hover:border-primary">
-        <Route className="size-4" /> Signalweg
+      {/* "Signalweg öffnen" (Figma): die Hauptaktion des Bauteils, blau und breit */}
+      <button
+        type="button"
+        onClick={() => actions.onShowSignal(tag)}
+        className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-[14px] bg-primary px-4 text-headline text-primary-foreground hover:bg-primary/85"
+      >
+        <Route className="size-5" /> Signalweg öffnen
       </button>
     </>
   );
@@ -255,8 +270,8 @@ export function PartSheet({
           data-testid="part-sheet"
           className={cn(
             "fixed z-50 flex flex-col bg-card text-card-foreground shadow-2xl outline-none",
-            "inset-x-0 bottom-0 max-h-[85vh] rounded-t-2xl duration-250 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
-            "md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[440px] md:max-w-[92vw] md:rounded-none md:border-l md:border-border md:data-open:slide-in-from-right md:data-closed:slide-out-to-right",
+            "inset-x-0 bottom-0 max-h-[85vh] rounded-t-xl duration-250 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
+            "md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[440px] md:max-w-[92vw] md:rounded-none md:border-l-[0.5px] md:border-border md:data-open:slide-in-from-right md:data-closed:slide-out-to-right",
           )}
           onPointerDown={(e) => {
             if ((e.target as HTMLElement).dataset.handle) swipeStart.current = e.clientY;
@@ -269,13 +284,13 @@ export function PartSheet({
           <div className="flex justify-center py-2 md:hidden" data-handle="true" aria-hidden>
             <span className="h-1.5 w-12 rounded-full bg-border" data-handle="true" />
           </div>
-          <header className="flex items-start gap-2 border-b border-border px-4 py-3">
+          <header className="flex items-start gap-2 border-b-[0.5px] border-border px-4 py-3">
             <div className="min-w-0 flex-1">
               <PartHeaderChips tag={tag} data={data} />
-              <DialogTitle className="mt-1.5 text-[16px] font-semibold leading-tight">{data.title || `Bauteil ${tag}`}</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">{partDescription(data)}</DialogDescription>
+              <DialogTitle className="mt-3 text-title-3">{data.title || `Bauteil ${tag}`}</DialogTitle>
+              <DialogDescription className="mt-0.5 text-footnote text-muted-foreground">{partDescription(data)}</DialogDescription>
             </div>
-            <DialogPrimitive.Close className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Datenblatt schließen">
+            <DialogPrimitive.Close className="grid size-11 place-items-center rounded-full text-muted-foreground hover:bg-bg-fill hover:text-foreground" aria-label="Datenblatt schließen">
               <X className="size-4" />
             </DialogPrimitive.Close>
           </header>
@@ -284,7 +299,7 @@ export function PartSheet({
             <PartBody tag={tag} data={data} actions={actions} />
           </div>
 
-          <footer className="flex flex-wrap gap-2 border-t border-border px-4 py-3">
+          <footer className="flex flex-wrap gap-2 border-t-[0.5px] border-border px-4 py-3">
             <PartFooter tag={tag} data={data} actions={actions} />
           </footer>
         </DialogPrimitive.Content>

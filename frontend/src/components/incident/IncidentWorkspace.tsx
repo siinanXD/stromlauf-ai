@@ -266,7 +266,8 @@ export function IncidentWorkspace({
         </div>
       </div>
 
-      <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden")}>
+      {/* Der Signalweg oeffnet am PC im Vollbild (Figma) und nimmt den Platz des Chats ein */}
+      <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden", view.detail?.kind === "signal" && "lg:hidden")}>
         {incident && chatKey ? (
           <MachineChatTab
             key={chatKey}
