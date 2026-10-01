@@ -604,7 +604,8 @@ def column_texts(path: Path) -> dict[int, str]:
             pdf.close()
 
 
-_PIN = re.compile(r"A[12]|[1-9][1-8]|[1-6]")  # Spule, Kontakt mit Ordnungs- und Funktionsziffer, Hauptkontakt
+# Spule, Kontakt mit Ordnungs- und Funktionsziffer, Hauptkontakt
+_PIN = re.compile(r"A[12]|[1-9][1-8]|[1-6]")
 _DEVICE_TOKEN = re.compile(r"(?:[=+][\w.+=]*?)?(-[A-Z]{1,3}\d{1,4}(?:\.\d{1,3})?)")
 _REF_TOKEN = re.compile(r"/\d{1,4}\.\d{1,2}")
 _STRIP_TOKEN = re.compile(r"X\d{1,4}")
@@ -639,18 +640,24 @@ def _nearest(spot: _Spot, devices: list[tuple[str, _Spot]], reach: float) -> str
     return ranked[0][1]
 
 
-def _page_pins(spots: list[_Spot]) -> str:
+_Mirror = tuple[str, list[_Spot], _Spot]  # Kennzeichen der Spule, Nummern, Verweis
+
+
+def _pin_parts(
+    spots: list[_Spot],
+) -> tuple[list[tuple[str, _Spot]], list[_Mirror], list[tuple[str, _Spot]]]:
+    """Kennzeichen, Kontaktspiegel und einzelne Nummern am Symbol (Kennzeichen, Nummer) einer Seite."""
     # erst hier importiert: tags importiert die Modelle, pdf_layout soll ohne sie ladbar bleiben
     from app.ingestion.tags import pin_kind
 
     devices = [(m.group(1), s) for s in spots if (m := _DEVICE_TOKEN.fullmatch(s.text))]
     if not devices:
-        return ""
+        return [], [], []
     # Klemmleisten ohne Minus ("X1041 3", Schweizer Elektroschema) behalten ihre Klemmennummern: Anker ohne Kennzeichen
     anchors = devices + [("", s) for s in spots if _STRIP_TOKEN.fullmatch(s.text)]
     pins = [s for s in spots if _PIN.fullmatch(s.text)]
     used: set[int] = set()
-    lines: list[tuple[float, float, str]] = []
+    mirrors: list[_Mirror] = []
     # Kontaktspiegel: Nummern links neben einem Verweis in derselben Zeile, unter einer Spule
     for ref in (s for s in spots if _REF_TOKEN.fullmatch(s.text)):
         beside = (p for p in pins if abs(p.y - ref.y) <= MIRROR_ROW and 0 < ref.x - p.x <= 40)
@@ -663,16 +670,36 @@ def _page_pins(spots: list[_Spot]) -> str:
         if tag is None or not all(pin_kind(f"{tag}:{p.text}") for p in row):
             continue
         used.update(id(p) for p in row)
-        contact = " ".join(f"{tag}:{p.text}" for p in row)
-        lines.append((row[0].y, row[0].x, f"{contact} {ref.text}"))
+        mirrors.append((tag, row, ref))
     # einzelne Nummern am Symbol
-    loose: dict[str, list[_Spot]] = {}
+    loose: list[tuple[str, _Spot]] = []
     for pin in pins:
         if id(pin) in used:
             continue
         tag = _nearest(pin, anchors, PIN_REACH)
         if tag and pin_kind(f"{tag}:{pin.text}"):
-            loose.setdefault(tag, []).append(pin)
+            loose.append((tag, pin))
+    return devices, mirrors, loose
+
+
+def pin_spots(spots: list[_Spot]) -> list[tuple[str, _Spot]]:
+    """Einzelne Anschlussnummern am Schaltzeichen mit ihrer Wortposition, etwa ("-K1:A1", Nummer), nach denselben
+    Regeln wie pin_labels. Kontaktspiegel fehlen: Sie stehen unter der Spule, nicht am Kontakt. Fuer den
+    Leitungsleser (plan_wires), der Leitungsenden so benennt."""
+    return [(f"{tag}:{pin.text}", pin) for tag, pin in _pin_parts(spots)[2]]
+
+
+def _page_pins(spots: list[_Spot]) -> str:
+    devices, mirrors, pairs = _pin_parts(spots)
+    if not devices:
+        return ""
+    lines: list[tuple[float, float, str]] = []
+    for tag, row, ref in mirrors:
+        contact = " ".join(f"{tag}:{p.text}" for p in row)
+        lines.append((row[0].y, row[0].x, f"{contact} {ref.text}"))
+    loose: dict[str, list[_Spot]] = {}
+    for tag, pin in pairs:
+        loose.setdefault(tag, []).append(pin)
     anchor = {tag: d for tag, d in devices}
     for tag, found in loose.items():
         found.sort(key=lambda p: (p.y, p.x))
