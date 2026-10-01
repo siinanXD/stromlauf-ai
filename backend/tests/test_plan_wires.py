@@ -201,6 +201,130 @@ def test_eingang_richtung_zur_adresse(tmp_path):
     }
 
 
+def test_klemmenbeschriftung_gehoert_zur_naechsten_klemme(tmp_path):
+    """Die Beschriftung "-X4:PE" steht zwischen zwei Klemmen, naeher an der PE-Klemme: Sie benennt die Leitung an der
+    PE-Klemme, aber nicht die an der Nachbarklemme, auch wenn deren Ende kein anderer Text naeher ist."""
+
+    def draw(c):
+        c.circle(300, 300, 3.2)
+        c.line(300, 304, 300, 360)  # von der Nachbarklemme nach oben
+        c.drawString(304, 362, "-X1:1")
+        c.circle(314, 300, 3.2)
+        c.line(314, 296, 314, 250)  # von der PE-Klemme nach unten
+        c.drawString(318, 246, "-X1:2")
+        c.setFont("Helvetica", 6)
+        c.drawString(306, 308, "-X4:PE")
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-X1:2", "-X4:PE"))}
+
+
+def test_symbol_ohne_anschlussnummern_heisst_wie_sein_kennzeichen(tmp_path):
+    """Leitungen enden am Rand von Schutzschalter und Motor; deren Kennzeichen stehen daneben, nicht am Ende. Die
+    Klemme oben benennt ihr Ende wie bisher; Schalter und Motor heissen nach dem Kennzeichen neben dem Symbol."""
+
+    def draw(c):
+        c.line(200, 500, 200, 420)
+        c.drawString(204, 502, "-X1:1")
+        c.rect(180, 380, 40, 40)
+        c.drawRightString(177, 397, "-F2")  # links neben dem Schalter, 3 pt vom Rand
+        c.line(200, 380, 200, 322)
+        c.circle(200, 300, 22)
+        c.drawString(228, 302, "-M1  Motor 1,5 kW")  # rechts neben dem Motor, 6 pt vom Rand
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {
+        frozenset(("-X1:1", "-F2")),
+        frozenset(("-F2", "-M1")),
+    }
+
+
+def test_kennzeichen_zwischen_zwei_symbolen_benennt_keins(tmp_path):
+    """Steht ein Kennzeichen gleich nah an zwei Symbolen, ist offen, zu welchem es gehoert: keine Kante."""
+
+    def draw(c):
+        c.line(200, 500, 200, 420)
+        c.drawString(204, 502, "-X1:1")
+        c.rect(180, 380, 40, 40)
+        c.drawString(224, 397, "-F2")  # rechts neben dem ersten Symbol ...
+        c.rect(240, 380, 40, 40)  # ... und links neben dem zweiten
+
+    path = _plan(tmp_path, draw)
+    assert plan_wires.page_wire_edges(path, 1) == []
+
+
+def test_spule_mit_anschlussnummern_benennt_kein_nachbarende(tmp_path):
+    """Am Spulenkoerper stehen A1/A2: Nur sie benennen seine Zuleitungen. Die Leuchte darunter beruehrt die untere
+    Zuleitung (Symbole zu dicht gezeichnet), haengt aber nicht an -K1."""
+
+    def draw(c):
+        c.line(470, 318, 470, 308)  # Zuleitung A1 bis an den Spulenkoerper
+        c.rect(461, 292, 18, 16)
+        c.drawString(482, 298, "-K1")
+        c.drawString(482, 309, "A1")
+        c.drawString(482, 287, "A2")
+        c.line(470, 292, 470, 283)  # untere Zuleitung, endet auf der Leuchte darunter
+        c.circle(470, 274, 9)
+        c.drawString(482, 272, "-H1")
+
+    path = _plan(tmp_path, draw)
+    geometry = plan_wires._geometry(path, 1)
+    assert set(plan_wires._box_labels(geometry.boxes, list(geometry.spots)).values()) == {"-H1"}
+    assert plan_wires.page_wire_edges(path, 1) == []
+
+
+def test_anschluss_schlaegt_sein_geraet(tmp_path):
+    """Die Leitung von A1 endet am Rand von -K2: Das ist der Anschluss selbst, keine Verbindung -K2:A1 mit -K2. Unten
+    fuehrt die Leitung vom Rand von -K2 zur Klemme."""
+
+    def draw(c):
+        c.line(200, 440, 200, 410)
+        # mehr als 2 * LABEL_GAP ueber dem Symbol: kein Anschluss am Koerper
+        c.drawString(204, 432, "A1")
+        c.rect(180, 380, 40, 30)
+        c.drawString(223, 402, "-K2")
+        c.line(200, 380, 200, 340)
+        c.drawString(204, 336, "-X1:1")
+
+    path = _plan(tmp_path, draw)
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {frozenset(("-K2", "-X1:1"))}
+
+
+def _terminal_row(c, list_text: str) -> None:
+    """Umrichter -U1, drei Klemmen U/V/W mit Sammelbeschriftung darunter, dazu eine PE-Klemme mit eigener
+    Beschriftung, darunter der Motor -M1. Die PE-Beschriftung steht naeher an der Klemme W als die Sammelbeschriftung."""
+    c.rect(277, 340, 46, 50)
+    c.drawRightString(274, 362, "-U1")
+    for x in (292, 300, 308):
+        c.line(x, 340, x, 304)
+        c.circle(x, 300, 3.2)
+        c.line(x, 296, x, 252)
+    c.circle(322, 300, 3.2)
+    c.setFont("Helvetica", 6)
+    c.drawString(314, 308, "-X4:PE")
+    c.setFont("Helvetica", 7)
+    c.drawString(270, 286, list_text)
+    c.circle(300, 230, 22)
+    c.drawString(328, 234, "-M1  Motor")
+
+
+def test_sammelbeschriftung_benennt_klemmen_von_links_nach_rechts(tmp_path):
+    """Sammelbeschriftung "-X4:U -X4:V -X4:W" unter drei Klemmen: U, V, W in dieser Reihenfolge. Die PE-Klemme hat
+    ihre eigene Beschriftung und zaehlt nicht mit; an keine Leitung kommt -X4:PE."""
+    path = _plan(tmp_path, lambda c: _terminal_row(c, "-X4:U -X4:V -X4:W"))
+    assert _pairs(plan_wires.page_wire_edges(path, 1)) == {
+        frozenset((device, f"-X4:{phase}")) for device in ("-U1", "-M1") for phase in "UVW"
+    }
+
+
+def test_klemmen_in_einem_hinweis_benennen_keine_leitung(tmp_path):
+    """Geht die Zeile weiter ("(Leitung -W4)"), ist sie ein Hinweis und keine Sammelbeschriftung. Die Klemme W bekommt
+    auch nicht die PE-Beschriftung daneben: Die gehoert zur PE-Klemme, die ihr naeher ist."""
+    path = _plan(tmp_path, lambda c: _terminal_row(c, "-X4:U -X4:V -X4:W (Leitung -W4)"))
+    edges = plan_wires.page_wire_edges(path, 1)
+    assert not [e for e in edges if {e.source, e.target} & {"-X4:U", "-X4:V", "-X4:W", "-X4:PE"}]
+
+
 @pytest.fixture
 def cache(tmp_path, monkeypatch) -> Path:
     directory = tmp_path / "plan_cache"
@@ -345,6 +469,33 @@ def test_lage_nur_wo_keine_leitung_das_paar_schon_zeigt(tmp_path, monkeypatch):
     assert plan_wires.compute_edges(path) == [
         PlanEdge("-X1:1", "E0.0", 1, "lage"),
         PlanEdge("-S1:14", "-X1:1", 2, "leitung"),
+    ]
+
+
+def test_lage_gibt_einer_ungerichteten_leitung_die_richtung(tmp_path, monkeypatch):
+    """Klemme und Umrichter verbindet die Leitung ohne Richtung; die Lage-Kante Ausgang -> Klemme -> Umrichter bleibt
+    dazu stehen, sonst fehlt dem Hauptweg die Richtung. Eine gerichtete Leitung deckt die Lage weiter ab."""
+    monkeypatch.setattr(
+        plan_wires,
+        "_wire_edges",
+        lambda *args: [
+            PlanEdge("-U1", "-X3:26", 1, "leitung", directed=False),
+            PlanEdge("A4.4", "-X3:26", 1, "leitung"),
+        ],
+    )
+    monkeypatch.setattr(
+        plan_wires,
+        "_layout_page",
+        lambda path, page, spots, spaced: [
+            PlanEdge("A4.4", "-X3:26", page, "lage"),
+            PlanEdge("-X3:26", "-U1", page, "lage"),
+        ],
+    )
+    path = _plan(tmp_path, lambda c: c.line(100, 100, 200, 100))
+    assert plan_wires.compute_edges(path) == [
+        PlanEdge("-X3:26", "-U1", 1, "lage"),
+        PlanEdge("-U1", "-X3:26", 1, "leitung", directed=False),
+        PlanEdge("A4.4", "-X3:26", 1, "leitung"),
     ]
 
 

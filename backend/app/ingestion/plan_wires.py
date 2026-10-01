@@ -13,10 +13,16 @@ Ablauf je Seite, deterministisch und ohne Modell:
    Zusammenhangskomponenten (networkx); freie Enden sind Endpunkte ohne Anschluss an ein anderes Segment.
 3. `page_wire_edges`: Jedes freie Ende sucht den naechsten Anschluss-Text: Geraeteanschluss wie in #102
    (`pdf_layout.pin_spots`), Klemme ("-X1:3", "X420 3") oder SPS-Adresse (E/A). Es gelten PIN_REACH und PIN_CLEAR.
-   Klemmen und Adressen zaehlen nur am Anfang ihrer Zeile ("0 V ueber -X3:14" ist ein Hinweis). Dazu drei Regeln:
+   Klemmen und Adressen zaehlen nur am Anfang ihrer Zeile ("0 V ueber -X3:14" ist ein Hinweis). Dazu diese Regeln:
    - Endet eine Leitung am Rand eines grossen Symbols (SPS-Karte, Geraet, Leuchte), gilt nur die Beschriftung im
-     Symbol auf derselben Hoehe; daneben stehen Texte anderer Zeilen.
-   - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite.
+     Symbol auf derselben Hoehe; daneben stehen Texte anderer Zeilen. Steht im Symbol keine, gilt das Kennzeichen
+     neben dem Symbol (links oder rechts auf seiner Hoehe, bis LABEL_GAP), ausser am Symbol stehen
+     Anschlussnummern (Spule A1/A2). Ein Anschluss schlaegt dabei sein Geraet ("-K1:A1" und "-K1" in einem Netz).
+   - Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, die Beschriftung steht nur an einer Seite. Eine
+     Beschriftung benennt nur Enden an der Klemme, der sie am naechsten steht.
+   - Eine Zeile nur aus Klemmen einer Leiste ("-X4:U -X4:V -X4:W") benennt die Klemmen in ihrer Naehe (PIN_REACH)
+     von links nach rechts, wenn es genau so viele in einer Reihe sind; Klemmen mit eigener Beschriftung zaehlen
+     nicht mit. Eine Zeile mit mehreren Klemmen benennt nie ein Leitungsende nach Naehe.
    - Laeuft eine Leitung durch Klemme und Eingang hindurch (Kanaele in Spalten), gehoeren Klemmen und Adressen bis
      BESIDE neben ihr zu ihrem Netz.
    Ein Netz verbindet seine benannten Enden. Netze mit einer Leitung ueber mehr als RAIL_SHARE der Blattbreite oder
@@ -25,8 +31,8 @@ Ablauf je Seite, deterministisch und ohne Modell:
 4. `plan_edges`: alle Seiten, mit Datei-Cache (`plan_edges.read_edges`/`write_edges`). Dazu die Lage im Plan
    (`via="lage"`) auf jeder Seite, mit und ohne Leiter: Kanaele in Spalten (#90) oder in Zeilen (Feldgeraet, Klemme
    und Adresse auf einer Linie +-ROW), wenn mindestens LAGE_MIN Kanaele so stehen. Eine Lage-Kante kommt nur dazu,
-   wenn keine Leitung dieselben Knoten (oder Anschluss und Geraet) schon verbindet. Das Feldgeraet steht jenseits der
-   Klemme, von der Adresse aus; eine Adresse in Klammern ist ein Verweis und keine Kanal-Adresse.
+   wenn keine Leitung dieselben Knoten (oder Anschluss und Geraet) schon gerichtet verbindet. Das Feldgeraet steht
+   jenseits der Klemme, von der Adresse aus; eine Adresse in Klammern ist ein Verweis und keine Kanal-Adresse.
 
 Richtung: Ein Netz mit E-Adresse laeuft zur Adresse, eins mit A-Adresse von ihr weg; eine Spule ist Ziel, ein Kontakt
 Quelle, wie in `signal_graph._add_terminal_rows`. Alles andere bleibt ungerichtet (`directed=False`).
@@ -77,10 +83,12 @@ LAGE_MIN = 3  # so viele Kanaele muss eine Seite ohne Leiter in Zeilen oder Spal
 SPACED_GAP = 10.0  # pt: "X420" und "3" stehen so nah nebeneinander (gemessen bis 9 pt)
 LINE = 2.0  # pt: Woerter mit hoechstens diesem Hoehenversatz stehen in einer Zeile
 PHRASE_GAP = 6.0  # pt: Woerter eines Satzes stehen hoechstens so weit auseinander
+LABEL_GAP = 8.0  # pt: so weit steht das Kennzeichen neben seinem Symbol (gemessen 3 bis 6 pt)
 
 _BIT = re.compile(r"[EA]\d+\.[0-7]")
 _CARD = re.compile(r"-A\d+(\.\d+)?$")  # SPS-Karte: Ort der Adresse, kein Feldgeraet
 _CABLE = re.compile(r"-W\d")  # Leitung (Kabel), kein Feldgeraet
+_STRIP = re.compile(r"-X\d")  # Klemmleiste: benennt keine Symbole, ihre Klemmen tragen Nummern
 _REFERENCE = re.compile(r"\([^()]*\)")  # Text in Klammern: Verweis, keine eigene Beschriftung
 
 Matrix = tuple[float, float, float, float, float, float]
@@ -586,10 +594,161 @@ def _in_symbol(x: float, y: float, box: _Box, side: str, anchors: list[_Anchor])
     return hits.pop() if len(hits) == 1 else None
 
 
-def _end_names(nets: list[Net], boxes: _Boxes, anchors: list[_Anchor]) -> list[list[str | None]]:
+def _to_box(x: float, y: float, box: _Box) -> float:
+    """Abstand eines Punkts zum Rechteck, 0 im Inneren."""
+    return math.hypot(max(box.x0 - x, 0.0, x - box.x1), max(box.y0 - y, 0.0, y - box.y1))
+
+
+def _box_labels(boxes: tuple[_Box, ...], spots: list[_Spot]) -> dict[_Box, str]:
+    """Kennzeichen grosser Symbole ohne Anschlussnummern (Geraet, Leuchte, Motor, Umrichter): das Geraet, das links
+    oder rechts neben dem Symbol auf seiner Hoehe steht, bis LABEL_GAP vom Rand. Ein Kennzeichen, das so neben zwei
+    Symbolen steht, und ein Symbol mit zwei solchen Kennzeichen bleiben ohne Namen. Stehen Anschlussnummern am Symbol
+    (Spule oder Ventil A1/A2), benennen nur sie die Leitungen: Was sonst den Rand beruehrt, ist ein Nachbar."""
+    large = list(dict.fromkeys(box for box in boxes if not _small(box)))
+    devices = [
+        (match.group(1), spot)
+        for spot in spots
+        if (match := pdf_layout._DEVICE_TOKEN.fullmatch(spot.text))
+        and not _STRIP.match(match.group(1))
+        and not _CABLE.match(match.group(1))
+    ]
+    found: dict[_Box, set[str]] = defaultdict(set)
+    for tag, spot in devices:
+        beside = [
+            box
+            for box in large
+            if box.y0 <= spot.y <= box.y1
+            and 0 <= max(box.x0 - _right(spot), spot.left - box.x1) <= LABEL_GAP
+        ]
+        if len(beside) == 1:
+            found[beside[0]].add(tag)
+    # Anschlussnummern je naechstem Kennzeichen
+    numbered: dict[str, list[_Spot]] = defaultdict(list)
+    for number in spots:
+        if devices and pdf_layout._PIN.fullmatch(number.text) and _alone(number, spots):
+            owner = min(devices, key=lambda d: math.dist((d[1].x, d[1].y), (number.x, number.y)))
+            numbered[owner[0]].append(number)
+    labels = {}
+    for box, tags in found.items():
+        if len(tags) != 1:
+            continue
+        tag = next(iter(tags))
+        if not any(_to_box(s.x, s.y, box) <= 2 * LABEL_GAP for s in numbered[tag]):
+            labels[box] = tag
+    return labels
+
+
+def _alone(spot: _Spot, spots: list[_Spot]) -> bool:
+    """Steht das Wort fuer sich (Anschlussnummer) und nicht in einem Satz ("In 25 A")?"""
+    return _leading(spot, spots) and _next_word(spot, spots) is None
+
+
+def _next_word(spot: _Spot, spots: list[_Spot]) -> _Spot | None:
+    """Das Wort, das in derselben Zeile direkt rechts folgt (bis PHRASE_GAP)."""
+    after = [
+        s
+        for s in spots
+        if s is not spot and abs(s.y - spot.y) <= LINE and 0 <= s.left - _right(spot) <= PHRASE_GAP
+    ]
+    return min(after, key=lambda s: s.left) if after else None
+
+
+def _terminal(text: str, spaced: bool) -> str | None:
+    node = _anchor_node(text, spaced)
+    return node if node and not _BIT.fullmatch(node) else None
+
+
+TerminalRun = list[tuple[str, _Spot]]
+
+
+def _terminal_runs(spots: list[_Spot], spaced: bool) -> list[tuple[TerminalRun, bool]]:
+    """Mindestens zwei Klemmen derselben Leiste direkt hintereinander am Anfang einer Zeile ("-X4:U -X4:V -X4:W"),
+    dazu, ob die Zeile damit endet (Sammelbeschriftung) oder weitergeht ("-X4:U -X4:V (Leitung -W4)": ein Hinweis)."""
+    runs = []
+    for spot in spots:
+        node = _terminal(spot.text, spaced)
+        if not node or not _leading(spot, spots):
+            continue
+        strip = node.split(":", 1)[0]
+        run = [(node, spot)]
+        alone = True
+        while (following := _next_word(run[-1][1], spots)) is not None:
+            found = _terminal(following.text, spaced)
+            if not found or found.split(":", 1)[0] != strip:
+                alone = False
+                break
+            run.append((found, following))
+        if len(run) >= 2 and len({name for name, _spot in run}) == len(run):
+            runs.append((run, alone))
+    return runs
+
+
+def _center(box: _Box) -> tuple[float, float]:
+    return (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2
+
+
+def _listed_terminals(
+    lists: list[TerminalRun], boxes: tuple[_Box, ...], anchors: list[_Anchor]
+) -> dict[_Box, str]:
+    """Namen der Klemmensymbole einer Sammelbeschriftung, von links nach rechts. Gezaehlt werden die Klemmen bis
+    PIN_REACH um die Beschriftung, ohne die mit eigener Beschriftung (deren naechste Klemme, PIN_CLEAR-mal naeher als
+    jede andere). Es muessen genau so viele sein, wie die Zeile nennt, und sie stehen in einer Reihe (+-ROW)."""
+    small = list(dict.fromkeys(box for box in boxes if _small(box)))
+    if not lists or not small:
+        return {}
+    listed = {id(spot) for run in lists for _node, spot in run}
+    claimed = set()
+    for anchor in anchors:
+        if id(anchor.spot) in listed or pin_kind(anchor.node) or _BIT.fullmatch(anchor.node):
+            continue
+        point = (anchor.spot.x, anchor.spot.y)
+        ranked = sorted((math.dist(_center(box), point), i) for i, box in enumerate(small))
+        if ranked[0][0] <= PIN_REACH and (
+            len(ranked) == 1 or ranked[1][0] >= PIN_CLEAR * ranked[0][0]
+        ):
+            claimed.add(small[ranked[0][1]])
+    names: dict[_Box, str] = {}
+    for run in lists:
+        words = [spot for _node, spot in run]
+        y = sum(spot.y for spot in words) / len(words)
+        area = _Box(min(s.left for s in words), y - LINE, max(_right(s) for s in words), y + LINE)
+        row = [
+            box for box in small if box not in claimed and _to_box(*_center(box), area) <= PIN_REACH
+        ]
+        heights = [_center(box)[1] for box in row]
+        if len(row) != len(run) or max(heights) - min(heights) > ROW or set(row) & set(names):
+            continue
+        for box, (node, _spot) in zip(sorted(row, key=lambda b: b.x0), run, strict=True):
+            names[box] = node
+    return names
+
+
+def _terminal_of(
+    x: float, y: float, node: str, anchors: list[_Anchor], small: list[_Box]
+) -> _Box | None:
+    """Klemmensymbol, zu dem die Beschriftung node am Ende (x, y) gehoert: das naechste zu ihr. Steht sie naeher an
+    einer anderen Klemme (etwa "-X4:PE" neben der Nachbarklemme), benennt sie dieses Ende nicht."""
+    spot = min(
+        (a.spot for a in anchors if a.node == node), key=lambda s: math.hypot(s.x - x, s.y - y)
+    )
+    return min(small, key=lambda box: math.dist(_center(box), (spot.x, spot.y)), default=None)
+
+
+def _end_names(
+    nets: list[Net],
+    boxes: _Boxes,
+    anchors: list[_Anchor],
+    labels: dict[_Box, str] | None = None,
+    terminals: dict[_Box, str] | None = None,
+) -> list[list[str | None]]:
     """Name je freiem Ende. Am Rand eines grossen Symbols (Karte, Geraet, Leuchte) zaehlt nur die Beschriftung im
-    Symbol: daneben stehen Texte anderer Zeilen. Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, denn
-    die Beschriftung steht nur an einer Seite der Klemme."""
+    Symbol: daneben stehen Texte anderer Zeilen. Steht im Symbol kein Anschluss, gilt sein Kennzeichen daneben
+    (`_box_labels`). Enden an derselben Klemme (kleines Symbol) teilen ihren Namen, denn die Beschriftung steht nur an
+    einer Seite der Klemme; eine Beschriftung benennt nur Enden an ihrer naechsten Klemme (`_terminal_of`), eine Klemme
+    aus einer Sammelbeschriftung (`_listed_terminals`) traegt deren Namen."""
+    labels = labels or {}
+    terminals = terminals or {}
+    small = [box for box in boxes.boxes if _small(box)]
     names: list[list[str | None]] = []
     at_terminal: dict[_Box, list[tuple[int, int]]] = defaultdict(list)
     for n, net in enumerate(nets):
@@ -602,13 +761,18 @@ def _end_names(nets: list[Net], boxes: _Boxes, anchors: list[_Anchor]) -> list[l
             box, side = touched
             if _small(box):
                 at_terminal[box].append((n, e))
-                row.append(_nearest(x, y, anchors))
-            else:
+                name = _nearest(x, y, anchors)
+                row.append(
+                    name if name and _terminal_of(x, y, name, anchors, small) == box else None
+                )
+            elif any(box.contains(a.spot.x, a.spot.y) for a in anchors):
                 row.append(_in_symbol(x, y, box, side, anchors))
+            else:
+                row.append(labels.get(box))
         names.append(row)
-    for members in at_terminal.values():
+    for box, members in at_terminal.items():
         found = {names[n][e] for n, e in members} - {None}
-        shared = found.pop() if len(found) == 1 else None
+        shared = terminals.get(box) or (found.pop() if len(found) == 1 else None)
         for n, e in members:
             names[n][e] = shared
     return names
@@ -675,19 +839,34 @@ def _beside(nets: list[Net], anchors: list[_Anchor]) -> dict[int, list[str]]:
 def _wire_edges(
     geometry: _Geometry, segments: list[Segment], page: int, spaced: bool
 ) -> list[PlanEdge]:
-    anchors = _anchors(list(geometry.spots), spaced)
-    if not anchors:
+    spots = list(geometry.spots)
+    anchors = _anchors(spots, spaced)
+    labels = _box_labels(geometry.boxes, spots)
+    if not anchors and not labels:
         return []
+    runs = _terminal_runs(spots, spaced)
+    terminals = _listed_terminals([run for run, alone in runs if alone], geometry.boxes, anchors)
+    # Eine Zeile mit mehreren Klemmen steht nicht am Ende einer bestimmten Leitung: Sie benennt hoechstens Klemmen
+    listed = {id(spot) for run, _alone in runs for _node, spot in run}
+    anchors = [anchor for anchor in anchors if id(anchor.spot) not in listed]
     nets = page_nets(segments, geometry.dots)
     beside = _beside(nets, anchors)
     edges: list[PlanEdge] = []
-    ends_named = _end_names(nets, _Boxes(geometry.boxes), anchors)
+    ends_named = _end_names(nets, _Boxes(geometry.boxes), anchors, labels, terminals)
     for n, (net, ends) in enumerate(zip(nets, ends_named, strict=True)):
-        names = list(dict.fromkeys([name for name in ends if name] + beside.get(n, [])))
+        names = _without_own_device(
+            list(dict.fromkeys([name for name in ends if name] + beside.get(n, [])))
+        )
         if len(names) < 2 or len(names) > MAX_ENDS or _is_rail(net, geometry.size):
             continue
         edges += _net_edges(names, page, "leitung")
     return _unique(edges)
+
+
+def _without_own_device(names: list[str]) -> list[str]:
+    """Ein Anschluss schlaegt sein Geraet: Die Zuleitung einer Spule laeuft von "-K1:A1" an den Rand von "-K1"."""
+    devices = {name.split(":", 1)[0] for name in names if pin_kind(name)}
+    return [name for name in names if name not in devices]
 
 
 def _unique(edges: list[PlanEdge]) -> list[PlanEdge]:
@@ -861,7 +1040,9 @@ def compute_edges(path: Path) -> list[PlanEdge]:
 
     Kanalblaetter tragen oft Leitungen, die durch Klemme und Eingang laufen, ohne dass jedes Ende benannt ist; die Lage
     (Feldgeraet, Klemme, Adresse in einer Spalte oder Zeile) ergaenzt dort, was die Leitungen offen lassen. Ob zwei
-    Knoten schon verbunden sind, gilt im ganzen Dokument und fuer Anschluss und Geraet gleich (-S1:14 wie -S1)."""
+    Knoten schon verbunden sind, gilt im ganzen Dokument und fuer Anschluss und Geraet gleich (-S1:14 wie -S1). Zeigt
+    die Leitung keine Richtung (Klemme und Umrichter), bleibt die Lage-Kante dazu stehen: Sie gibt dem Paar im
+    Signalgraphen die Richtung."""
     spaced = _spaced_style(path)
     wired: list[PlanEdge] = []
     placed: list[PlanEdge] = []
@@ -873,7 +1054,7 @@ def compute_edges(path: Path) -> list[PlanEdge]:
         if any(not s.dashed for s in segments):
             wired += _wire_edges(geometry, segments, page, spaced)
         placed += _layout_page(path, page, list(geometry.spots), spaced)
-    shown = {frozenset((_device(e.source), _device(e.target))) for e in wired}
+    shown = {frozenset((_device(e.source), _device(e.target))) for e in wired if e.directed}
     extra = [e for e in placed if frozenset((_device(e.source), _device(e.target))) not in shown]
     return sorted(wired + extra, key=lambda e: (e.page, e.via, e.source, e.target))
 
