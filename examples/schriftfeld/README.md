@@ -17,8 +17,11 @@ Repos, siehe `LICENSE`).
 | `eplan_seitenname.pdf` | EPLAN-Seitenname „=ANL+ORT/3“, Querverweise zusätzlich als „=ANL+ORT/4.7“ |
 | `luecke.pdf` | wie „Blatt 3 / 5“, aber im Schriftfeld von Blatt 3 fehlt die Nummer |
 | `ohne_blattnummer.pdf` | Schriftfeld ohne Blattnummer |
+| `elektroschema.pdf` | Schweizer Elektroschema: Kastenreihe mit Dokumentart, Anlage, Blatttitel, Datum über dem Zeichner und „Blatt 3“ ohne Blattanzahl |
 
-`gold.json` hält je Datei Seite → Blatt, so wie gezeichnet. Die ersten sechs Dateien liest die Blatt-Map vollständig.
+`gold.json` hält je Datei Seite → Blatt, so wie gezeichnet. Alle Dateien außer `luecke.pdf` und `ohne_blattnummer.pdf`
+liest die Blatt-Map vollständig. Aus ihren Schriftfeldern liest `title_block_titles` dieselben Blatttitel wie das
+Inhaltsverzeichnis (Issue #93); bei `elektroschema.pdf` steht der Titel nur im Schriftfeld.
 Bei `luecke.pdf` nimmt sie Blatt 3 aus der Seitenfolge an (Seite 5), bei `ohne_blattnummer.pdf` Seite = Blatt. In
 beiden Fällen steht „Blatt-Map unsicher“ am Dokument, und die Zitatprüfung meldet Belege auf diese Blätter als nicht
 geprüft.

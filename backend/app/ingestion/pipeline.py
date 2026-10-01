@@ -17,7 +17,7 @@ from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
-from app.ingestion.pdf_layout import SheetMap, column_texts, sheet_map
+from app.ingestion.pdf_layout import SheetMap, column_texts, sheet_map, title_block_titles
 from app.ingestion.tags import detect_folio_style, detect_spaced_terminals, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
@@ -347,15 +347,17 @@ def document_pieces(
     if progress:
         progress("Docling-Analyse")
     parsed = parse_document(path)
+    schematic = doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf"
     # Blatttitel als Abschnitt, Stuecklistenseiten als kind "bom", Kennzeichen-Stil je Dokument (Issue #39); das
-    # Inhaltsverzeichnis nennt Blaetter, die Blatt-Map ordnet sie den Seiten zu (Issue #67)
+    # Inhaltsverzeichnis nennt Blaetter, die Blatt-Map ordnet sie den Seiten zu (Issue #67). Ohne
+    # Inhaltsverzeichnis steht der Titel nur im Schriftfeld des Plans (Schweizer Elektroschema, Issue #93)
     sheet_of = sheet_map(path).page_sheets if path.suffix.lower() == ".pdf" else None
-    titles, parts_pages = page_titles(parsed, sheet_of)
+    block = title_block_titles(path) if schematic else None
+    titles, parts_pages = page_titles(parsed, sheet_of, block)
     folio = detect_folio_style("\n".join(p.raw_text or p.markdown for p in parsed))
     spaced = detect_spaced_terminals("\n".join(p.raw_text or p.markdown for p in parsed))
     # Laufen die Signalwege als Spalten, bekommt der Chat die Beschriftungen je Spalte statt in pdfium-Reihenfolge,
     # die Taster, Klemme und Eingang benachbarter Spalten mischt (Issue #90)
-    schematic = doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf"
     columns = column_texts(path) if schematic else {}
     pieces = [
         Piece(

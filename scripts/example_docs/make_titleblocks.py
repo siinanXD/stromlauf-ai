@@ -14,6 +14,8 @@ Blatt 1 liegt also auf Seite 3. Je Datei ein anderes Schriftfeld:
 - eplan_seitenname.pdf     EPLAN-Seitenname "=ANL+ORT/3", Querverweise auch als "=ANL+ORT/4.7"
 - luecke.pdf               wie "Blatt 3 / 5", aber im Schriftfeld von Blatt 3 fehlt die Nummer
 - ohne_blattnummer.pdf     Schriftfeld ganz ohne Blattnummer
+- elektroschema.pdf        Schweizer Elektroschema (Issue #93): Kastenreihe mit Dokumentart, Anlage, Blatttitel,
+                           Datum ueber dem Zeichner und "Blatt 3" ohne Blattanzahl; der Titel steht nur dort
 
 Das Gold (Seite -> Blatt, wie gezeichnet) steht in gold.json. reportlab schreibt mit invariant=1 gleiche Bytes je
 Lauf. Frei erfundene Anlage, frei verwendbar (MIT-Lizenz des Repos).
@@ -63,6 +65,14 @@ XREFS = [
 ]
 # Hinweistext im unteren Viertel wie in echten Plaenen; darf die Blattnummer des Schriftfelds nicht verdraengen
 NOTES = {2: "Fortsetzung auf Blatt 3", 4: "von Blatt 3"}
+# Datum je Blatt im Schweizer Schriftfeld, wie dort mit ausgeschriebenem Monat
+SWISS_DATES = [
+    "4. März 2019",
+    "12. Oktober 2018",
+    "07. Mai 2020",
+    "23. November 2018",
+    "15. Februar 2021",
+]
 
 
 def col_x(col: float) -> float:
@@ -132,6 +142,32 @@ def field_none(c: canvas.Canvas, sheet: int) -> None:
     _right(c, "Zeichnungs-Nr. MB-02-E-001", 8)
 
 
+def _swiss_block(c: canvas.Canvas, title: str, date: str, sheet: int | None = None) -> None:
+    """Schriftfeld als Kastenreihe: Dokumentart, Anlage, Titel mittig, Datum ueber dem Zeichner, "Blatt" und die
+    Nummer gross daneben. Deckblatt und Inhaltsverzeichnis haben keine Nummer."""
+    c.setLineWidth(0.5)
+    for x in (MARGIN + 130, MARGIN + 260, W - MARGIN - 290):
+        c.line(x, MARGIN, x, FRAME_BOTTOM)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(MARGIN + 8, MARGIN + 24, "Elektroschema")
+    c.setFont("Helvetica", 9)
+    c.drawString(MARGIN + 138, MARGIN + 24, "Verteilung Muster")
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString((MARGIN + 260 + W - MARGIN - 290) / 2, MARGIN + 24, title)
+    c.setFont("Helvetica", 8)
+    c.drawString(W - MARGIN - 282, MARGIN + 36, date)
+    c.drawString(W - MARGIN - 282, MARGIN + 14, "M. Muster")
+    if sheet is not None:
+        c.setFont("Helvetica", 9)
+        c.drawString(W - MARGIN - 162, MARGIN + 24, "Blatt")
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(W - MARGIN - 128, MARGIN + 24, str(sheet))
+
+
+def field_swiss(c: canvas.Canvas, sheet: int) -> None:
+    _swiss_block(c, TITLES[sheet - 1], SWISS_DATES[sheet - 1], sheet)
+
+
 VARIANTS: dict[str, Callable[[canvas.Canvas, int], None]] = {
     "blatt_schraegstrich.pdf": field_slash,
     "blatt_von.pdf": field_von,
@@ -141,10 +177,18 @@ VARIANTS: dict[str, Callable[[canvas.Canvas, int], None]] = {
     "eplan_seitenname.pdf": field_eplan,
     "luecke.pdf": field_gap,
     "ohne_blattnummer.pdf": field_none,
+    "elektroschema.pdf": field_swiss,
 }
 
 
-def cover(c: canvas.Canvas) -> None:
+def _front_block(c: canvas.Canvas, field: Callable[[canvas.Canvas, int], None], title: str) -> None:
+    if field is field_swiss:
+        _swiss_block(c, title, SWISS_DATES[0])
+    else:
+        _title_block(c, title)
+
+
+def cover(c: canvas.Canvas, field: Callable[[canvas.Canvas, int], None]) -> None:
     _frame(c)
     c.setFont("Helvetica-Bold", 24)
     c.drawCentredString(W / 2, H - 150, "Stromlaufplan")
@@ -153,10 +197,10 @@ def cover(c: canvas.Canvas) -> None:
         ["Muster-Band MB-02", "Anlage =ANL+ORT", "Kunde: Beispiel GmbH", "Stand: 2026-09  Rev. A"]
     ):
         c.drawCentredString(W / 2, H - 200 - 20 * index, line)
-    _title_block(c, "Deckblatt")
+    _front_block(c, field, "Deckblatt")
 
 
-def contents(c: canvas.Canvas) -> None:
+def contents(c: canvas.Canvas, field: Callable[[canvas.Canvas, int], None]) -> None:
     """Inhaltsverzeichnis als Tabelle; die letzten Zeilen reichen ins untere Viertel der Seite."""
     _frame(c)
     c.setFont("Helvetica-Bold", 16)
@@ -170,7 +214,7 @@ def contents(c: canvas.Canvas) -> None:
         c.drawString(MARGIN + 40, y, str(index + 1))
         c.drawString(MARGIN + 110, y, title)
         c.drawString(MARGIN + 520, y, "2026-09")
-    _title_block(c, "Inhaltsverzeichnis")
+    _front_block(c, field, "Inhaltsverzeichnis")
 
 
 def draw_sheet(c: canvas.Canvas, sheet: int, field: Callable[[canvas.Canvas, int], None]) -> None:
@@ -203,16 +247,17 @@ def draw_sheet(c: canvas.Canvas, sheet: int, field: Callable[[canvas.Canvas, int
             c.drawString(col_x(col), y - 10, f"=ANL+ORT{ref}")
     if sheet in NOTES:
         c.drawString(col_x(1), 112, NOTES[sheet])
-    _title_block(c, TITLES[sheet - 1])
+    if field is not field_swiss:
+        _title_block(c, TITLES[sheet - 1])
     field(c, sheet)
 
 
 def build(out: Path, field: Callable[[canvas.Canvas, int], None]) -> None:
     c = canvas.Canvas(str(out), pagesize=(W, H), invariant=1)
     c.setTitle(f"Schriftfeld-Fixture {out.stem}")
-    cover(c)
+    cover(c, field)
     c.showPage()
-    contents(c)
+    contents(c, field)
     c.showPage()
     for sheet in range(1, TOTAL + 1):
         draw_sheet(c, sheet, field)
