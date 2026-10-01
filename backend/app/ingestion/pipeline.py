@@ -17,7 +17,7 @@ from app.embeddings import embeddings
 from app.ingestion import awl_parser, doctype, ocr
 from app.ingestion.docling_parser import ParsedPage, parse_document
 from app.ingestion.page_titles import page_titles
-from app.ingestion.pdf_layout import SheetMap, sheet_map
+from app.ingestion.pdf_layout import SheetMap, column_texts, sheet_map
 from app.ingestion.tags import detect_folio_style, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
@@ -354,9 +354,15 @@ def document_pieces(
     sheet_of = sheet_map(path).page_sheets if path.suffix.lower() == ".pdf" else None
     titles, parts_pages = page_titles(parsed, sheet_of)
     folio = detect_folio_style("\n".join(p.raw_text or p.markdown for p in parsed))
+    # Laufen die Signalwege als Spalten, bekommt der Chat die Beschriftungen je Spalte statt in pdfium-Reihenfolge,
+    # die Taster, Klemme und Eingang benachbarter Spalten mischt (Issue #90)
+    schematic = doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf"
+    columns = column_texts(path) if schematic else {}
     pieces = [
         Piece(
-            p.text,
+            p.with_labels(columns[p.page], "Beschriftungen je Spalte")
+            if p.page in columns
+            else p.text,
             kind="bom" if p.page in parts_pages else "text",
             page=p.page,
             section=titles.get(p.page, "") if p.page else "",
