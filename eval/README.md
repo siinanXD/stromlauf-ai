@@ -215,6 +215,8 @@ python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet 
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 python eval/run_eval.py --resume eval/results/2026-09-27_10-12-33.json   # abgebrochenen Lauf fortsetzen
 python eval/run_eval.py --model openai:gpt-5-mini --only "Foerderband FB-01" --max-cost 1.00   # anderer Provider, gleiche Fragen
+python eval/run_eval.py --model openai:gpt-5.4-mini@none --out eval/results/lauf_mini.json       # Aufwand hinter @, feste Ergebnisdatei (parallele Laeufe)
+python eval/run_eval.py --model ollama:qwen3.5:4b --only fb01                                  # lokales Modell ueber Ollama, kostenlos
 python eval/compare_runs.py eval/results/referenz_2026-09-28_claude-sonnet-5.json eval/results/referenz_2026-09-28_gpt-5-mini.json --out eval/results/vergleich_2026-09-28.md   # zwei Laeufe nebeneinander, ohne Kosten
 
 python scripts/acceptance.py [--api ...] [--load] [--strict]              # Abnahme-Nachweise, kein Modellaufruf
