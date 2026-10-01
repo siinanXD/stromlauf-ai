@@ -550,7 +550,19 @@ def _signal_paths(segments: list[list[_Token]], columns: list[Column]) -> list[t
     return sorted((sum(xs) / len(xs), n) for n, xs in best.items())
 
 
-def _page_column_text(page: pdfium.PdfPage) -> str | None:
+@dataclass
+class _ColumnLayout:
+    """Beschriftungen einer Seite, deren Signalwege als Spalten laufen: (Spalte, Woerter) je Beschriftung, Hinweise
+    ueber mehrere Spalten und das Schriftfeld."""
+
+    placed: list[tuple[int, list[_Token]]]
+    notes: list[list[_Token]]
+    title: list[_Token]
+
+
+def column_layout(page: pdfium.PdfPage) -> _ColumnLayout | None:
+    """Beschriftungen je Strompfad mit Wortpositionen (Issue #90); None ohne Spaltenraster, bei gedrehter Seite oder
+    wenn die Kanaele als Zeilen laufen. Grundlage fuer column_texts und den Leitungsleser (Lage im Plan)."""
     tokens = _tokens(page)
     columns, header = _column_grid(tokens)
     if not columns or _text_angle(page.get_textpage()) != 0:
@@ -575,15 +587,24 @@ def _page_column_text(page: pdfium.PdfPage) -> str | None:
         return n if abs(path_x - x) <= PATH_REACH * width else _column_at(x, columns)
 
     placed = [(column_of(s), s) for s in segments]
+    title = [t for t in tokens if id(t) not in numbers and t.top >= title_top]
+    return _ColumnLayout(placed, notes, title)
+
+
+def _page_column_text(page: pdfium.PdfPage) -> str | None:
+    layout = column_layout(page)
+    if layout is None:
+        return None
+    placed = layout.placed
     blocks = [
         f"Spalte {n}:\n" + "\n".join(_reading_order([s for c, s in placed if c == n]))
         for n in sorted({c for c, _ in placed})
     ]
-    if notes:
-        blocks.append("Hinweise:\n" + "\n".join(_reading_order(notes)))
-    title = [t for t in tokens if id(t) not in numbers and t.top >= title_top]
-    if title:
-        blocks.append("Schriftfeld:\n" + "\n".join(_reading_order(_segments(title, WORD_GAP))))
+    if layout.notes:
+        blocks.append("Hinweise:\n" + "\n".join(_reading_order(layout.notes)))
+    if layout.title:
+        title = _segments(layout.title, WORD_GAP)
+        blocks.append("Schriftfeld:\n" + "\n".join(_reading_order(title)))
     return "\n\n".join(blocks)
 
 
@@ -604,7 +625,8 @@ def column_texts(path: Path) -> dict[int, str]:
             pdf.close()
 
 
-_PIN = re.compile(r"A[12]|[1-9][1-8]|[1-6]")  # Spule, Kontakt mit Ordnungs- und Funktionsziffer, Hauptkontakt
+# Spule, Kontakt mit Ordnungs- und Funktionsziffer, Hauptkontakt
+_PIN = re.compile(r"A[12]|[1-9][1-8]|[1-6]")
 _DEVICE_TOKEN = re.compile(r"(?:[=+][\w.+=]*?)?(-[A-Z]{1,3}\d{1,4}(?:\.\d{1,3})?)")
 _REF_TOKEN = re.compile(r"/\d{1,4}\.\d{1,2}")
 _STRIP_TOKEN = re.compile(r"X\d{1,4}")
@@ -639,18 +661,24 @@ def _nearest(spot: _Spot, devices: list[tuple[str, _Spot]], reach: float) -> str
     return ranked[0][1]
 
 
-def _page_pins(spots: list[_Spot]) -> str:
+_Mirror = tuple[str, list[_Spot], _Spot]  # Kennzeichen der Spule, Nummern, Verweis
+
+
+def _pin_parts(
+    spots: list[_Spot],
+) -> tuple[list[tuple[str, _Spot]], list[_Mirror], list[tuple[str, _Spot]]]:
+    """Kennzeichen, Kontaktspiegel und einzelne Nummern am Symbol (Kennzeichen, Nummer) einer Seite."""
     # erst hier importiert: tags importiert die Modelle, pdf_layout soll ohne sie ladbar bleiben
     from app.ingestion.tags import pin_kind
 
     devices = [(m.group(1), s) for s in spots if (m := _DEVICE_TOKEN.fullmatch(s.text))]
     if not devices:
-        return ""
+        return [], [], []
     # Klemmleisten ohne Minus ("X1041 3", Schweizer Elektroschema) behalten ihre Klemmennummern: Anker ohne Kennzeichen
     anchors = devices + [("", s) for s in spots if _STRIP_TOKEN.fullmatch(s.text)]
     pins = [s for s in spots if _PIN.fullmatch(s.text)]
     used: set[int] = set()
-    lines: list[tuple[float, float, str]] = []
+    mirrors: list[_Mirror] = []
     # Kontaktspiegel: Nummern links neben einem Verweis in derselben Zeile, unter einer Spule
     for ref in (s for s in spots if _REF_TOKEN.fullmatch(s.text)):
         beside = (p for p in pins if abs(p.y - ref.y) <= MIRROR_ROW and 0 < ref.x - p.x <= 40)
@@ -663,16 +691,36 @@ def _page_pins(spots: list[_Spot]) -> str:
         if tag is None or not all(pin_kind(f"{tag}:{p.text}") for p in row):
             continue
         used.update(id(p) for p in row)
-        contact = " ".join(f"{tag}:{p.text}" for p in row)
-        lines.append((row[0].y, row[0].x, f"{contact} {ref.text}"))
+        mirrors.append((tag, row, ref))
     # einzelne Nummern am Symbol
-    loose: dict[str, list[_Spot]] = {}
+    loose: list[tuple[str, _Spot]] = []
     for pin in pins:
         if id(pin) in used:
             continue
         tag = _nearest(pin, anchors, PIN_REACH)
         if tag and pin_kind(f"{tag}:{pin.text}"):
-            loose.setdefault(tag, []).append(pin)
+            loose.append((tag, pin))
+    return devices, mirrors, loose
+
+
+def pin_spots(spots: list[_Spot]) -> list[tuple[str, _Spot]]:
+    """Einzelne Anschlussnummern am Schaltzeichen mit ihrer Wortposition, etwa ("-K1:A1", Nummer), nach denselben
+    Regeln wie pin_labels. Kontaktspiegel fehlen: Sie stehen unter der Spule, nicht am Kontakt. Fuer den
+    Leitungsleser (plan_wires), der Leitungsenden so benennt."""
+    return [(f"{tag}:{pin.text}", pin) for tag, pin in _pin_parts(spots)[2]]
+
+
+def _page_pins(spots: list[_Spot]) -> str:
+    devices, mirrors, pairs = _pin_parts(spots)
+    if not devices:
+        return ""
+    lines: list[tuple[float, float, str]] = []
+    for tag, row, ref in mirrors:
+        contact = " ".join(f"{tag}:{p.text}" for p in row)
+        lines.append((row[0].y, row[0].x, f"{contact} {ref.text}"))
+    loose: dict[str, list[_Spot]] = {}
+    for tag, pin in pairs:
+        loose.setdefault(tag, []).append(pin)
     anchor = {tag: d for tag, d in devices}
     for tag, found in loose.items():
         found.sort(key=lambda p: (p.y, p.x))

@@ -68,6 +68,13 @@ jobs:
         run: |
           python eval/run_ingest.py --gold eval/ingest_gold/ur01.json --min 0.95 --types device,terminal,plc_address,device_pin --min-for device_pin=0.90
           python eval/run_ingest.py --gold eval/ingest_gold/pm1_ar.json --min 0.95 --types device,terminal,plc_address,device_pin --min-for device_pin=0.90
+      # Leitungsleser (Stoerfall-Arbeitsflaeche): Kanten aus dem Plan gegen das gezeichnete Gold und gegen die Tabellen
+      # derselben Maschine. Eine falsche Verbindung schadet mehr als eine fehlende: Gate nur auf die Precision.
+      - name: "Planleser FB-01, UR-01, PM1-AR (Leitungen gegen Gold und Tabellen, Precision >= 0,95, Recall berichtet)"
+        run: |
+          python eval/run_plan_graph.py --gold eval/ingest_gold/fb01.json --min-precision 0.95
+          python eval/run_plan_graph.py --gold eval/ingest_gold/ur01.json --min-precision 0.95
+          python eval/run_plan_graph.py --gold eval/ingest_gold/pm1_ar.json --min-precision 0.95
       # Klemmen neben dem Klemmenkreis liest die OCR als "O X1:2" (gemessen 0,81, Issue #65); Schwelle darum 0,75
       - name: "Ingest-Benchmark Voll-Scan mit OCR (Issue #66, RapidOCR lokal auf der CPU)"
         run: >-
@@ -81,6 +88,8 @@ jobs:
           path: |
             eval/results/ingest_*.json
             eval/results/ingest_*.md
+            eval/results/plan_graph_*.json
+            eval/results/plan_graph_*.md
           retention-days: 14
 
   # Das Einlesen der Quellen (Embeddings mit bge-m3 auf der CPU) kostet die meiste Zeit: nacheinander in einem Job
