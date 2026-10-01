@@ -505,6 +505,10 @@ funktionieren wie auf einem Text-PDF; das Original bleibt neben der Upload-Datei
 Seite, `off` keine. Grenze: Klemmenbeschriftungen direkt neben dem Klemmensymbol liest die OCR oft ohne Minus
 („X1:2“ statt „-X1:2“); im Beispiel-Scan werden 81 % der Klemmen gefunden, Geräte und SPS-Adressen zu 99 bis 100 %.
 
+Laufen die Signalwege eines Stromlaufplans als Spalten, etwa Taster, Klemme und SPS-Eingang untereinander, ordnet die
+Ingestion die Beschriftungen je Spalte. So bekommt der Chat zusammen, was im Plan zusammengehört, ohne die Seite als
+Bild anzusehen. Seiten, deren Kanäle als Zeilen laufen, bleiben in Lesereihenfolge.
+
 ## Grenzen
 
 Der PDF-Export ist der Vertrag: Stromlauf AI liest, was ein CAE-Werkzeug als PDF ausgibt (dazu Stücklisten und

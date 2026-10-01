@@ -119,6 +119,14 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   „Nicht geprueft: Blatt-Map unsicher“; `page_titles` ordnet das Inhaltsverzeichnis ueber `SheetMap.page_sheets` zu.
   Fixtures `examples/schriftfeld/` (Generator `scripts/example_docs/make_titleblocks.py`, Gold `gold.json`); QET-Gold
   nur lokal per `eval/qet_gold.py` (Testdaten per `scripts/fetch_testdata.py` unter `testdata/`).
+- Text je Spalte (Issue #90): `pdf_layout.column_texts` ordnet eine Stromlaufplan-Seite je Spalte, wenn mindestens drei
+  SPS-Adressen in einer Zeile nebeneinander stehen (Kanaele als Spalten: Taster, Klemme, Eingang untereinander).
+  Strompfad = x der Adresse; Beschriftungen bis 0,75 Spaltenbreiten gehoeren zum naechsten Strompfad (Kennzeichen
+  links vom Pfad ragen oft in die Nachbarspalte), sonst zur Spalte der Kopfzeile; Saetze breiter als zwei Spalten
+  stehen unter „Hinweise“, alles ab der Blattnummer unter „Schriftfeld“. Seiten mit Kanaelen als Zeilen (DI/DO-Blaetter
+  von FB-01, UR-01, PM1-AR) und gedrehte Seiten behalten den Rohtext. `document_pieces` nutzt das nur fuer
+  `schematic`-PDFs (`### Beschriftungen je Spalte`); der Kennzeichen-Index bleibt gleich. Die Kopfzeile darf bei 0
+  beginnen (`page_columns`, Querverweise wie `/40.0`). Tests `test_column_text.py` mit synthetischen Seiten.
 - Chat je Maschine: Tab „Chat“ (`MachineChatTab.tsx`, gemeinsames `chat/ChatPanel.tsx`), `ChatRequest.machine_id`
   erzwingt Scope = Quelle der Maschine (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`).
   Werkzeug `search_faults` durchsucht Fehlerlisten ALLER Maschinen (bewusst global). Chats je Maschine =
