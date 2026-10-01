@@ -131,7 +131,8 @@ test.describe("mit gespeichertem Störfall", () => {
 
   test("Alte Links: ?tab=… öffnet den Aufbau, ?tab=chat die Störfälle", async ({ page }) => {
     await page.goto(`/werk/maschine/${MACHINE_ID}?tab=schaltschrank`);
-    await expect(page.getByRole("tab", { name: "Schaltschrank" })).toHaveAttribute("aria-selected", "true");
+    // der Aufbau ist ein eigener Bundle-Teil; im Dev-Server wird er beim ersten Aufruf erst uebersetzt
+    await expect(page.getByRole("tab", { name: "Schaltschrank" })).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
     await page.goto(`/werk/maschine/${MACHINE_ID}?tab=chat`);
     await expect(page.getByTestId("incident-input")).toBeVisible();
     await expect(page.getByTestId("incident-list")).toContainText("-K1 zieht nicht an");
@@ -152,5 +153,58 @@ test.describe("mit gespeichertem Störfall", () => {
     await expect(page.getByRole("list", { name: "Zonen der Maschine" })).toBeVisible();
     const aufbau = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     expect(aufbau.violations, JSON.stringify(aufbau.violations, null, 1)).toEqual([]);
+  });
+});
+
+test.describe("Senden scheitert vor dem Anlegen", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockApi(page, { withHistory: false, chatFailures: 1 });
+  });
+
+  test("Eintrag wird 'nicht angelegt' mit Satz statt Servertext; Erneut versuchen legt an", async ({ page }) => {
+    await page.goto(`/werk/maschine/${MACHINE_ID}`);
+    await report(page);
+    const error = page.getByTestId("answer-error");
+    await expect(error.getByRole("alert")).toHaveText("Der KI-Zugang ist nicht eingerichtet. Die Fehlerliste oben funktioniert trotzdem.");
+    await expect(error.getByRole("alert")).not.toContainText("API_KEY");
+    await expect(error.locator("details")).not.toHaveAttribute("open", "");
+    await expect(page.getByTestId("block-faults")).toContainText("Band steht");
+    await expect(page.getByTestId("incident-status")).toContainText("nicht angelegt");
+
+    // in der Liste: kein Spinner, Text bleibt, "Erneut versuchen" sendet noch einmal
+    if (!wide(page)) await page.getByRole("button", { name: "Zurück zur Liste" }).click();
+    const list = page.getByTestId("incident-list");
+    await expect(list.locator('[data-failed="true"]')).toContainText("Störung Motorschutz Förderband");
+    await expect(list.locator('[data-failed="true"] .animate-spin')).toHaveCount(0);
+    await list.getByRole("button", { name: /erneut senden/ }).click();
+    await expect(page.getByTestId("referenced-parts")).toBeVisible();
+    await expect(page).toHaveURL(/fall=conv-1/);
+    await expect(page.getByTestId("incident-status")).toContainText("Offen");
+  });
+});
+
+test.describe("1024 bis 1279 px", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockApi(page);
+  });
+
+  test("Mit offenem Detail wird die Liste zur schmalen Leiste, danach wieder breit", async ({ page }) => {
+    test.skip(page.viewportSize()!.width < 1024, "nur am PC");
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.goto(`/werk/maschine/${MACHINE_ID}?fall=conv-1`);
+    await page.getByTestId("referenced-parts").getByRole("button", { name: "Bauteil -K1 öffnen" }).click();
+    await expect(page.getByTestId("detail-pane")).toBeVisible();
+    const rail = page.getByTestId("incident-rail");
+    await expect(rail).toBeVisible();
+    await expect(page.getByTestId("incident-input")).toBeHidden();
+    await expect(rail.getByRole("button", { name: "-K1 zieht nicht an, Offen" })).toHaveAttribute("aria-current", "true");
+    const chatWidth = await page.getByTestId("incident-chat").evaluate((el) => el.getBoundingClientRect().width);
+    expect(chatWidth).toBeGreaterThan(400);
+    await noHorizontalScroll(page);
+
+    await page.getByTestId("detail-pane").getByRole("button", { name: "Detail schließen" }).click();
+    await expect(page.getByTestId("detail-pane")).toBeHidden();
+    await expect(rail).toBeHidden();
+    await expect(page.getByTestId("incident-input")).toBeVisible();
   });
 });

@@ -175,8 +175,10 @@ function json(route: Route, body: unknown, status = 200) {
  * withHistory: conv-1 gibt es schon (Verlauf, Reload). Ohne legt erst der Chat-Stream conv-1 an, wie der Server.
  * Der Zustand gilt je Seite, PATCH aendert outcome und finding.
  */
-export async function mockApi(page: Page, { withHistory = true }: { withHistory?: boolean } = {}) {
+export async function mockApi(page: Page, { withHistory = true, chatFailures = 0 }: { withHistory?: boolean; chatFailures?: number } = {}) {
   const conversations: MockConversation[] = withHistory ? [{ ...CONVERSATION_1 }] : [];
+  // chatFailures: so oft antwortet POST /api/chat mit 400 wie ohne Modell-Schluessel, bevor er gelingt
+  let failuresLeft = chatFailures;
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
@@ -224,6 +226,10 @@ export async function mockApi(page: Page, { withHistory = true }: { withHistory?
     }
     if (path === `/api/machines/${MACHINE_ID}/fault-hits`) return json(route, FAULT_HITS);
     if (path === "/api/chat" && method === "POST") {
+      if (failuresLeft > 0) {
+        failuresLeft -= 1;
+        return json(route, { detail: "ANTHROPIC_API_KEY fehlt fuer Modell 'claude-sonnet-5'. In .env eintragen und Backend neu starten." }, 400);
+      }
       if (!conversations.some((c) => c.id === "conv-1")) conversations.unshift({ ...CONVERSATION_1, updated_at: "2026-10-01T08:00:00Z" });
       return route.fulfill({ status: 200, contentType: "text/event-stream", body: CHAT_STREAM });
     }
