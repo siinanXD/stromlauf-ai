@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { AnswerError, describeChatError } from "./chatError";
+import { AnswerError, ChatNotice, describeChatError, homeNotice } from "./chatError";
 
 const MISSING_KEY = "ANTHROPIC_API_KEY fehlt fuer Modell 'claude-sonnet-5'. In .env eintragen und Backend neu starten.";
 
@@ -39,5 +39,34 @@ describe("AnswerError", () => {
     expect(line?.[2]).not.toMatch(/API_KEY|\.env|claude-sonnet/);
     expect(html).toMatch(/<details class="[^"]*text-muted-foreground[^"]*"><summary[^>]*>Details<\/summary>/);
     expect(html).not.toContain("<details open");
+  });
+});
+
+describe("Hinweis über dem werksweiten Chat (Startseite)", () => {
+  it("builds the raw notice from health or an unreachable server, nothing when all is fine", () => {
+    expect(homeNotice({ health: { api_key_configured: true }, unreachable: null })).toBeNull();
+    expect(homeNotice({ health: null, unreachable: null })).toBeNull();
+    expect(homeNotice({ health: { api_key_configured: false }, unreachable: null })).toContain("ANTHROPIC_API_KEY");
+    expect(homeNotice({ health: null, unreachable: "Backend unter http://localhost:8010 nicht erreichbar: Failed to fetch" })).toContain("8010");
+  });
+
+  it("shows a sentence without the fault list for a missing key; env var and file only under Details", () => {
+    const html = renderToStaticMarkup(<ChatNotice raw={homeNotice({ health: { api_key_configured: false }, unreachable: null })!} />);
+    const sentence = html.match(/role="status"[^>]*><p>([^<]*)<\/p>/)?.[1] ?? "";
+    expect(sentence).toBe("Der KI-Zugang ist nicht eingerichtet. Hochladen und Verwalten funktionieren trotzdem.");
+    expect(sentence).not.toMatch(/Fehlerliste|API_KEY|\.env/);
+    expect(html).toMatch(/<details[^>]*><summary[^>]*>Details<\/summary><p[^>]*>ANTHROPIC_API_KEY fehlt/);
+    expect(html).not.toContain("<details open");
+  });
+
+  it("says there is no connection for an unreachable server, port and address only under Details", () => {
+    const html = renderToStaticMarkup(<ChatNotice raw="Backend unter http://localhost:8010 nicht erreichbar: Failed to fetch" />);
+    const sentence = html.match(/role="status"[^>]*><p>([^<]*)<\/p>/)?.[1] ?? "";
+    expect(sentence).toBe("Keine Verbindung zum Server.");
+    expect(sentence).not.toMatch(/8010|localhost|Antwort/);
+  });
+
+  it("never mentions the fault list in the global chat's answer errors", () => {
+    expect(describeChatError("ANTHROPIC_API_KEY fehlt").message).toBe("Der KI-Zugang ist nicht eingerichtet.");
   });
 });
