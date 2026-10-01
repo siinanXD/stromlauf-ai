@@ -130,7 +130,10 @@ def test_titel_aus_dem_schriftfeld_stimmen_mit_dem_inhaltsverzeichnis_ueberein(n
     assert title_block_titles(SCHRIFTFELD / name) == dict(enumerate(SHEET_TITLES, start=3))
 
 
-def _ocr_pdf(tmp_path: Path, pages: list[list[tuple[str, float, float, float, float]]]) -> Path:
+_Line = tuple[str, float, float, float, float]
+
+
+def _ocr_pdf(tmp_path: Path, pages: list[list[_Line]]) -> Path:
     """Leere Seiten mit unsichtbaren Zeilen (Text, links, rechts, oben, Hoehe; relativ, Ursprung oben links)."""
     import pypdfium2 as pdfium
 
@@ -150,6 +153,12 @@ def _ocr_pdf(tmp_path: Path, pages: list[list[tuple[str, float, float, float, fl
     return out
 
 
+def _fit(text: str, x0: float, top: float, height: float = 0.016) -> _Line:
+    """Zeile so breit wie ihr Text, wie eine OCR-Box. In einer gedehnten Box ruecken Woerter bis an WORD_GAP
+    auseinander, und je nach Schrift der Plattform wird ein Wort zum eigenen Feld (so geschehen unter Linux)."""
+    return (text, x0, x0 + 0.4 * height * len(text), top, height)
+
+
 def test_zeile_an_der_grenze_des_schriftfelds_zaehlt_ganz_oder_gar_nicht(tmp_path):
     """Schneidet die Obergrenze des Schriftfelds eine Zeile, ragen Grossbuchstaben und Oberlaengen darueber, die
     Kleinbuchstaben nicht. Wortreste wie "rennen" duerfen kein zweites Feld werden, sonst fehlt der Titel."""
@@ -159,7 +168,7 @@ def test_zeile_an_der_grenze_des_schriftfelds_zaehlt_ganz_oder_gar_nicht(tmp_pat
     pages = [
         [
             (f"Station {station}", 0.05, 0.30, 0.895, 0.05),
-            (title, 0.40, 0.58, 0.93, 0.016),
+            _fit(title, 0.40, 0.93),
             ("Blatt", 0.80, 0.86, 0.93, 0.016),
             (str(sheet), 0.88, 0.90, 0.93, 0.016),
         ]
@@ -193,10 +202,10 @@ def test_pipeline_titel_aus_dem_schriftfeld_ohne_inhaltsverzeichnis(tmp_path, mo
         [
             ("-K1", 0.40, 0.44, 0.40, 0.016),
             ("Elektroschema", 0.03, 0.15, 0.93, 0.016),
-            ("Verteilung Muster", 0.18, 0.32, 0.93, 0.016),
-            (title, 0.40, 0.58, 0.93, 0.016),
-            (date, 0.65, 0.76, 0.915, 0.012),
-            ("M. Muster", 0.65, 0.73, 0.945, 0.012),
+            _fit("Verteilung Muster", 0.18, 0.93),
+            _fit(title, 0.40, 0.93),
+            _fit(date, 0.65, 0.915, 0.012),
+            _fit("M. Muster", 0.65, 0.945, 0.012),
             ("Blatt", 0.80, 0.86, 0.93, 0.016),
             (str(sheet), 0.88, 0.91, 0.93, 0.016),
         ]
