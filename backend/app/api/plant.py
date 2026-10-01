@@ -4,8 +4,9 @@ import logging
 import shutil
 import uuid
 from pathlib import Path
+from typing import TypeVar
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -19,6 +20,7 @@ from app.llm import MissingKeyError
 from app.models import (
     CabinetHotspot,
     CabinetImage,
+    Conversation,
     DiagnosisSession,
     DocStatus,
     Document,
@@ -33,6 +35,8 @@ from app.models import (
 )
 from app.schemas import (
     CabinetOut,
+    ExperienceHit,
+    FaultHits,
     FaultIn,
     FaultOut,
     FlowIn,
@@ -44,6 +48,7 @@ from app.schemas import (
     HotspotIn,
     HotspotOut,
     HotspotUpdate,
+    IncidentHit,
     MachineCreate,
     MachineDetail,
     MachineListItem,
@@ -56,6 +61,7 @@ from app.schemas import (
 )
 from app.tenancy import same_workspace
 from app.tracing import vision_trace
+from app.werk.faults import FaultQuery
 from app.werk.site import HALL_KINDS, key_figure
 
 logger = logging.getLogger(__name__)
@@ -374,6 +380,93 @@ def update_fault(fault_id: str, body: FaultIn, session: Session = Depends(get_se
 def delete_fault(fault_id: str, session: Session = Depends(get_session)):
     session.delete(_get(session, FaultEntry, fault_id, "Fehlereintrag"))
     session.commit()
+
+
+MAX_FAULT_HITS = 5
+MAX_FAULT_QUERY = 1000  # Zeichen; eine Meldung, kein Aufsatz
+Hit = TypeVar("Hit")
+
+
+def _fault_row(fault: FaultEntry) -> dict:
+    return {
+        "code": fault.code,
+        "symptom": fault.symptom,
+        "cause": fault.cause,
+        "fix": fault.fix,
+        "doc_ref": fault.doc_ref,
+        "tags": list(fault.tags or []),
+    }
+
+
+def best_hits(scored: list[tuple[int, Hit]], limit: int = MAX_FAULT_HITS) -> list[Hit]:
+    """Hoechste Punktzahl zuerst, bei Gleichstand in der Reihenfolge der Eingabe; hoechstens limit."""
+    return [item for _score, item in sorted(scored, key=lambda pair: -pair[0])[:limit]]
+
+
+@router.get("/machines/{machine_id}/fault-hits", response_model=FaultHits)
+def fault_hits(
+    machine_id: str, q: str = Query(default=""), session: Session = Depends(get_session)
+):
+    """Zu einer Meldung: Eintraege der Fehlerliste dieser Maschine, Treffer an anderen Maschinen (Erfahrung) und
+    erledigte Stoerfaelle derselben Quelle mit Befund. Deterministisch und ohne Modell, Trefferlogik wie das
+    Agenten-Werkzeug search_faults (app/werk/faults.py). Eine leere Meldung trifft nichts."""
+    machine = _get(session, Machine, machine_id, "Maschine")
+    query = FaultQuery(q[:MAX_FAULT_QUERY])
+    if query.empty:
+        return FaultHits()
+    own: list[tuple[int, FaultOut]] = []
+    other: list[tuple[int, ExperienceHit]] = []
+    rows = session.execute(
+        select(FaultEntry, Machine.name)
+        .join(Machine, FaultEntry.machine_id == Machine.id)
+        .order_by(Machine.name, FaultEntry.code, FaultEntry.id)
+    ).all()
+    for fault, machine_name in rows:
+        score = query.score(_fault_row(fault))
+        if not score:
+            continue
+        out = FaultOut.model_validate(fault)
+        if fault.machine_id == machine.id:
+            own.append((score, out))
+        else:
+            other.append(
+                (
+                    score,
+                    ExperienceHit(
+                        machine_id=fault.machine_id, machine_name=machine_name, fault=out
+                    ),
+                )
+            )
+    incidents: list[tuple[int, IncidentHit]] = []
+    if machine.source_id:
+        resolved = session.scalars(
+            select(Conversation)
+            .where(Conversation.outcome == "resolved")
+            .order_by(Conversation.updated_at.desc())
+        ).all()
+        for conversation in resolved:
+            # Stoerfaelle der Maschine: Chats mit genau ihrer Quelle (wie /api/conversations?source_id=)
+            if (
+                list(conversation.source_ids or []) != [machine.source_id]
+                or not conversation.finding.strip()
+            ):
+                continue
+            score = query.score({"symptom": conversation.title, "cause": conversation.finding})
+            if score:
+                incidents.append(
+                    (
+                        score,
+                        IncidentHit(
+                            conversation_id=conversation.id,
+                            title=conversation.title,
+                            finding=conversation.finding,
+                            updated_at=conversation.updated_at,
+                        ),
+                    )
+                )
+    return FaultHits(
+        faults=best_hits(own), experience=best_hits(other), incidents=best_hits(incidents)
+    )
 
 
 # --- Schaltschrank --------------------------------------------------------------------------

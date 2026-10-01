@@ -253,6 +253,31 @@ class FaultOut(FaultIn):
     machine_id: str
 
 
+class ExperienceHit(BaseModel):
+    """Treffer in der Fehlerliste einer anderen Maschine: Erfahrung, kein Beleg fuer diese Maschine."""
+
+    machine_id: str
+    machine_name: str
+    fault: FaultOut
+
+
+class IncidentHit(BaseModel):
+    """Erledigter Stoerfall derselben Quelle mit Befund."""
+
+    conversation_id: str
+    title: str
+    finding: str
+    updated_at: datetime
+
+
+class FaultHits(BaseModel):
+    """GET /api/machines/{id}/fault-hits: je Liste hoechstens 5 Treffer, der beste zuerst."""
+
+    faults: list[FaultOut] = []
+    experience: list[ExperienceHit] = []
+    incidents: list[IncidentHit] = []
+
+
 class HotspotIn(BaseModel):
     tag: str = ""
     label: str = ""
