@@ -256,7 +256,7 @@ export function ChatPanel({
       {banner && <div className="border-b-[0.5px] border-border bg-primary-soft px-4 py-2 text-footnote">{banner}</div>}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="relative min-h-0 flex-1 overflow-y-auto"
         onScroll={(event) => {
           if (event.currentTarget.scrollTop < 120 && before !== null && older === "idle") void loadOlder();
         }}

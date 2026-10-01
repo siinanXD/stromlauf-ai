@@ -145,7 +145,7 @@ export function IncidentList({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {loading && incidents.length === 0 ? (
           <Skeleton />
         ) : failed && incidents.length === 0 ? (
