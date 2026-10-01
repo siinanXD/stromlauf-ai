@@ -871,6 +871,12 @@ def test_preise_der_modelle_vom_2026_10_02():
     ) == (0.0, 0.0, 0.0)
 
 
+def test_run_eval_schreibt_wahlweise_in_eine_genannte_datei(tmp_path):
+    run_eval = _load("run_eval")
+    assert run_eval.output_path(None, "lauf_1") == run_eval.RESULTS / "lauf_1.json"
+    assert run_eval.output_path(tmp_path / "haiku.json", "lauf_1") == tmp_path / "haiku.json"
+
+
 def test_parse_sse_summiert_cache_tokens_und_ask_rechnet_sie_ein():
     lines = [
         "event: usage",
