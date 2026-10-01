@@ -213,7 +213,7 @@
   --color-grid: var(--grid);
   --color-line: var(--line);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
