@@ -6,6 +6,9 @@
  *   node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010 [--machine "Foerderband FB-01"]
  *   node frontend/scripts/lighthouse-a11y.mjs --url "http://localhost:3100/werk/maschine/<id>?tab=chat"
  *   Optionen: --min 0.9  --out eval/results  --desktop (sonst Mobil-Emulation wie bei Lighthouse ueblich)
+ *             --performance: misst zusaetzlich die Kategorie Performance (mobil, Ziel >= 90 laut Spec der
+ *             Stoerfall-Arbeitsflaeche) und berichtet Wert und Kennzahlen; der Exit-Code haengt weiter nur an
+ *             Accessibility, bis drei stabile Laeufe ein Gate rechtfertigen.
  *
  * Startet Lighthouse als CLI ueber npx in fester Version (kein Eintrag in package.json), nur die Kategorie
  * Accessibility, schreibt <out>/lighthouse-a11y.report.{json,html} und beendet mit Exit 1 unter --min.
@@ -22,7 +25,7 @@ import { fileURLToPath } from "node:url";
 const LIGHTHOUSE = "lighthouse@13.5.0";
 
 function parseArgs(argv) {
-  const options = { base: "http://localhost:3100", api: "http://localhost:8010", machine: "Foerderband FB-01", min: 0.9, out: "eval/results", desktop: false, url: "" };
+  const options = { base: "http://localhost:3100", api: "http://localhost:8010", machine: "Foerderband FB-01", min: 0.9, out: "eval/results", desktop: false, url: "", performance: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => argv[(i += 1)];
@@ -33,6 +36,7 @@ function parseArgs(argv) {
     else if (arg === "--min") options.min = Number(next());
     else if (arg === "--out") options.out = next();
     else if (arg === "--desktop") options.desktop = true;
+    else if (arg === "--performance") options.performance = true;
     else if (arg === "--help" || arg === "-h") {
       console.log(readFileSync(new URL(import.meta.url), "utf8").split("*/")[0]);
       process.exit(0);
@@ -86,12 +90,33 @@ export function failingAudits(report) {
     .map((audit) => ({ id: audit.id, title: audit.title, items: audit.details?.items?.length ?? 0 }));
 }
 
-export function runLighthouse(url, outDir, desktop) {
+/** Kennzahlen der Kategorie Performance, wie Lighthouse sie anzeigt (displayValue), fuer den Bericht. */
+const PERFORMANCE_METRICS = [
+  ["first-contentful-paint", "First Contentful Paint"],
+  ["largest-contentful-paint", "Largest Contentful Paint"],
+  ["total-blocking-time", "Total Blocking Time"],
+  ["cumulative-layout-shift", "Cumulative Layout Shift"],
+  ["speed-index", "Speed Index"],
+];
+
+/** Performance-Wert (0..1) und Kennzahlen; null, wenn der Bericht die Kategorie nicht enthaelt. */
+export function performanceSummary(report) {
+  const category = report.categories?.performance;
+  if (!category || typeof category.score !== "number") return null;
+  const metrics = PERFORMANCE_METRICS.map(([id, label]) => ({ id, label, value: report.audits?.[id]?.displayValue ?? "–" }));
+  return { score: category.score, metrics };
+}
+
+export function lighthouseCategories(performance) {
+  return performance ? "accessibility,performance" : "accessibility";
+}
+
+export function runLighthouse(url, outDir, desktop, performance = false) {
   mkdirSync(outDir, { recursive: true });
   const outputPath = join(outDir, "lighthouse-a11y");
   const args = [
     url,
-    "--only-categories=accessibility",
+    `--only-categories=${lighthouseCategories(performance)}`,
     "--output=json",
     "--output=html",
     `--output-path=${outputPath}`,
@@ -109,12 +134,20 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   const url = await resolveUrl(options);
   const outDir = resolve(options.out);
-  console.log(`Lighthouse (Accessibility) gegen ${url}`);
-  const report = runLighthouse(url, outDir, options.desktop);
+  console.log(`Lighthouse (${options.performance ? "Accessibility und Performance" : "Accessibility"}) gegen ${url}`);
+  const report = runLighthouse(url, outDir, options.desktop, options.performance);
   const score = report.categories.accessibility.score;
   const failing = failingAudits(report);
   console.log(`Accessibility: ${Math.round(score * 100)} (Schwelle ${Math.round(options.min * 100)}); Bericht: ${join(outDir, "lighthouse-a11y.report.html")}`);
   for (const audit of failing) console.log(`  nicht bestanden: ${audit.id} (${audit.items} Stellen) - ${audit.title}`);
+  if (options.performance) {
+    const perf = performanceSummary(report);
+    const form = options.desktop ? "Desktop" : "mobil";
+    if (perf) {
+      console.log(`Performance (${form}): ${Math.round(perf.score * 100)} (Ziel 90, nur berichtet)`);
+      for (const metric of perf.metrics) console.log(`  ${metric.label}: ${metric.value}`);
+    } else console.log(`Performance (${form}): kein Wert im Bericht`);
+  }
   if (score < options.min) {
     console.error(`Lighthouse Accessibility ${Math.round(score * 100)} liegt unter ${Math.round(options.min * 100)}`);
     process.exit(1);
