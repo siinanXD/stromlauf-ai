@@ -213,6 +213,10 @@ class Conversation(WorkspaceScoped, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
+    # Stoerfall: jeder Chat einer Maschine ist einer; outcome open | resolved wie bei DiagnosisSession.
+    # Spalten kamen nach der Baseline dazu: alembic/versions/0004_stoerfall_felder.py
+    outcome: Mapped[str] = mapped_column(String(16), default="open", server_default="open")
+    finding: Mapped[str] = mapped_column(Text, default="", server_default="")
 
 
 # --- Werk: Halle -> Maschine -> Doku / Fehlerliste / Schaltschrank ---------------------------

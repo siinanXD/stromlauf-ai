@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,6 +52,16 @@ class ConversationOut(BaseModel):
     title: str
     source_ids: list[str]
     updated_at: datetime
+    # Stoerfall (jeder Chat einer Maschine): open | resolved, dazu der Befund beim Abschliessen
+    outcome: str = "open"
+    finding: str = ""
+
+
+class ConversationPatch(BaseModel):
+    """Stoerfall abschliessen oder wieder oeffnen; fehlende Felder bleiben, wie sie sind."""
+
+    outcome: Literal["open", "resolved"] | None = None
+    finding: str | None = Field(default=None, max_length=2000)
 
 
 class CitedFile(BaseModel):
@@ -116,6 +127,8 @@ class MessageOut(BaseModel):
     # Antwort-Vertrag wie das meta-Event des Streams (referenced_tags, citations, evidence, citation_checks,
     # citations_valid), fuer Antworten im Verlauf nachgerechnet (Issue #47); None bei Nutzerfragen
     meta: dict | None = None
+    # Position im ganzen Verlauf (0 = erste Nachricht), fuer das Nachladen aelterer Nachrichten
+    index: int = 0
 
 
 class ChatRequest(BaseModel):
@@ -238,6 +251,31 @@ class FaultOut(FaultIn):
 
     id: str
     machine_id: str
+
+
+class ExperienceHit(BaseModel):
+    """Treffer in der Fehlerliste einer anderen Maschine: Erfahrung, kein Beleg fuer diese Maschine."""
+
+    machine_id: str
+    machine_name: str
+    fault: FaultOut
+
+
+class IncidentHit(BaseModel):
+    """Erledigter Stoerfall derselben Quelle mit Befund."""
+
+    conversation_id: str
+    title: str
+    finding: str
+    updated_at: datetime
+
+
+class FaultHits(BaseModel):
+    """GET /api/machines/{id}/fault-hits: je Liste hoechstens 5 Treffer, der beste zuerst."""
+
+    faults: list[FaultOut] = []
+    experience: list[ExperienceHit] = []
+    incidents: list[IncidentHit] = []
 
 
 class HotspotIn(BaseModel):

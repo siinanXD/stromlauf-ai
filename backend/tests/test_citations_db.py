@@ -429,6 +429,9 @@ def test_verlauf_traegt_das_meta_je_antwort_nach(client, world, monkeypatch):
         "evidence": [],
         "citation_checks": [],
         "citations_valid": {"valid": 0, "checked": 0, "total": 0},
+        "part_kinds": {},
+        "signal_start": None,
+        "plan_spots": [],
     }
     assert _ledger_rows(WS) == before
 
