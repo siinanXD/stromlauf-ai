@@ -17,8 +17,9 @@ gleiches Backend (Branch `feat/agent-v3`, PR #119), gleiche Dokumente, Lauf `pyt
 | ollama:qwen35-4b-32k (lokal) | 20/0 | 0.524 | 0.60 | 0.350 | 5 | 0 | 0 | 6.4 | - | - | 5 | 1.3 |
 | ollama:qwen35-9b-32k (lokal) | 19/1 | 0.375 | 0.47 | 0.500 | 4 | 0 | 0 | 17.4 | - | - | 6 | 0.8 |
 
-Nicht gelaufen: `claude-opus-5-5` (Anthropic-Guthaben um 01:49 Uhr erschoepft, 20 von 20 Fragen 400); aus demselben Grund
-hat `claude-sonnet-5` nur 6 Fragen. Beide nach Aufladen mit `--resume` nachholen.
+Nicht gelaufen: `claude-opus-5-5` (Anthropic-API-Guthaben um 01:49 Uhr erschoepft, 20 von 20 Fragen 400); aus demselben
+Grund hat `claude-sonnet-5` nur 6 Fragen. Entscheidung des Owners am 2026-10-02: nicht nachholen. Sonnet 5.5 ist die
+Anthropic-Referenz, Opus 5.5 kostet das Doppelte und ist kein Preis-Leistungs-Kandidat.
 
 ## Lesart
 
