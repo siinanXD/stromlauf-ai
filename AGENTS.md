@@ -179,7 +179,7 @@ der Instandhaltung an der Maschine?
   Schluesselpruefung nur dort.
   `app/flow/tracing.py` bleibt eigenstaendig (setzt Spans, Tokens, Kosten selbst) und nutzt sie.
   Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
-  rechnet Kosten aus `app/flow/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
+  rechnet Kosten aus `app/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
   Nicht getrackt: Retrieval und Embeddings (ohne Modellkosten).
 - Modelle: drei Provider ueber `app/llm.py` (`make_chat_model`): Anthropic (Standard), OpenAI und Ollama (lokal,
   `ollama:qwen3.5:4b` ueber `OLLAMA_BASE_URL`, kein Schluessel, Kosten 0, Thinking aus); Name mit Praefix
@@ -194,7 +194,7 @@ der Instandhaltung an der Maschine?
   haelt `actions/cache` sie je Retrieval-Gruppe; ein aelterer Stand kommt nur bei gleichem `embeddings.py`,
   `pyproject.toml` und `MODELLCACHE_VERSION` zurueck.
   Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
-  Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
+  Preise beider Provider in `app/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
   Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
   dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;

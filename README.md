@@ -111,7 +111,7 @@ Antwort. `frontend/e2e/part-sheet.spec.ts` prüft Öffnen/Schließen/Fokus und d
 
 Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank-Erkennung, Ablauf-Extraktion)
 landet als Zeile in `ai_call_ledger` mit Workspace, Maschine, Zweck, Modell, Tokens und Kosten
-(`backend/app/ledger.py`, Preise aus `backend/app/flow/pricing.py`, Listenpreise 1:1 als Euro-Cent).
+(`backend/app/ledger.py`, Preise aus `backend/app/pricing.py`, Listenpreise 1:1 als Euro-Cent).
 Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht je Seite sofort.
 
 - `GET /api/machines/{id}/costs`: laufender Monat und gesamt, je Zweck. Im Kopf der Maschinenansicht
@@ -134,7 +134,7 @@ Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), son
   (`app/llm.py`, `make_chat_model`).
 - Je Anfrage: `POST /api/chat` nimmt `model` entgegen. `python eval/run_eval.py --model openai:gpt-5-mini
   --only "Foerderband FB-01" --max-cost 1.00` fährt denselben Fragensatz mit einem anderen Modell; Kosten je
-  Antwort kommen aus `app/flow/pricing.py` (beide Provider).
+  Antwort kommen aus `app/pricing.py` (beide Provider).
 - Embeddings: `EMBEDDING_PROVIDER=openai` nutzt `text-embedding-3-small` mit `dimensions = EMBEDDING_DIM`. Ein
   Wechsel des Embedders heißt: alle Dokumente neu verarbeiten, sonst passen die Vektoren nicht zusammen.
   `EMBEDDING_CACHE_DIR` ist nur für CI und Eval gedacht: Die Vektoren der Abschnitte liegen dann je exaktem Text auf
@@ -281,7 +281,7 @@ python scripts/extract_flow.py examples/foerderband/06_Betriebsanleitung_FB-01.m
   Extraktion ein Trace mit Spans `phase_a`, `phase_b`, `layout` und einer Generation je Modellaufruf
   (Tokens, Kosten, Latenz, Prompt-Version). Die Trace-ID steht in `meta.trace_id`. JSON-Logs auf stderr
   tragen dieselbe Trace-ID. Ohne Langfuse: lokale ID, gleiche Logs.
-- **Kosten** stehen in `meta.total.cost_usd` (Preistabelle in `app/flow/pricing.py`) und in Langfuse.
+- **Kosten** stehen in `meta.total.cost_usd` (Preistabelle in `app/pricing.py`) und in Langfuse.
   Messwert je Extraktion: noch nicht erhoben, dieser Container hat keinen API-Schlüssel. Nach dem ersten
   Lauf hier eintragen.
 - Latenzbudget 30 s: Phase A parallel, `meta.total.latency_ms` und Log-Feld `over_budget` zeigen Verstöße.
@@ -494,7 +494,7 @@ lokale Trace-ID und loggt weiter als JSON. Die Schlüssel- und Paketprüfung ste
 (bge-m3 lokal) und die deterministischen Parser (Signalweg, Fehlersuche, Steckbrief).
 
 Im Chat-Strom kommt je Modellaufruf ein SSE-Ereignis `usage` mit Input-/Output-Tokens und Modell —
-unabhängig von Langfuse, daraus rechnet der Eval-Lauf seine Kosten (`app/flow/pricing.py`).
+unabhängig von Langfuse, daraus rechnet der Eval-Lauf seine Kosten (`app/pricing.py`).
 
 Live gegen Langfuse noch ungeprüft (hier ohne Schlüssel gelaufen); abgedeckt sind Konfiguration und
 Weitergabe durch `backend/tests/test_tracing.py`.

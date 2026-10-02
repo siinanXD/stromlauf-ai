@@ -806,7 +806,7 @@ def test_summarize_nimmt_kosten_auf():
 
 
 def test_preis_auch_fuer_datierte_modell_id():
-    from app.flow.pricing import cost_usd, prices_for
+    from app.pricing import cost_usd, prices_for
 
     assert prices_for("claude-sonnet-5") == prices_for("claude-sonnet-5-20260115")
     assert prices_for("gpt-irgendwas") is None
@@ -815,7 +815,7 @@ def test_preis_auch_fuer_datierte_modell_id():
 
 
 def test_preis_mit_prompt_cache():
-    from app.flow.pricing import cost_usd
+    from app.pricing import cost_usd
 
     # gpt-5-mini: 0,25 USD/M Eingabe, Cache-Treffer ein Zehntel; Anthropic schreibt mit 1,25-fachem Preis
     assert cost_usd("openai:gpt-5-mini", 1_000_000, 0, cache_read=1_000_000) == 0.025
@@ -826,7 +826,7 @@ def test_preis_mit_prompt_cache():
 def test_preise_der_modelle_vom_2026_10_02():
     """Offizielle Listen (platform.claude.com/docs/en/about-claude/pricing, developers.openai.com/api/docs/pricing):
     Cache-Treffer kosten meist ein Zehntel, bei Opus 5.5 und gpt-6.1-sol ein Zwanzigstel."""
-    from app.flow.pricing import cost_usd, prices_for
+    from app.pricing import cost_usd, prices_for
 
     assert prices_for("claude-opus-5-5-20260901")[:2] == (4.0, 20.0)
     assert prices_for("claude-sonnet-5-5")[:2] == (2.0, 10.0)

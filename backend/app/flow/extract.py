@@ -18,10 +18,10 @@ import anthropic
 
 from app.config import get_settings
 from app.flow import prompts, schema, wire
-from app.flow.pricing import cost_usd
 from app.flow.sources import DocText, load_document, render
 from app.flow.tracing import Trace, log, start_trace
 from app.models import DocType
+from app.pricing import cost_usd
 
 logger = logging.getLogger("flow")
 

@@ -17,7 +17,7 @@ Der Agentenlauf schreibt nach **jeder** Frage in `eval/results/<zeitstempel>.jso
 Antworten gehen nicht verloren. Referenzdateien (`referenz*.json`) werden dabei nicht ueberschrieben.
 
 Tokens, Modellaufrufe und Kosten stehen je Frage unter `usage` und summiert in der Zusammenfassung
-(`tokens_ein`, `tokens_aus`, `modellaufrufe`, `kosten_usd`; Preise aus `backend/app/flow/pricing.py`).
+(`tokens_ein`, `tokens_aus`, `modellaufrufe`, `kosten_usd`; Preise aus `backend/app/pricing.py`).
 Mit Langfuse-Schluesseln in der `.env` bekommt jede Frage die Tags `eval:<lauf>` und `q:<id>`, und nach
 dem Lauf werden `fakten`, `quellen_ok`, `sauber` und (bei Antworten mit Belegen) `zitate_gueltig` als Scores an
 die Session des Chats geschrieben.

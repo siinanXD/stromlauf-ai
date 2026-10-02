@@ -18,7 +18,7 @@ ein Abbruch keine bezahlten Antworten kostet; --resume setzt eine solche Datei f
 wiederholt). --baseline zeigt die Differenz zu einem frueheren Lauf, --min liefert Exit-Code 1 unter dem
 Fakten-Mittel. Kostenlose Vorstufe: run_retrieval.py, kostenlose Wiederbewertung: rescore.py.
 
-Tokens und Kosten je Frage stehen im Ergebnis (usage-Ereignisse des Chats, Preise aus app/flow/pricing.py).
+Tokens und Kosten je Frage stehen im Ergebnis (usage-Ereignisse des Chats, Preise aus app/pricing.py).
 Mit Langfuse-Schluesseln in der .env bekommt jede Frage die Tags eval:<lauf> und q:<id>; nach dem Lauf werden
 die Bewertungen als Scores an die Session des jeweiligen Chats geschrieben.
 """
@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
     sys.exit("httpx fehlt: cd backend && .venv/Scripts/pip install -e \".[dev]\"")
 
 try:  # Preistabelle und Langfuse-Zugang kommen aus dem Backend
-    from app.flow.pricing import cost_usd
+    from app.pricing import cost_usd
     from app.tracing import langfuse_client
 except ImportError:  # pragma: no cover
     sys.exit("Backend nicht installiert: cd backend && .venv/Scripts/pip install -e \".[dev]\"")
@@ -87,7 +87,7 @@ def output_path(requested: Path | None, run: str) -> Path:
 
 
 def usage_cost(usage: dict) -> float:
-    """Kosten des summierten Verbrauchs einer Frage; Cache-Treffer und -Schreiben zaehlen wie in app/flow/pricing.py."""
+    """Kosten des summierten Verbrauchs einer Frage; Cache-Treffer und -Schreiben zaehlen wie in app/pricing.py."""
     return cost_usd(
         usage["model"],
         usage["input_tokens"],

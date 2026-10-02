@@ -7,7 +7,7 @@ Zehntel der Eingabe (Standard beider Provider). Unbekannte Modelle kosten 0 mit 
 
 import logging
 
-logger = logging.getLogger("flow")
+logger = logging.getLogger("pricing")
 
 Prices = tuple[float, float] | tuple[float, float, float]
 

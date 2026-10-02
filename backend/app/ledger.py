@@ -4,7 +4,7 @@ Tabelle `ai_call_ledger` (app/models.py: AiCall). Bausteine:
 
 - `collect(config)`: haengt einen LangChain-Callback an eine `invoke`/`astream`-Konfiguration und
   sammelt Modell und Tokens je Aufruf, ohne dass die Vision-Module ihre Signatur aendern.
-- `record(session, ...)`: eine Zeile je Aufruf, Kosten aus app/flow/pricing.py in Mikro-Cent
+- `record(session, ...)`: eine Zeile je Aufruf, Kosten aus app/pricing.py in Mikro-Cent
   (1 Cent = 1_000_000 Mikro-Cent), in derselben Transaktion wie das Ergebnis.
 - `check_budget(session)`: wirft BudgetExceeded, sobald der Workspace sein Monatslimit erreicht hat
   (Workspace.monthly_ai_cap_cents, None = kein Limit). Wird VOR dem Provider-Aufruf geprueft.
@@ -25,8 +25,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.flow.pricing import cost_usd
 from app.models import AiCall, Machine, Workspace
+from app.pricing import cost_usd
 from app.tenancy import current_workspace_id
 
 MICROCENTS_PER_CENT = 1_000_000
