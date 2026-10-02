@@ -55,6 +55,10 @@ der Instandhaltung an der Maschine?
   zulaessig oder reserviert sind (A, D, J, L, V, Y, Z), franzoesische Paare und der Blatt-Stil; gewinnen muss eine Seite
   mit mindestens doppelt so vielen Kennzeichen. Bei `offen` keine Art fuer H, K, N, Q, U; ein Teil bleibt Teil
   (`is_part`). Keine Wikipedia-Tabellen im Repo (CC BY-SA); Recherche `.ai/research/2026-10-01-iec81346-2-kennbuchstaben.md`.
+- Leseregeln sind eingefroren (Issue #122, Entscheidung 2026-10-02): `app/ingestion/{plan_wires,pdf_layout,tags,letter_codes}.py`
+  bekommen keine neue Regel je Beispieldokument mehr. Fremde Formate gehen ueber den Modell-Rueckfall je Seite beim Upload
+  (Regeln zuerst, Modell nur fuer Seiten unter der Vertrauensschwelle, Ergebnis als JSON im `plan_cache`); eine neue Regel
+  nur, wenn ein Kundenplan sie braucht und der Rueckfall dort versagt oder zu teuer ist.
 - Signalweg, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken

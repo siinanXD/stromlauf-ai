@@ -54,7 +54,7 @@ die Session des Chats geschrieben.
 
 ## Fragen
 
-73 Fragen, acht Quellen:
+69 Fragen, sieben Quellen:
 
 | Quelle | Fragen | Daten |
 | --- | --- | --- |

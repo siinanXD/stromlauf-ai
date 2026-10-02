@@ -456,9 +456,9 @@ Weitergabe durch `backend/tests/test_tracing.py`.
 
 ## Antwortqualitaet messen
 
-`eval/questions.jsonl` enthaelt 51 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu
-zitierende Quellen) zu FB-01, UR-01, PM1-AR, Festo, AWL und Testwerk, darunter fuenf Fallen ohne Antwort
-im Material. Drei Schichten, bewertet ohne LLM-Richter:
+`eval/questions.jsonl` enthaelt 69 Fragen mit Erwartungen (Pflichtangaben, verbotene Angaben, zu
+zitierende Quellen) zu FB-01, UR-01, PM1-AR, Festo, AWL, Scans und Injection-Fallen, darunter fuenf Fallen
+ohne Antwort im Material. Drei Schichten, bewertet ohne LLM-Richter:
 
 ```bash
 python eval/run_retrieval.py     # kostenlos: liefern die Werkzeuge die Belege? (Sekunden)
