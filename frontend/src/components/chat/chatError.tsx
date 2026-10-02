@@ -41,7 +41,7 @@ export function describeChatError(
 
 function Details({ text }: { text: string }) {
   return (
-    <details className="group text-xs text-muted-foreground">
+    <details className="group text-footnote text-muted-foreground">
       <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 hover:text-foreground">Details</summary>
       <p className="break-words font-mono">{text}</p>
     </details>
@@ -53,7 +53,7 @@ export function AnswerError({ raw, faultList = false }: { raw: string; faultList
   const { message, details } = describeChatError(raw, { faultList });
   return (
     <div className="space-y-1" data-testid="answer-error">
-      <p className="border border-danger/40 px-3 py-2 text-sm text-danger" role="alert">
+      <p className="rounded-md bg-error-soft px-3 py-2 text-subhead text-danger" role="alert">
         {message}
       </p>
       {details && <Details text={details} />}

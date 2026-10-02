@@ -233,8 +233,11 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - **Kosten:** Die optionale Vision-Analyse schickt jede Schaltplanseite an Claude
   (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`. Ebenso kosten
   „Bauteile erkennen“ (Schaltschrank) und „Vorschläge erkennen“ (Draufsicht) pro Aufruf.
-- Design: „Blaupause“ (Figma `25Zi2sbyA5rXJcwViTqB10`, Frame 5:273), Tokens in `frontend/src/app/globals.css`.
-  Blau = Auswahl/Aktion, Rot nur für Fehler und Not-Halt. UI-Bausteine: shadcn/ui unter `src/components/ui/`.
+- Design: „iOS clean“ (Figma `wtxajO1YC5HvtQG7CI44BC`, Seite „Vorlagen“; freigegeben 2026-10-01). Tokens in
+  `frontend/src/app/globals.css` mit den Figma-Namen (`--color-*`, `--space-*`, `--radius-*`, Textstile `text-body`,
+  `text-footnote` …), shadcn- und App-Namen zeigen darauf; Schriften Inter und JetBrains Mono. Wo ein Figma-Wert als
+  Text unter 4,5:1 liegt, gilt die `-strong`-Variante. Blau = Auswahl/Aktion, Orange = „hier schauen“, Rot nur für Fehler
+  und Not-Halt. Eigene Textstile in `cn()` stehen in `src/lib/utils.ts`. UI-Bausteine: shadcn/ui unter `src/components/ui/`.
 - Git-Remote `origin` = github.com/siinanXD/stromlauf-ai (oeffentlich, MIT-Lizenz in `LICENSE`; Testdaten mit
   Fremdlizenz bleiben unter `testdata/` ausserhalb des Repos).
 

@@ -14,14 +14,14 @@ export const PROVENANCE_LABELS: Record<Provenance, string> = {
   lage: "Lage im Plan oder Modell",
 };
 
-/** SVG-Strichmuster je Stufe; gepunktet braucht runde Linienenden. */
+/** SVG-Strichmuster je Stufe wie in Figma (6 4 gestrichelt, 1 4 gepunktet), mit runden Linienenden. */
 export const PROVENANCE_DASH: Record<Provenance, string | undefined> = {
   beleg: undefined,
-  leitung: "9 5",
-  lage: "0.5 5",
+  leitung: "6 4",
+  lage: "1 4",
 };
 
-export const PROVENANCE_CAP: Record<Provenance, "butt" | "round"> = { beleg: "butt", leitung: "butt", lage: "round" };
+export const PROVENANCE_CAP: Record<Provenance, "butt" | "round"> = { beleg: "round", leitung: "round", lage: "round" };
 
 export const VIA_LABELS: Record<SignalVia, string> = {
   klemmenplan: "Klemmenplan",

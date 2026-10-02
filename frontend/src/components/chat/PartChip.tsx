@@ -3,7 +3,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Bauteil-Chip: Kennzeichen in Mono, amber wenn in der Antwort referenziert ("hier schauen").
+ * Bauteil-Chip (Figma "Bauteil-Chip"): Pille mit Kennzeichen in Mono, orange-hell wenn in der Antwort referenziert
+ * ("hier schauen"), blau-hell wenn gewaehlt.
  * Immer ein Button mit aria-label, damit Tastatur und Screenreader ihn als Sprung zum Datenblatt lesen.
  */
 export function PartChip({
@@ -32,17 +33,15 @@ export function PartChip({
       data-tag={tag}
       title={label ? `${tag} · ${label}` : tag}
       className={cn(
-        "part-chip inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[13px] leading-none transition-colors",
-        referenced
-          ? "border-signal bg-signal-soft text-signal-foreground"
-          : "border-border bg-card text-foreground",
-        active && "ring-2 ring-primary",
-        onClick ? "cursor-pointer hover:border-primary" : "cursor-default",
+        "part-chip inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border px-3 py-1 font-mono text-tag-sm transition-colors",
+        referenced ? "border-look bg-look-soft text-look-strong" : active ? "border-transparent bg-primary-soft text-primary" : "border-transparent bg-bg-fill text-foreground",
+        active && "ring-2 ring-accent",
+        onClick ? "cursor-pointer hover:border-line" : "cursor-default",
         className,
       )}
     >
-      <span className="font-semibold">{tag}</span>
-      {label && <span className="truncate font-sans text-xs text-muted-foreground">{label}</span>}
+      <span className="font-medium">{tag}</span>
+      {label && <span className="truncate font-sans text-footnote text-muted-foreground">{label}</span>}
     </button>
   );
 }

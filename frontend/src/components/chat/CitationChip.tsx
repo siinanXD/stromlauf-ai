@@ -19,13 +19,13 @@ export function CitationChip({
   const tone = active
     ? "border-primary bg-primary text-primary-foreground"
     : onClick
-      ? "border-primary/50 bg-card text-primary hover:border-primary"
-      : "border-border bg-card text-muted-foreground";
+      ? "border-transparent bg-primary-soft text-primary hover:border-primary/40"
+      : "border-transparent bg-bg-fill text-muted-foreground";
   const style = cn(
-    "mx-0.5 inline-flex max-w-full items-center gap-1 border px-1.5 align-baseline font-mono text-[11.5px] leading-5 whitespace-nowrap",
+    "mx-0.5 inline-flex max-w-full items-center gap-1 rounded-xs border px-1.5 align-baseline font-mono text-caption-1 font-medium leading-5 whitespace-nowrap",
     tone,
     invalid && "border-dashed",
-    invalid && !active && "border-muted-foreground text-muted-foreground",
+    invalid && !active && "border-muted-foreground bg-transparent text-muted-foreground",
   );
   const content = (
     <>

@@ -266,7 +266,8 @@ export function IncidentWorkspace({
         </div>
       </div>
 
-      <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden")}>
+      {/* Der Signalweg oeffnet am PC im Vollbild (Figma) und nimmt den Platz des Chats ein */}
+      <div className={cn("min-h-0 min-w-0 flex-1 flex-col lg:flex", level === "chat" ? "flex" : "hidden", view.detail?.kind === "signal" && "lg:hidden")}>
         {incident && chatKey ? (
           <MachineChatTab
             key={chatKey}
@@ -275,6 +276,7 @@ export function IncidentWorkspace({
             conversationId={isTempId(incident.id) ? null : incident.id}
             autoSend={sends[chatKey]?.active ? { key: `${chatKey}#${sends[chatKey].attempt}`, text: sends[chatKey].text } : undefined}
             activeReference={activeReference}
+            activePart={view.detail?.kind === "part" ? view.detail.tag : null}
             onConversationId={(id, title) => confirmed(chatKey, id, title)}
             onSendStart={() => started(chatKey)}
             onSendSettled={(result) => settled(chatKey, result)}
@@ -291,15 +293,15 @@ export function IncidentWorkspace({
         ) : fall && status === "loading" ? (
           <div className="flex-1 animate-pulse bg-secondary/40" aria-busy="true" />
         ) : fall ? (
-          <div className="space-y-3 p-6 text-sm" data-testid="incident-missing">
+          <div className="space-y-3 p-6 text-subhead" data-testid="incident-missing">
             <p className="text-muted-foreground">Diesen Störfall gibt es hier nicht (mehr). Er wurde gelöscht oder gehört zu einer anderen Doku.</p>
-            <button type="button" onClick={goBack} className="min-h-11 rounded-lg border border-border px-3 font-medium hover:border-primary">
+            <button type="button" onClick={goBack} className="min-h-11 rounded-md bg-bg-fill px-4 font-semibold text-primary hover:bg-muted">
               Zur Liste
             </button>
           </div>
         ) : (
           <div className="hidden flex-1 items-center justify-center p-8 text-center lg:flex" data-testid="incident-none">
-            <p className="max-w-sm text-sm text-muted-foreground">
+            <p className="max-w-sm text-subhead text-muted-foreground">
               {sourceId
                 ? "Wähle links einen Störfall oder tippe links oben eine Meldung vom Bedienpanel oder ein Symptom ein und drücke Enter."
                 : "Ohne verknüpfte Dokumentation gibt es keine Störfälle. Links lässt sich die Doku verknüpfen."}

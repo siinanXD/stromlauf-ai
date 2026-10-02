@@ -6,6 +6,7 @@ import { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { metaBlockData } from "@/components/answer/blockData";
+import { Block } from "@/components/answer/blocks/Block";
 import { CabinetBlock } from "@/components/answer/blocks/CabinetBlock";
 import { CitationsBlock, type ChipData, type CitationGroup } from "@/components/answer/blocks/CitationsBlock";
 import { FaultHitsBlock } from "@/components/answer/blocks/FaultHitsBlock";
@@ -50,7 +51,7 @@ const stem = (filename: string) => filename.toLowerCase().replace(/\.[^.]+$/, ""
 const MAX_FALLBACK_SOURCES = 8;
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <h3 className="mb-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{children}</h3>;
+  return <h3 className="mb-1 text-footnote font-semibold text-muted-foreground uppercase">{children}</h3>;
 }
 
 /** Details-Abschnitt: jede ###-Unterueberschrift wird eine eigene einklappbare Zeile. */
@@ -71,6 +72,8 @@ export interface AnswerBlocksContext {
   onOpenDetail: (detail: DetailRef) => void;
   /** Treffer "erledigter Stoerfall" im Block Fehlerliste oeffnet diesen Stoerfall. */
   onOpenIncident?: (conversationId: string) => void;
+  /** Bauteil, das gerade im Detail offen ist: sein Chip im Block "Bauteile" ist markiert. */
+  activePart?: string | null;
 }
 
 export function AnswerView({
@@ -140,7 +143,7 @@ export function AnswerView({
             data-part-link={part}
             title={`Bauteil ${part} öffnen`}
             onClick={() => onOpenDetail?.({ kind: "part", tag: part })}
-            className="rounded-sm px-0.5 font-mono text-[0.95em] font-semibold text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-xs px-0.5 font-mono text-[0.95em] font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             {children}
           </button>
@@ -184,13 +187,13 @@ export function AnswerView({
   const toolLine =
     message.tool_calls.length > 0 &&
     (streaming && running ? (
-      <p className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+      <p className="flex items-center gap-2 text-footnote text-muted-foreground">
+        <span className="size-1.5 animate-pulse rounded-full bg-accent" />
         {toolSummary(running)}
       </p>
     ) : (
-      <details className="group text-xs text-muted-foreground">
-        <summary className="flex cursor-pointer list-none items-center gap-1 hover:text-foreground">
+      <details className="group text-footnote text-muted-foreground">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 hover:text-foreground">
           <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
           {message.tool_calls.length} Schritte · {message.sources.length} Fundstellen durchsucht
         </summary>
@@ -206,40 +209,40 @@ export function AnswerView({
 
   const text = (
     <>
-      {waiting && !running && <p className="animate-pulse text-sm text-muted-foreground">Denkt nach …</p>}
+      {waiting && !running && <p className="animate-pulse text-subhead text-muted-foreground">Denkt nach …</p>}
 
-      {sections.frei && <div className="markdown">{md(sections.frei)}</div>}
+      {sections.frei && <div className="markdown text-body">{md(sections.frei)}</div>}
 
       {sections.kurz && (
         <section>
           <SectionLabel>Kurzantwort</SectionLabel>
-          <div className="markdown text-[15px] font-medium leading-relaxed">{md(sections.kurz)}</div>
+          <div className="markdown text-body">{md(sections.kurz)}</div>
         </section>
       )}
 
       {sections.pruefen && (
         <section>
           <SectionLabel>Prüfen</SectionLabel>
-          <div className="markdown answer-steps">{md(sections.pruefen)}</div>
+          <div className="markdown answer-steps text-body">{md(sections.pruefen)}</div>
         </section>
       )}
 
       {sections.sicherheit && (
-        <section className="border-l-[3px] border-nav bg-secondary px-3 py-2">
-          <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em]">Sicherheit</h3>
-          <div className="markdown text-[13px]">{md(sections.sicherheit)}</div>
+        <section className="rounded-md bg-bg-grouped px-3 py-2">
+          <SectionLabel>Sicherheit</SectionLabel>
+          <div className="markdown text-subhead">{md(sections.sicherheit)}</div>
         </section>
       )}
 
       {sections.details && (
-        <section className="border-t border-border">
+        <section className="border-t-[0.5px] border-border">
           {splitDetails(sections.details).map((block) => (
-            <details key={block.title} className="group border-b border-border">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 py-2 text-[13px] font-medium">
-                <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+            <details key={block.title} className="group border-b-[0.5px] border-border last:border-b-0">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 py-2 text-subhead font-semibold">
+                <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
                 {block.title}
               </summary>
-              <div className="markdown pb-3 text-[13px]">{md(block.body)}</div>
+              <div className="markdown pb-3 text-subhead">{md(block.body)}</div>
             </details>
           ))}
         </section>
@@ -250,7 +253,7 @@ export function AnswerView({
   );
 
   const cost = !streaming && message.cost_cents !== undefined && (
-    <p className="font-mono text-[11px] text-muted-foreground" title="Aus dem Kostenbuch: alle Modellaufrufe dieser Antwort">
+    <p className="px-1 text-caption-1 text-muted-foreground" title="Aus dem Kostenbuch: alle Modellaufrufe dieser Antwort">
       Kosten dieser Antwort: {costText(message.cost_cents)}
     </p>
   );
@@ -258,16 +261,29 @@ export function AnswerView({
   if (blocks) {
     // Feste Reihenfolge der Spec: Fehlerliste sofort, Text waehrend des Streams, danach die Bloecke aus meta.
     const data = metaBlockData(meta, blocks.sourceId);
+    const found = message.sources.length;
     return (
       <div className="space-y-3" data-answer="blocks">
         {question.trim() && <FaultHitsBlock machineId={blocks.machineId} query={question} onOpenDetail={blocks.onOpenDetail} onOpenIncident={blocks.onOpenIncident} />}
-        <div className="space-y-4" data-block="text">
-          {toolLine}
-          {text}
-        </div>
+        <Block kind="text" title="Antwort" source={found > 0 ? `KI · ${found} ${found === 1 ? "Quelle" : "Quellen"}` : "KI"}>
+          <div className="space-y-3">
+            {toolLine}
+            {text}
+          </div>
+        </Block>
         {!streaming && (
           <>
-            {data.parts && <PartsBlock tags={data.parts.tags} kinds={data.parts.kinds} onOpenDetail={blocks.onOpenDetail} onShowInModel={onShowInModel} />}
+            {data.parts && (
+              <PartsBlock
+                tags={data.parts.tags}
+                kinds={data.parts.kinds}
+                machineId={blocks.machineId}
+                question={question}
+                activeTag={blocks.activePart ?? null}
+                onOpenDetail={blocks.onOpenDetail}
+                onShowInModel={onShowInModel}
+              />
+            )}
             {data.signal && blocks.sourceId && <SignalBlock sourceId={blocks.sourceId} start={data.signal} onOpenDetail={blocks.onOpenDetail} />}
             {data.plan && <PlanBlock spots={data.plan} onOpenDetail={blocks.onOpenDetail} />}
             {data.cabinet && <CabinetBlock evidence={data.cabinet} onOpenDetail={blocks.onOpenDetail} />}

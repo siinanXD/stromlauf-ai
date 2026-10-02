@@ -132,7 +132,7 @@ describe("Stoerfall nicht angelegt (Fehler vor dem Ereignis conversation)", () =
     // nicht als Ganzes rot: nur die Statuszeile
     const button = item.match(/<button type="button"[^>]*data-incident[^>]*class="([^"]*)"/)?.[1] ?? "";
     expect(button).not.toMatch(/danger|destructive/);
-    expect(item).toMatch(/<span class="block text-xs text-danger">nicht angelegt<\/span>/);
+    expect(item).toMatch(/<span class="block text-footnote text-danger">nicht angelegt<\/span>/);
   });
 
   it("leaves created incidents and follow-up errors alone", () => {

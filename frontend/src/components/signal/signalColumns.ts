@@ -41,10 +41,16 @@ export function nodeTitle(node: Pick<SignalMainNode, "id" | "kind" | "ref">): st
 
 const SHEET_REF = /^\/(\d+)\.(\d+)$/;
 
-/** "/3.5" -> "Blatt 3, Spalte 5"; andere Verweise haben kein Blatt. */
+/** "/3.5" -> "Blatt 3 · Spalte 5" (Figma-Schreibweise); andere Verweise haben kein Blatt. */
 export function sheetText(ref: string): string | null {
   const match = SHEET_REF.exec(ref.trim());
-  return match ? `Blatt ${match[1]}, Spalte ${match[2]}` : null;
+  return match ? `Blatt ${match[1]} · Spalte ${match[2]}` : null;
+}
+
+/** Kurzform fuer die Karten der Grafik: "/3.5" -> "Blatt 3 · Sp. 5". */
+export function sheetShort(ref: string): string | null {
+  const match = SHEET_REF.exec(ref.trim());
+  return match ? `Blatt ${match[1]} · Sp. ${match[2]}` : null;
 }
 
 export function isSheetRef(ref: string): boolean {
