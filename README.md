@@ -42,7 +42,7 @@ prüft die Migration von null gegen `pgvector/pgvector:pg17`.
 ## Mandanten und Anmeldung
 
 Jede fachliche Zeile (Quelle, Dokument, Chunk, Kennzeichen, Chat, Halle, Maschine, Fehler, Schaltschrank,
-Draufsicht, Fehlersuche) gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
+Fehlersuche) gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
 
 - `JWT_SECRET` gesetzt: Anmeldung per **Magic-Link** (`/login` → `POST /api/auth/magic-link` → Mail mit
   Link → `POST /api/auth/exchange` → JWT, 12 h). Erste Anmeldung legt Nutzer und einen eigenen Workspace an.
@@ -64,8 +64,8 @@ festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision
 
 - **Schema** (`GET /api/machines/{id}/map`, `backend/app/ingestion/machine_map.py`): Zonen sind die
   Einbauorte aus der Stückliste (`+ST1`, `+BP1`, `+AN1` …), Chips die Betriebsmittel aus dem Kennzeichen-Index,
-  Verbinder die Leitungen mit zwei Orten („+ST1 -> +AN1“). Teile der Draufsicht ohne Ort bilden die Zone
-  „Anlage“, der Rest „Ohne Einbauort“. Kein Modellaufruf, alles aus den Daten.
+  Verbinder die Leitungen mit zwei Orten („+ST1 -> +AN1“). Teile ohne Ort landen in „Ohne Einbauort“.
+  Kein Modellaufruf, alles aus den Daten.
 - **Antwort-Vertrag**: am Ende jedes Chat-Streams kommt das Event `meta` mit `referenced_tags`
   (Betriebsmittel aus dem Antworttext, die im Index der Quelle vorkommen), `citations` und `evidence`
   (Seiten der Zitate, Hotspots in Schaltschrankfotos) sowie `citation_checks`/`citations_valid` (Zitat-Resolver,
@@ -82,7 +82,7 @@ festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision
   danach endet der Stream mit einem `error`-Ereignis statt weiterzulaufen. Das Modell sieht nur die letzten
   `CHAT_HISTORY_MESSAGES` (20) Nachrichten, beginnend bei einer Frage; der Checkpointer behält den ganzen Verlauf.
   Testdaten mit eingebetteten Anweisungen: `examples/injection/` (fünf Fragen `inj-*` im Golden-Set).
-- Die bisherigen Tabs (Draufsicht, Schaltschrank, Signalweg, Dokumente; Ablauf, Fehler, Kennzahlen hinter
+- Die bisherigen Tabs (Schaltschrank, Signalweg, Dokumente; Ablauf, Fehler, Kennzahlen hinter
   „Mehr“) leben im Modell-Panel weiter. Das Panel lässt sich einklappen (Streifen) oder vergrößern.
 - Hell und dunkel: Tokens aus Figma `Foundations` in `frontend/src/app/globals.css`, Umschalter in der
   Rail (`data-theme` am `<html>`, gespeichert unter `stromlauf:theme`, sonst Systemeinstellung).
@@ -109,7 +109,7 @@ Antwort. `frontend/e2e/part-sheet.spec.ts` prüft Öffnen/Schließen/Fokus und d
 
 ## Kostenbuch: was eine Maschine kostet
 
-Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank- und Draufsicht-Erkennung, Ablauf-Extraktion)
+Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank-Erkennung, Ablauf-Extraktion)
 landet als Zeile in `ai_call_ledger` mit Workspace, Maschine, Zweck, Modell, Tokens und Kosten
 (`backend/app/ledger.py`, Preise aus `backend/app/flow/pricing.py`, Listenpreise 1:1 als Euro-Cent).
 Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht je Seite sofort.
@@ -130,7 +130,7 @@ Zwei Provider: **Anthropic** (Standard) und **OpenAI**. Ein Modellname gilt mit 
 `anthropic:claude-sonnet-5`) oder ohne (`claude-*` = Anthropic, `gpt-*`/`o3*` = OpenAI). Der Schlüssel des
 Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), sonst antwortet `/api/chat` mit 400.
 
-- `CHAT_MODEL` und `VISION_MODEL` sind die Standards für Chat bzw. Seitenanalyse, Schaltschrank und Draufsicht
+- `CHAT_MODEL` und `VISION_MODEL` sind die Standards für Chat bzw. Seitenanalyse und Schaltschrank
   (`app/llm.py`, `make_chat_model`).
 - Je Anfrage: `POST /api/chat` nimmt `model` entgegen. `python eval/run_eval.py --model openai:gpt-5-mini
   --only "Foerderband FB-01" --max-cost 1.00` fährt denselben Fragensatz mit einem anderen Modell; Kosten je
@@ -240,18 +240,10 @@ Bauteilart und BMK vor, kostet API-Tokens je Bild). Klick auf ein Bauteil zeigt 
 in Stromlaufplan, Stueckliste, Klemmenplan und AWL. `scripts/load_example.py` legt dazu eine
 Beispielhalle mit Aufbauplan und 14 fertigen Markierungen an.
 
-### Draufsicht (Vogelperspektive)
+### Kennzahlen und Suche
 
-Die Maschinenseite hat Tabs **Draufsicht · Signalweg · Fehler · Schaltschrank · Kennzahlen ·
-Dokumente**. **Kennzahlen** sind Wert, Einheit und Quelle (URL oder „Richtwert“). Die Draufsicht
-zeigt Baugruppen und Feldgeraete (-M1, -B1, -S3 ...) als Rechtecke oder Kreise in mm auf einem
-Raster (100/1000 mm). Quelle ist eine Skizze (Upload oder PDF-Seite aus der Doku) oder eine eigene
-Zeichnung. **Vorschlaege erkennen** laesst Claude Vision die Skizze lesen (kostet API-Tokens pro
-Aufruf); Vorschlaege erscheinen gestrichelt und werden einzeln oder alle bestaetigt. Klick auf ein
-Teil zeigt Stueckliste, Klemmen, SPS-Adressen, Stromlaufplan-Seiten und Fehler zu diesem BMK.
-Standardformat als JSON-Export: `width_mm`, `depth_mm`, `parts[]` mit `tag`, `kind`, `shape`,
-`x_mm`, `y_mm`, `w_mm`, `h_mm`, `rotation_deg`. Referenz: `examples/foerderband/08_Aufstellungsplan_FB-01.*`
-(PNG wird aus dem JSON gezeichnet: `python scripts/make_layout_sketch.py`).
+Die Maschinenseite hat die Tabs **Modell · Schaltschrank · Signalweg · Dokumente** und hinter „Mehr“
+**Fehlerliste · Kennzahlen · Ablauf**. **Kennzahlen** sind Wert, Einheit und Quelle (URL oder „Richtwert“).
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
@@ -329,8 +321,8 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   Fehlereintrags mit Blatt-Verweisen, abhaken (ok / Fehler / uebersprungen), Befund datiert in die
   Fehlerliste uebernehmen. Instandhaltungslog zeigt wiederkehrende Fehler.
 - **Onboarding** (Werk, „Aus Dokumentation anlegen“): Name und Typ aus dem Stuecklisten-Titel,
-  Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
-  Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
+  Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Schaltschrank-Markierungen
+  bleiben optional (Vision kostet API-Tokens).
 
 ## MCP-Server (Claude Desktop, Claude Code)
 
@@ -372,8 +364,8 @@ Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python sc
 ## Fehler markieren
 
 Tab **Fehler**, Knopf **Zeigen** an einem Eintrag: ein roter Balken über allen Tabs nennt den Fehler und seine
-Kennzeichen. Gleichzeitig werden die betroffenen Teile in der **Draufsicht**, die Bauteile im
-**Schaltschrankfoto** und die I/O-Punkte samt Schritten im **Ablauf** rot markiert. Der Balken zählt die
+Kennzeichen. Gleichzeitig werden die betroffenen Bauteile im **Schaltschrankfoto** und die I/O-Punkte
+samt Schritten im **Ablauf** rot markiert. Der Balken zählt die
 Treffer je Ansicht, springt per Klick dorthin, nennt nicht platzierte Kennzeichen und startet die geführte
 Fehlersuche. Rein aus Daten, kein Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
 
@@ -424,8 +416,8 @@ Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
-            Werk (Maschinenuebersicht, Maschinenseite, Draufsicht-Editor mit React Flow,
-            Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
+            Werk (Maschinenuebersicht, Maschinenseite, Schaltschrank-Editor), shadcn/ui im
+            Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
                    optionale Vision-Analyse der Schaltplanseiten (Claude)
@@ -434,8 +426,7 @@ backend/    FastAPI
   app/retrieval.py Hybrid-Suche: Vektor (pgvector, HNSW) + Volltext (tsvector 'german', GIN),
                    Fusion per Reciprocal Rank Fusion; search_knowledge und /api/search?mode=semantic
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Kennzahlen, Fehlerliste,
-                   Schaltschrank-Hotspots, Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm,
-                   Vision-Vorschlaege)
+                   Schaltschrank-Hotspots, Tag-Suche
   app/werk/        Werk-Logik ohne DB und ohne Modell (Kennzahlen, Fehlerlisten-Treffer)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
@@ -493,7 +484,7 @@ Mit `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` in der `.env` und dem Extra
 | Was | Session in Langfuse | Tags | Woher |
 | --- | --- | --- | --- |
 | Chat: Agent, Werkzeugaufrufe, Tokens, Kosten | Konversations-ID | `stromlauf-ai`, `model:…`, dazu `ChatRequest.trace_tags` | `app/tracing.py` als LangChain-Callback in `graph.astream` |
-| Vision: Seitenanalyse beim Upload, Draufsicht, Schaltschrank | Dokument- bzw. Bild-ID | `ingestion` plus `seitenanalyse`, `draufsicht` oder `schaltschrank` | derselbe Callback über `app/tracing.py: vision_trace` |
+| Vision: Seitenanalyse beim Upload, Schaltschrank | Dokument- bzw. Bild-ID | `ingestion` plus `seitenanalyse` oder `schaltschrank` | derselbe Callback über `app/tracing.py: vision_trace` |
 | Ablauf-Extraktion | ein Trace je Lauf | Spans `phase_a`, `phase_b`, `layout` | `app/flow/tracing.py`, setzt Tokens und Kosten selbst |
 
 Ohne Schlüssel ist alles ein No-op: `trace_config` liefert ein leeres Dict, die Extraktion vergibt eine

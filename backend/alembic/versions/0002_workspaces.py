@@ -29,8 +29,6 @@ SCOPED_TABLES = [
     "fault_entries",
     "cabinet_images",
     "cabinet_hotspots",
-    "machine_layouts",
-    "layout_parts",
     "diagnosis_sessions",
 ]
 

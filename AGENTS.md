@@ -17,7 +17,7 @@ Umsetzer je Issue, Pull Request mit gruener CI, unabhaengiges Review vor dem Mer
 ## Fokus
 
 Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
-Fehlersuche, Schaltschrank, Draufsicht, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
+Fehlersuche, Schaltschrank, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
 Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). Vor jeder Erweiterung abseits der Maschine: Nutzt das
 der Instandhaltung an der Maschine?
 
@@ -28,8 +28,8 @@ der Instandhaltung an der Maschine?
   (`/werk` leitet dorthin um, `next.config.ts`), `/werk/maschine/[id]`. Neue Maschine: Dialog „Aus Dokumentation anlegen“
   in der Maschinenuebersicht (`components/onboarding/OnboardingDialog.tsx`, Halle waehlen oder neu anlegen).
 - Werk-Datenmodell (`models.py`): Hall (Name, Beschreibung; Gruppe) -> Machine (Linie, order_index; -> KnowledgeSource)
-  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine ->
-  DiagnosisSession (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle; `GET/PUT /api/machines/{id}/specs`,
+  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> DiagnosisSession (Fehlersuche-Log),
+  Machine -> MachineSpec (Kennzahlen mit Quelle; `GET/PUT /api/machines/{id}/specs`,
   `app/werk/specs.py`). Reine Werk-Logik in `backend/app/werk/`.
 - Befundkarte (`app/ingestion/fact_card.py`, `GET /api/facts`): Zeilen Einbauort, Stromlaufplan, Klemmen, SPS
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
@@ -172,10 +172,11 @@ der Instandhaltung an der Maschine?
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
-  `LayoutCanvas.highlightTags`, `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
+  `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
 - Tracing (optional, Langfuse): `app/tracing.py` liefert `trace_config`/`vision_trace` (LangChain-Callback)
-  fuer Chat und die drei Vision-Aufrufe, `langfuse_client` fuer Skripte; Schluesselpruefung nur dort.
+  fuer Chat und die beiden Vision-Aufrufe (Seitenanalyse, Schaltschrank), `langfuse_client` fuer Skripte;
+  Schluesselpruefung nur dort.
   `app/flow/tracing.py` bleibt eigenstaendig (setzt Spans, Tokens, Kosten selbst) und nutzt sie.
   Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
   rechnet Kosten aus `app/flow/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
@@ -194,8 +195,8 @@ der Instandhaltung an der Maschine?
   `pyproject.toml` und `MODELLCACHE_VERSION` zurueck.
   Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
   Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
-  Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ und
-  „Vorschlaege erkennen“ antworten dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
+  Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
+  dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
@@ -225,8 +226,8 @@ der Instandhaltung an der Maschine?
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
 - **Kosten:** Die optionale Vision-Analyse schickt jede Schaltplanseite an Claude
-  (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`. Ebenso kosten
-  „Bauteile erkennen“ (Schaltschrank) und „Vorschläge erkennen“ (Draufsicht) pro Aufruf.
+  (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`. Ebenso kostet
+  „Bauteile erkennen“ (Schaltschrank) pro Aufruf.
 - Design: „iOS clean“ (Figma `wtxajO1YC5HvtQG7CI44BC`, Seite „Vorlagen“; freigegeben 2026-10-01). Tokens in
   `frontend/src/app/globals.css` mit den Figma-Namen (`--color-*`, `--space-*`, `--radius-*`, Textstile `text-body`,
   `text-footnote` …), shadcn- und App-Namen zeigen darauf; Schriften Inter und JetBrains Mono. Wo ein Figma-Wert als

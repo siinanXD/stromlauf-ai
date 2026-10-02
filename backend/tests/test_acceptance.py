@@ -27,7 +27,7 @@ MAP = {
          "parts": [{"tag": "-K1", "label": "Hauptschuetz", "kind": "Schuetz", "source": "bom"},
                    {"tag": "-F2", "label": "Motorschutz", "kind": "Schutz", "source": "bom"}]},
         {"id": "+FE1", "code": "+FE1", "name": "Feld",
-         "parts": [{"tag": "-M1", "label": "Motor", "kind": "Motor", "source": "layout"}]},
+         "parts": [{"tag": "-M1", "label": "Motor", "kind": "Motor", "source": "bom"}]},
         {"id": "?", "code": "?", "name": "Ohne Einbauort",
          "parts": [{"tag": "-B7", "label": "", "kind": "Sensor", "source": "index"}]},
     ],
@@ -105,11 +105,10 @@ def test_map_evidence_zaehlt_zonen_ohne_unbekannt_und_prueft_fundstellen():
     assert evidence["zones"] == 2
     assert evidence["zone_codes"] == ["+ST1", "+FE1"]
     assert evidence["parts"] == 4
-    assert evidence["parts_by_source"] == {"bom": 2, "layout": 1, "index": 1}
+    assert evidence["parts_by_source"] == {"bom": 3, "index": 1}
     assert evidence["parts_without_hit"] == ["-B7"]
-    assert evidence["layout_parts"] == ["-M1"]
     assert evidence["connectors"] == 0
-    assert evidence["cited_share"] == pytest.approx(0.667, abs=1e-3)  # -M1 aus der Draufsicht zaehlt nicht mit
+    assert evidence["cited_share"] == pytest.approx(0.75)
 
 
 def test_map_evidence_zaehlt_leitungen_als_verbinder_nicht_als_teile():
@@ -129,7 +128,7 @@ def test_map_evidence_fragt_jedes_dokumentierte_kennzeichen_nur_einmal():
         return lookup_all_but_b7(tag)
 
     acceptance.map_evidence(duplicated, lookup)
-    assert sorted(asked) == ["-B7", "-F2", "-K1"]
+    assert sorted(asked) == ["-B7", "-F2", "-K1", "-M1"]
 
 
 def test_compare_estimate_je_zweck_mit_toleranz():
@@ -155,8 +154,8 @@ def _evidence(**overrides) -> dict:
         "cold_start_s": 3.2,
         "ingest_s": None,
         "documents": {"count": 6, "ready": 6, "pages": 12},
-        "map": {"zones": 3, "zone_codes": ["+ST1", "+FE1", "Anlage"], "parts": 25, "parts_by_source": {"bom": 25},
-                "parts_without_hit": [], "layout_parts": [], "cited_share": 1.0},
+        "map": {"zones": 3, "zone_codes": ["+ST1", "+FE1", "+BP1"], "parts": 25, "parts_by_source": {"bom": 25},
+                "parts_without_hit": [], "cited_share": 1.0},
         "hotspots": 14,
         "ledger": {"total_cents": 0.0, "total_calls": 0, "month_cents": 0.0, "month_calls": 0, "by_purpose": {}},
         "estimate": {"rows": [{"purpose": "vision.page", "estimated_cents": 24.0, "actual_cents": 0.0, "calls": 0,

@@ -117,7 +117,7 @@ def onboarding_proposal(source_id: str, session: Session = Depends(get_session))
     hints = []
     if not faults:
         hints.append("Keine Fehlertabelle (Symptom | Ursache | Abhilfe) in den Handbüchern gefunden.")
-    hints.append("Draufsicht und Schaltschrank-Markierungen können auf der Maschinenseite ergänzt werden (optional per Vision, kostet API-Tokens).")
+    hints.append("Schaltschrank-Markierungen können auf der Maschinenseite ergänzt werden (optional per Vision, kostet API-Tokens).")
     return OnboardingProposal(
         source_id=source.id,
         source_name=source.name,

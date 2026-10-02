@@ -10,8 +10,9 @@ gegen eine Datenbank. Zwei Faelle:
 Downgrade entfernt alle Tabellen in umgekehrter Abhaengigkeitsreihenfolge; die Extension bleibt.
 
 Die Tabellen der entfernten Nebenmodule gehoerten bis Revision 0005 dazu: Leitstand (customers, orders,
-order_lines, stock) und Planung (articles, materials, bom_lines, routing_steps, plant_settings). Seit ihrem
-Wegfall legt die Baseline sie nicht mehr an, 0005 raeumt sie auf Datenbanken von damals ab.
+order_lines, stock), Planung (articles, materials, bom_lines, routing_steps, plant_settings) und Draufsicht
+(machine_layouts, layout_parts). Seit ihrem Wegfall legt die Baseline sie nicht mehr an, 0005 raeumt sie auf
+Datenbanken von damals ab.
 
 Revision ID: 0001_stromlauf_baseline
 Revises:
@@ -30,7 +31,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'cabinet_images', 'chunks', 'fault_entries', 'machine_layouts', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
+TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'cabinet_images', 'chunks', 'fault_entries', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions']
 
 
 def _schema_exists() -> bool:
@@ -144,21 +145,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_fault_entries_machine_id'), 'fault_entries', ['machine_id'], unique=False)
-    op.create_table('machine_layouts',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('machine_id', sa.String(length=32), nullable=False),
-    sa.Column('width_mm', sa.Float(), nullable=False),
-    sa.Column('depth_mm', sa.Float(), nullable=False),
-    sa.Column('image_path', sa.String(length=1000), nullable=True),
-    sa.Column('document_id', sa.String(length=32), nullable=True),
-    sa.Column('page', sa.Integer(), nullable=True),
-    sa.Column('scale_note', sa.String(length=60), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['document_id'], ['documents.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['machine_id'], ['machines.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_machine_layouts_machine_id'), 'machine_layouts', ['machine_id'], unique=True)
     op.create_table('machine_specs',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('machine_id', sa.String(length=32), nullable=False),
@@ -220,25 +206,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_diagnosis_sessions_fault_id'), 'diagnosis_sessions', ['fault_id'], unique=False)
     op.create_index(op.f('ix_diagnosis_sessions_machine_id'), 'diagnosis_sessions', ['machine_id'], unique=False)
-    op.create_table('layout_parts',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('layout_id', sa.String(length=32), nullable=False),
-    sa.Column('tag', sa.String(length=120), nullable=False),
-    sa.Column('label', sa.String(length=200), nullable=False),
-    sa.Column('kind', sa.String(length=40), nullable=False),
-    sa.Column('shape', sa.String(length=10), nullable=False),
-    sa.Column('x_mm', sa.Float(), nullable=False),
-    sa.Column('y_mm', sa.Float(), nullable=False),
-    sa.Column('w_mm', sa.Float(), nullable=False),
-    sa.Column('h_mm', sa.Float(), nullable=False),
-    sa.Column('rotation_deg', sa.Float(), nullable=False),
-    sa.Column('confidence', sa.Float(), nullable=True),
-    sa.Column('origin', sa.String(length=16), nullable=False),
-    sa.Column('confirmed', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['layout_id'], ['machine_layouts.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_layout_parts_layout_id'), 'layout_parts', ['layout_id'], unique=False)
 
 
 def downgrade() -> None:

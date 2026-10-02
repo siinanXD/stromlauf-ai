@@ -56,9 +56,8 @@ const machineList = [
     fault_count: 1,
     open_diagnoses: 0,
     cabinet_count: 1,
-    has_layout: false,
   },
-  { id: "m-2", name: "Presse P-02", machine_type: "main", line: "", hall_id: HALL_ID, hall_name: "Halle 1", source_id: null, source_name: null, document_count: 0, ready_document_count: 0, fault_count: 0, open_diagnoses: 0, cabinet_count: 0, has_layout: false },
+  { id: "m-2", name: "Presse P-02", machine_type: "main", line: "", hall_id: HALL_ID, hall_name: "Halle 1", source_id: null, source_name: null, document_count: 0, ready_document_count: 0, fault_count: 0, open_diagnoses: 0, cabinet_count: 0 },
 ];
 
 const map = {
@@ -207,7 +206,6 @@ export async function mockApi(page: Page, { withHistory = true, chatFailures = 0
       return json(route, { detail: "nicht gefunden" }, 404);
     }
     if (path === `/api/machines/${MACHINE_ID}/map`) return json(route, map);
-    if (path === `/api/machines/${MACHINE_ID}/layout`) return json(route, { detail: "Keine Draufsicht" }, 404);
     if (path === `/api/machines/${MACHINE_ID}/costs`)
       return json(route, { machine_id: MACHINE_ID, month: { cents: 117, calls: 12, by_purpose: { chat: { cents: 17, calls: 11 }, flow: { cents: 100, calls: 1 } } }, total: { cents: 117, calls: 12, by_purpose: {} }, workspace: { month_cents: 187.5, month_calls: 42, cap_cents: null, exceeded: false } });
     if (path === `/api/machines/${MACHINE_ID}/diagnoses`) return json(route, []);

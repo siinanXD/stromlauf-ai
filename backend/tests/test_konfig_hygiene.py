@@ -59,7 +59,7 @@ def test_fehlender_schluessel_wird_je_provider_benannt():
 
 def test_vision_hinweis_und_erkennung_folgen_dem_provider_des_modells(monkeypatch):
     from app import llm
-    from app.ingestion import cabinet_vision, layout_vision, pipeline
+    from app.ingestion import cabinet_vision, pipeline
 
     with_openai = SimpleNamespace(
         vision_model="openai:gpt-5", anthropic_api_key=None, openai_api_key="sk-openai"
@@ -76,10 +76,7 @@ def test_vision_hinweis_und_erkennung_folgen_dem_provider_des_modells(monkeypatc
     monkeypatch.setattr(cabinet_vision, "get_settings", lambda: without)
     with pytest.raises(llm.MissingKeyError, match="OPENAI_API_KEY fehlt") as cabinet_error:
         cabinet_vision.detect_components(Path("nirgends.png"))
-    monkeypatch.setattr(layout_vision, "get_settings", lambda: without)
-    with pytest.raises(llm.MissingKeyError, match="OPENAI_API_KEY fehlt") as layout_error:
-        layout_vision.detect_layout(b"")
-    assert cabinet_error.value.key == layout_error.value.key == "OPENAI_API_KEY"
+    assert cabinet_error.value.key == "OPENAI_API_KEY"
 
 
 class _FakeVisionModel:

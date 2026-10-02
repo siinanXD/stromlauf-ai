@@ -24,7 +24,7 @@ const features = tableFeatures({
 });
 const helper = createColumnHelper<typeof features, Fault>();
 
-/** Fehlerliste der Maschine: sortierbar, filterbar nach Betriebsmittel, Tags springen in die Draufsicht. */
+/** Fehlerliste der Maschine: sortierbar, filterbar nach Betriebsmittel, Tags oeffnen das Bauteil. */
 export function FaultTable({
   faults,
   tagFilter,
@@ -37,7 +37,7 @@ export function FaultTable({
   activeFaultId = null,
 }: {
   faults: Fault[];
-  /** Fehler markieren: Kennzeichen in Draufsicht, Schaltschrank und Ablauf hervorheben */
+  /** Fehler markieren: Kennzeichen in Schaltschrank und Ablauf hervorheben */
   onShow?: (fault: Fault) => void;
   activeFaultId?: string | null;
   tagFilter: string | null;

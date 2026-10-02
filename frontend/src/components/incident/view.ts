@@ -6,13 +6,12 @@ import { detailFromParam, detailToParam, type DetailRef } from "@/lib/detail";
 
 export type Area = "stoerfaelle" | "aufbau";
 
-export type AufbauTab = "schema" | "draufsicht" | "schaltschrank" | "signalweg" | "dokumente" | "ablauf" | "fehler" | "kennzahlen";
+export type AufbauTab = "schema" | "schaltschrank" | "signalweg" | "dokumente" | "ablauf" | "fehler" | "kennzahlen";
 
 /** Haupt-Tabs des Bereichs Aufbau; "Mehr" buendelt die Nebenansichten. */
 export const MAIN_TABS: { id: AufbauTab; label: string }[] = [
   { id: "schema", label: "Modell" },
   { id: "schaltschrank", label: "Schaltschrank" },
-  { id: "draufsicht", label: "Draufsicht" },
   { id: "signalweg", label: "Signalweg" },
   { id: "dokumente", label: "Dokumente" },
 ];

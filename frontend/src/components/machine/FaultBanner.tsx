@@ -8,8 +8,8 @@ import type { Fault } from "@/lib/api";
 import type { FaultHits } from "@/lib/faults";
 
 /**
- * Gewaehlter Fehler ueber allen Tabs: beteiligte Kennzeichen, wo sie markiert sind (Draufsicht,
- * Schaltschrank, Ablauf) und der Sprung in die gefuehrte Fehlersuche. Rot nur hier, weil es ein Fehler ist.
+ * Gewaehlter Fehler ueber allen Tabs: beteiligte Kennzeichen, wo sie markiert sind (Schaltschrank,
+ * Ablauf) und der Sprung in die gefuehrte Fehlersuche. Rot nur hier, weil es ein Fehler ist.
  */
 export function FaultBanner({
   fault,
@@ -23,7 +23,7 @@ export function FaultBanner({
   fault: Fault;
   hits: FaultHits;
   hasFlow: boolean;
-  onTab: (tab: "draufsicht" | "schaltschrank" | "ablauf" | "fehler") => void;
+  onTab: (tab: "schaltschrank" | "ablauf" | "fehler") => void;
   onTag: (tag: string) => void;
   onDiagnose: (fault: Fault) => void;
   onClose: () => void;
@@ -43,9 +43,6 @@ export function FaultBanner({
         {hits.tags.length === 0 && <span className="text-muted-foreground">keine Kennzeichen am Eintrag</span>}
       </span>
       <span className="flex flex-wrap items-center gap-x-3 text-xs">
-        <button className={link} disabled={hits.partIds.length === 0} onClick={() => onTab("draufsicht")}>
-          Draufsicht {hits.partIds.length}
-        </button>
         <button className={link} disabled={hits.hotspotIds.length === 0} onClick={() => onTab("schaltschrank")}>
           Schaltschrank {hits.hotspotIds.length}
         </button>

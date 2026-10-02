@@ -28,7 +28,6 @@ from app.models import (
     Hall,
     KnowledgeSource,
     Machine,
-    MachineLayout,
     MachineSpec,
     MachineType,
     TagOccurrence,
@@ -185,8 +184,6 @@ def delete_hall(hall_id: str, session: Session = Depends(get_session)):
 
 def _remove_machine_files(machine: Machine) -> None:
     paths = [machine.image_path] + [c.image_path for c in machine.cabinets]
-    if machine.layout:
-        paths.append(machine.layout.image_path)
     for path in paths:
         if path:
             Path(path).unlink(missing_ok=True)
@@ -243,7 +240,6 @@ def list_machines(session: Session = Depends(get_session)):
             .group_by(DiagnosisSession.machine_id)
         ).all()
     )
-    with_layout = set(session.scalars(select(MachineLayout.machine_id)))
     return [
         MachineListItem(
             id=m.id,
@@ -259,7 +255,6 @@ def list_machines(session: Session = Depends(get_session)):
             fault_count=len(m.faults),
             open_diagnoses=open_diagnoses.get(m.id, 0),
             cabinet_count=len(m.cabinets),
-            has_layout=m.id in with_layout,
             key_figure=key_figure([{"value": s.value, "unit": s.unit} for s in m.specs]),
         )
         for m in machines

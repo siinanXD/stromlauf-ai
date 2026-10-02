@@ -19,7 +19,7 @@ def _row(machine_id: str, name: str, machine_type: str, line: str, hall_id: str,
         "id": machine_id, "name": name, "machine_type": machine_type, "line": line, "hall_id": hall_id,
         "hall_name": hall_name, "source_id": None, "source_name": None, "document_count": 0,
         "ready_document_count": 0, "fault_count": 0, "open_diagnoses": 0, "cabinet_count": 0,
-        "has_layout": False, "key_figure": "",
+        "key_figure": "",
     }
 
 

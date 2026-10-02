@@ -315,7 +315,6 @@ class MachineListItem(BaseModel):
     fault_count: int
     open_diagnoses: int
     cabinet_count: int
-    has_layout: bool
     key_figure: str
 
 
@@ -339,73 +338,7 @@ class TagLookup(BaseModel):
     bom_line: str | None = None  # Stuecklisten-Zeile, falls gefunden
 
 
-# --- Draufsicht (Maschinen-Layout) ------------------------------------------------------------
-
-
-class LayoutIn(BaseModel):
-    width_mm: float = Field(default=0, ge=0, le=500_000)
-    depth_mm: float = Field(default=0, ge=0, le=500_000)
-    document_id: str | None = None
-    page: int | None = Field(default=None, ge=1)
-    scale_note: str = Field(default="", max_length=60)
-
-
-class LayoutPartIn(BaseModel):
-    tag: str = ""
-    label: str = ""
-    kind: str = "Sonstiges"
-    shape: str = "rect"
-    x_mm: float = 0
-    y_mm: float = 0
-    w_mm: float = Field(default=100, gt=0)
-    h_mm: float = Field(default=100, gt=0)
-    rotation_deg: float = 0
-    confirmed: bool = True
-
-
-class LayoutPartUpdate(BaseModel):
-    tag: str | None = None
-    label: str | None = None
-    kind: str | None = None
-    shape: str | None = None
-    x_mm: float | None = None
-    y_mm: float | None = None
-    w_mm: float | None = Field(default=None, gt=0)
-    h_mm: float | None = Field(default=None, gt=0)
-    rotation_deg: float | None = None
-    confirmed: bool | None = None
-
-
-class LayoutPartOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    layout_id: str
-    tag: str
-    label: str
-    kind: str
-    shape: str
-    x_mm: float
-    y_mm: float
-    w_mm: float
-    h_mm: float
-    rotation_deg: float
-    confidence: float | None
-    origin: str
-    confirmed: bool
-
-
-class LayoutOut(BaseModel):
-    id: str
-    machine_id: str
-    width_mm: float
-    depth_mm: float
-    has_image: bool
-    document_id: str | None
-    page: int | None
-    scale_note: str
-    updated_at: datetime
-    parts: list[LayoutPartOut] = []
+# --- Globale Suche ------------------------------------------------------------------------------
 
 
 class TagSearchMachine(BaseModel):

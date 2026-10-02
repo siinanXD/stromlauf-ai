@@ -131,20 +131,16 @@ def device_tags_by_source(session: Session, source_ids: list[str]) -> dict[str, 
 # --- part_kinds -------------------------------------------------------------------------------
 
 
-def part_kinds(
-    tags: list[str], by_source: dict[str, set[str]], extra: dict[str, list[str]] | None = None
-) -> dict[str, str]:
+def part_kinds(tags: list[str], by_source: dict[str, set[str]]) -> dict[str, str]:
     """Art je Kennzeichen, leer, wenn der Kennbuchstabe in der Lesart nichts Sicheres sagt (Issue #99).
 
-    Die Lesart bestimmt detect_edition je Quelle aus allen ihren Betriebsmitteln und den Teilen der Draufsicht
-    ihrer Maschine (extra), genau wie das Maschinenmodell (ingestion/machine_map.build_map). Steht ein Kennzeichen
-    in mehreren Quellen, gilt die erste nach ID."""
+    Die Lesart bestimmt detect_edition je Quelle aus allen ihren Betriebsmitteln, genau wie das Maschinenmodell
+    (ingestion/machine_map.build_map). Steht ein Kennzeichen in mehreren Quellen, gilt die erste nach ID."""
     editions: dict[str, str] = {}
 
     def edition_of(source_id: str) -> str:
         if source_id not in editions:
-            tags_of = by_source[source_id] | set((extra or {}).get(source_id, []))
-            editions[source_id] = detect_edition(sorted(tags_of)).name
+            editions[source_id] = detect_edition(sorted(by_source[source_id])).name
         return editions[source_id]
 
     kinds: dict[str, str] = {}
@@ -152,12 +148,6 @@ def part_kinds(
         source_id = next((s for s in sorted(by_source) if tag in by_source[s]), None)
         kinds[tag] = kind_of(tag, edition_of(source_id) if source_id else OFFEN)
     return kinds
-
-
-def _layout_tags(machine: Machine | None) -> dict[str, list[str]]:
-    if machine is None or not machine.source_id or machine.layout is None:
-        return {}
-    return {machine.source_id: [part.tag for part in machine.layout.parts if part.tag]}
 
 
 # --- signal_start -----------------------------------------------------------------------------
@@ -301,7 +291,7 @@ def build_meta(
         "evidence": [*hotspot_evidence(machine, tags), *page_evidence(citations)],
         "citation_checks": checks,
         "citations_valid": valid,
-        "part_kinds": part_kinds(tags, by_source, _layout_tags(machine)),
+        "part_kinds": part_kinds(tags, by_source),
         "signal_start": signal_start(tags, source_ids),
         "plan_spots": [plan_spot(row) for row in spots],
     }

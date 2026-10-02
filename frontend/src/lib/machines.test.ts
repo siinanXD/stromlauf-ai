@@ -17,7 +17,6 @@ const machine = (over: Partial<MachineListItem>): MachineListItem => ({
   fault_count: 3,
   open_diagnoses: 0,
   cabinet_count: 1,
-  has_layout: true,
   key_figure: "1.200 m/min",
   ...over,
 });

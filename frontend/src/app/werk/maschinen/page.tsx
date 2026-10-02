@@ -88,7 +88,7 @@ export default function MachinesPage() {
                         {m.name}
                       </Link>
                       <span className="ml-2 font-mono text-[11px] text-muted-foreground">
-                        {[m.has_layout && "Draufsicht", m.cabinet_count > 0 && `${m.cabinet_count} Schrank`].filter(Boolean).join(" · ")}
+                        {m.cabinet_count > 0 ? `${m.cabinet_count} Schrank` : ""}
                       </span>
                     </td>
                     <td className={TD}>{MACHINE_TYPE_LABELS[m.machine_type] ?? m.machine_type}</td>
