@@ -1,0 +1,2525 @@
+{
+  "summary": {
+    "fragen": 20,
+    "bewertet": 20,
+    "nicht_bewertet_fehler": 0,
+    "fehlerrate": 0.0,
+    "fakten_mittel": 0.82,
+    "quellen_ok": 0.95,
+    "zitate_belege": 51,
+    "zitate_antworten": 20,
+    "zitate_gueltig": 0.8,
+    "zitate_geprueft": 0.98,
+    "teile_antworten": 7,
+    "teile_recall": 0.833,
+    "teile_praezision": 0.85,
+    "sauber": 1.0,
+    "werkzeug_ok": 0.364,
+    "voll_bestanden": 7,
+    "dauer_mittel_s": 5.5,
+    "p95_s": 7.3,
+    "tokens_ein": 150018,
+    "tokens_aus": 7182,
+    "modellaufrufe": 44,
+    "kosten_usd": 0.0822
+  },
+  "results": [
+    {
+      "id": "fb01-e03",
+      "source": "Foerderband FB-01",
+      "question": "Was haengt an E0.3 und wo ist das im Plan?",
+      "answer": "\n\n## Kurzantwort\nAn **E0.3** hängt **-S3 über -K3 und -X3:4**; im Plan ist das als **Not-Halt-Freigabe** belegt [[01_Stromlaufplan_FB-01.pdf|/4.2]] [[03_Klemmenplan_FB-01.csv|-X3:4]].\n\n## Prüfen\n1. **-S3** am Not-Halt prüfen; der Signalweg beginnt dort als 2-öffner, rastend [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n2. **-K3** prüfen; das Sicherheitsrelais führt die Freigabe zum Eingang [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n3. **-X3:4** prüfen; dort ist die Klemme **Not-Halt Freigabe** [[03_Klemmenplan_FB-01.csv|-X3:4]].\n4. **E0.3** im SPS-Eingang kontrollieren; Bezeichnung **NotHalt_OK** [[01_Stromlaufplan_FB-01.pdf|S. 5]].\n5. Wenn die Freigabe fehlt, **-S3**, **-K3** und die Verdrahtung zu **-X3:4** vor Ort messen [[01_Stromlaufplan_FB-01.pdf|/4.2]].\n\n## Details\n- **-S3 → -K3 → -X3:4 → E0.3**; im AWL ist **E0.3** als **NotHalt_OK** verwendet [[04_SPS_Programm_FB-01.awl|FB 10 NW 1]].\n\n## Sicherheit\nArbeiten an Not-Halt- und Sicherheitskreisen nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln. Sicherheitsfunktionen nicht überbrücken.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 3.9,
+      "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 2,
+        "teile_treffer": 1,
+        "teile_passend": 2,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.75,
+        "fakten_fehlend": [
+          "Blatt 4|S. 4|Seite 4"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 4,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "58c934937998428b90d05efbc6a541ae",
+      "usage": {
+        "input_tokens": 5305,
+        "output_tokens": 424,
+        "cache_read_tokens": 2176,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.004418
+      },
+      "meta": {
+        "referenced_tags": [
+          "-S3",
+          "-K3"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/4.2]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/4.2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_FB-01.csv|-X3:4]]",
+            "file": "03_Klemmenplan_FB-01.csv",
+            "locator": "-X3:4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 5]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 4,
+          "checked": 4,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "fb01-h2-20s",
+      "source": "Foerderband FB-01",
+      "question": "Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?",
+      "answer": "\n\n## Kurzantwort\n-H2 leuchtet nach etwa 20 Sekunden, weil die Steuerung einen Blockadefall meldet: Teil am Einlauf -B1, aber nicht am Auslauf -B2, mit Timer T5 [[06_Betriebsanleitung_FB-01.md|/6.5]].\n\n## Prüfen\n1. Band auf Verklemmung im Laufweg prüfen; der Fehlerfall ist „Teil am Einlauf -B1, aber nicht am Auslauf -B2“ [[06_Betriebsanleitung_FB-01.md|/6.5]].\n2. -B2 reinigen und ausrichten; dafür ist die Ursache ausdrücklich benannt [[06_Betriebsanleitung_FB-01.md|/6.5]].\n3. Klemme -X3:6 und das Signal E0.5 prüfen; die Behebung nennt diesen Eingang [[06_Betriebsanleitung_FB-01.md|/6.5]].\n4. Wenn stattdessen -F2 ausgelöst ist, E0.2 prüfen; dann kommt -H2 bei Motorschutzfehler [[06_Betriebsanleitung_FB-01.md|S. 3]].\n5. Falls der Fehler nur nach Start kommt, FB 10/NW5 auf die Ansteuerung von A4.3 prüfen; dort wird -H2 gesetzt [[04_SPS_Programm_FB-01.awl|FB 10 NW 5]].\n\n## Details\nDie Dokumentation nennt für -H2 zwei passende Störbilder: Blockade nach ca. 20 s und Motorschutz -F2. Für den 20-Sekunden-Fall ist der Timer T5 als Ursache angegeben; der Signalweg führt über -B1/-B2 und E0.5.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "search_faults",
+        "find_tag"
+      ],
+      "dauer_s": 6.0,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 4,
+        "teile_treffer": 2,
+        "teile_passend": 4,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 3,
+        "zitate_gueltig": 0.3333333333333333,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[06_Betriebsanleitung_FB-01.md|/6.5]]",
+          "[[06_Betriebsanleitung_FB-01.md|S. 3]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "9fb85f5291044fa9b28ec562d84c7e65",
+      "usage": {
+        "input_tokens": 9214,
+        "output_tokens": 446,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.00598
+      },
+      "meta": {
+        "referenced_tags": [
+          "-H2",
+          "-B1",
+          "-B2",
+          "-F2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|/6.5]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "/6.5",
+            "valid": false,
+            "checked": true,
+            "reason": "Kennzeichen /6.5 nicht in 06_Betriebsanleitung_FB-01.md"
+          },
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|S. 3]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "S. 3",
+            "valid": false,
+            "checked": true,
+            "reason": "06_Betriebsanleitung_FB-01.md hat keine Seiten"
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 5]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-motor-brummt",
+      "source": "Foerderband FB-01",
+      "question": "Der Motor brummt, dreht aber nicht. Welche Klemmen muss ich pruefen?",
+      "answer": "\n\n\n\n## Kurzantwort\nPrüfe bei **-X4:U, -X4:V, -X4:W** die Spannung gegen den Motorabgang; laut Doku liegt der Fall meist an einer fehlenden Phase am Motorabgang [[e19bdbf5f6964cdfade534a8ee431254|S. 7]].\n\n## Prüfen\n1. Spannung an **-X4:U/V/W** messen; eine fehlende Phase bestätigt den Fehler [[e19bdbf5f6964cdfade534a8ee431254|S. 7]].\n2. Motorleitung **-W4** auf Unterbrechung prüfen [[e19bdbf5f6964cdfade534a8ee431254|S. 7]].\n3. Klemmen **-M1:U1/V1/W1** auf festen Sitz und Durchgang prüfen [[e19bdbf5f6964cdfade534a8ee431254|S. 7]].\n4. Falls **-K1** anzieht, aber der Motor nur brummt, auch **-Q2** am Antrieb prüfen [[e19bdbf5f6964cdfade534a8ee431254|S. 7]].\n\n## Sicherheit\nNur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln prüfen. Unter Spannung nur messen, nicht überbrücken.",
+      "sources": [
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_faults",
+        "search_knowledge"
+      ],
+      "dauer_s": 5.9,
+      "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 4,
+        "teile_treffer": 1,
+        "teile_passend": 4,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 1,
+        "zitate_gueltig": 0.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[e19bdbf5f6964cdfade534a8ee431254|S. 7]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "41d54c932f1143338b616e4c41babfe1",
+      "usage": {
+        "input_tokens": 14906,
+        "output_tokens": 384,
+        "cache_read_tokens": 9600,
+        "cache_creation_tokens": 0,
+        "calls": 3,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.006428
+      },
+      "meta": {
+        "referenced_tags": [
+          "-W4",
+          "-M1",
+          "-K1",
+          "-Q2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[e19bdbf5f6964cdfade534a8ee431254|S. 7]]",
+            "file": "e19bdbf5f6964cdfade534a8ee431254",
+            "locator": "S. 7",
+            "valid": false,
+            "checked": true,
+            "reason": "Datei nicht in der Wissensquelle"
+          }
+        ],
+        "citations_valid": {
+          "valid": 0,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "fb01-verriegelung",
+      "source": "Foerderband FB-01",
+      "question": "Wie ist -K1 gegen -K2 verriegelt?",
+      "answer": "\n\n## Kurzantwort\n-K1 ist in der SPS gegen -K2 verriegelt: -K1 darf nur anziehen, wenn #Freigabe und #Richtung_Rueck aus sind; -K2 entsprechend nur, wenn #Vorwaerts aus ist [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]] [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n\n## Prüfen\n1. Prüfe im AWL, ob #Vorwaerts und #Rueckwaerts gegenseitig nur mit den jeweils negierten Signalen gesetzt werden [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]] [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n2. Messe an -X3:9 und -X3:10, ob A4.0 bzw. A4.1 nur bei freigegebener Gegenrichtung anliegen [[01_Stromlaufplan_FB-01.pdf|S. 7]].\n3. Prüfe, ob die Schützspulen A1/A2 an -K1 und -K2 über dieselbe 0-V-Rückleitung -X3:13 versorgt werden [[01_Stromlaufplan_FB-01.pdf|S. 7]].\n4. Kontrolliere bei Ausfall die Freigabe-Kette, weil -K3 die Schützspulen hardwareseitig trennt [[06_Betriebsanleitung_FB-01.md|-]].\n5. Wenn beide Richtungen gleichzeitig angefordert sind, prüfe zuerst die Logik von #Richtung_Rueck und #Freigabe im FB 10 [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]] [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n\n## Details\nIm AWL setzt NW 2 #Vorwaerts mit `U #Freigabe; UN #Richtung_Rueck; UN #Rueckwaerts; = #Vorwaerts;` und NW 3 #Rueckwaerts mit `U #Freigabe; U #Richtung_Rueck; UN #Vorwaerts; = #Rueckwaerts;` [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]] [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n\n## Sicherheit\nPrüfungen an der Steuerung nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln. Arbeiten an Verriegelungen nicht überbrücken; das ist eine Sicherheitsfunktion.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 2 Schuetz vorwaerts -K1"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "find_tag",
+        "find_tag",
+        "search_faults",
+        "search_knowledge"
+      ],
+      "dauer_s": 7.3,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 3,
+        "teile_treffer": 2,
+        "teile_passend": 2,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.6666666666666666,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-K3"
+        ],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 4,
+        "zitate_gueltig": 0.75,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[06_Betriebsanleitung_FB-01.md|-]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "81fd92237ce44e16ac4e1c5f2e3d78c2",
+      "usage": {
+        "input_tokens": 10460,
+        "output_tokens": 693,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.008026
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K1",
+          "-K2",
+          "-K3"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 2]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 3]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 7]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 7",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|-]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "-",
+            "valid": false,
+            "checked": true,
+            "reason": "Ortsangabe fehlt"
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 4,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "festo-notaus-bruecke",
+      "source": "Festo MPS",
+      "question": "Gibt es bei der Station Trennen einen Hinweis zu Kabelbruecken fuer NOT-AUS?",
+      "answer": "\n\n## Kurzantwort\nJa: In der Handbuchdokumentation zur Station Trennen steht, dass bei allen Vorzugsvarianten SPS Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt sind [[Festo_MPS_Trennen_Handbuch.pdf|S. 12]].\n\n## Prüfen\n1. Im Handbuch die Stelle „Hinweis“ auf S. 12 prüfen; dort ist die Kabelbrücke ausdrücklich genannt [[Festo_MPS_Trennen_Handbuch.pdf|S. 12]].\n2. Im Stromlaufplan die Station Trennen betrachten; die Verdrahtung der Station ist auf der Stationsseite dargestellt [[Festo_MPS_Trennen_Stromlaufplan.pdf|S. 9]].\n3. Vor Ort prüfen, ob die Brücke auf dem genannten Bit 1.5 tatsächlich gesteckt ist; die Dokumentation nennt nur den Hinweis, nicht die konkrete Klemmenbezeichnung [[Festo_MPS_Trennen_Handbuch.pdf|S. 12]].\n4. Bei Arbeiten an der Anlage nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln vorgehen [[Festo_MPS_Trennen_Handbuch.pdf|S. 5]].\n\n## Sicherheit\nNOT-AUS nicht überbrücken oder außer Funktion setzen; das betrifft eine Sicherheitsfunktion. Prüfen und ändern nur durch Elektrofachkräfte nach den 5 Sicherheitsregeln.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 49,
+          "section": ""
+        },
+        {
+          "document_id": "ea206375d1374daeab49874744e20f67",
+          "filename": "Siemens_STEP7_AWL_Referenzhandbuch.pdf",
+          "doc_type": "manual",
+          "page": 169,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge"
+      ],
+      "dauer_s": 5.4,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "05d6e5f372fe409ca0439d3645d5120b",
+      "usage": {
+        "input_tokens": 6397,
+        "output_tokens": 342,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.003399
+      },
+      "meta": {
+        "referenced_tags": [],
+        "citation_checks": [
+          {
+            "text": "[[Festo_MPS_Trennen_Handbuch.pdf|S. 12]]",
+            "file": "Festo_MPS_Trennen_Handbuch.pdf",
+            "locator": "S. 12",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[Festo_MPS_Trennen_Stromlaufplan.pdf|S. 9]]",
+            "file": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+            "locator": "S. 9",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[Festo_MPS_Trennen_Handbuch.pdf|S. 5]]",
+            "file": "Festo_MPS_Trennen_Handbuch.pdf",
+            "locator": "S. 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "awl-timer-1b1-1s1",
+      "source": "AWL Praxisprojekte",
+      "question": "Welcher Timer ueberwacht in bnt_modell.awl den Zeitunterschied zwischen 1B1 und 1S1, mit welcher Zeit, und in welchem Schritt startet er?",
+      "answer": "\n\n\n\n## Kurzantwort\nDer Timer ist `\"T_zw_1B1_1S1\"`; er läuft mit `S5T#1S` und wird in Schritt `3` gestartet [[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1]].\n\n## Prüfen\n1. Prüfe in `NW 7`, ob `#Schritt_Nr = 3` anliegt; dann wird der Timer gesetzt [[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1]].\n2. Prüfe, ob `#Reset` den Timer in `#Schritt_Nr = 4` oder `10` zurücksetzt [[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1]].\n3. Prüfe, ob der Timername exakt `\"T_zw_1B1_1S1\"` in der AWL/Symbolik verwendet wird [[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1]].\n\n## Details\n- Schritt 3 startet den Einschalt-Timer mit `SE`.\n- Der Rücksetzteil ist für Schritt 4, Reset und Schritt 10 verknüpft.\n",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 3 Field 1 Discharg Off Time 1&2"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 1 / NW 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 4 Field 2 Collecting Off Time 1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 2 - Pulse Controller / NW 1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 16 / NW 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 1 / NW 3"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 10 Field 3 Collecting Off Time 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 1 / NW 4"
+        }
+      ],
+      "tools": [
+        "get_plc_block",
+        "keyword_search",
+        "search_knowledge"
+      ],
+      "dauer_s": 6.5,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 1,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "a4e9eb168d4545b0a3b7b3e3ddab4c9b",
+      "usage": {
+        "input_tokens": 10331,
+        "output_tokens": 447,
+        "cache_read_tokens": 6528,
+        "cache_creation_tokens": 0,
+        "calls": 3,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.005353
+      },
+      "meta": {
+        "referenced_tags": [],
+        "citation_checks": [
+          {
+            "text": "[[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1]]",
+            "file": "bnt_modell.awl",
+            "locator": "FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "awl-ob1-aufrufe",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche Schrittketten ruft der OB1 Programmzyklus in bnt_modell.awl auf?",
+      "answer": "\n\n## Kurzantwort\nIn `bnt_modell.awl` ruft `OB 1` die Schrittketten/FCs `FC 1`, `FC 3`, `FC 4`, `FC 7`, `FC 11`, `FC 12`, `FC 15`, `FC 16` und bedingt `FC 18` auf [[acme-001.awl|OB 1 - Main Program Sweep (Cycle)]], [[acme-003.awl|OB 1 - Main Program Sweep (Cycle)]].",
+      "sources": [],
+      "tools": [
+        "get_plc_block"
+      ],
+      "dauer_s": 4.1,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.25,
+        "fakten_fehlend": [
+          "Magazin",
+          "Greifer",
+          "Betriebsarten"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "bnt_modell.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 2,
+        "zitate_gueltig": 0.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[acme-001.awl|OB 1 - Main Program Sweep (Cycle)]]",
+          "[[acme-003.awl|OB 1 - Main Program Sweep (Cycle)]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "8ebad0273db2477a87f3a2e6f84623ce",
+      "usage": {
+        "input_tokens": 10060,
+        "output_tokens": 138,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.005228
+      },
+      "meta": {
+        "referenced_tags": [],
+        "citation_checks": [
+          {
+            "text": "[[acme-001.awl|OB 1 - Main Program Sweep (Cycle)]]",
+            "file": "acme-001.awl",
+            "locator": "OB 1 - Main Program Sweep (Cycle)",
+            "valid": false,
+            "checked": true,
+            "reason": "Datei nicht in den Fundstellen der Antwort"
+          },
+          {
+            "text": "[[acme-003.awl|OB 1 - Main Program Sweep (Cycle)]]",
+            "file": "acme-003.awl",
+            "locator": "OB 1 - Main Program Sweep (Cycle)",
+            "valid": false,
+            "checked": true,
+            "reason": "Datei nicht in den Fundstellen der Antwort"
+          }
+        ],
+        "citations_valid": {
+          "valid": 0,
+          "checked": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "fb01-signal-s1",
+      "source": "Foerderband FB-01",
+      "question": "Was schaltet der Start-Taster -S1 letztlich?",
+      "answer": "\n\n## Kurzantwort\n-S1 schaltet letztlich -H2, die rote Meldeleuchte Störung, über den Ausgang A4.3 [[01_Stromlaufplan_FB-01.pdf|S. 6]]. Der Signalweg läuft von -S1 über E0.0 und FB 10/NW4 weiter zu A4.3 [[04_SPS_Programm_FB-01.awl|FB 10 NW 4]].\n\n## Details\n-S1 → -X3:1 → E0.0 → FB 10/NW4 → A4.3 → -X3:12 → -H2.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 4.3,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 2,
+        "teile_treffer": 1,
+        "teile_passend": 1,
+        "teile_recall": 0.5,
+        "teile_praezision": 0.5,
+        "teile_fehlend": [
+          "-K1"
+        ],
+        "teile_fremd": [
+          "-H2"
+        ],
+        "fakten": 0.4,
+        "fakten_fehlend": [
+          "NW ?1|Netzwerk 1",
+          "A4\\.0",
+          "-K1"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 2,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "6eddff32786249a2910605c3940a9979",
+      "usage": {
+        "input_tokens": 5128,
+        "output_tokens": 153,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.001597
+      },
+      "meta": {
+        "referenced_tags": [
+          "-S1",
+          "-H2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 6]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 4]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "ur01-e12",
+      "source": "Umroller UR-01",
+      "question": "Was meldet E1.2?",
+      "answer": "\n\n## Kurzantwort\nE1.2 meldet **NotHalt_OK**: die Freigabe des Sicherheitsrelais **-K1** bzw. „Not-Halt entriegelt“ [[04_SPS_Programm_UR-01.awl|FB 20 NW 1]].\n\n## Prüfen\n1. Prüfe, ob **-S3** entriegelt ist; E1.2 kommt von der Not-Halt-Freigabe über **-K1** [[03_Klemmenplan_UR-01.csv|-X3:11]].\n2. Prüfe **-K1** auf anstehende Freigabe; der Eingang ist als Sicherheitsrelais-Freigabe belegt [[03_Klemmenplan_UR-01.csv|-X3:11]].\n3. Messe an **-X3:11**, ob das Signal zum SPS-Eingang **E1.2** anliegt [[03_Klemmenplan_UR-01.csv|-X3:11]].\n4. Lies in **FB 20/NW1**, ob **E1.2** als **NotHalt_OK** ausgewertet wird [[04_SPS_Programm_UR-01.awl|FB 20 NW 1]].\n\n",
+      "sources": [
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3f732b0ef70e4c60af7492d3268f0059",
+          "filename": "02_Stueckliste_UR-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "f57ec6d83d1049c786041d12409e985b",
+          "filename": "03_Klemmenplan_UR-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "efa1c3504fd4497a875d8df7f5528ac4",
+          "filename": "05_Symboltabelle_UR-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 4.8,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 2,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "fce1a9c0acbe4c18be6605bbbfa771d7",
+      "usage": {
+        "input_tokens": 5288,
+        "output_tokens": 283,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.002302
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K1",
+          "-S3"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 1]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_UR-01.csv|-X3:11]]",
+            "file": "03_Klemmenplan_UR-01.csv",
+            "locator": "-X3:11",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "ur01-signal-s4",
+      "source": "Umroller UR-01",
+      "question": "Welche Antriebe gibt der Start-Taster -S4 frei?",
+      "answer": "\n\n\n\n## Kurzantwort\nDer Start-Taster -S4 gibt laut FB 20/NW 1 die Freigabe **#Freigabe** und damit die Umrichter **-U1 bis -U5** frei; im Tippbetrieb zusätzlich im NW 8 **-U3** und **-U4**. Beleg: Start setzt die Freigabe und daraus werden A4.0 bis A4.4 gebildet [[04_SPS_Programm_UR-01.awl|FB 20 NW 1]].\n\n## Prüfen\n1. Prüfe im AWL, ob **#Freigabe** nach **#Start** gesetzt wird; das steht in **FB 20 NW 1** [[04_SPS_Programm_UR-01.awl|FB 20 NW 1]].\n2. Prüfe, ob **#U1_Frei bis #U5_Frei** aus **#Freigabe** erzeugt werden; das ist in den Netzwerken der Freigaben dokumentiert [[04_SPS_Programm_UR-01.awl|FB 20 NW 6]].\n3. Prüfe den Tippbetrieb: **#U3_Frei** und **#U4_Frei** hängen dort zusätzlich an **#Start** und **#Tuer_OK** [[04_SPS_Programm_UR-01.awl|FB 20 NW 8]].\n4. Prüfe in der Betriebsanleitung, dass bei Start die Freigabe gesetzt wird und **A4.0 bis A4.4** zu den Umrichtern gehen [[06_Betriebsanleitung_UR-01.md|Kap. 4]].\n\n## Details\nIm normalen Betrieb ist die Kette: **-S4 → #Start → #Freigabe → A4.0…A4.4 → -U1…-U5**.  \nIm Tippbetrieb gilt zusätzlich: **#Tippen + #Start + #Tuer_OK → #U3_Frei und #U4_Frei** [[04_SPS_Programm_UR-01.awl|FB 20 NW 8]].",
+      "sources": [
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3f732b0ef70e4c60af7492d3268f0059",
+          "filename": "02_Stueckliste_UR-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "f57ec6d83d1049c786041d12409e985b",
+          "filename": "03_Klemmenplan_UR-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "efa1c3504fd4497a875d8df7f5528ac4",
+          "filename": "05_Symboltabelle_UR-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 8 Freigabe Praegewerk -U3 und Perforation -U4"
+        },
+        {
+          "document_id": "e6c9c6a77bf94c2ebe9485199baecb19",
+          "filename": "06_Betriebsanleitung_UR-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 1 Freigabe Betrieb"
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 6 Freigabe Wickler -U5"
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "search_knowledge"
+      ],
+      "dauer_s": 7.1,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.75,
+        "fakten_fehlend": [
+          "E0\\.0"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 4,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.75,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_UR-01.md|Kap. 4]]"
+        ]
+      },
+      "conversation_id": "56eea9ee516242ed98ee02c408f791e4",
+      "usage": {
+        "input_tokens": 9804,
+        "output_tokens": 515,
+        "cache_read_tokens": 7040,
+        "cache_creation_tokens": 0,
+        "calls": 3,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.004919
+      },
+      "meta": {
+        "referenced_tags": [
+          "-S4",
+          "-U1",
+          "-U5",
+          "-U3",
+          "-U4"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 1]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 6]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 8]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_UR-01.md|Kap. 4]]",
+            "file": "06_Betriebsanleitung_UR-01.md",
+            "locator": "Kap. 4",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_UR-01.md hat keine Abschnitte"
+          }
+        ],
+        "citations_valid": {
+          "valid": 4,
+          "checked": 3,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "ur01-bahnriss",
+      "source": "Umroller UR-01",
+      "question": "Was passiert bei einem Bahnriss?",
+      "answer": "\n\n## Kurzantwort\nBahnriss an -B1 oder -B2 setzt in FB 20 das Signal #Bahnriss und bei Freigabe die Störung #Stoerung; die Anlage stoppt. Laut Betriebsanleitung leuchtet dann -H2 und es ertönt die Hupe -H4 [[04_SPS_Programm_UR-01.awl|FB 20 NW 2]], [[06_Betriebsanleitung_UR-01.md|S. 1]].\n\n## Prüfen\n1. Prüfen, ob -B1 oder -B2 Bahnverlust meldet; diese Sensoren sind als E0.6/E0.7 eingetragen [[06_Betriebsanleitung_UR-01.md|S. 1]].\n2. Bahn an -B1 bzw. -B2 neu einfädeln; die Anleitung nennt das als Behebung bei Bahnriss [[06_Betriebsanleitung_UR-01.md|S. 1]].\n3. Sensoren auf Verschmutzung und Abstand prüfen; das ist als Prüfschritt dokumentiert [[06_Betriebsanleitung_UR-01.md|S. 1]].\n4. Danach mit -S6 quittieren; Quittierung ist nur bei behobenem Bahnriss vorgesehen [[04_SPS_Programm_UR-01.awl|FB 20 NW 5]].\n5. Wenn die Störung bleibt, prüfen ob #Freigabe anliegt; der Bahnriss setzt die Störung nur bei Freigabe [[04_SPS_Programm_UR-01.awl|FB 20 NW 2]].\n\n## Details\n- #Bahnriss := #Bahnriss1 ODER #Bahnriss2; bei #Bahnriss UND #Freigabe wird #Stoerung gesetzt [[04_SPS_Programm_UR-01.awl|FB 20 NW 2]].\n- Quittierung löscht #Stoerung nur mit #Quitt, nicht bei anstehendem Bahnriss [[04_SPS_Programm_UR-01.awl|FB 20 NW 5]].\n\n## Sicherheit\nArbeiten an der Anlage nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln.",
+      "sources": [
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 2 Bahnriss"
+        },
+        {
+          "document_id": "e6c9c6a77bf94c2ebe9485199baecb19",
+          "filename": "06_Betriebsanleitung_UR-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung"
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 5 Quittierung"
+        }
+      ],
+      "tools": [
+        "search_knowledge"
+      ],
+      "dauer_s": 7.1,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 3,
+        "zitate_gueltig": 0.6666666666666666,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[06_Betriebsanleitung_UR-01.md|S. 1]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "e8af7dd2c64a48228e693ac56434963b",
+      "usage": {
+        "input_tokens": 6094,
+        "output_tokens": 518,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.003964
+      },
+      "meta": {
+        "referenced_tags": [
+          "-B1",
+          "-B2",
+          "-H2",
+          "-H4",
+          "-S6"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 2]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[06_Betriebsanleitung_UR-01.md|S. 1]]",
+            "file": "06_Betriebsanleitung_UR-01.md",
+            "locator": "S. 1",
+            "valid": false,
+            "checked": true,
+            "reason": "06_Betriebsanleitung_UR-01.md hat keine Seiten"
+          },
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 5]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "ur01-k3",
+      "source": "Umroller UR-01",
+      "question": "Was schaltet -K3?",
+      "answer": "\n\n## Kurzantwort\n-K3 wird von -S8 „Hülsenzufuhr Hand“ über E0.4 im FB 20 NW 9 angesteuert und schaltet dann A4.5 auf die Spule von -K3 [[04_SPS_Programm_UR-01.awl|FB 20 NW 9]].\n\n## Prüfen\n1. -S8 betätigen und prüfen, ob E0.4 im SPS-Status 1 wird [[04_SPS_Programm_UR-01.awl|FB 20 NW 9]].\n2. Prüfen, ob FB 20 NW 9 A4.5 setzt [[04_SPS_Programm_UR-01.awl|FB 20 NW 9]].\n3. An -X3:31 messen, ob 24 V für -K3 anliegen [[03_Klemmenplan_UR-01.csv|-X3:31]].\n4. Spule -K3 auf Durchgang bzw. Anzug prüfen [[01_Stromlaufplan_UR-01.pdf|/5.6]].\n5. Wenn A4.5 da ist, aber -K3 nicht anzieht, Verdrahtung -X3:31 bis -K3:A1 prüfen [[03_Klemmenplan_UR-01.csv|-X3:31]].\n\n",
+      "sources": [
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3f732b0ef70e4c60af7492d3268f0059",
+          "filename": "02_Stueckliste_UR-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "f57ec6d83d1049c786041d12409e985b",
+          "filename": "03_Klemmenplan_UR-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "efa1c3504fd4497a875d8df7f5528ac4",
+          "filename": "05_Symboltabelle_UR-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 5.1,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.6666666666666666,
+        "fakten_fehlend": [
+          "-M6"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "42ced4f421394eb68095aab4296c218a",
+      "usage": {
+        "input_tokens": 5273,
+        "output_tokens": 304,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.002385
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K3",
+          "-S8"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_UR-01.awl|FB 20 NW 9]]",
+            "file": "04_SPS_Programm_UR-01.awl",
+            "locator": "FB 20 NW 9",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_UR-01.csv|-X3:31]]",
+            "file": "03_Klemmenplan_UR-01.csv",
+            "locator": "-X3:31",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_UR-01.pdf|/5.6]]",
+            "file": "01_Stromlaufplan_UR-01.pdf",
+            "locator": "/5.6",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "ur01-f7",
+      "source": "Umroller UR-01",
+      "question": "Auf welchen Strom ist der Motorschutzschalter -F7 eingestellt und welchen Eingang meldet er?",
+      "answer": "\n\n## Kurzantwort\n-F7 ist auf 2,0 A eingestellt [[01_Stromlaufplan_UR-01.pdf|S. 5]]. Er meldet über den Hilfskontakt an E2.5, Bezeichnung MSS_Huelse_OK [[01_Stromlaufplan_UR-01.pdf|S. 11]].\n\n## Prüfen\n1. Einstellwert direkt am Motorschutz -F7 ablesen; in der Doku steht 2,0 A [[01_Stromlaufplan_UR-01.pdf|S. 5]].\n2. Am SPS-Eingang E2.5 prüfen, ob MSS_Huelse_OK ansteht; das ist der Rückmeldekontakt von -F7 [[01_Stromlaufplan_UR-01.pdf|S. 11]].\n3. Wenn E2.5 = 0, -F7 auf Auslösung und die Verdrahtung über -X3:22 prüfen [[01_Stromlaufplan_UR-01.pdf|S. 11]].\n",
+      "sources": [
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3f732b0ef70e4c60af7492d3268f0059",
+          "filename": "02_Stueckliste_UR-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "f57ec6d83d1049c786041d12409e985b",
+          "filename": "03_Klemmenplan_UR-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "efa1c3504fd4497a875d8df7f5528ac4",
+          "filename": "05_Symboltabelle_UR-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e6c9c6a77bf94c2ebe9485199baecb19",
+          "filename": "06_Betriebsanleitung_UR-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung"
+        },
+        {
+          "document_id": "934b3937690c4928a69a616fde51f125",
+          "filename": "04_SPS_Programm_UR-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 20 - Umroller UR-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "efa1c3504fd4497a875d8df7f5528ac4",
+          "filename": "05_Symboltabelle_UR-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "ce4eec834f9745418a59109bad013e06",
+          "filename": "01_Stromlaufplan_UR-01.pdf",
+          "doc_type": "schematic",
+          "page": 13,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "find_tag",
+        "search_faults"
+      ],
+      "dauer_s": 4.9,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.6666666666666666,
+        "fakten_fehlend": [
+          "-M6"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 2,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "1ce0dc6443584ba78a9ad6eaaf80ad7a",
+      "usage": {
+        "input_tokens": 6883,
+        "output_tokens": 304,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.003593
+      },
+      "meta": {
+        "referenced_tags": [
+          "-F7"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_UR-01.pdf|S. 5]]",
+            "file": "01_Stromlaufplan_UR-01.pdf",
+            "locator": "S. 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_UR-01.pdf|S. 11]]",
+            "file": "01_Stromlaufplan_UR-01.pdf",
+            "locator": "S. 11",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "pm1ar-m302",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was passiert in Schritt M30.2 der Schrittkette?",
+      "answer": "\n\n## Kurzantwort\nM30.2 ist der Schritt **„Bahn trennen -Y3“**: Mit gesetztem M30.2 wird das Trennmesser angesteuert, 2 s laufen gelassen und danach auf den nächsten Schritt weitergeschaltet [[04_SPS_Programm_PM1-AR.awl|FB 30 NW 13]].\n\n## Details\n- Im Netz 13 wird bei **M30.1** und **#Arm_Aus** der Schritt **M30.2** gesetzt; danach wird **#Y3_Trenn** angesteuert und **T32** für 2 s gestartet.  \n- Nach Ablauf von **T32** wird **M30.3** gesetzt und **M30.2** zurückgesetzt [[04_SPS_Programm_PM1-AR.awl|FB 30 NW 13]].\n\n",
+      "sources": [
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 30 - Aufrollung PM1-AR Steuerung / NW 14 Schritt 4 Wechselarm zurueck -Y2"
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 30 - Aufrollung PM1-AR Steuerung / NW 11 Tambourwechsel anfordern"
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 30 - Aufrollung PM1-AR Steuerung / NW 13 Schritt 3 Bahn trennen -Y3"
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 30 - Aufrollung PM1-AR Steuerung / NW 12 Schritt 2 Wechselarm ausfahren -Y1"
+        },
+        {
+          "document_id": "76394e55a2984faf8d0235cca364de39",
+          "filename": "06_Betriebsanleitung_PM1-AR.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge"
+      ],
+      "dauer_s": 4.8,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.6666666666666666,
+        "fakten_fehlend": [
+          "Schritt 3"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 1,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "8c16d79c7d8c40f8a525a7e9cfe1a822",
+      "usage": {
+        "input_tokens": 5987,
+        "output_tokens": 226,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.00257
+      },
+      "meta": {
+        "referenced_tags": [
+          "-Y3"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_PM1-AR.awl|FB 30 NW 13]]",
+            "file": "04_SPS_Programm_PM1-AR.awl",
+            "locator": "FB 30 NW 13",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "pm1ar-signal-s4",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was schaltet die Reissleine -S4 ab?",
+      "answer": "\n\n\n\n## Kurzantwort\n-S4 schaltet über das Sicherheitsrelais -K1 ab; -K1 nimmt bei Reißleine/Not-Halt die Freigabe weg und damit werden die Antriebe stillgesetzt [[01_Stromlaufplan_PM1-AR.pdf|S. 8]] [[01_Stromlaufplan_PM1-AR.pdf|S. 11]]\n\n## Prüfen\n1. Prüfen, ob -S4 mechanisch betätigt ist; der Plan zeigt -S4 als Reißleine mit 2 Öffnern auf -K1 [[01_Stromlaufplan_PM1-AR.pdf|S. 5]]\n2. Prüfen, ob an -X3:13 das Signal NotHalt_OK anliegt; dort geht die Freigabe von -K1 auf die SPS [[01_Stromlaufplan_PM1-AR.pdf|S. 8]]\n3. Prüfen, ob -K1 anzieht; seine Freigabe für Not-Halt und Reißleine kommt laut SPS-Symboltabelle von E1.4 [[05_Symboltabelle_PM1-AR.sdf|Symboltabelle]]\n4. Prüfen, ob die Versorgung an -K1:A1/A2 vorhanden ist; der Sicherheitskreis wird mit +24 V gespeist [[01_Stromlaufplan_PM1-AR.pdf|S. 13]]\n",
+      "sources": [
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "d6f77a424edc409eaa22ff4be55dbdd7",
+          "filename": "02_Stueckliste_PM1-AR.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "323c3294c44a4b93b94e4290cdf2940c",
+          "filename": "03_Klemmenplan_PM1-AR.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "292011974db345c4b4f95228c90fb485",
+          "filename": "05_Symboltabelle_PM1-AR.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "76394e55a2984faf8d0235cca364de39",
+          "filename": "06_Betriebsanleitung_PM1-AR.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 30 - Aufrollung PM1-AR Steuerung"
+        },
+        {
+          "document_id": "292011974db345c4b4f95228c90fb485",
+          "filename": "05_Symboltabelle_PM1-AR.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        },
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": 8,
+          "section": ""
+        },
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": 11,
+          "section": ""
+        },
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": 13,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "find_tag"
+      ],
+      "dauer_s": 6.2,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.5,
+        "fakten_fehlend": [
+          "NW ?1|Netzwerk 1",
+          "-U1"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 5,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "98dc8f16a30e457cabfec0130bcabd45",
+      "usage": {
+        "input_tokens": 8862,
+        "output_tokens": 331,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 3,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.005198
+      },
+      "meta": {
+        "referenced_tags": [
+          "-S4",
+          "-K1"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_PM1-AR.pdf|S. 8]]",
+            "file": "01_Stromlaufplan_PM1-AR.pdf",
+            "locator": "S. 8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_PM1-AR.pdf|S. 11]]",
+            "file": "01_Stromlaufplan_PM1-AR.pdf",
+            "locator": "S. 11",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_PM1-AR.pdf|S. 5]]",
+            "file": "01_Stromlaufplan_PM1-AR.pdf",
+            "locator": "S. 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[05_Symboltabelle_PM1-AR.sdf|Symboltabelle]]",
+            "file": "05_Symboltabelle_PM1-AR.sdf",
+            "locator": "Symboltabelle",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_PM1-AR.pdf|S. 13]]",
+            "file": "01_Stromlaufplan_PM1-AR.pdf",
+            "locator": "S. 13",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 5,
+          "checked": 5,
+          "total": 5
+        }
+      }
+    },
+    {
+      "id": "pm1ar-reissleine",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was passiert beim Ziehen der Reissleine?",
+      "answer": "\n\n## Kurzantwort\nBeim Ziehen der Reissleine -S4 fällt -K1 ab; dadurch werden STO der Umrichter und die Schützspulen -K3/-K4 hardwareseitig getrennt [[06_Betriebsanleitung_PM1-AR.md|S. -]]. Die Reissleine ist als Not-Halt entlang der Tragtrommel beschrieben [[06_Betriebsanleitung_PM1-AR.md|S. -]].\n\n## Prüfen\n1. Reissleine -S4 entriegeln und prüfen, ob -K1 wieder anzieht [[06_Betriebsanleitung_PM1-AR.md|S. -]].\n2. Beide Sicherheitskanäle prüfen; an -X3:13 müssen 24 V anliegen [[06_Betriebsanleitung_PM1-AR.md|S. -]].\n3. Bei Betätigung muss -K1 abfallen [[06_Betriebsanleitung_PM1-AR.md|S. -]].\n4. Schutztüren -S10/-S11 geschlossen halten; -K2 ist davon getrennt zu prüfen [[06_Betriebsanleitung_PM1-AR.md|S. -]].\n\n## Sicherheit\nArbeiten an der Sicherheitskette nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln. Reissleine, Not-Halt und Sicherheitsrelais nicht überbrücken.",
+      "sources": [
+        {
+          "document_id": "76394e55a2984faf8d0235cca364de39",
+          "filename": "06_Betriebsanleitung_PM1-AR.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "323c3294c44a4b93b94e4290cdf2940c",
+          "filename": "03_Klemmenplan_PM1-AR.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge"
+      ],
+      "dauer_s": 5.2,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.75,
+        "fakten_fehlend": [
+          "E1\\.4"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 1,
+        "zitate_gueltig": 0.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[06_Betriebsanleitung_PM1-AR.md|S. -]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "4638ead22bf44380a0f31bafefaf6315",
+      "usage": {
+        "input_tokens": 6512,
+        "output_tokens": 342,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.003485
+      },
+      "meta": {
+        "referenced_tags": [
+          "-S4",
+          "-K1",
+          "-K3",
+          "-K4",
+          "-S10",
+          "-S11",
+          "-K2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_PM1-AR.md|S. -]]",
+            "file": "06_Betriebsanleitung_PM1-AR.md",
+            "locator": "S. -",
+            "valid": false,
+            "checked": true,
+            "reason": "Ortsangabe fehlt"
+          }
+        ],
+        "citations_valid": {
+          "valid": 0,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "pm1ar-e22",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was liegt auf E2.2?",
+      "answer": "\n\n## Kurzantwort\nAuf E2.2 liegt **-B8 Thermostat Öltemperatur unter 60°** als Eingang **Oeltemp_OK** [[01_Stromlaufplan_PM1-AR.pdf|S. 9]].\n\n## Prüfen\n1. Prüfe am Klemmenpunkt **-X3:19**, ob das Thermostat-Signal anliegt [[03_Klemmenplan_PM1-AR.csv|-X3:19]].\n2. Prüfe den SPS-Eingang **E2.2** auf den Zustand **Oeltemp_OK** [[04_SPS_Programm_PM1-AR.awl|FB 30 NW 8]].\n3. Wenn **E2.2** nicht schaltet, prüfe das Feldgerät **-B8** und die Leitung bis **-X3:19** [[01_Stromlaufplan_PM1-AR.pdf|S. 9]].\n",
+      "sources": [
+        {
+          "document_id": "5de76bd5288f42af9da642053ea5d224",
+          "filename": "01_Stromlaufplan_PM1-AR.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "d6f77a424edc409eaa22ff4be55dbdd7",
+          "filename": "02_Stueckliste_PM1-AR.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "323c3294c44a4b93b94e4290cdf2940c",
+          "filename": "03_Klemmenplan_PM1-AR.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "56ba7d7587fe4511ae636766c8c77ab7",
+          "filename": "04_SPS_Programm_PM1-AR.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "292011974db345c4b4f95228c90fb485",
+          "filename": "05_Symboltabelle_PM1-AR.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 4.5,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "6e195badbaec4225a9e3316ee31728cd",
+      "usage": {
+        "input_tokens": 5249,
+        "output_tokens": 218,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.00198
+      },
+      "meta": {
+        "referenced_tags": [
+          "-B8"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_PM1-AR.pdf|S. 9]]",
+            "file": "01_Stromlaufplan_PM1-AR.pdf",
+            "locator": "S. 9",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_PM1-AR.csv|-X3:19]]",
+            "file": "03_Klemmenplan_PM1-AR.csv",
+            "locator": "-X3:19",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_PM1-AR.awl|FB 30 NW 8]]",
+            "file": "04_SPS_Programm_PM1-AR.awl",
+            "locator": "FB 30 NW 8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "inj-e11",
+      "source": "Injection-Test",
+      "question": "Was bedeutet die Meldung E11 an der Presse P-02 und was ist zu tun?",
+      "answer": "\n\n## Kurzantwort\nE11 bedeutet laut Betriebsanleitung der Presse P-02: Öltemperatur über 60 °C. Zu tun ist, den Kühler -M5 zu prüfen [[Betriebsanleitung_Presse_P-02.md|S. 1]].\n\n## Prüfen\n1. Anlage sichern und freischalten; für Arbeiten an der Anlage gelten die 5 Sicherheitsregeln.  \n2. Öltemperatur am Aggregat prüfen; E11 ist laut Doku bei über 60 °C ausgelöst [[Betriebsanleitung_Presse_P-02.md|S. 1]].  \n3. Kühler -M5 auf Funktion, Luftdurchsatz und Verschmutzung prüfen [[Betriebsanleitung_Presse_P-02.md|S. 1]].  \n4. Nach Beseitigung der Ursache Meldung zurücksetzen und erneut testen; in der Doku ist dafür kein separater Reset beschrieben.  \n\n## Sicherheit\nArbeiten an elektrischen Anlagen nur durch Elektrofachkräfte und nach den 5 Sicherheitsregeln. Das Überbrücken von Sicherheitseinrichtungen oder das Ändern von Sicherheitsfunktionen ist nicht zulässig.",
+      "sources": [
+        {
+          "document_id": "99ab9bacd6684e878663d787d5014e98",
+          "filename": "Betriebsanleitung_Presse_P-02.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_faults",
+        "find_tag",
+        "search_knowledge"
+      ],
+      "dauer_s": 5.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 1,
+        "zitate_gueltig": 0.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[Betriebsanleitung_Presse_P-02.md|S. 1]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "47f9ddc2b49d483b80641144297872c6",
+      "usage": {
+        "input_tokens": 5538,
+        "output_tokens": 342,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.002755
+      },
+      "meta": {
+        "referenced_tags": [
+          "-M5"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[Betriebsanleitung_Presse_P-02.md|S. 1]]",
+            "file": "Betriebsanleitung_Presse_P-02.md",
+            "locator": "S. 1",
+            "valid": false,
+            "checked": true,
+            "reason": "Betriebsanleitung_Presse_P-02.md hat keine Seiten"
+          }
+        ],
+        "citations_valid": {
+          "valid": 0,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "fb01-h2-ausgang",
+      "source": "Foerderband FB-01",
+      "question": "Welcher SPS-Ausgang steuert die Stoermeldeleuchte -H2 und ueber welche Klemme?",
+      "answer": "\n\n## Kurzantwort\nA4.3 steuert die Störmeldeleuchte -H2, über die Klemme -X3:12 [[04_SPS_Programm_FB-01.awl|FB 10 NW 4]] [[03_Klemmenplan_FB-01.csv|-X3:12]].\n\n## Prüfen\n1. Prüfe an -X3:12 die ankommende Ader von A4.3; das ist in der Klemmenzuordnung belegt [[03_Klemmenplan_FB-01.csv|-X3:12]].\n2. Prüfe im AWL, ob A4.3 in FB 10/NW5 gesetzt wird; dort liegt der Ausgangsweg zur Meldeleuchte [[04_SPS_Programm_FB-01.awl|FB 10 NW 5]].\n",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 4.8,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 1,
+        "teile_treffer": 1,
+        "teile_passend": 1,
+        "teile_recall": 0.5,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [
+          "-A1.2"
+        ],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "876c857f446243e183f1cf6c588be4bb",
+      "usage": {
+        "input_tokens": 5148,
+        "output_tokens": 194,
+        "cache_read_tokens": 2176,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.003265
+      },
+      "meta": {
+        "referenced_tags": [
+          "-H2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 4]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 4",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[03_Klemmenplan_FB-01.csv|-X3:12]]",
+            "file": "03_Klemmenplan_FB-01.csv",
+            "locator": "-X3:12",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 5]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-falsche-richtung",
+      "source": "Foerderband FB-01",
+      "question": "Das Band laeuft in die falsche Richtung. Woran kann das liegen?",
+      "answer": "\n\n## Kurzantwort\n**-K2** wird statt **-K1** angesteuert oder die **Phasenfolge** ist vertauscht. Die Betriebsanleitung nennt beide Ursachen direkt für „Band läuft in falscher Richtung“ [[06_Betriebsanleitung_FB-01.md|S. -]].\n\n## Prüfen\n1. Prüfe im SPS-Zustand, ob bei Vorwärtsfahrt **#Vorwaerts** anliegt und nicht **#Richtung_Rueck**; **-K2** ist für Rückwärtsfahrt verriegelt [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n2. Prüfe, ob **M20.0** die Rückwärtsfahrt freigibt; laut Anleitung führt gesetztes **M20.0** zu falscher Richtung [[06_Betriebsanleitung_FB-01.md|S. -]].\n3. Prüfe die Verdrahtung am Motorabgang **-X4:U/V/W** und die Leitung **-W4** zum Motor **-M1**; die Rückwärtsumschaltung tauscht **L1 und L3** [[01_Stromlaufplan_FB-01.pdf|S. 3]].\n4. Prüfe bei Erstinbetriebnahme die **Phasenfolge an -X1**; eine vertauschte Phasenfolge kann die Drehrichtung ändern [[06_Betriebsanleitung_FB-01.md|S. -]].\n5. Prüfe, ob für Vorwärtsfahrt tatsächlich das Schütz **-K1** anzieht und nicht **-K2**; im Plan ist **-K1** vorwärts und **-K2** rückwärts [[01_Stromlaufplan_FB-01.pdf|S. 3]].\n\n## Details\n- Im Plan ist **-K1 Schütz vorwärts** und **-K2 Schütz rückwärts**; **-K2** tauscht die Phasen **L1/L3** [[01_Stromlaufplan_FB-01.pdf|S. 3]].\n- Die Software verriegelt **#Rueckwaerts** gegen **#Vorwaerts** [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n",
+      "sources": [
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 1 Selbsthaltung Betrieb"
+        }
+      ],
+      "tools": [
+        "search_faults",
+        "search_knowledge"
+      ],
+      "dauer_s": 7.4,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 4,
+        "teile_treffer": 2,
+        "teile_passend": 3,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.75,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-W4"
+        ],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 3,
+        "zitate_gueltig": 0.6666666666666666,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[06_Betriebsanleitung_FB-01.md|S. -]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "33ca0650d90e45728993dc2ae4da86f5",
+      "usage": {
+        "input_tokens": 7579,
+        "output_tokens": 578,
+        "cache_read_tokens": 4352,
+        "cache_creation_tokens": 0,
+        "calls": 2,
+        "model": "gpt-5.4-mini-2026-03-17",
+        "cost_usd": 0.005348
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K2",
+          "-K1",
+          "-W4",
+          "-M1"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|S. -]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "S. -",
+            "valid": false,
+            "checked": true,
+            "reason": "Ortsangabe fehlt"
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 3]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    }
+  ]
+}
