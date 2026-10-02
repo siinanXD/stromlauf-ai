@@ -4,8 +4,7 @@ Aufruf:  python scripts/load_testwerk.py [--api http://localhost:8010] [--refres
          python scripts/load_testwerk.py --docs [--refresh]   # Testdokumentation UR-01 und PM1-AR
 
 Legt 4 Hallen (Papiermaschine PM1, Verarbeitung, Lager & Versand, Buero) mit 30 Maschinen,
-Linien, Kennzahlen und Materialfluss an, dazu die Stammdaten der Vorkalkulation (Artikel,
-Materialien, Arbeitsplaene, Parameter; gleiche Codes werden ersetzt). Kein KI-Aufruf, keine Kosten. Die Beschreibung jeder
+Linien, Kennzahlen und Materialfluss an. Kein KI-Aufruf, keine Kosten. Die Beschreibung jeder
 Halle beginnt mit "Testwerk Tissue:"; nur solche Hallen ersetzt --refresh (samt Maschinen).
 Gibt es eine gleichnamige eigene Halle, bricht der Lader ab und fasst sie nicht an.
 Standort-Fluesse zwischen anderen Hallen bleiben erhalten.
@@ -52,29 +51,6 @@ def split_existing(existing: list[dict], werk: dict) -> tuple[list[dict], list[d
     return own, [h for h in same_name if not h["description"].startswith(marker)]
 
 
-def master_data_payload(werk: dict, machine_ids: dict[str, str]) -> dict:
-    """Stammdaten der Vorkalkulation fuer PUT /api/master-data: Maschinen-Schluessel -> IDs."""
-    materials = []
-    for item in werk.get("materials", []):
-        made = item.get("made_on") or {}
-        materials.append({
-            "code": item["code"], "name": item["name"], "unit": item["unit"], "price": item.get("price"),
-            "price_source": item.get("price_source", ""),
-            "made_on_machine_id": machine_ids[made["machine"]] if made else None,
-            "made_rate_per_h": made.get("rate_per_h"), "made_basis": made.get("basis", ""),
-            "bom": item["bom"],
-        })
-    articles = []
-    for item in werk.get("articles", []):
-        routing = [
-            {**{k: v for k, v in step.items() if k != "machine"}, "machine_id": machine_ids[step["machine"]]}
-            for step in item["routing"]
-        ]
-        base = {k: v for k, v in item.items() if k not in {"tech", "routing"}}
-        articles.append({**base, **item["tech"], "routing": routing})
-    return {"materials": materials, "articles": articles, "settings": werk.get("settings", {})}
-
-
 def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
     own, foreign = split_existing(call(client, "GET", "/api/site")["halls"], werk)
     if foreign:
@@ -93,7 +69,6 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
         for flow in call(client, "GET", "/api/site")["flows"]
     ]
     hall_ids: dict[str, str] = {}
-    all_machines: dict[str, str] = {}
     for hall in werk["halls"]:
         created = call(client, "POST", "/api/halls", {
             "name": hall["name"], "description": marked_description(werk, hall), "kind": hall["kind"],
@@ -115,7 +90,6 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
             })
             call(client, "PUT", f"/api/machines/{made['id']}/specs", machine["specs"])
             machine_ids[machine["key"]] = made["id"]
-            all_machines[machine["key"]] = made["id"]
         call(client, "PUT", f"/api/halls/{created['id']}/flows", [
             {"from_machine_id": machine_ids[a], "to_machine_id": machine_ids[b], "label": label}
             for a, b, label in hall["flows"]
@@ -127,10 +101,8 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
         for a, b, label in werk["site_flows"]
     ]
     call(client, "PUT", "/api/site/flows", kept + new)
-    master = call(client, "PUT", "/api/master-data", master_data_payload(werk, all_machines))
     total = sum(len(h["machines"]) for h in werk["halls"])
-    print(f"Fertig: {len(werk['halls'])} Hallen, {total} Maschinen, {len(new)} Standort-Fluesse, "
-          f"{master['articles']} Artikel, {master['materials']} Materialien.")
+    print(f"Fertig: {len(werk['halls'])} Hallen, {total} Maschinen, {len(new)} Standort-Fluesse.")
 
 
 # --- Testdokumentation (Teil 4): Wissensquellen fuer UR-01 und PM1-AR ---------------------------

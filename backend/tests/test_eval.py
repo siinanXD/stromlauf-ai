@@ -589,8 +589,7 @@ def test_flatten_signal_lists_nodes():
     assert "FB 10/NW1 | Selbsthaltung | FB 10 NW 1" in text and "U #Start" in text and files == []
 
 
-def test_flatten_calc_and_site_dump_json():
-    assert '"pallets": 160' in evallib.flatten("calc", {"summary": {"pallets": 160}})[0]
+def test_flatten_site_dumps_json():
     assert evallib.flatten("site", None) == ("", [])
     assert '"docks": 8' in evallib.flatten("site", {"name": "Lager", "docks": 8})[0]
 
@@ -601,23 +600,6 @@ def test_flatten_site_unknown_hall():
     assert (
         rr.find_hall({"halls": [{"name": "Lager & Versand"}]}, "lager")["name"] == "Lager & Versand"
     )
-
-
-def test_run_retrieval_unknown_article():
-    rr = _load("run_retrieval")
-    with pytest.raises(ValueError, match="XX-1"):
-        rr.calc_body(
-            {"positions": [{"article": "XX-1", "quantity": 1, "unit": "unit"}]}, {"TP-1": "id1"}
-        )
-    body = rr.calc_body(
-        {
-            "received_at": "2026-09-28T07:00",
-            "positions": [{"article": "TP-1", "quantity": 2, "unit": "pallet"}],
-        },
-        {"TP-1": "id1"},
-    )
-    assert body["positions"] == [{"article_id": "id1", "quantity": 2, "unit": "pallet"}]
-    assert body["received_at"] == "2026-09-28T07:00"
 
 
 # --- Task 3: Wiederbewertung --------------------------------------------------------------------
@@ -671,7 +653,7 @@ def test_questions_cover_testdoku_and_testwerk():
     for r in rows:
         by_source.setdefault(r.get("source") or "Testwerk", []).append(r)
     assert len(by_source["Umroller UR-01"]) >= 10 and len(by_source["Aufrollung PM1-AR"]) >= 9
-    assert len([r for r in rows if r.get("agent") is False]) >= 4
+    assert len([r for r in rows if r.get("agent") is False]) >= 2
     assert sum(1 for r in rows if r.get("retrieval")) >= 30
     assert all(
         r["id"].endswith("nicht-vorhanden")
@@ -743,7 +725,9 @@ def test_rescore_retrieval_run_skips_sources_for_modes_without_files():
     summary, rows, unknown = rescore.rescore(
         run, evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     )
-    assert unknown == [] and summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 31
+    # calc-* gehoerten zur entfernten Planung (Issue #123); der Lauf bleibt als Referenz, die Zeilen unbewertet
+    assert unknown == ["calc-beispiel", "calc-fh"]
+    assert summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 29
 
 
 def test_retrieval_http_and_value_errors_are_scored_as_failures():
@@ -757,7 +741,7 @@ def test_retrieval_http_and_value_errors_are_scored_as_failures():
         httpx.HTTPStatusError("404", request=response.request, response=response)
     )
     assert not evallib.is_error({"answer": text}) and "404" in text and "-S99" in text
-    assert not evallib.is_error({"answer": rr.answer_for_error(ValueError("Artikel XX unbekannt"))})
+    assert not evallib.is_error({"answer": rr.answer_for_error(ValueError("Antwort unbrauchbar"))})
     assert evallib.is_error({"answer": rr.answer_for_error(httpx.ConnectError("zu"))})
 
 

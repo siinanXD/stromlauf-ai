@@ -54,8 +54,7 @@ Draufsicht, Fehlersuche) gehört zu einem **Workspace**. Der Workspace des Reque
 Die Filterung sitzt in `backend/app/tenancy.py`: ein SQLAlchemy-Listener hängt an jedes ORM-SELECT die
 Bedingung `workspace_id = <aktuell>`, die Modelle setzen `workspace_id` beim Anlegen aus dem Kontext, und
 die Lade-Helfer der Router prüfen zusätzlich (fremde id → 404). `backend/tests/test_tenancy_isolation.py`
-prüft das gegen Postgres (CI). Die Planung (Nebenmodul im Feature-Freeze) ist noch werksweit, nicht je
-Workspace.
+prüft das gegen Postgres (CI).
 
 ## Maschinenansicht: Chat zuerst, Modell darüber
 
@@ -337,28 +336,10 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Draufsicht und
   Schaltschrank-Markierungen bleiben optional (Vision kostet API-Tokens).
 
-## Planung: Vorkalkulation (Nebenmodul, ohne KI-Kosten)
-
-Nebenmodul im Feature-Freeze: wird gepflegt, aber nicht erweitert. Der Kern des Projekts ist die Maschine mit ihrer Dokumentation.
-
-Reiter **Planung** (`/planung`): Auftrag mit Positionen (Artikel, Menge in Paketen oder Paletten),
-Eingang und Wunschtermin eingeben; sofort erscheinen **Verladebereit am** (grün „hält“ oder
-„+N Tage“), ein **Zeitplan** je Station (Büro, PM1-Rohpapier, Linien, Verladung; geschlossene Zeiten
-schraffiert, Leerlauf wie das Wochenende gestaucht), der **Materialbedarf** mit Herleitung
-(Rohpapier aus Blatt × Fläche × Lagen × g/m², daraus Zellstoff, Altpapier, Chemie, Wasser) und die
-**Kosten** je Position (Material, Fertigung, Büro, Versand, je Einheit). Tab **Stammdaten** zeigt
-Artikel mit Arbeitsplan und Stückliste sowie Materialpreise.
-
-Rechenkern: `backend/app/werk/calc.py` (rein, getestet), Kalender `calendar.py`; API
-`POST /api/calc`, `GET /api/articles`, `GET /api/materials`, `PUT /api/master-data`. Annahmen:
-freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig. Preise und Sätze sind Richtwerte;
-Maschinenstundensätze sind Kennzahlen der Maschine („Maschinenstundensatz“, €/h) und im Tab
-Kennzahlen änderbar. Stammdaten kommen mit `python scripts/load_testwerk.py`.
-
 ## MCP-Server (Claude Desktop, Claude Code)
 
 Stromlauf stellt seine Funktionen als MCP-Server bereit: Werk, Maschinen, Kennzeichen,
-Dokumentensuche, Signalweg und Vorkalkulation. Nur lesen, auf Stromlauf-Seite kein KI-Aufruf; das
+Dokumentensuche und Signalweg. Nur lesen, auf Stromlauf-Seite kein KI-Aufruf; das
 Sprachmodell ist der MCP-Client (Claude Desktop / Claude Code mit dem eigenen Abo, kein API-Guthaben).
 Voraussetzung: Backend läuft (Port 8010).
 
@@ -368,7 +349,6 @@ Voraussetzung: Backend läuft (Port 8010).
 | `search_tags`, `find_references` | Wo kommt -K1 / -X3:1 / E0.0 vor, alle Fundstellen |
 | `search_documents` | Semantische oder wörtliche Suche in der Doku |
 | `signal_path` | Quellen und Folgen eines Kennzeichens (Klemmenplan, AWL) |
-| `list_articles`, `calculate_order` | Vorkalkulation: Termin, Zeitplan, Material, Kosten |
 
 Claude Code (Pfade absolut, dann egal aus welchem Ordner gestartet):
 
@@ -449,7 +429,6 @@ Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
             Werk (Standortplan, Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
-            Planung/Vorkalkulation,
             Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
@@ -461,8 +440,7 @@ backend/    FastAPI
   app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
                    Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
                    site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
-  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen, Kalender,
-                   Vorkalkulation)
+  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen, Fehlerlisten-Treffer)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860

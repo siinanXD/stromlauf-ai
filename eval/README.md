@@ -5,7 +5,7 @@ Eine Fragenliste (`questions.jsonl`), drei Schichten, davor die Lesegenauigkeit.
 | Schicht | Aufruf | Kosten | Misst |
 | --- | --- | --- | --- |
 | Lesen | `python eval/run_ingest.py --gold eval/ingest_gold/fb01.json` | keine, Sekunden, ohne DB | Findet die Lesekette des Uploads jedes Kennzeichen je Seite, ohne Fremdfunde? (Ground Truth aus dem Generator) |
-| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, hybride Suche, Befundkarte, Signalweg, Vorkalkulation, Standort) |
+| Retrieval | `python eval/run_retrieval.py` | keine, Sekunden | Liefern die Werkzeuge die richtigen Belege? (Kennzeichen-, Wort-, hybride Suche, Befundkarte, Signalweg, Standort) |
 | Wiederbewertung | `python eval/rescore.py eval/results/<lauf>.json` | keine | Gespeicherte Agentenantworten mit der aktuellen Fragenliste neu bewerten |
 | Agent | `python eval/run_eval.py` | **API-Tokens je Frage**, ca. 20 min | Antwortet der Chat-Agent Ende-zu-Ende richtig, zitiert er, nutzt er das passende Werkzeug? |
 
@@ -65,7 +65,7 @@ die Session des Chats geschrieben.
 | Foerderband FB-01 | 21 | `examples/foerderband/` (`scripts/load_example.py`); 19 davon mit Retrieval-Anteil, 2 Fallenfragen |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
 | Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Foerderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
-| Testwerk (Planung, Standort) | 4 | `scripts/load_testwerk.py`; nur Retrieval (`"agent": false`), der Chat-Agent hat dafuer keine Werkzeuge |
+| Testwerk (Standort) | 2 | `scripts/load_testwerk.py`; nur Retrieval (`"agent": false`), der Chat-Agent hat dafuer keine Werkzeuge |
 
 Fuenf Fragen sind Fallen (`*-nicht-vorhanden`): die Antwort steht in keinem Dokument. Erwartet wird
 „nicht vorhanden“, bestraft wird eine erfundene Zahl. Fuenf weitere (`inj-*`, Issue #48) fragen nach Fakten
@@ -79,9 +79,9 @@ Je Zeile: `id`, `source`, `question`, `must_contain` (Regex, Gross/Klein egal, `
 `expect_tags` (Betriebsmittel, die eine richtige Antwort nennt; Grundlage fuer `teile_recall`) und `ok_tags`
 (weitere Betriebsmittel, die genannt werden duerfen, ohne `teile_praezision` zu senken). Optional:
 
-- `retrieval`: `{"mode": "tag|semantic|keyword|fact|signal|calc|site", "query": ...}` — Anfrage der
+- `retrieval`: `{"mode": "tag|semantic|keyword|fact|signal|site", "query": ...}` — Anfrage der
   Retrieval-Schicht. Die kuerzeste Anfrage, die die Belege liefert (`"Blockade"` statt der ganzen Frage).
-  Bei `calc` ist `query` der Auftrag mit Artikelcodes, bei `site` ein Namensteil der Halle.
+  Bei `site` ist `query` ein Namensteil der Halle.
 - `tools`: Werkzeuge, die der Agent aufrufen soll (`find_tag`, `search_knowledge`, `keyword_search`).
 - `agent: false`: nur Retrieval.
 
@@ -94,8 +94,8 @@ an der Bewertung des Referenzlaufs aendert, ohne den Agenten zu bezahlen.
 Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 
 - `fakten_mittel`: Anteil gefundener `must_contain`-Muster, gemittelt ueber alle Fragen
-- `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden (bei `signal`,
-  `calc`, `site` gibt es keine Dateinamen, dort gilt es als erfuellt). Prueft nur den Dateinamen, nicht
+- `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden (bei `signal`
+  und `site` gibt es keine Dateinamen, dort gilt es als erfuellt). Prueft nur den Dateinamen, nicht
   den Ort im Dokument.
 - `zitate_gueltig`: Anteil der **pruefbaren** Belege `[[Datei|Ort]]` ueber alle bewerteten Antworten, die der
   Zitat-Resolver des Backends bestaetigt (`app/citations.py`, meta-Event `citation_checks`): Datei in den
@@ -120,7 +120,7 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 - `werkzeug_ok`: Anteil der Fragen mit `tools`, bei denen der Agent sie aufgerufen hat (nur Agentenlauf)
 - `voll_bestanden`: Fragen mit 100 % Fakten, Quellen ok, sauber und Werkzeug ok
 - `nicht_bewertet_fehler`: API-/Netzfehler (auch als `error`-Event im Strom) zaehlen nicht als falsche
-  Antwort. In der Retrieval-Schicht sind 404/409 und unbekannte Artikel dagegen echte Fehltreffer und
+  Antwort. In der Retrieval-Schicht sind 404/409 dagegen echte Fehltreffer und
   werden mit 0 Fakten bewertet; `--min` schlaegt zusaetzlich fehl, sobald unbewertete Fehler uebrig sind.
 
 ## Lesegenauigkeit gegen Ground Truth (`run_ingest.py`, Issue #63)

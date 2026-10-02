@@ -1,4 +1,4 @@
-"""MCP-Server fuer Stromlauf AI: Werk, Doku, Signalweg und Vorkalkulation als Lese-Werkzeuge.
+"""MCP-Server fuer Stromlauf AI: Werk, Doku und Signalweg als Lese-Werkzeuge.
 
 Start (stdio):  backend/.venv/Scripts/python scripts/mcp_server.py
 Umgebung:       STROMLAUF_API (Standard http://127.0.0.1:8010), STROMLAUF_APP (http://localhost:3100)
@@ -7,16 +7,14 @@ Umgebung:       STROMLAUF_API (Standard http://127.0.0.1:8010), STROMLAUF_APP (h
 import argparse
 import logging
 import os
-from typing import Literal
 from urllib.parse import quote
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
-from pydantic import BaseModel, Field
 
 from stromlauf_mcp.client import StromlaufClient
-from stromlauf_mcp.core import KIND_LABELS, compact_calc, machines_of, resolve, truncate
+from stromlauf_mcp.core import KIND_LABELS, machines_of, resolve, truncate
 
 INSTRUCTIONS = """Stromlauf AI: Wissen über industrielle Elektrodokumentation (Stromlaufpläne, Stücklisten,
 Klemmenpläne, Siemens STEP 7 AWL, Handbücher) und ein Werk mit Hallen, Linien und Maschinen.
@@ -27,27 +25,19 @@ Werkzeugwahl:
 - Betriebsmittel (-K1), Klemmen (-X1:5), SPS-Adressen (E0.0): erst search_tags (welche Maschine),
   dann find_references (Fundstellen) oder signal_path (wovon hängt es ab, was schaltet es).
 - Funktionsfragen zur Doku („Was passiert bei Not-Halt?“): search_documents.
-- Lieferzeit, Material, Kosten eines Auftrags: list_articles, dann calculate_order.
-Nenne in Antworten die Fundstelle (Dokument, Seite/Blatt) und gib den Link `url` weiter, wenn vorhanden.
-Kosten sind Richtwerte; sag das dazu."""
+Nenne in Antworten die Fundstelle (Dokument, Seite/Blatt) und gib den Link `url` weiter, wenn vorhanden."""
 
 TOOL_NAMES = [
     "site_overview", "hall_details", "machine_details", "search_tags", "find_references",
-    "search_documents", "signal_path", "list_articles", "calculate_order",
+    "search_documents", "signal_path",
 ]
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
-
-
-class OrderPosition(BaseModel):
-    article: str = Field(description="Artikelcode oder Name, z. B. 'TP-3L-8x150'")
-    quantity: float = Field(description="Menge, größer 0")
-    unit: Literal["unit", "pallet"] = Field(default="unit", description="'unit' = Verkaufseinheiten (Pakete, Boxen), 'pallet' = Paletten")
 
 
 def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
     server = MCPServer(
         "stromlauf", title="Stromlauf AI", version="0.1.0", instructions=INSTRUCTIONS,
-        description="Werk, Elektrodoku, Signalweg und Vorkalkulation (nur lesen)",
+        description="Werk, Elektrodoku und Signalweg (nur lesen)",
     )
 
     def machine_url(machine_id: str) -> str:
@@ -211,44 +201,6 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
             "schematic": path.get("schematic"),
             "url": f"{machine_url(detail['id'])}?tag={quote(tag, safe='')}&tab=signalweg",
         }
-
-    @server.tool(annotations=READ_ONLY)
-    def list_articles() -> list[dict]:
-        """Verkaufsartikel für die Vorkalkulation: Code, Name, Linie, Einheit, Einheiten je Palette,
-        Rohpapier je Einheit und Engpassleistung der Linie."""
-        result = []
-        for a in client.get("/api/articles"):
-            rates = [
-                s["rate"] * a["units_per_pallet"] / 60 if s["rate_unit"] == "pallet_h" else s["rate"] for s in a["routing"]
-            ]
-            result.append({
-                "code": a["code"], "name": a["name"], "line": a["line"], "unit": a["unit_name"],
-                "units_per_pallet": a["units_per_pallet"], "paper_kg_per_unit": round(a["paper_kg_per_unit"], 3),
-                "bottleneck_units_per_min": round(min(rates), 2) if rates else None,
-            })
-        return result
-
-    @server.tool(annotations=READ_ONLY)
-    def calculate_order(positions: list[OrderPosition], received_at: str | None = None, due_date: str | None = None) -> dict:
-        """Vorkalkulation eines Auftrags: frühester Verladetermin, ob der Wunschtermin hält, Zeitplan je Station
-        (Büro, Papiermaschine, Linien, Verladung) mit Herleitung, Materialbedarf und Kosten (Richtwerte).
-        Annahme: freie Kapazität, keine anderen Aufträge, Rohstoffe vorrätig.
-
-        Args:
-            positions: Positionen mit Artikel (Code oder Name), Menge und Einheit
-            received_at: Auftragseingang "YYYY-MM-DDTHH:MM" (Ortszeit), Standard jetzt
-            due_date: Wunschtermin "YYYY-MM-DD"
-        """
-        articles = client.get("/api/articles")
-        body_positions = []
-        for raw in positions:
-            position = raw if isinstance(raw, OrderPosition) else OrderPosition.model_validate(raw)
-            article = resolve(articles, position.article, "Artikel", keys=("code", "name"))
-            body_positions.append({"article_id": article["id"], "quantity": position.quantity, "unit": position.unit})
-        result = client.post(
-            "/api/calc", {"received_at": received_at, "due_date": due_date, "positions": body_positions}
-        )
-        return compact_calc(result, app_url)
 
     return server
 

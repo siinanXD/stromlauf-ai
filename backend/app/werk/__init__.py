@@ -1,1 +1,1 @@
-"""Werk-Logik ohne Datenbank und ohne Sprachmodell: Standortplan und Vorkalkulation."""
+"""Werk-Logik ohne Datenbank und ohne Sprachmodell: Standortplan und Fehlerlisten-Treffer."""

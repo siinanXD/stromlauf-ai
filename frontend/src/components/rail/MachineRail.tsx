@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, Factory, LayoutList, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
+import { Factory, LayoutList, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -35,7 +35,7 @@ export function applyTheme(theme: "light" | "dark") {
 
 /**
  * Linke Rail (Figma "Desktop / Start"): Marke, Suche, Maschinenliste mit Status, "Maschine hinzufügen",
- * darunter Werk und die Nebenmodule, unten Nutzer und Monatskosten. `mode="icons"` ist die 72-px-Variante.
+ * darunter Werk, unten Nutzer und Monatskosten. `mode="icons"` ist die 72-px-Variante.
  */
 export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: AuthMe | null; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -194,16 +194,6 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
 
       <div className={cn("space-y-0.5 border-t-[0.5px] border-border px-2 py-2", !full && "space-y-2 px-3")}>
         {navLink("/werk", "Werk", Factory, pathname === "/werk" || pathname.startsWith("/werk/halle"))}
-        {full ? (
-          <details className="group">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-md px-2.5 text-footnote font-semibold uppercase hover:text-foreground">Mehr</summary>
-            {navLink("/planung", "Planung", Calculator, pathname.startsWith("/planung"))}
-          </details>
-        ) : (
-          <>
-            {navLink("/planung", "Planung", Calculator, pathname.startsWith("/planung"))}
-          </>
-        )}
       </div>
 
       {full && (

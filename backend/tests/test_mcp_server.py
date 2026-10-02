@@ -32,24 +32,6 @@ MACHINE = {"id": "fb", "hall_id": "h2", "name": "Foerderband FB-01", "machine_ty
            "cabinet_count": 0, "line": "", "key_figure": "", "hall_name": "Halle 1 (Beispiel)",
            "faults": [{"id": "x", "machine_id": "fb", "code": "F01", "symptom": "Band steht", "cause": "-F2 ausgelöst",
                        "fix": "-F2 prüfen", "doc_ref": "Blatt 3", "tags": ["-F2"]}], "cabinets": []}
-ARTICLES = [{"id": "a1", "code": "TP-3L-8x150", "name": "Toilettenpapier 3-lagig, 8 × 150 Blatt", "unit_name": "Paket",
-             "units_per_pallet": 84, "line": "L1 Toilettenpapier", "paper_kg_per_unit": 0.727,
-             "routing": [{"machine_name": "L1-UR", "rate": 35, "rate_unit": "unit_min"}], "bom": []}]
-CALC = {"ready_at": "2026-09-28T17:06", "meets_due": True, "days_delta": 4, "received_at": "x", "due_date": "y",
-        "summary": {"units": 10000, "pallets": 120, "trucks": 4, "paper_t": 7.27, "line_minutes": 305.7,
-                    "bottleneck": "L1-UR", "lead_minutes": 100},
-        "stations": [{"key": "ship", "label": "Verladung", "group": "Versand", "start": "a", "end": "b",
-                      "work_minutes": 45.0, "calendar": "shipping", "basis": "4 LKW", "bottleneck": None,
-                      "machines": [], "position": None}],
-        "closed": {"office": [["a", "b"]] * 50},
-        "positions": [], "materials": [{"code": "PALETTE", "name": "Europalette", "unit": "Stk", "qty": 120.0,
-                                        "level": 0, "parent": None, "basis": "1 je Palette × 120", "price": 11,
-                                        "price_source": "Richtwert", "cost": 1320.0, "made": False}],
-        "costs": {"positions": [{"article": "TP", "units": 10000, "unit_name": "Paket", "material": 1.0,
-                                 "production": 2.0, "office": 3.0, "shipping": 4.0, "total": 10.0, "per_unit": 0.001}],
-                  "total": {"material": 1.0, "production": 2.0, "office": 3.0, "shipping": 4.0, "total": 10.0},
-                  "office_minutes": 165, "trucks": 4},
-        "warnings": []}
 
 
 class Backend:
@@ -69,10 +51,6 @@ class Backend:
             return httpx.Response(200, json={**MACHINE, "id": "m1", "name": "L1-UR Umroller Toilettenpapier", "source_id": None})
         if path in {"/api/machines/fb/specs", "/api/machines/fb/diagnoses"}:
             return httpx.Response(200, json=[])
-        if path == "/api/articles":
-            return httpx.Response(200, json=ARTICLES)
-        if path == "/api/calc":
-            return httpx.Response(200, json=CALC)
         if path == "/api/signal-path":
             return httpx.Response(200, json={"start": "-S1", "schematic": None, "edges": [{"source": "-S1", "target": "E0.0"}],
                                              "nodes": [{"id": "-S1", "kind": "device", "label": "Start", "ref": "/4.6", "detail": "", "level": 0},
@@ -102,7 +80,7 @@ def tool(server, name):
 def test_all_tools_are_listed_and_read_only(server):
     tools = asyncio.run(server.list_tools())
     assert sorted(t.name for t in tools) == sorted(TOOL_NAMES)
-    assert len(TOOL_NAMES) == 9
+    assert len(TOOL_NAMES) == 7
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
     assert all(t.description for t in tools)
 
@@ -131,16 +109,6 @@ def test_search_documents_is_scoped_to_the_machine(server, backend):
     tool(server, "search_documents")(query="3RT2016", exact=True)
     params = backend.requests[-1].url.params
     assert params["mode"] == "keyword" and "source_id" not in params
-
-
-def test_calculate_order_resolves_article_codes_and_compacts(server, backend):
-    result = tool(server, "calculate_order")(positions=[{"article": "tp-3l", "quantity": 10000}], due_date="2026-10-02")
-    body = backend.requests[-1].read().decode()
-    assert '"article_id":"a1"' in body.replace(" ", "")
-    assert "closed" not in result
-    assert result["ready_at"] == "2026-09-28T17:06"
-    assert result["stations"][0] == {"label": "Verladung", "start": "a", "end": "b", "minutes": 45, "basis": "4 LKW"}
-    assert result["url"] == "http://app.test/planung"
 
 
 def test_machine_details_include_faults_and_link(server):
@@ -201,7 +169,7 @@ def test_validation_errors_name_the_field(backend):
 
     client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(invalid))
     with pytest.raises(ToolError, match="received_at: Input should be a valid datetime"):
-        client.post("/api/calc", {})
+        client.get("/api/signal-path", tag="-S1")
 
 
 def test_missing_signal_path_names_the_reason_sentence(backend):

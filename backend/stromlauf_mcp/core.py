@@ -52,31 +52,3 @@ def truncate(text: str, limit: int = MAX_TEXT) -> str:
     cut = text.rfind("\n\n### ", 0, limit)
     head = text[:cut] if cut > 0 else text[:limit]
     return f"{head}\n… (gekürzt, {len(text) - len(head)} Zeichen mehr)"
-
-
-def compact_calc(result: dict, app_url: str) -> dict:
-    """Kalkulation ohne Schraffur-Zeitraeume und Positionsdetails, Zahlen gerundet."""
-    return {
-        "ready_at": result["ready_at"],
-        "meets_due": result["meets_due"],
-        "days_delta": result["days_delta"],
-        "summary": result["summary"],
-        "stations": [
-            {"label": s["label"], "start": s["start"], "end": s["end"], "minutes": round(s["work_minutes"]), "basis": s["basis"]}
-            for s in result["stations"]
-        ],
-        "materials": [
-            {"name": m["name"], "qty": round(m["qty"], 3), "unit": m["unit"], "basis": m["basis"], "cost_eur": round(m["cost"], 2)}
-            for m in result["materials"]
-        ],
-        "costs_eur": {
-            "positions": [
-                {k: round(v, 4 if k == "per_unit" else 2) if isinstance(v, float) else v for k, v in row.items()}
-                for row in result["costs"]["positions"]
-            ],
-            "total": {k: round(v, 2) for k, v in result["costs"]["total"].items()},
-            "note": "Preise und Sätze sind Richtwerte (Annahme).",
-        },
-        "warnings": result["warnings"],
-        "url": f"{app_url}/planung",
-    }

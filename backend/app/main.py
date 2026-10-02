@@ -18,7 +18,6 @@ from app.api import (
     machine_map,
     onboarding,
     plan_read,
-    planning,
     plant,
     search,
     signal,
@@ -92,7 +91,6 @@ app.include_router(signal.router)
 app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
 app.include_router(site.router)
-app.include_router(planning.router)
 app.include_router(search.router)
 app.include_router(flow.router)
 app.include_router(plan_read.router)

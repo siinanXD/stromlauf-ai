@@ -9,7 +9,8 @@ gegen eine Datenbank. Zwei Faelle:
 
 Downgrade entfernt alle Tabellen in umgekehrter Abhaengigkeitsreihenfolge; die Extension bleibt.
 
-Die Leitstand-Tabellen (customers, orders, order_lines, stock) gehoerten bis Revision 0005 dazu; seit ihrem
+Die Tabellen der entfernten Nebenmodule gehoerten bis Revision 0005 dazu: Leitstand (customers, orders,
+order_lines, stock) und Planung (articles, materials, bom_lines, routing_steps, plant_settings). Seit ihrem
 Wegfall legt die Baseline sie nicht mehr an, 0005 raeumt sie auf Datenbanken von damals ab.
 
 Revision ID: 0001_stromlauf_baseline
@@ -29,7 +30,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-TABLES = ['articles', 'conversations', 'halls', 'knowledge_sources', 'plant_settings', 'documents', 'machines', 'site_flows', 'cabinet_images', 'chunks', 'fault_entries', 'hall_flows', 'machine_layouts', 'machine_specs', 'materials', 'routing_steps', 'tag_occurrences', 'bom_lines', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
+TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'site_flows', 'cabinet_images', 'chunks', 'fault_entries', 'hall_flows', 'machine_layouts', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
 
 
 def _schema_exists() -> bool:
@@ -42,24 +43,6 @@ def upgrade() -> None:
         for statement in upgrade_statements():
             op.execute(statement)
         return
-    op.create_table('articles',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('code', sa.String(length=60), nullable=False),
-    sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('unit_name', sa.String(length=40), nullable=False),
-    sa.Column('units_per_pallet', sa.Integer(), nullable=False),
-    sa.Column('sheets_per_unit', sa.Integer(), nullable=False),
-    sa.Column('sheet_w_mm', sa.Float(), nullable=False),
-    sa.Column('sheet_l_mm', sa.Float(), nullable=False),
-    sa.Column('plies', sa.Integer(), nullable=False),
-    sa.Column('gsm', sa.Float(), nullable=False),
-    sa.Column('waste_pct', sa.Float(), nullable=False),
-    sa.Column('line', sa.String(length=120), nullable=False),
-    sa.Column('description', sa.Text(), nullable=False),
-    sa.Column('price', sa.Float(), server_default='0', nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('code')
-    )
     op.create_table('conversations',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('title', sa.String(length=200), nullable=False),
@@ -86,11 +69,6 @@ def upgrade() -> None:
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('plant_settings',
-    sa.Column('key', sa.String(length=60), nullable=False),
-    sa.Column('value', sa.JSON(), nullable=False),
-    sa.PrimaryKeyConstraint('key')
     )
     op.create_table('documents',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -223,35 +201,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_machine_specs_machine_id'), 'machine_specs', ['machine_id'], unique=False)
-    op.create_table('materials',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('code', sa.String(length=60), nullable=False),
-    sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('unit', sa.String(length=20), nullable=False),
-    sa.Column('price', sa.Float(), nullable=True),
-    sa.Column('price_source', sa.Text(), nullable=False),
-    sa.Column('made_on_machine_id', sa.String(length=32), nullable=True),
-    sa.Column('made_rate_per_h', sa.Float(), nullable=True),
-    sa.Column('made_basis', sa.Text(), nullable=False),
-    sa.ForeignKeyConstraint(['made_on_machine_id'], ['machines.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('code')
-    )
-    op.create_table('routing_steps',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('article_id', sa.String(length=32), nullable=False),
-    sa.Column('seq', sa.Integer(), nullable=False),
-    sa.Column('machine_id', sa.String(length=32), nullable=True),
-    sa.Column('rate', sa.Float(), nullable=False),
-    sa.Column('rate_unit', sa.String(length=12), nullable=False),
-    sa.Column('setup_min', sa.Float(), nullable=False),
-    sa.Column('coupled', sa.Boolean(), nullable=False),
-    sa.Column('basis', sa.Text(), nullable=False),
-    sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['machine_id'], ['machines.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_routing_steps_article_id'), 'routing_steps', ['article_id'], unique=False)
     op.create_table('tag_occurrences',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('document_id', sa.String(length=32), nullable=False),
@@ -268,21 +217,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_tag_occurrences_source_id'), 'tag_occurrences', ['source_id'], unique=False)
     op.create_index(op.f('ix_tag_occurrences_tag'), 'tag_occurrences', ['tag'], unique=False)
     op.create_index(op.f('ix_tag_occurrences_tag_type'), 'tag_occurrences', ['tag_type'], unique=False)
-    op.create_table('bom_lines',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('article_id', sa.String(length=32), nullable=True),
-    sa.Column('parent_material_id', sa.String(length=32), nullable=True),
-    sa.Column('material_id', sa.String(length=32), nullable=False),
-    sa.Column('qty', sa.Float(), nullable=False),
-    sa.Column('per', sa.String(length=10), nullable=False),
-    sa.Column('position', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['material_id'], ['materials.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['parent_material_id'], ['materials.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_bom_lines_article_id'), 'bom_lines', ['article_id'], unique=False)
-    op.create_index(op.f('ix_bom_lines_parent_material_id'), 'bom_lines', ['parent_material_id'], unique=False)
     op.create_table('cabinet_hotspots',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('cabinet_id', sa.String(length=32), nullable=False),
