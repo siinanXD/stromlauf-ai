@@ -21,7 +21,6 @@ from app.models import (
     CabinetHotspot,
     CabinetImage,
     Conversation,
-    DiagnosisSession,
     DocStatus,
     Document,
     FaultEntry,
@@ -233,13 +232,6 @@ def list_machines(session: Session = Depends(get_session)):
         totals[0] += count
         if status == DocStatus.READY:
             totals[1] += count
-    open_diagnoses = dict(
-        session.execute(
-            select(DiagnosisSession.machine_id, func.count())
-            .where(DiagnosisSession.outcome == "open")
-            .group_by(DiagnosisSession.machine_id)
-        ).all()
-    )
     return [
         MachineListItem(
             id=m.id,
@@ -253,7 +245,6 @@ def list_machines(session: Session = Depends(get_session)):
             document_count=documents.get(m.source_id, [0, 0])[0] if m.source_id else 0,
             ready_document_count=documents.get(m.source_id, [0, 0])[1] if m.source_id else 0,
             fault_count=len(m.faults),
-            open_diagnoses=open_diagnoses.get(m.id, 0),
             cabinet_count=len(m.cabinets),
             key_figure=key_figure([{"value": s.value, "unit": s.unit} for s in m.specs]),
         )

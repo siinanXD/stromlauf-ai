@@ -11,7 +11,6 @@ from app.api import (
     auth,
     chat,
     costs,
-    diagnosis,
     facts,
     machine_map,
     onboarding,
@@ -84,7 +83,6 @@ app.include_router(chat.router)
 app.include_router(plant.router)
 app.include_router(facts.router)
 app.include_router(signal.router)
-app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
 app.include_router(search.router)
 app.include_router(plan_read.router)

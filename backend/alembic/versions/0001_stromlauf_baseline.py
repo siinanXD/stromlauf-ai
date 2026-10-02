@@ -10,9 +10,10 @@ gegen eine Datenbank. Zwei Faelle:
 Downgrade entfernt alle Tabellen in umgekehrter Abhaengigkeitsreihenfolge; die Extension bleibt.
 
 Die Tabellen der entfernten Nebenmodule gehoerten bis Revision 0005 dazu: Leitstand (customers, orders,
-order_lines, stock), Planung (articles, materials, bom_lines, routing_steps, plant_settings) und Draufsicht
-(machine_layouts, layout_parts). Seit ihrem Wegfall legt die Baseline sie nicht mehr an, 0005 raeumt sie auf
-Datenbanken von damals ab.
+order_lines, stock), Planung (articles, materials, bom_lines, routing_steps, plant_settings), Standortplan und
+Hallen-Baukasten (site_flows, hall_flows samt Lage-Spalten an halls und machines), Draufsicht (machine_layouts,
+layout_parts) und Fehlersuche-Log (diagnosis_sessions). Seit ihrem Wegfall legt die Baseline sie nicht mehr an,
+0005 raeumt sie auf Datenbanken von damals ab.
 
 Revision ID: 0001_stromlauf_baseline
 Revises:
@@ -31,7 +32,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'cabinet_images', 'chunks', 'fault_entries', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions']
+TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'cabinet_images', 'chunks', 'fault_entries', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots']
 
 
 def _schema_exists() -> bool:
@@ -190,22 +191,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_cabinet_hotspots_cabinet_id'), 'cabinet_hotspots', ['cabinet_id'], unique=False)
-    op.create_table('diagnosis_sessions',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('machine_id', sa.String(length=32), nullable=False),
-    sa.Column('fault_id', sa.String(length=32), nullable=True),
-    sa.Column('title', sa.String(length=300), nullable=False),
-    sa.Column('steps', sa.JSON(), nullable=False),
-    sa.Column('outcome', sa.String(length=16), nullable=False),
-    sa.Column('finding', sa.Text(), nullable=False),
-    sa.Column('started_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['fault_id'], ['fault_entries.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['machine_id'], ['machines.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_diagnosis_sessions_fault_id'), 'diagnosis_sessions', ['fault_id'], unique=False)
-    op.create_index(op.f('ix_diagnosis_sessions_machine_id'), 'diagnosis_sessions', ['machine_id'], unique=False)
 
 
 def downgrade() -> None:

@@ -55,8 +55,8 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
 
     @server.tool(annotations=READ_ONLY)
     def machine_details(machine: str) -> dict:
-        """Eine Maschine: Kennzahlen mit Quelle, Fehlerliste (Code, Symptom, Ursache, Behebung, BMK, Verweis),
-        die letzten Fehlersuchen und die verknüpfte Dokumentation.
+        """Eine Maschine: Kennzahlen mit Quelle, Fehlerliste (Code, Symptom, Ursache, Behebung, BMK, Verweis)
+        und die verknüpfte Dokumentation.
 
         Args:
             machine: Maschinenname, Kürzel oder ID, z. B. "L1-UR" oder "FB-01"
@@ -64,15 +64,11 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
         found = find_machine(machine)
         detail = client.get(f"/api/machines/{found['id']}")
         specs = client.get(f"/api/machines/{found['id']}/specs")
-        diagnoses = client.get(f"/api/machines/{found['id']}/diagnoses")
         return {
             "name": detail["name"], "hall": detail["hall_name"], "type": detail["machine_type"], "line": detail["line"],
             "documentation": detail["source_name"], "documents": detail["document_count"],
             "specs": [{k: s[k] for k in ("label", "value", "unit", "source")} for s in specs],
             "faults": [{k: f[k] for k in ("code", "symptom", "cause", "fix", "tags", "doc_ref")} for f in detail["faults"]],
-            "recent_diagnoses": [
-                {k: d.get(k) for k in ("title", "outcome", "finding", "started_at")} for d in diagnoses[:5]
-            ],
             "url": machine_url(detail["id"]),
         }
 

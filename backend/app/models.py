@@ -211,7 +211,7 @@ class Conversation(WorkspaceScoped, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
-    # Stoerfall: jeder Chat einer Maschine ist einer; outcome open | resolved wie bei DiagnosisSession.
+    # Stoerfall: jeder Chat einer Maschine ist einer; outcome open | resolved.
     # Spalten kamen nach der Baseline dazu: alembic/versions/0004_stoerfall_felder.py
     outcome: Mapped[str] = mapped_column(String(16), default="open", server_default="open")
     finding: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -347,24 +347,6 @@ class CabinetHotspot(WorkspaceScoped, Base):
     confirmed: Mapped[bool] = mapped_column(default=True)  # Vision-Vorschlaege bis Bestaetigung False
 
     cabinet: Mapped[CabinetImage] = relationship(back_populates="hotspots")
-
-
-class DiagnosisSession(WorkspaceScoped, Base):
-    """Gefuehrte Fehlersuche an einer Maschine: Pruefschritte mit Ergebnis, Befund, Abschluss."""
-
-    __tablename__ = "diagnosis_sessions"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"), index=True)
-    fault_id: Mapped[str | None] = mapped_column(
-        ForeignKey("fault_entries.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    title: Mapped[str] = mapped_column(String(300), default="")  # Fehlercode + Symptom bei Start
-    steps: Mapped[list] = mapped_column(JSON, default=list)  # [{text, tag, ref, status, note}]
-    outcome: Mapped[str] = mapped_column(String(16), default="open")  # open | resolved | unresolved
-    finding: Mapped[str] = mapped_column(Text, default="")
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class AiCall(WorkspaceScoped, Base):

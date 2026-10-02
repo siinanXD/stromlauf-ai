@@ -549,7 +549,6 @@ export interface MachineListItem {
   document_count: number;
   ready_document_count: number;
   fault_count: number;
-  open_diagnoses: number;
   cabinet_count: number;
   key_figure: string;
 }
@@ -824,43 +823,6 @@ export async function signalPathMain(tag: string, sourceId: string): Promise<Sig
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return { ok: true, data: await response.json() };
 }
-
-// --- Gefuehrte Fehlersuche -------------------------------------------------------------------
-
-export type StepStatus = "open" | "ok" | "nok" | "skip";
-
-export interface DiagnosisStep {
-  text: string;
-  tag: string;
-  ref: string;
-  status: StepStatus;
-  note: string;
-}
-
-export interface Diagnosis {
-  id: string;
-  machine_id: string;
-  fault_id: string | null;
-  title: string;
-  steps: DiagnosisStep[];
-  outcome: "open" | "resolved" | "unresolved";
-  finding: string;
-  started_at: string;
-  finished_at: string | null;
-}
-
-export const diagnoses = {
-  list: (machineId: string) => request<Diagnosis[]>(`/api/machines/${machineId}/diagnoses`),
-  start: (machineId: string, faultId: string | null, title = "") =>
-    request<Diagnosis>(`/api/machines/${machineId}/diagnoses`, json({ fault_id: faultId, title })),
-  updateStep: (id: string, index: number, change: { status?: StepStatus; note?: string }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}/steps/${index}`, json(change, "PATCH")),
-  update: (id: string, body: { steps?: DiagnosisStep[]; finding?: string }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}`, json(body, "PATCH")),
-  finish: (id: string, body: { outcome: "resolved" | "unresolved"; finding: string; add_to_faults: boolean }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}/finish`, json(body)),
-  remove: (id: string) => request<void>(`/api/diagnoses/${id}`, { method: "DELETE" }),
-};
 
 // --- Onboarding aus der Doku -----------------------------------------------------------------
 

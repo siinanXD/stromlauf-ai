@@ -18,7 +18,7 @@ def _row(machine_id: str, name: str, machine_type: str, line: str, hall_id: str,
     return {
         "id": machine_id, "name": name, "machine_type": machine_type, "line": line, "hall_id": hall_id,
         "hall_name": hall_name, "source_id": None, "source_name": None, "document_count": 0,
-        "ready_document_count": 0, "fault_count": 0, "open_diagnoses": 0, "cabinet_count": 0,
+        "ready_document_count": 0, "fault_count": 0, "cabinet_count": 0,
         "key_figure": "",
     }
 
@@ -51,7 +51,7 @@ class Backend:
             return httpx.Response(200, json=MACHINE)
         if path == "/api/machines/m1":  # Maschine ohne Doku
             return httpx.Response(200, json={**MACHINE, "id": "m1", "name": "L1-UR Umroller Toilettenpapier", "source_id": None})
-        if path in {"/api/machines/fb/specs", "/api/machines/fb/diagnoses"}:
+        if path == "/api/machines/fb/specs":
             return httpx.Response(200, json=[])
         if path == "/api/signal-path":
             return httpx.Response(200, json={"start": "-S1", "schematic": None, "edges": [{"source": "-S1", "target": "E0.0"}],

@@ -41,8 +41,8 @@ prüft die Migration von null gegen `pgvector/pgvector:pg17`.
 
 ## Mandanten und Anmeldung
 
-Jede fachliche Zeile (Quelle, Dokument, Chunk, Kennzeichen, Chat, Halle, Maschine, Fehler, Schaltschrank,
-Fehlersuche) gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
+Jede fachliche Zeile (Quelle, Dokument, Chunk, Kennzeichen, Chat, Halle, Maschine, Fehler, Schaltschrank)
+gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
 
 - `JWT_SECRET` gesetzt: Anmeldung per **Magic-Link** (`/login` → `POST /api/auth/magic-link` → Mail mit
   Link → `POST /api/auth/exchange` → JWT, 12 h). Erste Anmeldung legt Nutzer und einen eigenen Workspace an.
@@ -207,16 +207,16 @@ python scripts/testdoku/build.py all               # erzeugt beide Sätze neu
 python scripts/load_testwerk.py --docs             # lädt sie hoch und verknüpft L1-UR und PM1-S6
 ```
 
-Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signalweg, Befundkarte
-und Fehlersuche funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
+Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signalweg und Befundkarte
+funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
 prüfen jeden Verweis gegen den Plan und lassen alle Parser über die Dateien laufen.
 
 ## Werk: Maschinen, Halle, Schaltschrank
 
 Reiter **Maschinen** (`/werk/maschinen`) ist der Einstieg: alle Maschinen des Werks in einer Tabelle
 mit Typ, Linie, Halle, Stand der Dokumentation (keine / n von m fertig / fertig), Zahl der
-Fehlereinträge, offenen Fehlersuchen und erster Kennzahl; Filter über Name, Linie, Halle, Typ und
-Wissensquelle. Rot ist nur die Zahl offener Fehlersuchen. Daten: `GET /api/machines`.
+Fehlereinträge und erster Kennzahl; Filter über Name, Linie, Halle, Typ und Wissensquelle.
+Daten: `GET /api/machines`.
 
 **Testwerk Tissue** laden (4 Hallen, 30 Maschinen, Kennzahlen mit Quellen, kein KI-Aufruf):
 
@@ -267,9 +267,9 @@ der Stückliste“, „Klemme im Plan, aber nicht im Klemmenplan“, „SPS-Adre
 vorhanden sind. Rechenkern `backend/app/ingestion/profile.py`, Daten `GET /api/sources/{id}/profile`.
 Die Beispielanlage FB-01 hat genau eine Lücke: Symbol `M10.1` ohne Verwendung im AWL.
 
-## Signalweg, Fehlersuche, Onboarding (ohne KI-Kosten)
+## Signalweg, Onboarding (ohne KI-Kosten)
 
-Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:
+Diese beiden Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude-Aufruf:
 
 - **Signalweg** (Maschinenseite, Tab „Signalweg“): Graph aus Klemmenplan, Stueckliste,
   Symboltabelle und AWL. Links die Quellen, rechts die Folgen, z. B. `-S1 → -S1:13 → -X3:1 → E0.0 →
@@ -277,9 +277,6 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
   laufen über ihre Anschlüsse nach IEC 60947-1: erst die Spule `A1/A2`, dann das Gerät, dann der
   Schließer, Öffner oder Hauptkontakt, der weiterschaltet. Klick oeffnet das Blatt
   mit markierter Spalte bzw. den AWL-Code, Doppelklick verfolgt ab dort. `GET /api/signal-path`.
-- **Gefuehrte Fehlersuche** (Tab „Fehler“, „Diagnose“): Pruefschritte aus der Behebung eines
-  Fehlereintrags mit Blatt-Verweisen, abhaken (ok / Fehler / uebersprungen), Befund datiert in die
-  Fehlerliste uebernehmen. Instandhaltungslog zeigt wiederkehrende Fehler.
 - **Onboarding** (Werk, „Aus Dokumentation anlegen“): Name und Typ aus dem Stuecklisten-Titel,
   Fehlerliste aus Handbuch-Tabellen `Symptom | Ursache | Abhilfe`. Schaltschrank-Markierungen
   bleiben optional (Vision kostet API-Tokens).
@@ -293,7 +290,7 @@ Voraussetzung: Backend läuft (Port 8010).
 
 | Werkzeug | Zweck |
 |---|---|
-| `machine_details` | Maschine mit Halle, Kennzahlen, Fehlerliste, Fehlersuchen, Dokumentation |
+| `machine_details` | Maschine mit Halle, Kennzahlen, Fehlerliste, Dokumentation |
 | `search_tags`, `find_references` | Wo kommt -K1 / -X3:1 / E0.0 vor, alle Fundstellen |
 | `search_documents` | Semantische oder wörtliche Suche in der Doku |
 | `signal_path` | Quellen und Folgen eines Kennzeichens (Klemmenplan, AWL) |
@@ -325,8 +322,8 @@ Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python sc
 
 Tab **Fehler**, Knopf **Zeigen** an einem Eintrag: ein roter Balken über allen Tabs nennt den Fehler und seine
 Kennzeichen. Gleichzeitig werden die betroffenen Bauteile im **Schaltschrankfoto** rot markiert. Der Balken zählt die
-Treffer je Ansicht, springt per Klick dorthin, nennt nicht platzierte Kennzeichen und startet die geführte
-Fehlersuche. Rein aus Daten, kein Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
+Treffer je Ansicht, springt per Klick dorthin und nennt nicht platzierte Kennzeichen. Rein aus Daten, kein
+Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
 
 ## Chat je Maschine
 
@@ -449,7 +446,7 @@ Ohne Schlüssel ist alles ein No-op: `trace_config` liefert ein leeres Dict. Die
 steht nur in `app/tracing.py`.
 
 **Nicht** getrackt, weil ohne Modell und ohne Kosten: hybride Suche (`app/retrieval.py`), Embeddings
-(bge-m3 lokal) und die deterministischen Parser (Signalweg, Fehlersuche, Steckbrief).
+(bge-m3 lokal) und die deterministischen Parser (Signalweg, Steckbrief).
 
 Im Chat-Strom kommt je Modellaufruf ein SSE-Ereignis `usage` mit Input-/Output-Tokens und Modell —
 unabhängig von Langfuse, daraus rechnet der Eval-Lauf seine Kosten (`app/pricing.py`).

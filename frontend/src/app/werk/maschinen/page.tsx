@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const TH = "px-3 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 const TD = "px-3 py-2 align-top";
 
-/** Maschinenübersicht: jede Maschine mit Doku-Stand, Fehlerliste und offenen Diagnosen, Filter über alles; hier
+/** Maschinenübersicht: jede Maschine mit Doku-Stand und Fehlerliste, Filter über alles; hier
  * entsteht auch eine neue Maschine aus ihrer Dokumentation. */
 export default function MachinesPage() {
   const [machines, setMachines] = useState<MachineListItem[] | null>(null);
@@ -40,10 +40,7 @@ export default function MachinesPage() {
           <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Maschinen</h1>
           {machines && (
             <span className="text-sm text-muted-foreground">
-              {summary.total} Maschinen · {summary.withoutDocs} ohne Doku · {summary.faults} Fehlereinträge ·{" "}
-              <span className={cn(summary.openDiagnoses > 0 && "font-medium text-danger")}>
-                {summary.openDiagnoses} offene Fehlersuchen
-              </span>
+              {summary.total} Maschinen · {summary.withoutDocs} ohne Doku · {summary.faults} Fehlereinträge
             </span>
           )}
           <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
@@ -76,7 +73,6 @@ export default function MachinesPage() {
                   <th className={TH}>Halle</th>
                   <th className={TH}>Dokumentation</th>
                   <th className={cn(TH, "text-right")}>Fehler</th>
-                  <th className={cn(TH, "text-right")}>Offene Suchen</th>
                   <th className={TH}>Kennzahl</th>
                 </tr>
               </thead>
@@ -105,15 +101,12 @@ export default function MachinesPage() {
                       {m.source_name && <span className="ml-1 text-xs text-muted-foreground">({m.source_name})</span>}
                     </td>
                     <td className={cn(TD, "text-right tabular-nums")}>{m.fault_count}</td>
-                    <td className={cn(TD, "text-right tabular-nums", m.open_diagnoses > 0 && "font-medium text-danger")}>
-                      {m.open_diagnoses}
-                    </td>
                     <td className={cn(TD, "font-mono text-[13px]")}>{m.key_figure}</td>
                   </tr>
                 ))}
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-6 text-center text-muted-foreground">
                       Keine Maschine passt zu „{query}“.
                     </td>
                   </tr>

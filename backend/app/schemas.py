@@ -300,7 +300,7 @@ class CabinetOut(BaseModel):
 
 
 class MachineListItem(BaseModel):
-    """Zeile der Maschinenuebersicht (/api/machines): Zustand der Doku und der Fehlersuche je Maschine."""
+    """Zeile der Maschinenuebersicht (/api/machines): Zustand der Doku und der Fehlerliste je Maschine."""
 
     id: str
     name: str
@@ -313,7 +313,6 @@ class MachineListItem(BaseModel):
     document_count: int
     ready_document_count: int
     fault_count: int
-    open_diagnoses: int
     cabinet_count: int
     key_figure: str
 
@@ -434,49 +433,6 @@ class FactCard(BaseModel):
     title: str | None = None
     bom_line: str | None = None
     rows: list[FactRow] = []
-
-
-class DiagnosisStep(BaseModel):
-    text: str
-    tag: str = ""
-    ref: str = ""
-    status: str = Field(default="open", pattern="^(open|ok|nok|skip)$")
-    note: str = ""
-
-
-class DiagnosisStepChange(BaseModel):
-    status: str | None = Field(default=None, pattern="^(open|ok|nok|skip)$")
-    note: str | None = None
-
-
-class DiagnosisStart(BaseModel):
-    fault_id: str | None = None
-    title: str = ""
-
-
-class DiagnosisUpdate(BaseModel):
-    steps: list[DiagnosisStep] | None = None
-    finding: str | None = None
-
-
-class DiagnosisFinish(BaseModel):
-    outcome: str = Field(pattern="^(resolved|unresolved)$")
-    finding: str = ""
-    add_to_faults: bool = False
-
-
-class DiagnosisOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    machine_id: str
-    fault_id: str | None
-    title: str
-    steps: list[DiagnosisStep]
-    outcome: str
-    finding: str
-    started_at: datetime
-    finished_at: datetime | None
 
 
 # --- Kennzahlen -----------------------------------------------------------------------------

@@ -6,8 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BlockSkeleton } from "@/components/answer/blocks/Block";
-import { DiagnosisRunner } from "@/components/diagnosis/DiagnosisRunner";
-import { MaintenanceLog } from "@/components/diagnosis/MaintenanceLog";
 import { MAIN_TABS, MORE_TABS, type AufbauTab } from "@/components/incident/view";
 import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
@@ -22,17 +20,7 @@ import { PartSheet } from "@/components/part/PartSheet";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  api,
-  diagnoses as diagnosesApi,
-  plant,
-  type Diagnosis,
-  type Fault,
-  type FaultInput,
-  type KnowledgeSource,
-  type MachineDetail,
-  type MachineMap,
-} from "@/lib/api";
+import { api, plant, type Fault, type FaultInput, type KnowledgeSource, type MachineDetail, type MachineMap } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
 import { faultHits } from "@/lib/faults";
 import { cn } from "@/lib/utils";
@@ -42,7 +30,7 @@ const SignalView = dynamic(() => import("@/components/signal/SignalView").then((
   loading: () => <BlockSkeleton rows={5} label="Signalweg wird geladen" />,
 });
 
-type Confirm = { kind: "deleteFault"; fault: Fault } | { kind: "deleteDiagnosis"; diagnosis: Diagnosis };
+type Confirm = { kind: "deleteFault"; fault: Fault };
 
 /**
  * Bereich Aufbau der Maschinenseite: Modell, Schaltschrank, Signalweg, Dokumente und hinter "Mehr"
@@ -79,41 +67,14 @@ export function AufbauArea({
   const [editing, setEditing] = useState<Fault | "new" | null>(null);
   const [pageTarget, setPageTarget] = useState<PageTarget | null>(null);
   const [imageBust, setImageBust] = useState(0);
-  const [diagnosisLog, setDiagnosisLog] = useState<Diagnosis[]>([]);
-  const [activeDiagnosis, setActiveDiagnosis] = useState<Diagnosis | null>(null);
-  const [schematic, setSchematic] = useState<{ document_id: string; filename: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
-
-  const loadDiagnoses = useCallback(() => diagnosesApi.list(id).then(setDiagnosisLog).catch(() => {}), [id]);
 
   // ?tag=-M1 aus Suche oder "im Werk zeigen": Bauteil im Modell markieren, ohne Tab das Modell
   const current: AufbauTab = tab ?? "schema";
 
-  const sourceId = machine.source_id;
   useEffect(() => {
     if (current === "dokumente") api.listSources().then(setSources).catch(() => {});
-    if (current !== "fehler") return;
-    void loadDiagnoses();
-    if (!sourceId) return;
-    api
-      .listDocuments(sourceId)
-      .then((docs) => {
-        const doc = docs.find((d) => d.doc_type === "schematic" && d.filename.toLowerCase().endsWith(".pdf"));
-        setSchematic(doc ? { document_id: doc.id, filename: doc.filename } : null);
-      })
-      .catch(() => {});
-  }, [current, sourceId, loadDiagnoses]);
-
-  async function startDiagnosis(fault: Fault) {
-    try {
-      const diagnosis = await diagnosesApi.start(id, fault.id);
-      setActiveDiagnosis(diagnosis);
-      onTab("fehler");
-      void loadDiagnoses();
-    } catch {
-      toast.error("Die Fehlersuche konnte nicht gestartet werden. Erneut versuchen.");
-    }
-  }
+  }, [current]);
 
   const hits = activeFault ? faultHits(activeFault, machine.cabinets) : null;
   const highlightTags = useMemo(() => [...(activeFault?.tags ?? []), ...referencedTags], [activeFault, referencedTags]);
@@ -172,14 +133,8 @@ export function AufbauArea({
 
   async function runConfirmed(action: Confirm) {
     setConfirm(null);
-    if (action.kind === "deleteFault") {
-      await plant.deleteFault(action.fault.id).catch(() => toast.error("Löschen hat nicht geklappt."));
-      onMachineChanged();
-    } else {
-      await diagnosesApi.remove(action.diagnosis.id).catch(() => toast.error("Löschen hat nicht geklappt."));
-      if (activeDiagnosis?.id === action.diagnosis.id) setActiveDiagnosis(null);
-      void loadDiagnoses();
-    }
+    await plant.deleteFault(action.fault.id).catch(() => toast.error("Löschen hat nicht geklappt."));
+    onMachineChanged();
   }
 
   const isMore = MORE_TABS.some((t) => t.id === current);
@@ -220,7 +175,6 @@ export function AufbauArea({
           hits={hits}
           onTab={onTab}
           onTag={openPart}
-          onDiagnose={(fault) => void startDiagnosis(fault)}
           onClose={() => setActiveFault(null)}
         />
       )}
@@ -287,23 +241,8 @@ export function AufbauArea({
           </div>
         )}
         {current === "fehler" && (
-          <div className="h-full space-y-4 overflow-auto p-3">
-            {activeDiagnosis && (
-              <DiagnosisRunner
-                key={activeDiagnosis.id}
-                diagnosis={activeDiagnosis}
-                schematic={schematic}
-                onChanged={setActiveDiagnosis}
-                onClose={() => {
-                  setActiveDiagnosis(null);
-                  void loadDiagnoses();
-                  onMachineChanged();
-                }}
-                onOpen={setPageTarget}
-              />
-            )}
+          <div className="h-full overflow-auto p-3">
             <FaultTable
-              onDiagnose={(fault) => void startDiagnosis(fault)}
               onShow={showFault}
               activeFaultId={activeFault?.id ?? null}
               faults={machine.faults}
@@ -313,7 +252,6 @@ export function AufbauArea({
               onEdit={setEditing}
               onDelete={(fault) => setConfirm({ kind: "deleteFault", fault })}
             />
-            <MaintenanceLog items={diagnosisLog} onResume={setActiveDiagnosis} onDelete={(d) => setConfirm({ kind: "deleteDiagnosis", diagnosis: d })} />
           </div>
         )}
         {current === "kennzahlen" && (
@@ -327,14 +265,8 @@ export function AufbauArea({
       <Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{confirm?.kind === "deleteFault" ? "Fehlereintrag löschen?" : "Fehlersuche aus dem Log löschen?"}</DialogTitle>
-            <DialogDescription>
-              {confirm?.kind === "deleteFault"
-                ? `„${confirm.fault.code || confirm.fault.symptom}“ wird aus der Fehlerliste gelöscht.`
-                : confirm?.kind === "deleteDiagnosis"
-                  ? `„${confirm.diagnosis.title}“ wird aus dem Log gelöscht.`
-                  : ""}
-            </DialogDescription>
+            <DialogTitle>Fehlereintrag löschen?</DialogTitle>
+            <DialogDescription>{confirm ? `„${confirm.fault.code || confirm.fault.symptom}“ wird aus der Fehlerliste gelöscht.` : ""}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" className="h-11" onClick={() => setConfirm(null)}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Stethoscope, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Tag } from "@/components/Tag";
 import { Button } from "@/components/ui/button";
@@ -8,22 +8,20 @@ import type { Fault } from "@/lib/api";
 import type { FaultHits } from "@/lib/faults";
 
 /**
- * Gewaehlter Fehler ueber allen Tabs: beteiligte Kennzeichen, wo sie markiert sind (Schaltschrank)
- * und der Sprung in die gefuehrte Fehlersuche. Rot nur hier, weil es ein Fehler ist.
+ * Gewaehlter Fehler ueber allen Tabs: beteiligte Kennzeichen und wo sie markiert sind (Schaltschrank).
+ * Rot nur hier, weil es ein Fehler ist.
  */
 export function FaultBanner({
   fault,
   hits,
   onTab,
   onTag,
-  onDiagnose,
   onClose,
 }: {
   fault: Fault;
   hits: FaultHits;
   onTab: (tab: "schaltschrank" | "fehler") => void;
   onTag: (tag: string) => void;
-  onDiagnose: (fault: Fault) => void;
   onClose: () => void;
 }) {
   const link = "text-primary hover:underline disabled:text-muted-foreground disabled:no-underline";
@@ -47,10 +45,6 @@ export function FaultBanner({
         {hits.unplaced.length > 0 && <span className="text-muted-foreground">nicht platziert: {hits.unplaced.join(", ")}</span>}
       </span>
       <span className="ml-auto flex items-center gap-1">
-        <Button size="xs" variant="outline" className="border-primary/60 text-primary" onClick={() => onDiagnose(fault)}>
-          <Stethoscope />
-          Fehlersuche
-        </Button>
         <Button size="icon-xs" variant="ghost" aria-label="Markierung aufheben" onClick={onClose}>
           <X />
         </Button>

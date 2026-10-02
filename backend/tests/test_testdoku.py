@@ -2,7 +2,7 @@
 
 Verweise `/Blatt.Spalte` in Stueckliste und Klemmenplan muessen auf die Spalte zeigen, in der das
 Kennzeichen im Stromlaufplan steht; Stueckliste, Klemmenplan, Symboltabelle, AWL und Handbuch
-muessen die vorhandenen Werkzeuge (Signalweg, Onboarding, Fehlersuche) fuettern.
+muessen die vorhandenen Werkzeuge (Signalweg, Onboarding) fuettern.
 """
 
 import csv
@@ -15,7 +15,6 @@ import pytest
 
 from app.api.signal import _bom_rows, _terminal_rows
 from app.ingestion.awl_parser import parse_awl, parse_symbol_table, read_text
-from app.ingestion.diagnosis import build_steps
 from app.ingestion.onboarding import fault_rows_from_markdown, guess_machine
 from app.ingestion.pdf_layout import page_columns
 from app.ingestion.signal_graph import build_graph, signal_path
@@ -139,16 +138,6 @@ def test_manual_yields_faults_with_tags_and_references(code):
     assert all(f["symptom"] and (f["cause"] or f["fix"]) for f in faults)
     assert sum(1 for f in faults if f["tags"]) >= len(faults) - 1
     assert guess_machine([f"{code} Testdokumentation", "Umroller" if code == "UR-01" else "Aufrollung"])[1] in {"main", "other"}
-
-
-@pytest.mark.parametrize("code", list(SETS))
-def test_diagnosis_steps_carry_sheet_references(code):
-    files = _files(code)
-    refs = {tag: ref for tag, ref in _references(code) if not tag.startswith("-X")}
-    fault = fault_rows_from_markdown(read_text(files["md"]), "Betriebsanleitung")[0]
-    steps = build_steps(fault["fix"], fault["tags"], refs)
-    assert len(steps) >= 2
-    assert any(step["ref"] for step in steps)
 
 
 @pytest.mark.parametrize("code", list(SETS))

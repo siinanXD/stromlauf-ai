@@ -29,7 +29,6 @@ SCOPED_TABLES = [
     "fault_entries",
     "cabinet_images",
     "cabinet_hotspots",
-    "diagnosis_sessions",
 ]
 
 

@@ -16,8 +16,8 @@ Umsetzer je Issue, Pull Request mit gruener CI, unabhaengiges Review vor dem Mer
 
 ## Fokus
 
-Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
-Fehlersuche, Schaltschrank, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
+Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Stoerfaelle, Signalweg, Fehlerliste,
+Schaltschrank, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
 Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). Vor jeder Erweiterung abseits der Maschine: Nutzt das
 der Instandhaltung an der Maschine?
 
@@ -28,9 +28,9 @@ der Instandhaltung an der Maschine?
   (`/werk` leitet dorthin um, `next.config.ts`), `/werk/maschine/[id]`. Neue Maschine: Dialog „Aus Dokumentation anlegen“
   in der Maschinenuebersicht (`components/onboarding/OnboardingDialog.tsx`, Halle waehlen oder neu anlegen).
 - Werk-Datenmodell (`models.py`): Hall (Name, Beschreibung; Gruppe) -> Machine (Linie, order_index; -> KnowledgeSource)
-  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> DiagnosisSession (Fehlersuche-Log),
-  Machine -> MachineSpec (Kennzahlen mit Quelle; `GET/PUT /api/machines/{id}/specs`,
-  `app/werk/specs.py`). Reine Werk-Logik in `backend/app/werk/`.
+  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> MachineSpec (Kennzahlen mit Quelle;
+  `GET/PUT /api/machines/{id}/specs`, `app/werk/specs.py`). Stoerfaelle sind Konversationen der Maschine (siehe
+  Stoerfall-Arbeitsflaeche). Reine Werk-Logik in `backend/app/werk/`.
 - Befundkarte (`app/ingestion/fact_card.py`, `GET /api/facts`): Zeilen Einbauort, Stromlaufplan, Klemmen, SPS
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`
@@ -55,8 +55,8 @@ der Instandhaltung an der Maschine?
   zulaessig oder reserviert sind (A, D, J, L, V, Y, Z), franzoesische Paare und der Blatt-Stil; gewinnen muss eine Seite
   mit mindestens doppelt so vielen Kennzeichen. Bei `offen` keine Art fuer H, K, N, Q, U; ein Teil bleibt Teil
   (`is_part`). Keine Wikipedia-Tabellen im Repo (CC BY-SA); Recherche `.ai/research/2026-10-01-iec81346-2-kennbuchstaben.md`.
-- Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
-  `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
+- Signalweg, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
+  `backend/app/ingestion/{signal_graph,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
   zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
   Dokumenttyp bei Upload „auto“: `ingestion/doctype.py` aus Textprobe (Endung > Inhalt > Dateiname), Vorschau

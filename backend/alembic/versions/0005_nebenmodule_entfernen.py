@@ -9,6 +9,7 @@ Modul 2 Planung: bom_lines, routing_steps, articles, materials, plant_settings.
 Modul 3 Standortplan und Hallen-Baukasten: hall_flows, site_flows; dazu die Spalten halls.kind,
 halls.site_x/site_y/site_w/site_h (Lage im Standortplan) und machines.pos_x/pos_y (Kachel in der Halle).
 Modul 4 Draufsicht: layout_parts, machine_layouts.
+Modul 6 Fehlersuche-Log: diagnosis_sessions (Stoerfaelle mit Befund in conversations uebernehmen die Rolle).
 
 Revision ID: 0005_nebenmodule_entfernen
 Revises: 0004_stoerfall_felder
@@ -24,7 +25,7 @@ depends_on = None
 
 # Reihenfolge: abhaengige Tabellen zuerst (order_lines vor orders, stock vor articles-Verweis, orders vor customers;
 # bom_lines und routing_steps vor articles und materials; hall_flows und site_flows zeigen nur auf halls/machines;
-# layout_parts vor machine_layouts)
+# layout_parts vor machine_layouts; diagnosis_sessions zeigt nur auf machines und fault_entries)
 DROPPED = [
     "order_lines",
     "orders",
@@ -39,6 +40,7 @@ DROPPED = [
     "site_flows",
     "layout_parts",
     "machine_layouts",
+    "diagnosis_sessions",
 ]
 
 # (Tabelle, Spalte): Spalten der entfernten Module auf Tabellen, die bleiben
