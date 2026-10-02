@@ -30,7 +30,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'site_flows', 'cabinet_images', 'chunks', 'fault_entries', 'hall_flows', 'machine_layouts', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
+TABLES = ['conversations', 'halls', 'knowledge_sources', 'documents', 'machines', 'cabinet_images', 'chunks', 'fault_entries', 'machine_layouts', 'machine_specs', 'tag_occurrences', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
 
 
 def _schema_exists() -> bool:
@@ -56,11 +56,6 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('kind', sa.String(length=24), server_default='generic', nullable=False),
-    sa.Column('site_x', sa.Float(), server_default='0', nullable=False),
-    sa.Column('site_y', sa.Float(), server_default='0', nullable=False),
-    sa.Column('site_w', sa.Float(), server_default='0', nullable=False),
-    sa.Column('site_h', sa.Float(), server_default='0', nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('knowledge_sources',
@@ -95,8 +90,6 @@ def upgrade() -> None:
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('source_id', sa.String(length=32), nullable=True),
     sa.Column('image_path', sa.String(length=1000), nullable=True),
-    sa.Column('pos_x', sa.Float(), nullable=False),
-    sa.Column('pos_y', sa.Float(), nullable=False),
     sa.Column('order_index', sa.Integer(), nullable=False),
     sa.Column('line', sa.String(length=120), server_default='', nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
@@ -106,17 +99,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_machines_hall_id'), 'machines', ['hall_id'], unique=False)
     op.create_index(op.f('ix_machines_source_id'), 'machines', ['source_id'], unique=False)
-    op.create_table('site_flows',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('from_hall_id', sa.String(length=32), nullable=False),
-    sa.Column('to_hall_id', sa.String(length=32), nullable=False),
-    sa.Column('label', sa.String(length=120), nullable=False),
-    sa.ForeignKeyConstraint(['from_hall_id'], ['halls.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['to_hall_id'], ['halls.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_site_flows_from_hall_id'), 'site_flows', ['from_hall_id'], unique=False)
-    op.create_index(op.f('ix_site_flows_to_hall_id'), 'site_flows', ['to_hall_id'], unique=False)
     op.create_table('cabinet_images',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('machine_id', sa.String(length=32), nullable=False),
@@ -162,18 +144,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_fault_entries_machine_id'), 'fault_entries', ['machine_id'], unique=False)
-    op.create_table('hall_flows',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('hall_id', sa.String(length=32), nullable=False),
-    sa.Column('from_machine_id', sa.String(length=32), nullable=False),
-    sa.Column('to_machine_id', sa.String(length=32), nullable=False),
-    sa.Column('label', sa.String(length=120), nullable=False),
-    sa.ForeignKeyConstraint(['from_machine_id'], ['machines.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['hall_id'], ['halls.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['to_machine_id'], ['machines.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_hall_flows_hall_id'), 'hall_flows', ['hall_id'], unique=False)
     op.create_table('machine_layouts',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('machine_id', sa.String(length=32), nullable=False),

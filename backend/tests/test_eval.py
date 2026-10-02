@@ -589,19 +589,6 @@ def test_flatten_signal_lists_nodes():
     assert "FB 10/NW1 | Selbsthaltung | FB 10 NW 1" in text and "U #Start" in text and files == []
 
 
-def test_flatten_site_dumps_json():
-    assert evallib.flatten("site", None) == ("", [])
-    assert '"docks": 8' in evallib.flatten("site", {"name": "Lager", "docks": 8})[0]
-
-
-def test_flatten_site_unknown_hall():
-    rr = _load("run_retrieval")
-    assert rr.find_hall({"halls": [{"name": "Verarbeitung"}]}, "Lager") is None
-    assert (
-        rr.find_hall({"halls": [{"name": "Lager & Versand"}]}, "lager")["name"] == "Lager & Versand"
-    )
-
-
 # --- Task 3: Wiederbewertung --------------------------------------------------------------------
 
 
@@ -647,13 +634,12 @@ def test_rescore_counts_unknown_ids():
 # --- Task 4: Fragen ------------------------------------------------------------------------------
 
 
-def test_questions_cover_testdoku_and_testwerk():
+def test_questions_cover_testdoku():
     rows = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     by_source: dict[str, list[dict]] = {}
     for r in rows:
-        by_source.setdefault(r.get("source") or "Testwerk", []).append(r)
+        by_source.setdefault(r["source"], []).append(r)
     assert len(by_source["Umroller UR-01"]) >= 10 and len(by_source["Aufrollung PM1-AR"]) >= 9
-    assert len([r for r in rows if r.get("agent") is False]) >= 2
     assert sum(1 for r in rows if r.get("retrieval")) >= 30
     assert all(
         r["id"].endswith("nicht-vorhanden")
@@ -725,9 +711,10 @@ def test_rescore_retrieval_run_skips_sources_for_modes_without_files():
     summary, rows, unknown = rescore.rescore(
         run, evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     )
-    # calc-* gehoerten zur entfernten Planung (Issue #123); der Lauf bleibt als Referenz, die Zeilen unbewertet
-    assert unknown == ["calc-beispiel", "calc-fh"]
-    assert summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 29
+    # werk-* und calc-* gehoerten zu entfernten Nebenmodulen (Issue #123); der Lauf bleibt als Referenz,
+    # die Zeilen unbewertet
+    assert unknown == ["werk-linien", "werk-tore", "calc-beispiel", "calc-fh"]
+    assert summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 27
 
 
 def test_retrieval_http_and_value_errors_are_scored_as_failures():

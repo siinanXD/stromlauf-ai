@@ -212,17 +212,12 @@ Der Lader übernimmt die Fehlertabellen in die Fehlerlisten der Maschinen; Signa
 und Fehlersuche funktionieren damit an beiden Maschinen. Tests (`backend/tests/test_testdoku.py`)
 prüfen jeden Verweis gegen den Plan und lassen alle Parser über die Dateien laufen.
 
-## Werk: Maschinen, Standortplan, Halle, Schaltschrank
+## Werk: Maschinen, Halle, Schaltschrank
 
 Reiter **Maschinen** (`/werk/maschinen`) ist der Einstieg: alle Maschinen des Werks in einer Tabelle
 mit Typ, Linie, Halle, Stand der Dokumentation (keine / n von m fertig / fertig), Zahl der
 Fehlereinträge, offenen Fehlersuchen und erster Kennzahl; Filter über Name, Linie, Halle, Typ und
 Wissensquelle. Rot ist nur die Zahl offener Fehlersuchen. Daten: `GET /api/machines`.
-
-Reiter **Werk** oeffnet den **Standortplan** (`/werk`): alle Hallen als Grundriss-Bloecke mit Art
-(Grundstoff, Verarbeitung, Lager, Buero), verkleinertem Maschinenlayout und Materialfluss zwischen
-den Hallen. Bloecke lassen sich ziehen und in der Groesse aendern; Pfeil vom rechten Griff auf eine
-andere Halle zeichnet einen Fluss. Rot ist nur die Zahl laufender Fehlersuchen einer Halle.
 
 **Testwerk Tissue** laden (4 Hallen, 30 Maschinen, Kennzahlen mit Quellen, kein KI-Aufruf):
 
@@ -230,13 +225,14 @@ andere Halle zeichnet einen Fluss. Rot ist nur die Zahl laufender Fehlersuchen e
 python scripts/load_testwerk.py            # --refresh ersetzt ein vorhandenes Testwerk
 ```
 
-Papiermaschine PM1 in 6 Sektoren liefert Mutterrollen an 6 Verarbeitungslinien (je Hauptmaschine →
-Verpackung → Palettierer), dann Lager & Versand mit 8 Verladetoren; das Buero gibt Auftraege.
+Papiermaschine PM1 in 6 Sektoren, 6 Verarbeitungslinien (je Hauptmaschine, Verpackung, Palettierer),
+Lager & Versand (8 Verladetore als Kennzahl) und Buero.
 Daten: `examples/testwerk/testwerk.json`, Recherche: `.ai/research/solution-comparisons/`.
 
-**Halle** (`/werk/halle/{id}`): Maschinen als Kacheln anordnen (Foerderband, Hauptmaschine,
-Verpackung ...), Materialfluss als Pfeile zeichnen, Maschinen einer Linie oder eines Sektors
-bekommen ein gemeinsames Band (Feld „Linie/Sektor“). Die Kachel zeigt die erste Kennzahl. Jede Maschine hat eine
+**Halle**: Gruppe von Maschinen mit Name und Beschreibung (`/api/halls`); die Maschinenuebersicht ordnet
+danach, Linie oder Sektor steht am Feld „Linie/Sektor“ der Maschine. Eine neue Maschine entsteht in der
+Maschinenuebersicht aus ihrer Dokumentation („Aus Dokumentation anlegen“: Halle waehlen oder neu anlegen,
+Name, Typ und Fehlerliste als Vorschlag ohne KI-Aufruf). Jede Maschine hat eine
 Maschinenseite mit Foto, zugeordneter Wissensquelle, Fehlerliste (Code, Symptom, Ursache,
 Behebung, beteiligte BMK) und Schaltschrankbildern. Im Schaltschrankbild werden Bauteile als
 Rechtecke markiert, von Hand oder per **Bauteile erkennen lassen** (Claude Vision schlaegt
@@ -338,14 +334,14 @@ Diese drei Funktionen arbeiten nur mit den hochgeladenen Dokumenten, ohne Claude
 
 ## MCP-Server (Claude Desktop, Claude Code)
 
-Stromlauf stellt seine Funktionen als MCP-Server bereit: Werk, Maschinen, Kennzeichen,
+Stromlauf stellt seine Funktionen als MCP-Server bereit: Maschinen, Kennzeichen,
 Dokumentensuche und Signalweg. Nur lesen, auf Stromlauf-Seite kein KI-Aufruf; das
 Sprachmodell ist der MCP-Client (Claude Desktop / Claude Code mit dem eigenen Abo, kein API-Guthaben).
 Voraussetzung: Backend läuft (Port 8010).
 
 | Werkzeug | Zweck |
 |---|---|
-| `site_overview`, `hall_details`, `machine_details` | Werk, Hallen, Maschinen mit Kennzahlen, Fehlerliste, Fehlersuchen |
+| `machine_details` | Maschine mit Halle, Kennzahlen, Fehlerliste, Fehlersuchen, Dokumentation |
 | `search_tags`, `find_references` | Wo kommt -K1 / -X3:1 / E0.0 vor, alle Fundstellen |
 | `search_documents` | Semantische oder wörtliche Suche in der Doku |
 | `signal_path` | Quellen und Folgen eines Kennzeichens (Klemmenplan, AWL) |
@@ -428,7 +424,7 @@ Ohne Kopfzeile steht nur das Kennzeichen da — geraten wird nichts.
 
 ```
 frontend/   Next.js + TypeScript: Wissensquellen, Upload, Chat (SSE-Streaming), Seiten-Viewer,
-            Werk (Standortplan, Hallen-Baukasten, Maschinenseite, Draufsicht-Editor mit React Flow,
+            Werk (Maschinenuebersicht, Maschinenseite, Draufsicht-Editor mit React Flow,
             Schaltschrank-Editor), shadcn/ui im Blaupause-Design, Strg+K-Suche
 backend/    FastAPI
   app/ingestion/   Docling (PDF/Office -> Markdown je Seite), AWL-Parser, Kennzeichen-Index,
@@ -437,10 +433,10 @@ backend/    FastAPI
                    keyword_search, get_page, view_page, get_plc_block, list_documents
   app/retrieval.py Hybrid-Suche: Vektor (pgvector, HNSW) + Volltext (tsvector 'german', GIN),
                    Fusion per Reciprocal Rank Fusion; search_knowledge und /api/search?mode=semantic
-  app/api/         REST + SSE; plant.py: Hallen, Maschinen, Fehlerliste, Schaltschrank-Hotspots,
-                   Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm, Vision-Vorschlaege);
-                   site.py: Standortplan, Fluesse zwischen Hallen, Kennzahlen
-  app/werk/        Werk-Logik ohne DB und ohne Modell (Standortlage, Kennzahlen, Fehlerlisten-Treffer)
+  app/api/         REST + SSE; plant.py: Hallen, Maschinen, Kennzahlen, Fehlerliste,
+                   Schaltschrank-Hotspots, Tag-Suche; layout.py: Draufsicht (Grundflaeche, Teile in mm,
+                   Vision-Vorschlaege)
+  app/werk/        Werk-Logik ohne DB und ohne Modell (Kennzahlen, Fehlerlisten-Treffer)
 Postgres + pgvector   Dokumente, Chunks mit Embeddings (HNSW), Kennzeichen-Index, Chats
 SQLite                LangGraph-Checkpointer (Gesprächsverlauf), backend/data/checkpoints.sqlite
 Langflow (optional)   docker compose --profile langflow up -d  ->  http://localhost:7860

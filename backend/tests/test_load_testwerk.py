@@ -32,11 +32,11 @@ def test_doc_type_from_filename():
 
 
 def test_machine_for_needs_a_unique_prefix():
-    site = {"halls": [{"machines": [{"id": "1", "name": "L1-UR Umroller"}, {"id": "2", "name": "L1-VP Verpacker"},
-                                    {"id": "3", "name": "L1-PAL Palettierer"}, {"id": "4", "name": "L2-PAL Palettierer"}]}]}
-    assert loader.machine_for(site, "l1-ur")["id"] == "1"
-    assert loader.machine_for(site, "L1-") is None
-    assert loader.machine_for(site, "PM1-S6") is None
+    machines = [{"id": "1", "name": "L1-UR Umroller"}, {"id": "2", "name": "L1-VP Verpacker"},
+                {"id": "3", "name": "L1-PAL Palettierer"}, {"id": "4", "name": "L2-PAL Palettierer"}]
+    assert loader.machine_for(machines, "l1-ur")["id"] == "1"
+    assert loader.machine_for(machines, "L1-") is None
+    assert loader.machine_for(machines, "PM1-S6") is None
 
 
 def test_new_faults_skips_known_symptoms():

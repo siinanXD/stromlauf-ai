@@ -10,8 +10,8 @@ from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 
-RETRIEVAL_MODES = ("tag", "semantic", "keyword", "fact", "signal", "site")
-NO_FILES = {"signal", "site"}  # Retrieval-Modi ohne zitierte Dateinamen: quellen gilt als erfuellt
+RETRIEVAL_MODES = ("tag", "semantic", "keyword", "fact", "signal")
+NO_FILES = {"signal"}  # Retrieval-Modi ohne zitierte Dateinamen: quellen gilt als erfuellt
 ERROR_PREFIX = "[FEHLER]"
 COMPARE_KEYS = (
     "fakten_mittel", "quellen_ok", "zitate_gueltig", "zitate_geprueft", "teile_praezision", "teile_recall",

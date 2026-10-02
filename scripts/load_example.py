@@ -115,17 +115,10 @@ def setup_plant(client: httpx.Client, source_id: str) -> None:
     if machine is None:
         machine = client.post(
             f"/api/halls/{hall['id']}/machines",
-            json={"name": MACHINE_NAME, "machine_type": "conveyor", "source_id": source_id, "pos_x": 72, "pos_y": 96,
+            json={"name": MACHINE_NAME, "machine_type": "conveyor", "source_id": source_id,
                   "description": "Werkstuecktransport Einlauf -> Auslauf, Wendeschuetz -K1/-K2, SPS -A1"},
         ).json()
         print(f"Maschine angelegt: {MACHINE_NAME}")
-        # zwei Nachbarn fuer den Materialfluss, ohne Doku
-        before = client.post(f"/api/halls/{hall['id']}/machines", json={"name": "Magazin", "machine_type": "storage", "pos_x": 72, "pos_y": 312}).json()
-        after = client.post(f"/api/halls/{hall['id']}/machines", json={"name": "Verpackung VP-02", "machine_type": "packaging", "pos_x": 504, "pos_y": 96}).json()
-        client.put(f"/api/halls/{hall['id']}/flows", json=[
-            {"from_machine_id": before["id"], "to_machine_id": machine["id"], "label": "Rohteile"},
-            {"from_machine_id": machine["id"], "to_machine_id": after["id"], "label": "Fertigteile"},
-        ])
     elif machine.get("source_id") != source_id:
         client.patch(f"/api/machines/{machine['id']}", json={"source_id": source_id})
 

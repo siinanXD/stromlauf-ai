@@ -2,9 +2,6 @@
 
 from mcp.server.mcpserver.exceptions import ToolError
 
-KIND_LABELS = {
-    "generic": "Halle", "base": "Grundstoff", "production": "Verarbeitung", "warehouse": "Lager", "office": "Büro",
-}
 MAX_TEXT = 8000  # Zeichen je Suchergebnis, damit das Kontextfenster des Clients nicht platzt
 
 
@@ -38,11 +35,6 @@ def resolve(items: list[dict], ref: str, kind: str, keys: tuple[str, ...] = ("na
         if len(found) > 1:
             raise ToolError(f"{kind} „{ref}“ ist mehrdeutig: {_listing(found, 8)}. Bitte genauer angeben.")
     raise ToolError(f"{kind} „{ref}“ nicht gefunden. Vorhanden: {_listing(items, 12)}")
-
-
-def machines_of(site: dict) -> list[dict]:
-    """Alle Maschinen des Standorts mit Hallenname."""
-    return [{**machine, "hall": hall["name"], "hall_id": hall["id"]} for hall in site["halls"] for machine in hall["machines"]]
 
 
 def truncate(text: str, limit: int = MAX_TEXT) -> str:

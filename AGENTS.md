@@ -24,12 +24,13 @@ der Instandhaltung an der Maschine?
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
-  `/werk/halle/[id]` Hallen-Baukasten, `/werk/maschine/[id]`.
-- Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
-  CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
-  (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
-  Reine Werk-Logik in `backend/app/werk/`.
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht
+  (`/werk` leitet dorthin um, `next.config.ts`), `/werk/maschine/[id]`. Neue Maschine: Dialog „Aus Dokumentation anlegen“
+  in der Maschinenuebersicht (`components/onboarding/OnboardingDialog.tsx`, Halle waehlen oder neu anlegen).
+- Werk-Datenmodell (`models.py`): Hall (Name, Beschreibung; Gruppe) -> Machine (Linie, order_index; -> KnowledgeSource)
+  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine ->
+  DiagnosisSession (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle; `GET/PUT /api/machines/{id}/specs`,
+  `app/werk/specs.py`). Reine Werk-Logik in `backend/app/werk/`.
 - Befundkarte (`app/ingestion/fact_card.py`, `GET /api/facts`): Zeilen Einbauort, Stromlaufplan, Klemmen, SPS
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`

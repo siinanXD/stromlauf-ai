@@ -150,12 +150,8 @@ export default function MachinePage() {
     <AppShell
       breadcrumb={
         machine
-          ? [
-              { label: "Werk", href: "/werk" },
-              { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
-              { label: machine.name },
-            ]
-          : [{ label: "Werk", href: "/werk" }, { label: "…" }]
+          ? [{ label: "Maschinen", href: "/werk/maschinen" }, { label: machine.hall_name || "Halle" }, { label: machine.name }]
+          : [{ label: "Maschinen", href: "/werk/maschinen" }, { label: "…" }]
       }
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden" data-testid="machine-page" data-area={view.area} data-open-part={openPart}>

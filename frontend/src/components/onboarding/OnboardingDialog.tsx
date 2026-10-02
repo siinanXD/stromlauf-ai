@@ -8,16 +8,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { api, DOC_TYPE_LABELS, MACHINE_TYPE_LABELS, onboarding, type KnowledgeSource, type MachineType, type OnboardingProposal } from "@/lib/api";
+import { api, DOC_TYPE_LABELS, MACHINE_TYPE_LABELS, onboarding, plant, type Hall, type KnowledgeSource, type MachineType, type OnboardingProposal } from "@/lib/api";
 
 const TYPES = Object.keys(MACHINE_TYPE_LABELS) as MachineType[];
 
-/** Maschine aus einer Wissensquelle anlegen: Vorschlag pruefen, Fehler auswaehlen, uebernehmen. */
-export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCreated: () => void }) {
+/** Maschine aus einer Wissensquelle anlegen: Vorschlag pruefen, Fehler auswaehlen, Halle waehlen, uebernehmen. */
+export function OnboardingDialog({ onCreated }: { onCreated: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [sourceId, setSourceId] = useState("");
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [hallId, setHallId] = useState(""); // "" = neue Halle mit hallName
+  const [hallName, setHallName] = useState("");
   const [proposal, setProposal] = useState<OnboardingProposal | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState<MachineType>("other");
@@ -26,7 +29,15 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
   const latest = useRef("");
 
   useEffect(() => {
-    if (open) api.listSources().then(setSources).catch(() => setSources([]));
+    if (!open) return;
+    api.listSources().then(setSources).catch(() => setSources([]));
+    plant
+      .listHalls()
+      .then((list) => {
+        setHalls(list);
+        setHallId((current) => current || list[0]?.id || "");
+      })
+      .catch(() => setHalls([]));
   }, [open]);
 
   function openDialog() {
@@ -34,6 +45,8 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
     latest.current = "";
     setSourceId("");
     setProposal(null);
+    setHallId("");
+    setHallName("");
     setOpen(true);
   }
 
@@ -54,11 +67,14 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
     }
   }
 
+  const needsHallName = !hallId && !hallName.trim();
+
   async function create() {
-    if (!proposal) return;
+    if (!proposal || needsHallName) return;
     setBusy(true);
     try {
-      const machine = await onboarding.create(hallId, {
+      const targetHall = hallId || (await plant.createHall(hallName.trim())).id;
+      const machine = await onboarding.create(targetHall, {
         source_id: proposal.source_id,
         name,
         machine_type: type,
@@ -121,6 +137,26 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
                 </label>
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-muted-foreground">Halle</span>
+                  <select value={hallId} onChange={(e) => setHallId(e.target.value)} className="h-8 border border-border bg-background px-2">
+                    {halls.map((hall) => (
+                      <option key={hall.id} value={hall.id}>
+                        {hall.name}
+                      </option>
+                    ))}
+                    <option value="">Neue Halle …</option>
+                  </select>
+                </label>
+                {!hallId && (
+                  <label className="grid gap-1">
+                    <span className="text-muted-foreground">Name der neuen Halle</span>
+                    <Input value={hallName} onChange={(e) => setHallName(e.target.value)} placeholder="z. B. Halle 1" />
+                  </label>
+                )}
+              </div>
+
               <p className="font-mono text-xs text-muted-foreground">
                 {proposal.devices} Betriebsmittel · {proposal.documents.length} Dokumente (
                 {[...new Set(proposal.documents.map((d) => DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type))].join(", ")})
@@ -179,7 +215,7 @@ export function OnboardingDialog({ hallId, onCreated }: { hallId: string; onCrea
             <Button variant="outline" onClick={() => setOpen(false)}>
               Abbrechen
             </Button>
-            <Button disabled={!proposal || !name.trim() || busy} onClick={create}>
+            <Button disabled={!proposal || !name.trim() || needsHallName || busy} onClick={create}>
               Anlegen
             </Button>
           </DialogFooter>

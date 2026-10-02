@@ -21,8 +21,6 @@ const machine = {
   source_id: SOURCE_ID,
   source_name: "FB-01 Doku",
   has_image: false,
-  pos_x: 0,
-  pos_y: 0,
   order_index: 0,
   fault_count: 1,
   cabinet_count: 1,

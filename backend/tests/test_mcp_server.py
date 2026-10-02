@@ -12,21 +12,23 @@ from stromlauf_mcp.client import StromlaufClient
 from stromlauf_mcp.core import resolve, truncate
 from stromlauf_mcp.server import TOOL_NAMES, build_server
 
-SITE = {
-    "halls": [
-        {"id": "h1", "name": "Verarbeitung", "kind": "production", "description": "", "x": 0, "y": 0, "w": 1, "h": 1,
-         "machine_count": 3, "fault_count": 0, "open_diagnoses": 1, "lines": ["L1 Toilettenpapier"], "docks": 0,
-         "machines": [
-             {"id": "m1", "name": "L1-UR Umroller Toilettenpapier", "machine_type": "main", "pos_x": 0, "pos_y": 0, "line": "L1 Toilettenpapier"},
-             {"id": "m2", "name": "L1-PAL Palettierer", "machine_type": "robot", "pos_x": 0, "pos_y": 0, "line": "L1 Toilettenpapier"},
-             {"id": "m3", "name": "L2-PAL Palettierer", "machine_type": "robot", "pos_x": 0, "pos_y": 0, "line": "L2 Küchenrolle"},
-         ]},
-        {"id": "h2", "name": "Halle 1 (Beispiel)", "kind": "generic", "description": "", "x": 0, "y": 0, "w": 1, "h": 1,
-         "machine_count": 1, "fault_count": 3, "open_diagnoses": 0, "lines": [], "docks": 0,
-         "machines": [{"id": "fb", "name": "Foerderband FB-01", "machine_type": "conveyor", "pos_x": 0, "pos_y": 0, "line": ""}]},
-    ],
-    "flows": [{"id": "f1", "from_hall_id": "h2", "to_hall_id": "h1", "label": "Rollen"}],
-}
+
+def _row(machine_id: str, name: str, machine_type: str, line: str, hall_id: str, hall_name: str) -> dict:
+    """Zeile der Maschinenuebersicht (GET /api/machines), wie sie das Backend liefert."""
+    return {
+        "id": machine_id, "name": name, "machine_type": machine_type, "line": line, "hall_id": hall_id,
+        "hall_name": hall_name, "source_id": None, "source_name": None, "document_count": 0,
+        "ready_document_count": 0, "fault_count": 0, "open_diagnoses": 0, "cabinet_count": 0,
+        "has_layout": False, "key_figure": "",
+    }
+
+
+MACHINES = [
+    _row("m1", "L1-UR Umroller Toilettenpapier", "main", "L1 Toilettenpapier", "h1", "Verarbeitung"),
+    _row("m2", "L1-PAL Palettierer", "robot", "L1 Toilettenpapier", "h1", "Verarbeitung"),
+    _row("m3", "L2-PAL Palettierer", "robot", "L2 Küchenrolle", "h1", "Verarbeitung"),
+    _row("fb", "Foerderband FB-01", "conveyor", "", "h2", "Halle 1 (Beispiel)"),
+]
 MACHINE = {"id": "fb", "hall_id": "h2", "name": "Foerderband FB-01", "machine_type": "conveyor", "description": "",
            "source_id": "src1", "source_name": "Foerderband FB-01", "document_count": 6, "fault_count": 1,
            "cabinet_count": 0, "line": "", "key_figure": "", "hall_name": "Halle 1 (Beispiel)",
@@ -43,8 +45,8 @@ class Backend:
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         path = request.url.path
-        if path == "/api/site":
-            return httpx.Response(200, json=SITE)
+        if path == "/api/machines":
+            return httpx.Response(200, json=MACHINES)
         if path == "/api/machines/fb":
             return httpx.Response(200, json=MACHINE)
         if path == "/api/machines/m1":  # Maschine ohne Doku
@@ -80,7 +82,7 @@ def tool(server, name):
 def test_all_tools_are_listed_and_read_only(server):
     tools = asyncio.run(server.list_tools())
     assert sorted(t.name for t in tools) == sorted(TOOL_NAMES)
-    assert len(TOOL_NAMES) == 7
+    assert len(TOOL_NAMES) == 5
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
     assert all(t.description for t in tools)
 
@@ -111,9 +113,11 @@ def test_search_documents_is_scoped_to_the_machine(server, backend):
     assert params["mode"] == "keyword" and "source_id" not in params
 
 
-def test_machine_details_include_faults_and_link(server):
+def test_machine_details_include_faults_hall_and_link(server, backend):
     result = tool(server, "machine_details")(machine="FB-01")
+    assert backend.requests[0].url.path == "/api/machines"  # Maschine per Name aus der Maschinenuebersicht
     assert result["faults"][0]["code"] == "F01"
+    assert result["hall"] == "Halle 1 (Beispiel)"
     assert result["url"] == "http://app.test/werk/maschine/fb"
 
 
@@ -128,7 +132,7 @@ def test_unreachable_backend_gives_a_start_hint():
 
     client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(refuse))
     with pytest.raises(ToolError, match="nicht erreichbar"):
-        tool(build_server(client, "http://app.test"), "site_overview")()
+        tool(build_server(client, "http://app.test"), "machine_details")(machine="FB-01")
 
 
 def test_backend_errors_are_passed_as_text(server):
@@ -160,7 +164,7 @@ def test_timeout_is_not_reported_as_backend_down():
 
     client = StromlaufClient("http://stromlauf.test", transport=httpx.MockTransport(slow))
     with pytest.raises(ToolError, match="antwortet nicht"):
-        tool(build_server(client, "http://app.test"), "site_overview")()
+        tool(build_server(client, "http://app.test"), "machine_details")(machine="FB-01")
 
 
 def test_validation_errors_name_the_field(backend):

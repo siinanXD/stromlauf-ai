@@ -230,7 +230,7 @@ class MachineType(StrEnum):
 
 
 class Hall(WorkspaceScoped, Base):
-    """Produktionshalle: enthaelt Maschinen und den Materialfluss zwischen ihnen."""
+    """Halle: Gruppe von Maschinen mit Name und Beschreibung."""
 
     __tablename__ = "halls"
 
@@ -238,18 +238,10 @@ class Hall(WorkspaceScoped, Base):
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-    # Art (generic|base|production|warehouse|office) und Rechteck im Standortplan (px, 0 = nicht platziert).
-    # Spalten kamen nach der ersten Version dazu: siehe app/migrations.py
-    kind: Mapped[str] = mapped_column(String(24), default="generic", server_default="generic")
-    site_x: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_y: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_w: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_h: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
 
     machines: Mapped[list["Machine"]] = relationship(
         back_populates="hall", cascade="all, delete-orphan", order_by="Machine.order_index"
     )
-    flows: Mapped[list["HallFlow"]] = relationship(back_populates="hall", cascade="all, delete-orphan")
 
 
 class Machine(WorkspaceScoped, Base):
@@ -266,8 +258,6 @@ class Machine(WorkspaceScoped, Base):
         ForeignKey("knowledge_sources.id", ondelete="SET NULL"), nullable=True, index=True
     )
     image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    pos_x: Mapped[float] = mapped_column(Float, default=0.0)  # Layout-Position in der Halle (px)
-    pos_y: Mapped[float] = mapped_column(Float, default=0.0)
     order_index: Mapped[int] = mapped_column(Integer, default=0)  # Reihenfolge im Ablauf
     line: Mapped[str] = mapped_column(String(120), default="", server_default="")  # Linie/Sektor
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -286,31 +276,6 @@ class Machine(WorkspaceScoped, Base):
     layout: Mapped["MachineLayout | None"] = relationship(
         back_populates="machine", cascade="all, delete-orphan", uselist=False
     )
-
-
-class HallFlow(WorkspaceScoped, Base):
-    """Materialfluss-Kante zwischen zwei Maschinen einer Halle."""
-
-    __tablename__ = "hall_flows"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    from_machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"))
-    to_machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"))
-    label: Mapped[str] = mapped_column(String(120), default="")
-
-    hall: Mapped[Hall] = relationship(back_populates="flows")
-
-
-class SiteFlow(WorkspaceScoped, Base):
-    """Materialfluss zwischen zwei Hallen im Standortplan."""
-
-    __tablename__ = "site_flows"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    from_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    to_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    label: Mapped[str] = mapped_column(String(120), default="")
 
 
 class MachineSpec(WorkspaceScoped, Base):

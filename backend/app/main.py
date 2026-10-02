@@ -21,7 +21,6 @@ from app.api import (
     plant,
     search,
     signal,
-    site,
     sources,
 )
 from app.auth import auth_middleware
@@ -90,7 +89,6 @@ app.include_router(facts.router)
 app.include_router(signal.router)
 app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
-app.include_router(site.router)
 app.include_router(search.router)
 app.include_router(flow.router)
 app.include_router(plan_read.router)

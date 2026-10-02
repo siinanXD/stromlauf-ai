@@ -14,23 +14,20 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp_types import ToolAnnotations
 
 from stromlauf_mcp.client import StromlaufClient
-from stromlauf_mcp.core import KIND_LABELS, machines_of, resolve, truncate
+from stromlauf_mcp.core import resolve, truncate
 
 INSTRUCTIONS = """Stromlauf AI: Wissen über industrielle Elektrodokumentation (Stromlaufpläne, Stücklisten,
-Klemmenpläne, Siemens STEP 7 AWL, Handbücher) und ein Werk mit Hallen, Linien und Maschinen.
+Klemmenpläne, Siemens STEP 7 AWL, Handbücher) und die Maschinen eines Werks (Halle, Linie, Kennzahlen).
 Alle Werkzeuge lesen nur und rechnen deterministisch (keine Schätzung durch ein Sprachmodell).
 
 Werkzeugwahl:
-- Überblick über das Werk: site_overview, dann hall_details / machine_details.
+- Eine Maschine (Kennzahlen, Fehlerliste, Doku): machine_details mit Name, Kürzel oder ID.
 - Betriebsmittel (-K1), Klemmen (-X1:5), SPS-Adressen (E0.0): erst search_tags (welche Maschine),
   dann find_references (Fundstellen) oder signal_path (wovon hängt es ab, was schaltet es).
 - Funktionsfragen zur Doku („Was passiert bei Not-Halt?“): search_documents.
 Nenne in Antworten die Fundstelle (Dokument, Seite/Blatt) und gib den Link `url` weiter, wenn vorhanden."""
 
-TOOL_NAMES = [
-    "site_overview", "hall_details", "machine_details", "search_tags", "find_references",
-    "search_documents", "signal_path",
-]
+TOOL_NAMES = ["machine_details", "search_tags", "find_references", "search_documents", "signal_path"]
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, open_world_hint=False)
 
 
@@ -44,7 +41,8 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
         return f"{app_url}/werk/maschine/{machine_id}"
 
     def find_machine(ref: str) -> dict:
-        return resolve(machines_of(client.get("/api/site")), ref, "Maschine")
+        machines = [{**m, "hall": m.get("hall_name", "")} for m in client.get("/api/machines")]
+        return resolve(machines, ref, "Maschine")
 
     def source_of(ref: str) -> tuple[dict, str]:
         machine = client.get(f"/api/machines/{find_machine(ref)['id']}")
@@ -54,51 +52,6 @@ def build_server(client: StromlaufClient, app_url: str) -> MCPServer:
                 f"Im Werk zuordnen: {machine_url(machine['id'])}"
             )
         return machine, machine["source_id"]
-
-    @server.tool(annotations=READ_ONLY)
-    def site_overview() -> dict:
-        """Überblick über das Werk: Hallen mit Art, Maschinenzahl, Linien, laufenden Fehlersuchen und Toren,
-        dazu der Materialfluss zwischen den Hallen."""
-        site = client.get("/api/site")
-        names = {hall["id"]: hall["name"] for hall in site["halls"]}
-        return {
-            "halls": [
-                {
-                    "name": hall["name"], "kind": KIND_LABELS.get(hall["kind"], hall["kind"]),
-                    "machines": hall["machine_count"], "lines": hall["lines"],
-                    "open_diagnoses": hall["open_diagnoses"], "docks": hall["docks"],
-                    "url": f"{app_url}/werk/halle/{hall['id']}",
-                }
-                for hall in site["halls"]
-            ],
-            "flows": [
-                {"from": names.get(f["from_hall_id"]), "to": names.get(f["to_hall_id"]), "label": f["label"]}
-                for f in site["flows"]
-            ],
-            "url": f"{app_url}/werk",
-        }
-
-    @server.tool(annotations=READ_ONLY)
-    def hall_details(hall: str) -> dict:
-        """Maschinen einer Halle mit Linie, Typ, wichtigster Kennzahl, Zahl der Dokumente und Fehlereinträge.
-
-        Args:
-            hall: Hallenname oder ID, z. B. "Verarbeitung"
-        """
-        found = resolve(client.get("/api/site")["halls"], hall, "Halle")
-        detail = client.get(f"/api/halls/{found['id']}")
-        return {
-            "name": detail["name"], "kind": KIND_LABELS.get(detail["kind"], detail["kind"]),
-            "description": detail["description"],
-            "machines": [
-                {
-                    "name": m["name"], "type": m["machine_type"], "line": m["line"], "key_figure": m["key_figure"],
-                    "documents": m["document_count"], "faults": m["fault_count"], "url": machine_url(m["id"]),
-                }
-                for m in detail["machines"]
-            ],
-            "url": f"{app_url}/werk/halle/{detail['id']}",
-        }
 
     @server.tool(annotations=READ_ONLY)
     def machine_details(machine: str) -> dict:

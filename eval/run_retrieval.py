@@ -8,10 +8,9 @@ Jede Frage in eval/questions.jsonl mit "retrieval": {"mode", "query"} ruft den p
   tag | semantic | keyword   GET /api/search?mode=...&q=...&source_id=...
   fact                       GET /api/facts?tag=...&source_ids=...
   signal                     GET /api/signal-path?tag=...&source_id=...
-  site                       GET /api/site, Halle per Namensteil
 
 Die Antwort wird zu Text plus zitierten Dateinamen und mit denselben Regeln bewertet wie eine Agentenantwort
-(fakten, quellen, sauber). Bei signal und site gibt es keine Dateinamen; quellen gilt dort als erfuellt.
+(fakten, quellen, sauber). Bei signal gibt es keine Dateinamen; quellen gilt dort als erfuellt.
 Kein Modellaufruf, keine API-Kosten. Ergebnis: eval/results/retrieval_<zeitstempel>.json.
 """
 
@@ -40,7 +39,7 @@ def _auth_headers() -> dict[str, str]:
 
 
 def answer_for_error(exc: Exception) -> str:
-    """HTTP-Fehler (404 Kennzeichen unbekannt, 409 Testwerk fehlt) und unbrauchbare Antworten (ValueError) sind
+    """HTTP-Fehler (404 Kennzeichen unbekannt) und unbrauchbare Antworten (ValueError) sind
     Retrieval-Fehler und werden bewertet (fakten 0); nur Netzfehler bleiben unbewertet."""
     if isinstance(exc, httpx.HTTPStatusError):
         try:
@@ -60,11 +59,6 @@ def gate_failed(summary: dict, minimum: float) -> bool:
     return summary["fakten_mittel"] < minimum or summary["nicht_bewertet_fehler"] > 0
 
 
-def find_hall(site: dict, query: str) -> dict | None:
-    needle = query.strip().lower()
-    return next((h for h in site.get("halls", []) if needle in h["name"].lower()), None)
-
-
 def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str]) -> object:
     mode, query = question["retrieval"]["mode"], question["retrieval"]["query"]
     source_id = source_ids.get(question.get("source") or "")
@@ -75,9 +69,7 @@ def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str]) -> o
     elif mode == "signal":
         response = client.get("/api/signal-path", params={"tag": query, "source_id": source_id})
     else:
-        response = client.get("/api/site")
-        response.raise_for_status()
-        return find_hall(response.json(), query)
+        raise ValueError(f"Retrieval-Modus {mode!r} unbekannt")
     response.raise_for_status()
     return response.json()
 

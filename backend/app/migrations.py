@@ -7,11 +7,6 @@ hierher, sondern als Revision unter backend/alembic/versions/.
 
 # (Tabelle, Spalte, Typ inkl. Standardwert) - Standardwert muss zum Modell passen
 ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
-    ("halls", "kind", "VARCHAR(24) NOT NULL DEFAULT 'generic'"),
-    ("halls", "site_x", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
-    ("halls", "site_y", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
-    ("halls", "site_w", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
-    ("halls", "site_h", "DOUBLE PRECISION NOT NULL DEFAULT 0"),
     ("machines", "line", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("documents", "attempts", "INTEGER NOT NULL DEFAULT 0"),
     # Volltext fuer die Hybrid-Suche; generierte Spalte, Postgres fuellt sie fuer alte Zeilen selbst

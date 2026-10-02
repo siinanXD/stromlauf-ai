@@ -512,27 +512,12 @@ export const MACHINE_TYPE_LABELS: Record<MachineType, string> = {
   other: "Sonstiges",
 };
 
-export type HallKind = "generic" | "base" | "production" | "warehouse" | "office";
-
-export const HALL_KIND_LABELS: Record<HallKind, string> = {
-  generic: "Halle",
-  base: "Grundstoff",
-  production: "Verarbeitung",
-  warehouse: "Lager",
-  office: "Büro",
-};
-
 export interface Hall {
   id: string;
   name: string;
   description: string;
   created_at: string;
   machine_count: number;
-  kind: HallKind;
-  site_x: number;
-  site_y: number;
-  site_w: number;
-  site_h: number;
 }
 
 export interface Machine {
@@ -544,8 +529,6 @@ export interface Machine {
   source_id: string | null;
   source_name: string | null;
   has_image: boolean;
-  pos_x: number;
-  pos_y: number;
   order_index: number;
   fault_count: number;
   cabinet_count: number;
@@ -575,16 +558,8 @@ export interface MachineListItem {
   key_figure: string;
 }
 
-export interface Flow {
-  id?: string;
-  from_machine_id: string;
-  to_machine_id: string;
-  label: string;
-}
-
 export interface HallDetail extends Hall {
   machines: Machine[];
-  flows: Flow[];
 }
 
 export interface Fault {
@@ -623,46 +598,6 @@ export interface Cabinet {
   height: number;
   created_at: string;
   hotspots: Hotspot[];
-}
-
-export interface SiteMachine {
-  id: string;
-  name: string;
-  machine_type: MachineType;
-  pos_x: number;
-  pos_y: number;
-  line: string;
-}
-
-export interface SiteHall {
-  id: string;
-  name: string;
-  kind: HallKind;
-  description: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  machine_count: number;
-  /** Eintraege der Fehlerlisten (Katalog) */
-  fault_count: number;
-  /** laufende Fehlersuchen: der einzige rote Wert im Standortplan */
-  open_diagnoses: number;
-  lines: string[];
-  docks: number;
-  machines: SiteMachine[];
-}
-
-export interface SiteFlow {
-  id?: string;
-  from_hall_id: string;
-  to_hall_id: string;
-  label: string;
-}
-
-export interface SiteData {
-  halls: SiteHall[];
-  flows: SiteFlow[];
 }
 
 export interface MachineSpec {
@@ -711,22 +646,19 @@ export const plant = {
       `/api/machines/${machineId}/flow/extract?force=${force}`,
       { method: "POST" },
     ),
-  createHall: (name: string, description = "", kind: HallKind = "generic") =>
-    request<Hall>("/api/halls", json({ name, description, kind })),
+  createHall: (name: string, description = "") => request<Hall>("/api/halls", json({ name, description })),
   getHall: (id: string) => request<HallDetail>(`/api/halls/${id}`),
-  updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description" | "kind" | "site_x" | "site_y" | "site_w" | "site_h">>) =>
+  updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description">>) =>
     request<Hall>(`/api/halls/${id}`, json(body, "PATCH")),
   deleteHall: (id: string) => request<void>(`/api/halls/${id}`, { method: "DELETE" }),
-  replaceFlows: (hallId: string, flows: Flow[]) =>
-    request<Flow[]>(`/api/halls/${hallId}/flows`, json(flows.map(({ from_machine_id, to_machine_id, label }) => ({ from_machine_id, to_machine_id, label })), "PUT")),
 
-  createMachine: (hallId: string, body: { name: string; machine_type: MachineType; pos_x?: number; pos_y?: number; line?: string }) =>
+  createMachine: (hallId: string, body: { name: string; machine_type: MachineType; line?: string }) =>
     request<Machine>(`/api/halls/${hallId}/machines`, json(body)),
   getMachine: (id: string) => request<MachineDetail>(`/api/machines/${id}`),
   machineMap: (id: string) => request<MachineMap>(`/api/machines/${id}/map`),
   updateMachine: (
     id: string,
-    body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "pos_x" | "pos_y" | "order_index" | "line">> & { clear_source?: boolean },
+    body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "order_index" | "line">> & { clear_source?: boolean },
   ) => request<Machine>(`/api/machines/${id}`, json(body, "PATCH")),
   deleteMachine: (id: string) => request<void>(`/api/machines/${id}`, { method: "DELETE" }),
   uploadMachineImage: (id: string, file: File) => {
@@ -759,9 +691,6 @@ export const plant = {
   lookupTag: (machineId: string, tag: string) =>
     request<TagLookup>(`/api/machines/${machineId}/tags/${encodeURIComponent(tag)}`),
 
-  getSite: () => request<SiteData>("/api/site"),
-  replaceSiteFlows: (flows: SiteFlow[]) =>
-    request<SiteFlow[]>("/api/site/flows", json(flows.map(({ from_hall_id, to_hall_id, label }) => ({ from_hall_id, to_hall_id, label })), "PUT")),
   getSpecs: (machineId: string) => request<MachineSpec[]>(`/api/machines/${machineId}/specs`),
   replaceSpecs: (machineId: string, specs: MachineSpec[]) =>
     request<MachineSpec[]>(`/api/machines/${machineId}/specs`, json(specs.map(({ label, value, unit, source }) => ({ label, value, unit, source })), "PUT")),
