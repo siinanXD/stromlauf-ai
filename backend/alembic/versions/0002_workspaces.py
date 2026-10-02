@@ -25,15 +25,10 @@ SCOPED_TABLES = [
     "conversations",
     "halls",
     "machines",
-    "hall_flows",
-    "site_flows",
     "machine_specs",
     "fault_entries",
     "cabinet_images",
     "cabinet_hotspots",
-    "machine_layouts",
-    "layout_parts",
-    "diagnosis_sessions",
 ]
 
 

@@ -1,6 +1,6 @@
-"""Preistabelle (app/flow/pricing.py): beide Provider, datierte IDs, laengster Praefix gewinnt."""
+"""Preistabelle (app/pricing.py): beide Provider, datierte IDs, laengster Praefix gewinnt."""
 
-from app.flow.pricing import cost_usd, prices_for
+from app.pricing import cost_usd, prices_for
 
 
 def test_openai_und_anthropic_preise_sind_hinterlegt():

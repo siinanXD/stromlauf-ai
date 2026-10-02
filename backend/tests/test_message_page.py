@@ -44,7 +44,7 @@ def test_patch_prueft_outcome_und_laenge_des_befunds():
     assert ConversationPatch(outcome="open").model_dump(exclude_unset=True) == {"outcome": "open"}
     assert ConversationPatch(finding="x" * 2000).finding == "x" * 2000
     with pytest.raises(ValidationError):
-        ConversationPatch(outcome="unresolved")  # gibt es bei Fehlersuchen, nicht bei Stoerfaellen
+        ConversationPatch(outcome="unresolved")  # ein Stoerfall ist offen oder erledigt, nichts dazwischen
     with pytest.raises(ValidationError):
         ConversationPatch(finding="x" * 2001)
 

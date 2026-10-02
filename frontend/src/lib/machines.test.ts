@@ -15,9 +15,7 @@ const machine = (over: Partial<MachineListItem>): MachineListItem => ({
   document_count: 6,
   ready_document_count: 6,
   fault_count: 3,
-  open_diagnoses: 0,
   cabinet_count: 1,
-  has_layout: true,
   key_figure: "1.200 m/min",
   ...over,
 });
@@ -44,13 +42,13 @@ describe("filterMachines", () => {
 });
 
 describe("summarizeMachines", () => {
-  it("zaehlt Maschinen ohne fertige Doku, offene Diagnosen und Fehler", () => {
+  it("zaehlt Maschinen ohne fertige Doku und Fehler", () => {
     const summary = summarizeMachines([
-      machine({ ready_document_count: 0, document_count: 2, open_diagnoses: 2 }),
+      machine({ ready_document_count: 0, document_count: 2 }),
       machine({ source_id: null, document_count: 0, ready_document_count: 0, fault_count: 0 }),
-      machine({ open_diagnoses: 1 }),
+      machine({}),
     ]);
-    expect(summary).toEqual({ total: 3, withoutDocs: 2, openDiagnoses: 3, faults: 6 });
+    expect(summary).toEqual({ total: 3, withoutDocs: 2, faults: 6 });
   });
 });
 

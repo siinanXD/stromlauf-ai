@@ -27,16 +27,16 @@ MAP = {
          "parts": [{"tag": "-K1", "label": "Hauptschuetz", "kind": "Schuetz", "source": "bom"},
                    {"tag": "-F2", "label": "Motorschutz", "kind": "Schutz", "source": "bom"}]},
         {"id": "+FE1", "code": "+FE1", "name": "Feld",
-         "parts": [{"tag": "-M1", "label": "Motor", "kind": "Motor", "source": "layout"}]},
+         "parts": [{"tag": "-M1", "label": "Motor", "kind": "Motor", "source": "bom"}]},
         {"id": "?", "code": "?", "name": "Ohne Einbauort",
          "parts": [{"tag": "-B7", "label": "", "kind": "Sensor", "source": "index"}]},
     ],
 }
 ESTIMATE = {
     "pages": 12, "photos": 1, "vision": True,
-    "per_page_vision_cents": 2.0, "per_page_extraction_cents": 0.5, "per_photo_cents": 1.0,
-    "chat_per_answer_cents": 1.5, "total_cents": 31.0, "basis": {"vision.page": "list", "vision.cabinet": "list"},
-    "models": {"vision": "v", "extraction": "e", "chat": "c"},
+    "per_page_vision_cents": 2.0, "per_photo_cents": 1.0,
+    "chat_per_answer_cents": 1.5, "total_cents": 25.0, "basis": {"vision.page": "list", "vision.cabinet": "list"},
+    "models": {"vision": "v", "chat": "c"},
 }
 COSTS = {
     "machine_id": MACHINE_ID,
@@ -44,7 +44,6 @@ COSTS = {
     "total": {"cents": 33.0, "calls": 13, "by_purpose": {
         "vision.page": {"cents": 30.0, "calls": 12},
         "vision.cabinet": {"cents": 3.0, "calls": 1},
-        "flow": {"cents": 0.0, "calls": 0},
     }},
     "workspace": {"month_cents": 33.0, "month_calls": 13, "cap_cents": None, "exceeded": False},
 }
@@ -105,11 +104,10 @@ def test_map_evidence_zaehlt_zonen_ohne_unbekannt_und_prueft_fundstellen():
     assert evidence["zones"] == 2
     assert evidence["zone_codes"] == ["+ST1", "+FE1"]
     assert evidence["parts"] == 4
-    assert evidence["parts_by_source"] == {"bom": 2, "layout": 1, "index": 1}
+    assert evidence["parts_by_source"] == {"bom": 3, "index": 1}
     assert evidence["parts_without_hit"] == ["-B7"]
-    assert evidence["layout_parts"] == ["-M1"]
     assert evidence["connectors"] == 0
-    assert evidence["cited_share"] == pytest.approx(0.667, abs=1e-3)  # -M1 aus der Draufsicht zaehlt nicht mit
+    assert evidence["cited_share"] == pytest.approx(0.75)
 
 
 def test_map_evidence_zaehlt_leitungen_als_verbinder_nicht_als_teile():
@@ -129,7 +127,7 @@ def test_map_evidence_fragt_jedes_dokumentierte_kennzeichen_nur_einmal():
         return lookup_all_but_b7(tag)
 
     acceptance.map_evidence(duplicated, lookup)
-    assert sorted(asked) == ["-B7", "-F2", "-K1"]
+    assert sorted(asked) == ["-B7", "-F2", "-K1", "-M1"]
 
 
 def test_compare_estimate_je_zweck_mit_toleranz():
@@ -139,9 +137,7 @@ def test_compare_estimate_je_zweck_mit_toleranz():
                                  "deviation": pytest.approx(0.25), "within": True}
     assert by["vision.cabinet"]["deviation"] == pytest.approx(2.0)
     assert by["vision.cabinet"]["within"] is False
-    assert by["flow"]["calls"] == 0
-    assert by["flow"]["within"] is None
-    assert by["flow"]["estimated_cents"] == 6.0
+    assert set(by) == {"vision.page", "vision.cabinet"}
 
 
 def test_compare_estimate_ohne_kostenbuch_eintraege():
@@ -155,8 +151,8 @@ def _evidence(**overrides) -> dict:
         "cold_start_s": 3.2,
         "ingest_s": None,
         "documents": {"count": 6, "ready": 6, "pages": 12},
-        "map": {"zones": 3, "zone_codes": ["+ST1", "+FE1", "Anlage"], "parts": 25, "parts_by_source": {"bom": 25},
-                "parts_without_hit": [], "layout_parts": [], "cited_share": 1.0},
+        "map": {"zones": 3, "zone_codes": ["+ST1", "+FE1", "+BP1"], "parts": 25, "parts_by_source": {"bom": 25},
+                "parts_without_hit": [], "cited_share": 1.0},
         "hotspots": 14,
         "ledger": {"total_cents": 0.0, "total_calls": 0, "month_cents": 0.0, "month_calls": 0, "by_purpose": {}},
         "estimate": {"rows": [{"purpose": "vision.page", "estimated_cents": 24.0, "actual_cents": 0.0, "calls": 0,
@@ -239,7 +235,7 @@ def test_collect_sammelt_alle_nachweise_ohne_schreibzugriff(tmp_path: Path):
     assert evidence["hotspots"] == 14
     assert evidence["map"]["zones"] == 2 and evidence["map"]["parts"] == 4
     assert evidence["ledger"]["total_calls"] == 13
-    assert {r["purpose"] for r in evidence["estimate"]["rows"]} == {"vision.page", "vision.cabinet", "flow"}
+    assert {r["purpose"] for r in evidence["estimate"]["rows"]} == {"vision.page", "vision.cabinet"}
     assert evidence["ingest_s"] is None
     assert evidence["cold_start_s"] >= 0
 

@@ -9,7 +9,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, Pencil, Plus, Crosshair, Stethoscope, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Plus, Crosshair, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
 
 import { Tag } from "@/components/Tag";
@@ -24,7 +24,7 @@ const features = tableFeatures({
 });
 const helper = createColumnHelper<typeof features, Fault>();
 
-/** Fehlerliste der Maschine: sortierbar, filterbar nach Betriebsmittel, Tags springen in die Draufsicht. */
+/** Fehlerliste der Maschine: sortierbar, filterbar nach Betriebsmittel, Tags oeffnen das Bauteil. */
 export function FaultTable({
   faults,
   tagFilter,
@@ -32,12 +32,11 @@ export function FaultTable({
   onTagClick,
   onEdit,
   onDelete,
-  onDiagnose,
   onShow,
   activeFaultId = null,
 }: {
   faults: Fault[];
-  /** Fehler markieren: Kennzeichen in Draufsicht, Schaltschrank und Ablauf hervorheben */
+  /** Fehler markieren: Kennzeichen im Schaltschrank hervorheben */
   onShow?: (fault: Fault) => void;
   activeFaultId?: string | null;
   tagFilter: string | null;
@@ -45,7 +44,6 @@ export function FaultTable({
   onTagClick: (tag: string) => void;
   onEdit: (fault: Fault | "new") => void;
   onDelete: (fault: Fault) => void;
-  onDiagnose: (fault: Fault) => void;
 }) {
   const rows = useMemo(
     () => (tagFilter ? faults.filter((f) => f.tags.some((t) => t.toUpperCase() === tagFilter.toUpperCase())) : faults),
@@ -87,10 +85,6 @@ export function FaultTable({
                   Zeigen
                 </Button>
               )}
-              <Button size="xs" variant="outline" className="border-primary/60 text-primary" onClick={() => onDiagnose(row.original)}>
-                <Stethoscope />
-                Diagnose
-              </Button>
               <Button size="icon-xs" variant="ghost" aria-label="Bearbeiten" onClick={() => onEdit(row.original)}>
                 <Pencil />
               </Button>
@@ -101,7 +95,7 @@ export function FaultTable({
           ),
         }),
       ]),
-    [onDelete, onDiagnose, onEdit, onTagClick, onShow, activeFaultId],
+    [onDelete, onEdit, onTagClick, onShow, activeFaultId],
   );
 
   const table = useTable({

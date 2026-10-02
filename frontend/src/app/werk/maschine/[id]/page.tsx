@@ -14,7 +14,7 @@ import { MachineCostChip } from "@/components/machine/MachineCostChip";
 import { MACHINE_TYPE_LABELS, plant, type AnswerMeta, type MachineDetail, type MachineMap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// Der Aufbau (Tabs mit Tabellen, Editoren, Draufsicht) laedt erst, wenn er geoeffnet wird
+// Der Aufbau (Tabs mit Tabellen und Editoren) laedt erst, wenn er geoeffnet wird
 const AufbauArea = dynamic(() => import("./AufbauArea").then((m) => m.AufbauArea), {
   loading: () => <div className="flex-1 animate-pulse bg-secondary/40" aria-busy="true" />,
 });
@@ -28,7 +28,7 @@ const sameView = (a: MachineView, b: MachineView) => viewToQuery(a) === viewToQu
 
 /**
  * Maschinenseite mit zwei Bereichen: Stoerfaelle (Standard; Liste | Chat | Detail) und Aufbau (Modell,
- * Schaltschrank, Draufsicht, Signalweg, Dokumente, Fehlerliste, Kennzahlen, Ablauf). Bereich, Tab, Stoerfall und
+ * Schaltschrank, Signalweg, Dokumente, Fehlerliste, Kennzahlen). Bereich, Tab, Stoerfall und
  * Detail stehen in der URL; jede neue Ebene ist ein Eintrag in der Historie, die Zurueck-Geste geht eine Ebene
  * zurueck. Beim Oeffnen laden nur Maschine und Stoerfaelle.
  */
@@ -150,12 +150,8 @@ export default function MachinePage() {
     <AppShell
       breadcrumb={
         machine
-          ? [
-              { label: "Werk", href: "/werk" },
-              { label: machine.hall_name || "Halle", href: `/werk/halle/${machine.hall_id}` },
-              { label: machine.name },
-            ]
-          : [{ label: "Werk", href: "/werk" }, { label: "…" }]
+          ? [{ label: "Maschinen", href: "/werk/maschinen" }, { label: machine.hall_name || "Halle" }, { label: machine.name }]
+          : [{ label: "Maschinen", href: "/werk/maschinen" }, { label: "…" }]
       }
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden" data-testid="machine-page" data-area={view.area} data-open-part={openPart}>

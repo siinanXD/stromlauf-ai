@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    // Der Standortplan unter /werk ist entfernt; alte Lesezeichen landen in der Maschinenuebersicht
+    return [{ source: "/werk", destination: "/werk/maschinen", permanent: false }];
+  },
 };
 
 export default nextConfig;

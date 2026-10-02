@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { plant, type MachineSpec } from "@/lib/api";
-import { sourceLink } from "@/lib/site";
+import { sourceLink } from "@/lib/specs";
 
 const EMPTY: MachineSpec = { label: "", value: "", unit: "", source: "" };
 const CELL = "h-8 w-full border border-border bg-background px-2 text-[13px]";
@@ -23,7 +23,7 @@ function Source({ source }: { source: string }) {
   );
 }
 
-/** Kennzahlen einer Maschine mit Quelle; die erste Kennzahl erscheint auf der Kachel in der Halle. */
+/** Kennzahlen einer Maschine mit Quelle; die erste Kennzahl erscheint in der Maschinenübersicht. */
 export function SpecsTab({ machineId, onSaved }: { machineId: string; onSaved: () => void }) {
   const [specs, setSpecs] = useState<MachineSpec[] | null>(null);
   const [draft, setDraft] = useState<MachineSpec[] | null>(null);
@@ -61,7 +61,7 @@ export function SpecsTab({ machineId, onSaved }: { machineId: string; onSaved: (
     <section className="max-w-4xl space-y-3">
       <div className="flex items-center gap-3">
         <p className="text-[13px] text-muted-foreground">
-          Die erste Kennzahl steht auf der Kachel in der Halle. „Richtwert“ heißt: keine Herstellerangabe.
+          Die erste Kennzahl steht in der Maschinenübersicht. „Richtwert“ heißt: keine Herstellerangabe.
         </p>
         {draft === null && (
           <Button size="sm" variant="outline" className="ml-auto border-line" onClick={() => setDraft(specs.length ? specs : [{ ...EMPTY }])}>

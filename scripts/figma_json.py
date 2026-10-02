@@ -264,7 +264,7 @@ class ApiSource:
 
 @lru_cache(maxsize=1)
 def load_example():
-    """scripts/load_example.py: Maschine, Halle, Fehlerliste und Draufsicht der Beispielanlage FB-01."""
+    """scripts/load_example.py: Maschine, Halle und Fehlerliste der Beispielanlage FB-01."""
     spec = importlib.util.spec_from_file_location(
         "load_example", ROOT / "scripts" / "load_example.py"
     )
@@ -336,7 +336,6 @@ class OfflineSource:
             "line": "",
             "source_id": self.source_id,
             "faults": [],
-            "layout_tags": [],
         }
         if wanted.casefold() != example.MACHINE_NAME.casefold():
             print(
@@ -345,14 +344,12 @@ class OfflineSource:
                 file=sys.stderr,
             )
             return machine
-        layout = json.loads(example.LAYOUT_JSON.read_text(encoding="utf-8"))
         return {
             **machine,
             "id": offline_id("machine", example.MACHINE_NAME),
             "name": example.MACHINE_NAME,
             "hall_name": example.HALL_NAME,
             "faults": example.FAULTS,
-            "layout_tags": [part["tag"] for part in layout["parts"] if part.get("tag")],
         }
 
     def fault_hits(self, machine: dict, meldung: str) -> dict:
@@ -463,9 +460,7 @@ class OfflineSource:
         ]
         return {
             "referenced_tags": tags,
-            "part_kinds": part_kinds(
-                tags, {self.source_id: devices}, {self.source_id: machine["layout_tags"]}
-            ),
+            "part_kinds": part_kinds(tags, {self.source_id: devices}),
             "plan_spots": [plan_spot(row) for row in first_plan_rows(tags, rows)],
             "citations_valid": summary(check_citations(answer, index, None)),
         }

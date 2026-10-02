@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import pytest
 
 from app import tracing
-from app.ingestion import cabinet_vision, layout_vision, vision
+from app.ingestion import cabinet_vision, vision
 
 
 def _settings(public: str | None = None, secret: str | None = None) -> SimpleNamespace:
@@ -82,7 +82,7 @@ class _FakeLLM:
 
     def invoke(self, messages, config=None):
         type(self).last_config = config
-        return SimpleNamespace(content='{"width_mm": 0, "depth_mm": 0, "items": []}')
+        return SimpleNamespace(content='{"items": []}')
 
 
 def test_describe_page_gibt_die_trace_konfiguration_weiter(monkeypatch):
@@ -99,13 +99,6 @@ def test_describe_page_ohne_trace_uebergibt_nichts(monkeypatch):
     monkeypatch.setattr(vision, "render_page_png", lambda path, page: b"png")
     vision.describe_page(Path("plan.pdf"), 1)
     assert _FakeLLM.last_config is None
-
-
-def test_detect_layout_gibt_die_trace_konfiguration_weiter(monkeypatch):
-    monkeypatch.setattr(layout_vision, "get_settings", _vision_settings)
-    monkeypatch.setattr(layout_vision, "make_chat_model", _FakeLLM)
-    layout_vision.detect_layout(b"png", ["-M1"], trace={"callbacks": ["H"]})
-    assert _FakeLLM.last_config == {"callbacks": ["H"]}
 
 
 def test_detect_components_gibt_die_trace_konfiguration_weiter(monkeypatch):

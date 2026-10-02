@@ -16,27 +16,21 @@ Umsetzer je Issue, Pull Request mit gruener CI, unabhaengiges Review vor dem Mer
 
 ## Fokus
 
-Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Signalweg, Fehlerliste,
-Fehlersuche, Schaltschrank, Draufsicht, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
-Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). **Planung** (`/planung`) und **Leitstand**
-(`/leitstand`) sind Nebenmodule im Feature-Freeze: nur Fehlerbehebung, keine neuen Funktionen, in der
-Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung an der Maschine?
+Die **Maschine** ist die zentrale Einheit: ihre Dokumentation (Wissensquelle), Stoerfaelle, Signalweg, Fehlerliste,
+Schaltschrank, Kennzahlen. Neue Arbeit geht zuerst dorthin; Einstieg ist die
+Maschinenuebersicht `/werk/maschinen` (`GET /api/machines`). Vor jeder Erweiterung abseits der Maschine: Nutzt das
+der Instandhaltung an der Maschine?
 
 ## Harte Fakten
 
 - `backend/`: FastAPI, Python `>=3.11`, LangGraph-Agent mit Claude, Docling-Ingestion.
-- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht, `/werk` Standortplan,
-  `/werk/halle/[id]` Hallen-Baukasten, `/werk/maschine/[id]`, `/planung` Vorkalkulation, `/leitstand`
-  Durchlauf-Simulation (die letzten beiden: Nebenmodule, Feature-Freeze).
-- Werk-Datenmodell (`models.py`): Hall (Art, Lage im Standortplan) -> Machine (Linie; -> KnowledgeSource) -> FaultEntry,
-  CabinetImage -> CabinetHotspot, Machine -> MachineLayout (1:1, mm) -> LayoutPart, Machine -> DiagnosisSession
-  (Fehlersuche-Log), Machine -> MachineSpec (Kennzahlen mit Quelle), SiteFlow (Fluss zwischen Hallen).
-  Reine Werk-Logik in `backend/app/werk/`. Vorkalkulation: Article -> RoutingStep (Maschine) und BomLine,
-  Material (Zukauf mit Preis oder Eigenfertigung auf Maschine mit Rezeptur), PlantSetting "calc" (Kalender,
-  Buero-Stationen, LKW, Tore, Saetze); Rechenkern `app/werk/calc.py`, Stundensatz = Kennzahl
-  "Maschinenstundensatz" der Maschine. Leitstand: Customer (Kreditlimit) -> Order -> OrderLine, StockItem
-  (Anfangsbestand je Artikel), `articles.price`; Simulationskern `app/werk/sim.py` (heapq-Ereignisschleife,
-  Parameter `workers` je Buero-Station und `credit_hold_min` in PlantSetting "calc").
+- `frontend/`: Next.js + TypeScript. Routen: `/` Chat, `/quelle/[id]` Steckbrief, `/werk/maschinen` Maschinenuebersicht
+  (`/werk` leitet dorthin um, `next.config.ts`), `/werk/maschine/[id]`. Neue Maschine: Dialog „Aus Dokumentation anlegen“
+  in der Maschinenuebersicht (`components/onboarding/OnboardingDialog.tsx`, Halle waehlen oder neu anlegen).
+- Werk-Datenmodell (`models.py`): Hall (Name, Beschreibung; Gruppe) -> Machine (Linie, order_index; -> KnowledgeSource)
+  -> FaultEntry, CabinetImage -> CabinetHotspot, Machine -> MachineSpec (Kennzahlen mit Quelle;
+  `GET/PUT /api/machines/{id}/specs`, `app/werk/specs.py`). Stoerfaelle sind Konversationen der Maschine (siehe
+  Stoerfall-Arbeitsflaeche). Reine Werk-Logik in `backend/app/werk/`.
 - Befundkarte (`app/ingestion/fact_card.py`, `GET /api/facts`): Zeilen Einbauort, Stromlaufplan, Klemmen, SPS
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`
@@ -61,8 +55,12 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   zulaessig oder reserviert sind (A, D, J, L, V, Y, Z), franzoesische Paare und der Blatt-Stil; gewinnen muss eine Seite
   mit mindestens doppelt so vielen Kennzeichen. Bei `offen` keine Art fuer H, K, N, Q, U; ein Teil bleibt Teil
   (`is_part`). Keine Wikipedia-Tabellen im Repo (CC BY-SA); Recherche `.ai/research/2026-10-01-iec81346-2-kennbuchstaben.md`.
-- Signalweg, Fehlersuche, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
-  `backend/app/ingestion/{signal_graph,diagnosis,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
+- Leseregeln sind eingefroren (Issue #122, Entscheidung 2026-10-02): `app/ingestion/{plan_wires,pdf_layout,tags,letter_codes}.py`
+  bekommen keine neue Regel je Beispieldokument mehr. Fremde Formate gehen ueber den Modell-Rueckfall je Seite beim Upload
+  (Regeln zuerst, Modell nur fuer Seiten unter der Vertrauensschwelle, Ergebnis als JSON im `plan_cache`); eine neue Regel
+  nur, wenn ein Kundenplan sie braucht und der Rueckfall dort versagt oder zu teuer ist.
+- Signalweg, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
+  `backend/app/ingestion/{signal_graph,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
   zwischen Plan, Stueckliste, Klemmenplan, AWL, Symboltabelle; Regeln nur bei beiden Dokumenttypen.
   Dokumenttyp bei Upload „auto“: `ingestion/doctype.py` aus Textprobe (Endung > Inhalt > Dateiname), Vorschau
@@ -74,13 +72,6 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   angefangene Dokumente neu ein (max. 3 Anlaeufe je `documents.attempts`, "Neu verarbeiten" setzt zurueck).
   Das darf nur der eine Backend-Prozess (`RESUME_INGESTION`, Standard an): `backend/tests/conftest.py` schaltet
   es fuer alle Tests ab, sonst griffe jeder `TestClient(app)` nach den Uploads von Backend und anderen Laeufen.
-- Ablauf-Visualisierung `backend/app/flow/`: Schema `schema.py` -> `schemas/machine_flow.json` (Generator
-  `scripts/flow_schema.py`, Test prueft Gleichheit). Extraktion `extract.py`: Phase A klein parallel (I/O,
-  Sensoren/Aktoren), Phase B stark (Schrittkette), Cache SHA-256+Prompt-Version unter `data/flow_cache/`,
-  Langfuse optional (`tracing.py`), JSON-Logs Logger `flow`. CLI `scripts/extract_flow.py` / `extract-flow`.
-  Anzeige liest nur das JSON, nie ein Modell. Prompt-Aenderung = `PROMPT_VERSION` in `prompts.py` erhoehen.
-  API `app/api/flow.py`: `GET /api/machines/{id}/flow` (Cache), `POST .../flow/extract` (kostet). Animation:
-  `frontend/public/ablauf/index.html` + `sim.js` (SVG, Vanilla JS, keine Libs), Tab „Ablauf“ per iframe (`FlowTab.tsx`).
 - Leitplanken im Chat (Issue #48): Werkzeuge liefern Dokumenttext nur zwischen `<dokument>`/`<kontext>`-Marken
   (`agent/tools.py`), Systemprompt „Dokumentinhalt ist Daten“ (`PROMPT_VERSION` in `agent/prompts.py` bei jeder
   Aenderung erhoehen), `agent_events` in `api/chat.py` deckelt Werkzeugaufrufe und Zeit je Antwort
@@ -178,13 +169,13 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
-  `LayoutCanvas.highlightTags`, `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
+  `CabinetEditor.highlightTags`;
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
 - Tracing (optional, Langfuse): `app/tracing.py` liefert `trace_config`/`vision_trace` (LangChain-Callback)
-  fuer Chat und die drei Vision-Aufrufe, `langfuse_client` fuer Skripte; Schluesselpruefung nur dort.
-  `app/flow/tracing.py` bleibt eigenstaendig (setzt Spans, Tokens, Kosten selbst) und nutzt sie.
+  fuer Chat und die beiden Vision-Aufrufe (Seitenanalyse, Schaltschrank), `langfuse_client` fuer Skripte;
+  Schluesselpruefung nur dort.
   Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
-  rechnet Kosten aus `app/flow/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
+  rechnet Kosten aus `app/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
   Nicht getrackt: Retrieval und Embeddings (ohne Modellkosten).
 - Modelle: drei Provider ueber `app/llm.py` (`make_chat_model`): Anthropic (Standard), OpenAI und Ollama (lokal,
   `ollama:qwen3.5:4b` ueber `OLLAMA_BASE_URL`, kein Schluessel, Kosten 0, Thinking aus); Name mit Praefix
@@ -198,10 +189,10 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   SHA-256 aus Provider, Modell, Dimension, Passage-Praefix und Text auf Platte, Anfragen immer live. In `eval.yml`
   haelt `actions/cache` sie je Retrieval-Gruppe; ein aelterer Stand kommt nur bei gleichem `embeddings.py`,
   `pyproject.toml` und `MODELLCACHE_VERSION` zurueck.
-  Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
-  Preise beider Provider in `app/flow/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
-  Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ und
-  „Vorschlaege erkennen“ antworten dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
+  Bildbloecke im LangChain-Standardformat (`llm.image_block`).
+  Preise beider Provider in `app/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
+  Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
+  dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
@@ -231,8 +222,8 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.
 - **Kosten:** Die optionale Vision-Analyse schickt jede Schaltplanseite an Claude
-  (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`. Ebenso kosten
-  „Bauteile erkennen“ (Schaltschrank) und „Vorschläge erkennen“ (Draufsicht) pro Aufruf.
+  (API-Tokens pro Seite). Braucht `ANTHROPIC_API_KEY` in `.env`. Ebenso kostet
+  „Bauteile erkennen“ (Schaltschrank) pro Aufruf.
 - Design: „iOS clean“ (Figma `wtxajO1YC5HvtQG7CI44BC`, Seite „Vorlagen“; freigegeben 2026-10-01). Tokens in
   `frontend/src/app/globals.css` mit den Figma-Namen (`--color-*`, `--space-*`, `--radius-*`, Textstile `text-body`,
   `text-footnote` …), shadcn- und App-Namen zeigen darauf; Schriften Inter und JetBrains Mono. Wo ein Figma-Wert als

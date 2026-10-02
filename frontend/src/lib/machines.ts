@@ -16,7 +16,6 @@ export interface MachineSummary {
   total: number;
   /** Ohne Wissensquelle oder ohne fertig verarbeitetes Dokument */
   withoutDocs: number;
-  openDiagnoses: number;
   faults: number;
 }
 
@@ -24,7 +23,6 @@ export function summarizeMachines(machines: MachineListItem[]): MachineSummary {
   return {
     total: machines.length,
     withoutDocs: machines.filter((m) => m.ready_document_count === 0).length,
-    openDiagnoses: machines.reduce((sum, m) => sum + m.open_diagnoses, 0),
     faults: machines.reduce((sum, m) => sum + m.fault_count, 0),
   };
 }

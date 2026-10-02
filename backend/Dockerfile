@@ -30,7 +30,7 @@ COPY alembic ./alembic
 COPY app ./app
 COPY stromlauf_mcp ./stromlauf_mcp
 
-# Uploads, Bilder, Flow-Cache und HF-Modelle liegen unter /data (Railway-Volume mounten)
+# Uploads, Bilder, Plan-Cache und HF-Modelle liegen unter /data (Railway-Volume mounten)
 RUN mkdir -p /data
 VOLUME ["/data"]
 

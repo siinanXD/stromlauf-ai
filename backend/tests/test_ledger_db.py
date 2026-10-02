@@ -147,14 +147,14 @@ def test_kosten_je_maschine_und_workspace(client, machine):
     def book():
         with session_scope() as session:
             ledger.record(session, purpose="chat", model="claude-sonnet-5", input_tokens=8000, output_tokens=600, machine_id=machine["id"])
-            ledger.record(session, purpose="flow", model="claude-sonnet-5", input_tokens=210_000, output_tokens=75_000, machine_id=machine["id"], trace_id="t-1")
+            ledger.record(session, purpose="vision.cabinet", model="claude-sonnet-5", input_tokens=210_000, output_tokens=75_000, machine_id=machine["id"], images=1, trace_id="t-1")
             ledger.record(session, purpose="chat", model="claude-sonnet-5", input_tokens=100, output_tokens=10)  # ohne Maschine
 
     _in_workspace(book)
     costs = client.get(f"/api/machines/{machine['id']}/costs", headers=machine["auth"]).json()
-    assert set(costs["month"]["by_purpose"]) == {"vision.page", "chat", "flow"}
+    assert set(costs["month"]["by_purpose"]) == {"vision.page", "chat", "vision.cabinet"}
     assert costs["month"]["by_purpose"]["chat"]["calls"] == 1
-    assert costs["month"]["by_purpose"]["flow"]["cents"] == pytest.approx((210_000 * 2 + 75_000 * 10) / 1_000_000 * 100)
+    assert costs["month"]["by_purpose"]["vision.cabinet"]["cents"] == pytest.approx((210_000 * 2 + 75_000 * 10) / 1_000_000 * 100)
     assert costs["month"]["cents"] == pytest.approx(costs["total"]["cents"])
     assert costs["workspace"]["month_cents"] > costs["month"]["cents"]  # die Zeile ohne Maschine zaehlt im Workspace
     assert costs["workspace"]["cap_cents"] is None and costs["workspace"]["exceeded"] is False

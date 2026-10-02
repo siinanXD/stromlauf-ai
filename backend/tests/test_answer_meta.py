@@ -176,7 +176,7 @@ def test_plan_spot_ohne_datei_nennt_seite_ohne_blatt_und_spalte(tmp_path):
     assert (spot["page"], spot["sheet"], spot["column"], spot["title"]) == (3, None, None, "")
 
 
-def test_part_kinds_lesart_je_quelle_mit_draufsicht():
+def test_part_kinds_lesart_je_quelle():
     from app.api.answer_meta import part_kinds
 
     # 2019-Unterklassen (QA, KF, BG) machen K zur Signalverarbeitung, Q zum Schuetz
@@ -185,6 +185,6 @@ def test_part_kinds_lesart_je_quelle_mit_draufsicht():
         "-K1": "Relais/SPS",
         "-QA1": "Schütz/Leistungsschalter",
     }
-    # nur Buchstaben beider Lesarten: offen, H bekommt keine Art; die Draufsicht kann die Lesart kippen
+    # nur Buchstaben beider Lesarten: offen, H bekommt keine Art; ein alter Buchstabe (Y) kippt die Lesart
     assert part_kinds(["-H1"], {"s": {"-H1", "-F1"}}) == {"-H1": ""}
-    assert part_kinds(["-H1"], {"s": {"-H1", "-F1"}}, {"s": ["-Y1"]}) == {"-H1": "Meldung"}
+    assert part_kinds(["-H1"], {"s": {"-H1", "-F1", "-Y1"}}) == {"-H1": "Meldung"}

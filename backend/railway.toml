@@ -1,5 +1,5 @@
 # Railway-Service "backend": Root Directory des Services auf `backend` setzen, dann greift diese Datei.
-# Volume auf /data mounten (Uploads, Bilder, Flow-Cache, HF-Modelle). Variablen: siehe README "Deployment".
+# Volume auf /data mounten (Uploads, Bilder, Plan-Cache, HF-Modelle). Variablen: siehe README "Deployment".
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"

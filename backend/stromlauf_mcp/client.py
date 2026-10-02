@@ -28,9 +28,6 @@ class StromlaufClient:
     def get(self, path: str, **params: Any) -> Any:
         return self._send("GET", path, params={k: v for k, v in params.items() if v is not None})
 
-    def post(self, path: str, body: Any) -> Any:
-        return self._send("POST", path, json=body)
-
     def _send(self, method: str, path: str, **kwargs: Any) -> Any:
         try:
             response = self._http.request(method, path, **kwargs)

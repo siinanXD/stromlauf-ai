@@ -2,8 +2,8 @@
 
 Zonen = Einbauorte nach IEC 81346 (+ST1, +FE1 ...) aus der Stueckliste, Chips = Betriebsmittel
 (Kennzeichen-Index), Verbinder = Leitungen, deren Ortszelle zwei Orte nennt ("+ST1 -> +FE1").
-Teile der Draufsicht ohne Einbauort bilden die Zone "Anlage". Reine Funktionen, damit sie ohne
-Datenbank testbar sind; die Zeilen kommen aus `tag_occurrences` (Zellen "| a | b | c |").
+Reine Funktionen, damit sie ohne Datenbank testbar sind; die Zeilen kommen aus `tag_occurrences`
+(Zellen "| a | b | c |").
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class Part:
     tag: str
     label: str = ""
     kind: str = ""
-    source: str = "bom"  # bom | layout | index
+    source: str = "bom"  # bom | index
     verb: str = ""  # Beziehung im Bauteil-Sheet ("schaltet"), aus der Art (Issue #99)
 
 
@@ -89,15 +89,13 @@ def _label_after(cell: str, tag: str) -> str:
 
 def build_map(
     bom_rows: list[tuple[str, str]],
-    layout_tags: list[tuple[str, str]] | None = None,
     known_tags: set[str] | None = None,
     legend: str = "",
     index_hits: list[tuple[str, int | None, str, int | None]] | None = None,
 ) -> MachineMap:
     """bom_rows: (Kennzeichen, Zeilenkontext) aus der Stueckliste (Datei oder Stuecklistenseite einer PDF);
-    layout_tags: (Kennzeichen, Label) aus der Draufsicht; index_hits: (Kennzeichen, Seite, Blatttitel, Blatt aus dem
-    Schriftfeld oder None) aus dem Kennzeichen-Index der uebrigen Dokumente, erste Fundstelle zuerst; known_tags: alle
-    Betriebsmittel der Quelle.
+    index_hits: (Kennzeichen, Seite, Blatttitel, Blatt aus dem Schriftfeld oder None) aus dem Kennzeichen-Index der
+    uebrigen Dokumente, erste Fundstelle zuerst; known_tags: alle Betriebsmittel der Quelle.
 
     Zonen entstehen zuerst aus Einbauorten (+ST1), sonst aus dem Blatt des Stromlaufplans, auf dem das Teil
     zuerst vorkommt (Issue #39); Teile ohne beides landen in "Ohne Einbauort". Die Blatt-Zone traegt die Nummer aus
@@ -105,10 +103,7 @@ def build_map(
     names = location_names(legend)
     # Lesart der Kennbuchstaben aus allen Kennzeichen der Quelle (Issue #99)
     edition = detect_edition(
-        [tag for tag, _ in bom_rows]
-        + [tag for tag, _ in layout_tags or []]
-        + [hit[0] for hit in index_hits or []]
-        + sorted(known_tags or ())
+        [tag for tag, _ in bom_rows] + [hit[0] for hit in index_hits or []] + sorted(known_tags or ())
     )
     zones: dict[str, Zone] = {}
     placed: dict[str, str] = {}
@@ -148,11 +143,6 @@ def build_map(
                 labels.setdefault(tag, label)  # Zone kommt aus dem Plan, sonst "Ohne Einbauort"
             break
 
-    for tag, label in layout_tags or []:
-        if tag and tag not in placed:
-            zone("anlage").parts.append(part(tag, label, "layout"))
-            placed[tag] = "anlage"
-
     only_on_parts_list: list[str] = []
     cable_labels = {c.label for c in connectors}
     for tag, page, section, sheet in index_hits or []:
@@ -183,11 +173,9 @@ def build_map(
     for zone_id, z in zones.items():
         if zone_id == "?":
             z.name = "Ohne Einbauort"
-        elif zone_id == "anlage":
-            z.name = "Anlage (Draufsicht)"
         z.parts.sort(key=lambda p: (p.kind, p.tag))
 
-    rank = {"anlage": 2, "?": 3}
+    rank = {"?": 3}
     ordered = sorted(zones.values(), key=lambda z: (rank.get(z.id, 1 if z.page else 0), z.page or 0, z.id))
     ordered = [z for z in ordered if z.parts or any(c.source == z.id or c.target == z.id for c in connectors)]
     return MachineMap(ordered, connectors, edition)

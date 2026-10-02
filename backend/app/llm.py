@@ -4,8 +4,7 @@ LangChain-Chatmodell.
 Provider: anthropic (Standard, Namen mit "claude"), openai (Namen mit "gpt-", "o1", "o3", "o4") und ollama (lokal,
 ueber Ollamas OpenAI-Endpunkt, ohne Schluessel und ohne Kosten). Der Schluessel kommt aus ANTHROPIC_API_KEY bzw.
 OPENAI_API_KEY (app/config.py). Ein Aufwand hinter "@" ("openai:gpt-5.4-mini@none") wird zu reasoning_effort; bei
-Ollama ist er ohne Angabe "none", damit kein Thinking laeuft. Die Ablauf-Extraktion (app/flow) nutzt weiter das
-Anthropic-SDK direkt (strukturierte Ausgabe) und laeuft nicht ueber dieses Modul.
+Ollama ist er ohne Angabe "none", damit kein Thinking laeuft.
 """
 
 from __future__ import annotations

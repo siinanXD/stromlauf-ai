@@ -155,8 +155,8 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
         {budget?.exceeded && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b-[0.5px] border-border bg-error-soft px-6 py-2 text-footnote" role="alert">
             <span>
-              KI-Monatslimit erreicht: {costText(budget.month_cents)} von {costText(budget.cap_cents ?? 0)} verbraucht. Chat, Vision und
-              Ablauf-Extraktion sind bis zum Monatswechsel gesperrt.
+              KI-Monatslimit erreicht: {costText(budget.month_cents)} von {costText(budget.cap_cents ?? 0)} verbraucht. Chat und Vision sind
+              bis zum Monatswechsel gesperrt.
             </span>
             {(me === null || me.workspace.role === "admin") && (
               <button type="button" onClick={raiseCap} className="min-h-11 rounded-md px-2 font-semibold text-danger hover:bg-muted">

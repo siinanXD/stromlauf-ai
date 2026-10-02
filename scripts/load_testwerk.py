@@ -4,11 +4,9 @@ Aufruf:  python scripts/load_testwerk.py [--api http://localhost:8010] [--refres
          python scripts/load_testwerk.py --docs [--refresh]   # Testdokumentation UR-01 und PM1-AR
 
 Legt 4 Hallen (Papiermaschine PM1, Verarbeitung, Lager & Versand, Buero) mit 30 Maschinen,
-Linien, Kennzahlen und Materialfluss an, dazu die Stammdaten der Vorkalkulation (Artikel,
-Materialien, Arbeitsplaene, Parameter; gleiche Codes werden ersetzt). Kein KI-Aufruf, keine Kosten. Die Beschreibung jeder
+Linien und Kennzahlen an. Kein KI-Aufruf, keine Kosten. Die Beschreibung jeder
 Halle beginnt mit "Testwerk Tissue:"; nur solche Hallen ersetzt --refresh (samt Maschinen).
 Gibt es eine gleichnamige eigene Halle, bricht der Lader ab und fasst sie nicht an.
-Standort-Fluesse zwischen anderen Hallen bleiben erhalten.
 """
 
 import argparse
@@ -52,34 +50,8 @@ def split_existing(existing: list[dict], werk: dict) -> tuple[list[dict], list[d
     return own, [h for h in same_name if not h["description"].startswith(marker)]
 
 
-def master_data_payload(werk: dict, machine_ids: dict[str, str]) -> dict:
-    """Stammdaten der Vorkalkulation fuer PUT /api/master-data: Maschinen-Schluessel -> IDs."""
-    materials = []
-    for item in werk.get("materials", []):
-        made = item.get("made_on") or {}
-        materials.append({
-            "code": item["code"], "name": item["name"], "unit": item["unit"], "price": item.get("price"),
-            "price_source": item.get("price_source", ""),
-            "made_on_machine_id": machine_ids[made["machine"]] if made else None,
-            "made_rate_per_h": made.get("rate_per_h"), "made_basis": made.get("basis", ""),
-            "bom": item["bom"],
-        })
-    articles = []
-    for item in werk.get("articles", []):
-        routing = [
-            {**{k: v for k, v in step.items() if k != "machine"}, "machine_id": machine_ids[step["machine"]]}
-            for step in item["routing"]
-        ]
-        base = {k: v for k, v in item.items() if k not in {"tech", "routing"}}
-        articles.append({**base, **item["tech"], "routing": routing})
-    return {
-        "materials": materials, "articles": articles, "settings": werk.get("settings", {}),
-        "customers": werk.get("customers", []), "stock": werk.get("stock", []), "orders": werk.get("orders", []),
-    }
-
-
 def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
-    own, foreign = split_existing(call(client, "GET", "/api/site")["halls"], werk)
+    own, foreign = split_existing(call(client, "GET", "/api/halls"), werk)
     if foreign:
         found = ", ".join(h["name"] for h in foreign)
         sys.exit(f"Eigene Halle(n) mit gleichem Namen: {found}. Umbenennen, dann erneut laden.")
@@ -90,50 +62,22 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
         call(client, "DELETE", f"/api/halls/{hall['id']}")
         print(f"ersetzt: {hall['name']}")
 
-    # Nach dem Loeschen sind nur noch Fluesse zwischen fremden Hallen uebrig
-    kept = [
-        {key: flow[key] for key in ("from_hall_id", "to_hall_id", "label")}
-        for flow in call(client, "GET", "/api/site")["flows"]
-    ]
-    hall_ids: dict[str, str] = {}
-    all_machines: dict[str, str] = {}
     for hall in werk["halls"]:
         created = call(client, "POST", "/api/halls", {
-            "name": hall["name"], "description": marked_description(werk, hall), "kind": hall["kind"],
+            "name": hall["name"], "description": marked_description(werk, hall),
         })
-        site = hall["site"]
-        call(client, "PATCH", f"/api/halls/{created['id']}", {
-            "site_x": site["x"], "site_y": site["y"], "site_w": site["w"], "site_h": site["h"],
-        })
-        hall_ids[hall["name"]] = created["id"]
-        machine_ids: dict[str, str] = {}
         for machine in hall["machines"]:
             made = call(client, "POST", f"/api/halls/{created['id']}/machines", {
                 "name": machine["name"],
                 "machine_type": machine["machine_type"],
                 "description": machine["description"],
                 "line": machine["line"],
-                "pos_x": machine["x"],
-                "pos_y": machine["y"],
             })
             call(client, "PUT", f"/api/machines/{made['id']}/specs", machine["specs"])
-            machine_ids[machine["key"]] = made["id"]
-            all_machines[machine["key"]] = made["id"]
-        call(client, "PUT", f"/api/halls/{created['id']}/flows", [
-            {"from_machine_id": machine_ids[a], "to_machine_id": machine_ids[b], "label": label}
-            for a, b, label in hall["flows"]
-        ])
         print(f"angelegt: {hall['name']} ({len(hall['machines'])} Maschinen)")
 
-    new = [
-        {"from_hall_id": hall_ids[a], "to_hall_id": hall_ids[b], "label": label}
-        for a, b, label in werk["site_flows"]
-    ]
-    call(client, "PUT", "/api/site/flows", kept + new)
-    master = call(client, "PUT", "/api/master-data", master_data_payload(werk, all_machines))
     total = sum(len(h["machines"]) for h in werk["halls"])
-    print(f"Fertig: {len(werk['halls'])} Hallen, {total} Maschinen, {len(new)} Standort-Fluesse, "
-          f"{master['articles']} Artikel, {master['materials']} Materialien, {master['orders']} Aufträge.")
+    print(f"Fertig: {len(werk['halls'])} Hallen, {total} Maschinen.")
 
 
 # --- Testdokumentation (Teil 4): Wissensquellen fuer UR-01 und PM1-AR ---------------------------
@@ -155,9 +99,9 @@ def doc_type_of(filename: str) -> str | None:
     return next((kind for prefix, kind in DOC_TYPES.items() if filename.startswith(prefix)), None)
 
 
-def machine_for(site: dict, prefix: str) -> dict | None:
-    """Maschine des Standorts, deren Name mit dem Kuerzel beginnt; None, wenn keine oder mehrere."""
-    found = [m for hall in site["halls"] for m in hall["machines"] if m["name"].casefold().startswith(prefix.casefold())]
+def machine_for(machines: list[dict], prefix: str) -> dict | None:
+    """Maschine des Werks, deren Name mit dem Kuerzel beginnt; None, wenn keine oder mehrere."""
+    found = [m for m in machines if m["name"].casefold().startswith(prefix.casefold())]
     return found[0] if len(found) == 1 else None
 
 
@@ -176,10 +120,10 @@ def load_docs(client: httpx.Client, refresh: bool) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from load_example import upload, wait_for  # gleiche Upload-Helfer wie FB-01
 
-    site = call(client, "GET", "/api/site")
+    machines = call(client, "GET", "/api/machines")
     for doc_set in DOC_SETS:
         folder = ROOT / "examples" / doc_set["folder"]
-        machine = machine_for(site, doc_set["machine"])
+        machine = machine_for(machines, doc_set["machine"])
         if machine is None:
             print(f"Hinweis: keine eindeutige Maschine '{doc_set['machine']}' im Werk, {doc_set['source']} uebersprungen. Testwerk zuerst laden.")
             continue

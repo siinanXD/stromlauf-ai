@@ -104,7 +104,7 @@ export function DocumentsTab({
         </div>
         {!machine.source_id ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">
-            Wissensquelle wählen, damit Draufsicht, Schaltschrank und Chat auf Stromlaufplan, Stückliste und SPS-Programm zugreifen.
+            Wissensquelle wählen, damit Modell, Schaltschrank und Chat auf Stromlaufplan, Stückliste und SPS-Programm zugreifen.
           </p>
         ) : (
           <ul>

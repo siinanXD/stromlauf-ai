@@ -6,17 +6,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { BlockSkeleton } from "@/components/answer/blocks/Block";
-import { DiagnosisRunner } from "@/components/diagnosis/DiagnosisRunner";
-import { MaintenanceLog } from "@/components/diagnosis/MaintenanceLog";
 import { MAIN_TABS, MORE_TABS, type AufbauTab } from "@/components/incident/view";
 import { CabinetsTab } from "@/components/machine/CabinetsTab";
 import { DocumentsTab } from "@/components/machine/DocumentsTab";
 import { FaultBanner } from "@/components/machine/FaultBanner";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
-import { FlowTab } from "@/components/machine/FlowTab";
-import { LayoutEmptyState } from "@/components/machine/LayoutEmptyState";
-import { PartPanel } from "@/components/machine/PartPanel";
 import { SpecsTab } from "@/components/machine/SpecsTab";
 import { SchemaMap } from "@/components/model/SchemaMap";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
@@ -25,43 +20,21 @@ import { PartSheet } from "@/components/part/PartSheet";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  api,
-  diagnoses as diagnosesApi,
-  layout as layoutApi,
-  plant,
-  type Diagnosis,
-  type Fault,
-  type FaultInput,
-  type KnowledgeSource,
-  type Layout,
-  type LayoutPart,
-  type MachineDetail,
-  type MachineMap,
-} from "@/lib/api";
+import { api, plant, type Fault, type FaultInput, type KnowledgeSource, type MachineDetail, type MachineMap } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
-import { faultHits, sameTag } from "@/lib/faults";
+import { faultHits } from "@/lib/faults";
 import { cn } from "@/lib/utils";
 
-// @xyflow/react nur laden, wenn die Draufsicht offen ist
-const LayoutCanvas = dynamic(() => import("@/components/layout/LayoutCanvas").then((m) => m.LayoutCanvas), {
-  ssr: false,
-  loading: () => (
-    <div className="p-3">
-      <BlockSkeleton rows={6} label="Draufsicht wird geladen" />
-    </div>
-  ),
-});
 const SignalView = dynamic(() => import("@/components/signal/SignalView").then((m) => m.SignalView), {
   ssr: false,
   loading: () => <BlockSkeleton rows={5} label="Signalweg wird geladen" />,
 });
 
-type Confirm = { kind: "deleteFault"; fault: Fault } | { kind: "deleteDiagnosis"; diagnosis: Diagnosis } | { kind: "detect" };
+type Confirm = { kind: "deleteFault"; fault: Fault };
 
 /**
- * Bereich Aufbau der Maschinenseite: Modell, Schaltschrank, Draufsicht, Signalweg, Dokumente und hinter "Mehr"
- * Fehlerliste, Kennzahlen und Ablauf. Jeder Tab laedt seine Daten erst, wenn er offen ist.
+ * Bereich Aufbau der Maschinenseite: Modell, Schaltschrank, Signalweg, Dokumente und hinter "Mehr"
+ * Fehlerliste und Kennzahlen. Jeder Tab laedt seine Daten erst, wenn er offen ist.
  */
 export function AufbauArea({
   machine,
@@ -83,11 +56,9 @@ export function AufbauArea({
   onMapChanged: () => void;
 }) {
   const id = machine.id;
-  const [layout, setLayout] = useState<Layout | null | undefined>(undefined);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [signalTag, setSignalTag] = useState<string>(urlTag ?? "");
   const [signalInput, setSignalInput] = useState<string>(urlTag ?? "");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(urlTag);
   const [sheetTag, setSheetTag] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ cabinetId: string; hotspotId: string | null } | null>(null);
@@ -96,69 +67,28 @@ export function AufbauArea({
   const [editing, setEditing] = useState<Fault | "new" | null>(null);
   const [pageTarget, setPageTarget] = useState<PageTarget | null>(null);
   const [imageBust, setImageBust] = useState(0);
-  const [detecting, setDetecting] = useState(false);
-  const [diagnosisLog, setDiagnosisLog] = useState<Diagnosis[]>([]);
-  const [activeDiagnosis, setActiveDiagnosis] = useState<Diagnosis | null>(null);
-  const [schematic, setSchematic] = useState<{ document_id: string; filename: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
 
-  const loadLayout = useCallback(() => layoutApi.get(id).then(setLayout).catch(() => setLayout(null)), [id]);
-  const loadDiagnoses = useCallback(() => diagnosesApi.list(id).then(setDiagnosisLog).catch(() => {}), [id]);
+  // ?tag=-M1 aus Suche oder "im Werk zeigen": Bauteil im Modell markieren, ohne Tab das Modell
+  const current: AufbauTab = tab ?? "schema";
 
-  useEffect(() => {
-    void loadLayout();
-  }, [loadLayout]);
-
-  // ?tag=-M1 aus Suche oder "im Werk zeigen": Bauteil markieren, ohne Tab die beste Ansicht
-  const tagInLayout = urlTag ? (layout?.parts.find((p) => sameTag(p.tag, urlTag)) ?? null) : null;
-  const current: AufbauTab = tab ?? (tagInLayout ? "draufsicht" : "schema");
-  const effectiveSelectedId = selectedId ?? tagInLayout?.id ?? null;
-
-  const sourceId = machine.source_id;
   useEffect(() => {
     if (current === "dokumente") api.listSources().then(setSources).catch(() => {});
-    if (current !== "fehler") return;
-    void loadDiagnoses();
-    if (!sourceId) return;
-    api
-      .listDocuments(sourceId)
-      .then((docs) => {
-        const doc = docs.find((d) => d.doc_type === "schematic" && d.filename.toLowerCase().endsWith(".pdf"));
-        setSchematic(doc ? { document_id: doc.id, filename: doc.filename } : null);
-      })
-      .catch(() => {});
-  }, [current, sourceId, loadDiagnoses]);
+  }, [current]);
 
-  async function startDiagnosis(fault: Fault) {
-    try {
-      const diagnosis = await diagnosesApi.start(id, fault.id);
-      setActiveDiagnosis(diagnosis);
-      onTab("fehler");
-      void loadDiagnoses();
-    } catch {
-      toast.error("Die Fehlersuche konnte nicht gestartet werden. Erneut versuchen.");
-    }
-  }
-
-  const selected: LayoutPart | null = layout?.parts.find((p) => p.id === effectiveSelectedId) ?? null;
-  const hits = activeFault ? faultHits(activeFault, layout, machine.cabinets) : null;
+  const hits = activeFault ? faultHits(activeFault, machine.cabinets) : null;
   const highlightTags = useMemo(() => [...(activeFault?.tags ?? []), ...referencedTags], [activeFault, referencedTags]);
 
   /**
    * Bauteil aus Modell oder Fehlerliste oeffnen: Datenblatt-Sheet und Markierung, der Tab bleibt (wer im Modell
    * blaettert, bleibt dort; Foto und Signalweg sind im Sheet einen Tipp entfernt).
    */
-  const openPart = useCallback(
-    (tag: string) => {
-      setSelectedTag(tag);
-      setSignalTag(tag);
-      setSignalInput(tag);
-      setSheetTag(tag);
-      const inLayout = layout?.parts.find((p) => sameTag(p.tag, tag));
-      if (inLayout) setSelectedId(inLayout.id);
-    },
-    [layout],
-  );
+  const openPart = useCallback((tag: string) => {
+    setSelectedTag(tag);
+    setSignalTag(tag);
+    setSignalInput(tag);
+    setSheetTag(tag);
+  }, []);
 
   const showSignal = useCallback(
     (tag: string) => {
@@ -203,28 +133,10 @@ export function AufbauArea({
 
   async function runConfirmed(action: Confirm) {
     setConfirm(null);
-    if (action.kind === "deleteFault") {
-      await plant.deleteFault(action.fault.id).catch(() => toast.error("Löschen hat nicht geklappt."));
-      onMachineChanged();
-    } else if (action.kind === "deleteDiagnosis") {
-      await diagnosesApi.remove(action.diagnosis.id).catch(() => toast.error("Löschen hat nicht geklappt."));
-      if (activeDiagnosis?.id === action.diagnosis.id) setActiveDiagnosis(null);
-      void loadDiagnoses();
-    } else if (layout) {
-      setDetecting(true);
-      try {
-        const result = await layoutApi.detect(layout.id);
-        setLayout(result);
-        toast.success(`${result.parts.filter((p) => !p.confirmed).length} Vorschläge erkannt`);
-      } catch {
-        toast.error("Die Erkennung hat nicht geklappt. Erneut versuchen.");
-      } finally {
-        setDetecting(false);
-      }
-    }
+    await plant.deleteFault(action.fault.id).catch(() => toast.error("Löschen hat nicht geklappt."));
+    onMachineChanged();
   }
 
-  const canDetect = Boolean(layout && (layout.has_image || (layout.document_id && layout.page)));
   const isMore = MORE_TABS.some((t) => t.id === current);
 
   return (
@@ -261,13 +173,8 @@ export function AufbauArea({
         <FaultBanner
           fault={activeFault}
           hits={hits}
-          hasFlow={Boolean(machine.source_id)}
-          onTab={(target) => {
-            if (target === "draufsicht" && hits.partIds[0]) setSelectedId(hits.partIds[0]);
-            onTab(target);
-          }}
+          onTab={onTab}
           onTag={openPart}
-          onDiagnose={(fault) => void startDiagnosis(fault)}
           onClose={() => setActiveFault(null)}
         />
       )}
@@ -278,48 +185,6 @@ export function AufbauArea({
             <SchemaMap map={map} referencedTags={highlightTags} selectedTag={selectedTag} onOpenPart={openPart} />
           </div>
         )}
-        {current === "draufsicht" &&
-          (layout === undefined ? (
-            <div className="p-3">
-              <BlockSkeleton rows={6} label="Draufsicht wird geladen" />
-            </div>
-          ) : layout === null ? (
-            <div className="h-full">
-              <LayoutEmptyState machine={machine} onCreated={loadLayout} />
-            </div>
-          ) : (
-            <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="relative min-h-[320px] rounded-xl border border-border">
-                <LayoutCanvas
-                  layout={layout}
-                  machineName={machine.name}
-                  selectedId={effectiveSelectedId}
-                  highlightTags={highlightTags}
-                  onSelect={(part) => {
-                    setSelectedId(part?.id ?? null);
-                    if (part?.tag) setSelectedTag(part.tag);
-                  }}
-                  onChanged={loadLayout}
-                  onDetect={canDetect ? () => setConfirm({ kind: "detect" }) : undefined}
-                  detecting={detecting}
-                />
-              </div>
-              <div className="hidden min-h-0 overflow-y-auto lg:block">
-                <PartPanel
-                  machine={machine}
-                  layout={layout}
-                  part={selected}
-                  onChanged={loadLayout}
-                  onOpenPage={setPageTarget}
-                  onShowFaults={(tag) => {
-                    setFaultFilter(tag);
-                    onTab("fehler");
-                  }}
-                  onShowSignal={showSignal}
-                />
-              </div>
-            </div>
-          ))}
         {current === "schaltschrank" && (
           <div className="h-full overflow-auto p-3">
             <CabinetsTab machine={machine} highlightTag={selectedTag} highlightTags={highlightTags} onChanged={onMachineChanged} onOpenPage={setPageTarget} />
@@ -344,8 +209,8 @@ export function AufbauArea({
                 </Button>
               </form>
               <div className="min-h-0 flex-1 overflow-auto">
-                {(signalTag || selected?.tag) ? (
-                  <SignalView sourceId={machine.source_id} tag={signalTag || selected?.tag || ""} variant="auto" onOpenDetail={openFromSignal} />
+                {signalTag ? (
+                  <SignalView sourceId={machine.source_id} tag={signalTag} variant="auto" onOpenDetail={openFromSignal} />
                 ) : (
                   <p className="p-1 text-sm text-muted-foreground">Kennzeichen eingeben oder im Modell ein Bauteil wählen, dann zeigt der Signalweg, wovon es abhängt und was es schaltet.</p>
                 )}
@@ -375,29 +240,9 @@ export function AufbauArea({
             />
           </div>
         )}
-        {current === "ablauf" && (
-          <div className="h-full overflow-auto p-3">
-            <FlowTab machineId={machine.id} hasSource={Boolean(machine.source_id)} highlightTags={highlightTags} />
-          </div>
-        )}
         {current === "fehler" && (
-          <div className="h-full space-y-4 overflow-auto p-3">
-            {activeDiagnosis && (
-              <DiagnosisRunner
-                key={activeDiagnosis.id}
-                diagnosis={activeDiagnosis}
-                schematic={schematic}
-                onChanged={setActiveDiagnosis}
-                onClose={() => {
-                  setActiveDiagnosis(null);
-                  void loadDiagnoses();
-                  onMachineChanged();
-                }}
-                onOpen={setPageTarget}
-              />
-            )}
+          <div className="h-full overflow-auto p-3">
             <FaultTable
-              onDiagnose={(fault) => void startDiagnosis(fault)}
               onShow={showFault}
               activeFaultId={activeFault?.id ?? null}
               faults={machine.faults}
@@ -407,7 +252,6 @@ export function AufbauArea({
               onEdit={setEditing}
               onDelete={(fault) => setConfirm({ kind: "deleteFault", fault })}
             />
-            <MaintenanceLog items={diagnosisLog} onResume={setActiveDiagnosis} onDelete={(d) => setConfirm({ kind: "deleteDiagnosis", diagnosis: d })} />
           </div>
         )}
         {current === "kennzahlen" && (
@@ -421,25 +265,15 @@ export function AufbauArea({
       <Dialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>
-              {confirm?.kind === "detect" ? "Teile in der Skizze erkennen?" : confirm?.kind === "deleteFault" ? "Fehlereintrag löschen?" : "Fehlersuche aus dem Log löschen?"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirm?.kind === "detect"
-                ? "Claude Vision liest die Skizze und schlägt Teile vor. Das kostet API-Tokens."
-                : confirm?.kind === "deleteFault"
-                  ? `„${confirm.fault.code || confirm.fault.symptom}“ wird aus der Fehlerliste gelöscht.`
-                  : confirm?.kind === "deleteDiagnosis"
-                    ? `„${confirm.diagnosis.title}“ wird aus dem Log gelöscht.`
-                    : ""}
-            </DialogDescription>
+            <DialogTitle>Fehlereintrag löschen?</DialogTitle>
+            <DialogDescription>{confirm ? `„${confirm.fault.code || confirm.fault.symptom}“ wird aus der Fehlerliste gelöscht.` : ""}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" className="h-11" onClick={() => setConfirm(null)}>
               Abbrechen
             </Button>
             <Button type="button" className="h-11" onClick={() => confirm && void runConfirmed(confirm)}>
-              {confirm?.kind === "detect" ? "Erkennen" : "Löschen"}
+              Löschen
             </Button>
           </DialogFooter>
         </DialogContent>

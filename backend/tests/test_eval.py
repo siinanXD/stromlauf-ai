@@ -589,37 +589,6 @@ def test_flatten_signal_lists_nodes():
     assert "FB 10/NW1 | Selbsthaltung | FB 10 NW 1" in text and "U #Start" in text and files == []
 
 
-def test_flatten_calc_and_site_dump_json():
-    assert '"pallets": 160' in evallib.flatten("calc", {"summary": {"pallets": 160}})[0]
-    assert evallib.flatten("site", None) == ("", [])
-    assert '"docks": 8' in evallib.flatten("site", {"name": "Lager", "docks": 8})[0]
-
-
-def test_flatten_site_unknown_hall():
-    rr = _load("run_retrieval")
-    assert rr.find_hall({"halls": [{"name": "Verarbeitung"}]}, "Lager") is None
-    assert (
-        rr.find_hall({"halls": [{"name": "Lager & Versand"}]}, "lager")["name"] == "Lager & Versand"
-    )
-
-
-def test_run_retrieval_unknown_article():
-    rr = _load("run_retrieval")
-    with pytest.raises(ValueError, match="XX-1"):
-        rr.calc_body(
-            {"positions": [{"article": "XX-1", "quantity": 1, "unit": "unit"}]}, {"TP-1": "id1"}
-        )
-    body = rr.calc_body(
-        {
-            "received_at": "2026-09-28T07:00",
-            "positions": [{"article": "TP-1", "quantity": 2, "unit": "pallet"}],
-        },
-        {"TP-1": "id1"},
-    )
-    assert body["positions"] == [{"article_id": "id1", "quantity": 2, "unit": "pallet"}]
-    assert body["received_at"] == "2026-09-28T07:00"
-
-
 # --- Task 3: Wiederbewertung --------------------------------------------------------------------
 
 
@@ -665,13 +634,12 @@ def test_rescore_counts_unknown_ids():
 # --- Task 4: Fragen ------------------------------------------------------------------------------
 
 
-def test_questions_cover_testdoku_and_testwerk():
+def test_questions_cover_testdoku():
     rows = evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     by_source: dict[str, list[dict]] = {}
     for r in rows:
-        by_source.setdefault(r.get("source") or "Testwerk", []).append(r)
+        by_source.setdefault(r["source"], []).append(r)
     assert len(by_source["Umroller UR-01"]) >= 10 and len(by_source["Aufrollung PM1-AR"]) >= 9
-    assert len([r for r in rows if r.get("agent") is False]) >= 4
     assert sum(1 for r in rows if r.get("retrieval")) >= 30
     assert all(
         r["id"].endswith("nicht-vorhanden")
@@ -743,7 +711,10 @@ def test_rescore_retrieval_run_skips_sources_for_modes_without_files():
     summary, rows, unknown = rescore.rescore(
         run, evallib.load_questions(ROOT / "eval" / "questions.jsonl")
     )
-    assert unknown == [] and summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 31
+    # werk-* und calc-* gehoerten zu entfernten Nebenmodulen (Issue #123); der Lauf bleibt als Referenz,
+    # die Zeilen unbewertet
+    assert unknown == ["werk-linien", "werk-tore", "calc-beispiel", "calc-fh"]
+    assert summary["quellen_ok"] == 1.0 and summary["voll_bestanden"] == 27
 
 
 def test_retrieval_http_and_value_errors_are_scored_as_failures():
@@ -757,7 +728,7 @@ def test_retrieval_http_and_value_errors_are_scored_as_failures():
         httpx.HTTPStatusError("404", request=response.request, response=response)
     )
     assert not evallib.is_error({"answer": text}) and "404" in text and "-S99" in text
-    assert not evallib.is_error({"answer": rr.answer_for_error(ValueError("Artikel XX unbekannt"))})
+    assert not evallib.is_error({"answer": rr.answer_for_error(ValueError("Antwort unbrauchbar"))})
     assert evallib.is_error({"answer": rr.answer_for_error(httpx.ConnectError("zu"))})
 
 
@@ -835,7 +806,7 @@ def test_summarize_nimmt_kosten_auf():
 
 
 def test_preis_auch_fuer_datierte_modell_id():
-    from app.flow.pricing import cost_usd, prices_for
+    from app.pricing import cost_usd, prices_for
 
     assert prices_for("claude-sonnet-5") == prices_for("claude-sonnet-5-20260115")
     assert prices_for("gpt-irgendwas") is None
@@ -844,7 +815,7 @@ def test_preis_auch_fuer_datierte_modell_id():
 
 
 def test_preis_mit_prompt_cache():
-    from app.flow.pricing import cost_usd
+    from app.pricing import cost_usd
 
     # gpt-5-mini: 0,25 USD/M Eingabe, Cache-Treffer ein Zehntel; Anthropic schreibt mit 1,25-fachem Preis
     assert cost_usd("openai:gpt-5-mini", 1_000_000, 0, cache_read=1_000_000) == 0.025
@@ -855,7 +826,7 @@ def test_preis_mit_prompt_cache():
 def test_preise_der_modelle_vom_2026_10_02():
     """Offizielle Listen (platform.claude.com/docs/en/about-claude/pricing, developers.openai.com/api/docs/pricing):
     Cache-Treffer kosten meist ein Zehntel, bei Opus 5.5 und gpt-6.1-sol ein Zwanzigstel."""
-    from app.flow.pricing import cost_usd, prices_for
+    from app.pricing import cost_usd, prices_for
 
     assert prices_for("claude-opus-5-5-20260901")[:2] == (4.0, 20.0)
     assert prices_for("claude-sonnet-5-5")[:2] == (2.0, 10.0)

@@ -268,7 +268,7 @@ export function SourcePanel({
             {estimate && (
               <li className="text-xs text-muted-foreground" data-testid="upload-estimate">
                 Geschätzte KI-Kosten: <span className="font-medium text-foreground">{costText(estimate.total_cents)}</span> für{" "}
-                {pendingPages} Seiten ({vision ? "Seitenanalyse + " : ""}Ablauf-Extraktion
+                {pendingPages} Seiten ({vision ? "Seitenanalyse" : "ohne Seitenanalyse"}
                 {estimate.basis["vision.page"] === "measured" ? ", aus gemessenen Werten" : ", Listenpreise"}).
               </li>
             )}

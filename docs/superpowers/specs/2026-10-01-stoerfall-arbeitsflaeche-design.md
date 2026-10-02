@@ -35,7 +35,6 @@ auch dann, wenn es für die Maschine nur PDFs gibt.
 - Lokaler Chat ohne Cloud. Das ist ein eigenes Folgeprojekt, siehe „Reihenfolge“.
 - Import von EPLAN-Verbindungslisten und AutomationML. Das ist ein späterer Schritt, siehe Recherche.
 - Visuelle Gestaltung: Farben, Typografie und Maße entstehen in Figma und werden dort vom Owner freigegeben.
-- Planung und Leitstand. Diese Nebenmodule sind im Feature-Freeze.
 
 ## 1. Aufbau und Navigation
 

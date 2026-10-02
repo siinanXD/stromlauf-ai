@@ -44,7 +44,7 @@ describe("viewToQuery", () => {
     { ...STOERFAELLE, fall: "conv-1" },
     { ...STOERFAELLE, fall: "conv-1", detail: { kind: "signal", tag: "-K1" } },
     { ...STOERFAELLE, fall: "tmp-abc-1", detail: { kind: "plan", target: { documentId: "d", filename: "a.pdf", page: 2, reference: "/2.3" } } },
-    { area: "aufbau", tab: "draufsicht", tag: "-M1", fall: null, detail: null },
+    { area: "aufbau", tab: "schaltschrank", tag: "-M1", fall: null, detail: null },
     { area: "aufbau", tab: null, tag: null, fall: null, detail: null },
   ];
 

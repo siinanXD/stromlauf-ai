@@ -1,4 +1,4 @@
-"""Werk: Hallen, Maschinen, Fehlerlisten, Schaltschrankbilder mit Hotspots."""
+"""Werk: Hallen, Maschinen, Kennzahlen, Fehlerlisten, Schaltschrankbilder mit Hotspots."""
 
 import logging
 import shutil
@@ -21,15 +21,13 @@ from app.models import (
     CabinetHotspot,
     CabinetImage,
     Conversation,
-    DiagnosisSession,
     DocStatus,
     Document,
     FaultEntry,
     Hall,
-    HallFlow,
     KnowledgeSource,
     Machine,
-    MachineLayout,
+    MachineSpec,
     MachineType,
     TagOccurrence,
 )
@@ -39,8 +37,6 @@ from app.schemas import (
     FaultHits,
     FaultIn,
     FaultOut,
-    FlowIn,
-    FlowOut,
     HallCreate,
     HallDetail,
     HallOut,
@@ -54,6 +50,8 @@ from app.schemas import (
     MachineListItem,
     MachineOut,
     MachineUpdate,
+    SpecIn,
+    SpecOut,
     TagHit,
     TagLookup,
     TagSearchHit,
@@ -62,7 +60,7 @@ from app.schemas import (
 from app.tenancy import same_workspace
 from app.tracing import vision_trace
 from app.werk.faults import FaultQuery
-from app.werk.site import HALL_KINDS, key_figure
+from app.werk.specs import clean_specs, key_figure
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["plant"])
@@ -109,8 +107,6 @@ def _machine_out(session: Session, machine: Machine) -> MachineOut:
         source_id=machine.source_id,
         source_name=machine.source.name if machine.source else None,
         has_image=bool(machine.image_path),
-        pos_x=machine.pos_x,
-        pos_y=machine.pos_y,
         order_index=machine.order_index,
         fault_count=len(machine.faults),
         cabinet_count=len(machine.cabinets),
@@ -128,17 +124,7 @@ def _hall_out(hall: Hall) -> HallOut:
         description=hall.description,
         created_at=hall.created_at,
         machine_count=len(hall.machines),
-        kind=hall.kind,
-        site_x=hall.site_x,
-        site_y=hall.site_y,
-        site_w=hall.site_w,
-        site_h=hall.site_h,
     )
-
-
-def _check_kind(kind: str | None) -> None:
-    if kind is not None and kind not in HALL_KINDS:
-        raise HTTPException(400, f"kind muss eins sein von {list(HALL_KINDS)}")
 
 
 # --- Hallen ---------------------------------------------------------------------------------
@@ -152,8 +138,7 @@ def list_halls(session: Session = Depends(get_session)):
 
 @router.post("/halls", response_model=HallOut, status_code=201)
 def create_hall(body: HallCreate, session: Session = Depends(get_session)):
-    _check_kind(body.kind)
-    hall = Hall(name=body.name, description=body.description, kind=body.kind)
+    hall = Hall(name=body.name, description=body.description)
     session.add(hall)
     session.commit()
     return _hall_out(hall)
@@ -171,7 +156,6 @@ def get_hall(hall_id: str, session: Session = Depends(get_session)):
     return HallDetail(
         **_hall_out(hall).model_dump(),
         machines=[_machine_out(session, m) for m in hall.machines],
-        flows=[FlowOut.model_validate(f) for f in hall.flows],
     )
 
 
@@ -179,7 +163,6 @@ def get_hall(hall_id: str, session: Session = Depends(get_session)):
 def update_hall(hall_id: str, body: HallUpdate, session: Session = Depends(get_session)):
     hall = _get(session, Hall, hall_id, "Halle")
     data = body.model_dump(exclude_unset=True, exclude_none=True)
-    _check_kind(data.get("kind"))
     for key, value in data.items():
         setattr(hall, key, value)
     session.commit()
@@ -195,29 +178,11 @@ def delete_hall(hall_id: str, session: Session = Depends(get_session)):
     session.commit()
 
 
-@router.put("/halls/{hall_id}/flows", response_model=list[FlowOut])
-def replace_flows(hall_id: str, body: list[FlowIn], session: Session = Depends(get_session)):
-    hall = _get(session, Hall, hall_id, "Halle")
-    machine_ids = {m.id for m in hall.machines}
-    for flow in body:
-        if flow.from_machine_id not in machine_ids or flow.to_machine_id not in machine_ids:
-            raise HTTPException(400, "Fluss verweist auf eine Maschine ausserhalb der Halle")
-    hall.flows.clear()
-    session.flush()
-    for flow in body:
-        session.add(HallFlow(hall_id=hall.id, **flow.model_dump()))
-    session.commit()
-    session.refresh(hall)
-    return [FlowOut.model_validate(f) for f in hall.flows]
-
-
 # --- Maschinen ------------------------------------------------------------------------------
 
 
 def _remove_machine_files(machine: Machine) -> None:
     paths = [machine.image_path] + [c.image_path for c in machine.cabinets]
-    if machine.layout:
-        paths.append(machine.layout.image_path)
     for path in paths:
         if path:
             Path(path).unlink(missing_ok=True)
@@ -267,14 +232,6 @@ def list_machines(session: Session = Depends(get_session)):
         totals[0] += count
         if status == DocStatus.READY:
             totals[1] += count
-    open_diagnoses = dict(
-        session.execute(
-            select(DiagnosisSession.machine_id, func.count())
-            .where(DiagnosisSession.outcome == "open")
-            .group_by(DiagnosisSession.machine_id)
-        ).all()
-    )
-    with_layout = set(session.scalars(select(MachineLayout.machine_id)))
     return [
         MachineListItem(
             id=m.id,
@@ -288,9 +245,7 @@ def list_machines(session: Session = Depends(get_session)):
             document_count=documents.get(m.source_id, [0, 0])[0] if m.source_id else 0,
             ready_document_count=documents.get(m.source_id, [0, 0])[1] if m.source_id else 0,
             fault_count=len(m.faults),
-            open_diagnoses=open_diagnoses.get(m.id, 0),
             cabinet_count=len(m.cabinets),
-            has_layout=m.id in with_layout,
             key_figure=key_figure([{"value": s.value, "unit": s.unit} for s in m.specs]),
         )
         for m in machines
@@ -351,6 +306,27 @@ def machine_image(machine_id: str, session: Session = Depends(get_session)):
     if not machine.image_path or not Path(machine.image_path).exists():
         raise HTTPException(404, "Kein Bild hinterlegt")
     return FileResponse(machine.image_path)
+
+
+# --- Kennzahlen -----------------------------------------------------------------------------
+
+
+@router.get("/machines/{machine_id}/specs", response_model=list[SpecOut])
+def list_specs(machine_id: str, session: Session = Depends(get_session)):
+    machine = _get(session, Machine, machine_id, "Maschine")
+    return [SpecOut.model_validate(s) for s in machine.specs]
+
+
+@router.put("/machines/{machine_id}/specs", response_model=list[SpecOut])
+def replace_specs(machine_id: str, body: list[SpecIn], session: Session = Depends(get_session)):
+    machine = _get(session, Machine, machine_id, "Maschine")
+    rows = clean_specs([s.model_dump() for s in body])
+    machine.specs.clear()
+    session.flush()
+    machine.specs.extend(MachineSpec(machine_id=machine.id, **row) for row in rows)
+    session.commit()
+    session.refresh(machine)
+    return [SpecOut.model_validate(s) for s in machine.specs]
 
 
 # --- Fehlerliste ----------------------------------------------------------------------------

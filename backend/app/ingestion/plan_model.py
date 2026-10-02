@@ -25,12 +25,12 @@ import pypdfium2 as pdfium
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app import ledger
-from app.flow.pricing import cost_usd
 from app.ingestion.pdf_layout import _spots, _text_angle
 from app.ingestion.plan_edges import PlanEdge
 from app.ingestion.tags import normalize_tag, pin_kind
 from app.ingestion.vision import pdfium_lock, render_page_png
 from app.llm import image_block, is_reasoning_model, make_chat_model
+from app.pricing import cost_usd
 
 logger = logging.getLogger(__name__)
 
@@ -331,7 +331,7 @@ def output_tokens_per_page(model: str) -> int:
 
 def estimate_usd(model: str, pages: int) -> float:
     """Geschaetzte Kosten: INPUT_TOKENS_PER_PAGE rein und output_tokens_per_page raus je Seite, Preis aus
-    app/flow/pricing.py (unbekanntes Modell, etwa lokal: 0 mit Warnung im Log)."""
+    app/pricing.py (unbekanntes Modell, etwa lokal: 0 mit Warnung im Log)."""
     return cost_usd(model, INPUT_TOKENS_PER_PAGE * pages, output_tokens_per_page(model) * pages)
 
 

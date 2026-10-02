@@ -111,7 +111,6 @@ export interface CostEstimate {
   photos: number;
   vision: boolean;
   per_page_vision_cents: number;
-  per_page_extraction_cents: number;
   per_photo_cents: number;
   chat_per_answer_cents: number;
   total_cents: number;
@@ -123,8 +122,6 @@ export const PURPOSE_LABELS: Record<string, string> = {
   chat: "Chat-Antworten",
   "vision.page": "Seitenanalyse",
   "vision.cabinet": "Schaltschrank-Erkennung",
-  "vision.layout": "Draufsicht-Erkennung",
-  flow: "Ablauf-Extraktion",
 };
 
 export const costs = {
@@ -512,27 +509,12 @@ export const MACHINE_TYPE_LABELS: Record<MachineType, string> = {
   other: "Sonstiges",
 };
 
-export type HallKind = "generic" | "base" | "production" | "warehouse" | "office";
-
-export const HALL_KIND_LABELS: Record<HallKind, string> = {
-  generic: "Halle",
-  base: "Grundstoff",
-  production: "Verarbeitung",
-  warehouse: "Lager",
-  office: "Büro",
-};
-
 export interface Hall {
   id: string;
   name: string;
   description: string;
   created_at: string;
   machine_count: number;
-  kind: HallKind;
-  site_x: number;
-  site_y: number;
-  site_w: number;
-  site_h: number;
 }
 
 export interface Machine {
@@ -544,8 +526,6 @@ export interface Machine {
   source_id: string | null;
   source_name: string | null;
   has_image: boolean;
-  pos_x: number;
-  pos_y: number;
   order_index: number;
   fault_count: number;
   cabinet_count: number;
@@ -569,22 +549,12 @@ export interface MachineListItem {
   document_count: number;
   ready_document_count: number;
   fault_count: number;
-  open_diagnoses: number;
   cabinet_count: number;
-  has_layout: boolean;
   key_figure: string;
-}
-
-export interface Flow {
-  id?: string;
-  from_machine_id: string;
-  to_machine_id: string;
-  label: string;
 }
 
 export interface HallDetail extends Hall {
   machines: Machine[];
-  flows: Flow[];
 }
 
 export interface Fault {
@@ -625,46 +595,6 @@ export interface Cabinet {
   hotspots: Hotspot[];
 }
 
-export interface SiteMachine {
-  id: string;
-  name: string;
-  machine_type: MachineType;
-  pos_x: number;
-  pos_y: number;
-  line: string;
-}
-
-export interface SiteHall {
-  id: string;
-  name: string;
-  kind: HallKind;
-  description: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  machine_count: number;
-  /** Eintraege der Fehlerlisten (Katalog) */
-  fault_count: number;
-  /** laufende Fehlersuchen: der einzige rote Wert im Standortplan */
-  open_diagnoses: number;
-  lines: string[];
-  docks: number;
-  machines: SiteMachine[];
-}
-
-export interface SiteFlow {
-  id?: string;
-  from_hall_id: string;
-  to_hall_id: string;
-  label: string;
-}
-
-export interface SiteData {
-  halls: SiteHall[];
-  flows: SiteFlow[];
-}
-
 export interface MachineSpec {
   id?: string;
   position?: number;
@@ -703,30 +633,19 @@ const json = (body: unknown, method = "POST"): RequestInit => ({
 export const plant = {
   listHalls: () => request<Hall[]>("/api/halls"),
   listMachines: () => request<MachineListItem[]>("/api/machines"),
-  /** Ablauf-JSON (Animation) fuer die eingebettete Seite /ablauf/index.html; Browser laedt es selbst. */
-  flowUrl: (machineId: string) => withApiKey(`${API_URL}/api/machines/${machineId}/flow`),
-  /** Extraktion anstossen: kostet API-Tokens, einmal je Dokumentstand (Cache). */
-  extractFlow: (machineId: string, force = false) =>
-    request<{ machine: string; steps: unknown[]; io_points: unknown[]; meta: { cached: boolean; total: { cost_usd: number; latency_ms: number } } }>(
-      `/api/machines/${machineId}/flow/extract?force=${force}`,
-      { method: "POST" },
-    ),
-  createHall: (name: string, description = "", kind: HallKind = "generic") =>
-    request<Hall>("/api/halls", json({ name, description, kind })),
+  createHall: (name: string, description = "") => request<Hall>("/api/halls", json({ name, description })),
   getHall: (id: string) => request<HallDetail>(`/api/halls/${id}`),
-  updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description" | "kind" | "site_x" | "site_y" | "site_w" | "site_h">>) =>
+  updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description">>) =>
     request<Hall>(`/api/halls/${id}`, json(body, "PATCH")),
   deleteHall: (id: string) => request<void>(`/api/halls/${id}`, { method: "DELETE" }),
-  replaceFlows: (hallId: string, flows: Flow[]) =>
-    request<Flow[]>(`/api/halls/${hallId}/flows`, json(flows.map(({ from_machine_id, to_machine_id, label }) => ({ from_machine_id, to_machine_id, label })), "PUT")),
 
-  createMachine: (hallId: string, body: { name: string; machine_type: MachineType; pos_x?: number; pos_y?: number; line?: string }) =>
+  createMachine: (hallId: string, body: { name: string; machine_type: MachineType; line?: string }) =>
     request<Machine>(`/api/halls/${hallId}/machines`, json(body)),
   getMachine: (id: string) => request<MachineDetail>(`/api/machines/${id}`),
   machineMap: (id: string) => request<MachineMap>(`/api/machines/${id}/map`),
   updateMachine: (
     id: string,
-    body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "pos_x" | "pos_y" | "order_index" | "line">> & { clear_source?: boolean },
+    body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "order_index" | "line">> & { clear_source?: boolean },
   ) => request<Machine>(`/api/machines/${id}`, json(body, "PATCH")),
   deleteMachine: (id: string) => request<void>(`/api/machines/${id}`, { method: "DELETE" }),
   uploadMachineImage: (id: string, file: File) => {
@@ -759,64 +678,12 @@ export const plant = {
   lookupTag: (machineId: string, tag: string) =>
     request<TagLookup>(`/api/machines/${machineId}/tags/${encodeURIComponent(tag)}`),
 
-  getSite: () => request<SiteData>("/api/site"),
-  replaceSiteFlows: (flows: SiteFlow[]) =>
-    request<SiteFlow[]>("/api/site/flows", json(flows.map(({ from_hall_id, to_hall_id, label }) => ({ from_hall_id, to_hall_id, label })), "PUT")),
   getSpecs: (machineId: string) => request<MachineSpec[]>(`/api/machines/${machineId}/specs`),
   replaceSpecs: (machineId: string, specs: MachineSpec[]) =>
     request<MachineSpec[]>(`/api/machines/${machineId}/specs`, json(specs.map(({ label, value, unit, source }) => ({ label, value, unit, source })), "PUT")),
 };
 
-// --- Draufsicht (Maschinen-Layout) und globale Suche --------------------------------------------
-
-export const LAYOUT_KINDS = [
-  "Motor",
-  "Sensor",
-  "Taster",
-  "Not-Halt",
-  "Leuchte",
-  "Schaltschrank",
-  "Band/Förderer",
-  "Rahmen",
-  "Schutztür",
-  "Sonstiges",
-] as const;
-
-export type LayoutKind = (typeof LAYOUT_KINDS)[number];
-
-export interface LayoutPart {
-  id: string;
-  layout_id: string;
-  tag: string;
-  label: string;
-  kind: LayoutKind;
-  shape: "rect" | "circle";
-  x_mm: number;
-  y_mm: number;
-  w_mm: number;
-  h_mm: number;
-  rotation_deg: number;
-  confidence: number | null;
-  origin: "manual" | "vision";
-  confirmed: boolean;
-}
-
-export type LayoutPartInput = Omit<LayoutPart, "id" | "layout_id" | "confidence" | "origin">;
-
-export interface Layout {
-  id: string;
-  machine_id: string;
-  width_mm: number;
-  depth_mm: number;
-  has_image: boolean;
-  document_id: string | null;
-  page: number | null;
-  scale_note: string;
-  updated_at: string;
-  parts: LayoutPart[];
-}
-
-export type LayoutInput = Pick<Layout, "width_mm" | "depth_mm" | "document_id" | "page" | "scale_note">;
+// --- Globale Suche ------------------------------------------------------------------------------
 
 export interface TagSearchHit {
   tag: string;
@@ -824,35 +691,6 @@ export interface TagSearchHit {
   occurrences: number;
   machines: { id: string; name: string }[];
 }
-
-export const layout = {
-  /** null, wenn die Maschine noch keine Draufsicht hat (404). */
-  get: async (machineId: string): Promise<Layout | null> => {
-    const response = await fetch(`${API_URL}/api/machines/${machineId}/layout`, { headers: authHeaders() });
-    if (response.status === 404) return null;
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(errorDetail(body, response));
-    }
-    return response.json();
-  },
-  put: (machineId: string, body: LayoutInput) =>
-    request<Layout>(`/api/machines/${machineId}/layout`, json(body, "PUT")),
-  uploadImage: (machineId: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<Layout>(`/api/machines/${machineId}/layout/image`, { method: "POST", body: form });
-  },
-  imageUrl: (machineId: string, bust = "") =>
-    withApiKey(`${API_URL}/api/machines/${machineId}/layout/image?v=${encodeURIComponent(bust)}`),
-  createPart: (layoutId: string, body: Partial<LayoutPartInput>) =>
-    request<LayoutPart>(`/api/layouts/${layoutId}/parts`, json(body)),
-  updatePart: (partId: string, body: Partial<LayoutPartInput>) =>
-    request<LayoutPart>(`/api/layout-parts/${partId}`, json(body, "PATCH")),
-  deletePart: (partId: string) => request<void>(`/api/layout-parts/${partId}`, { method: "DELETE" }),
-  detect: (layoutId: string) => request<Layout>(`/api/layouts/${layoutId}/detect`, { method: "POST" }),
-  exportUrl: (layoutId: string) => `${API_URL}/api/layouts/${layoutId}/export`,
-};
 
 export const searchTags = (q: string) =>
   request<TagSearchHit[]>(`/api/tags/search?q=${encodeURIComponent(q)}`);
@@ -986,43 +824,6 @@ export async function signalPathMain(tag: string, sourceId: string): Promise<Sig
   return { ok: true, data: await response.json() };
 }
 
-// --- Gefuehrte Fehlersuche -------------------------------------------------------------------
-
-export type StepStatus = "open" | "ok" | "nok" | "skip";
-
-export interface DiagnosisStep {
-  text: string;
-  tag: string;
-  ref: string;
-  status: StepStatus;
-  note: string;
-}
-
-export interface Diagnosis {
-  id: string;
-  machine_id: string;
-  fault_id: string | null;
-  title: string;
-  steps: DiagnosisStep[];
-  outcome: "open" | "resolved" | "unresolved";
-  finding: string;
-  started_at: string;
-  finished_at: string | null;
-}
-
-export const diagnoses = {
-  list: (machineId: string) => request<Diagnosis[]>(`/api/machines/${machineId}/diagnoses`),
-  start: (machineId: string, faultId: string | null, title = "") =>
-    request<Diagnosis>(`/api/machines/${machineId}/diagnoses`, json({ fault_id: faultId, title })),
-  updateStep: (id: string, index: number, change: { status?: StepStatus; note?: string }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}/steps/${index}`, json(change, "PATCH")),
-  update: (id: string, body: { steps?: DiagnosisStep[]; finding?: string }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}`, json(body, "PATCH")),
-  finish: (id: string, body: { outcome: "resolved" | "unresolved"; finding: string; add_to_faults: boolean }) =>
-    request<Diagnosis>(`/api/diagnoses/${id}/finish`, json(body)),
-  remove: (id: string) => request<void>(`/api/diagnoses/${id}`, { method: "DELETE" }),
-};
-
 // --- Onboarding aus der Doku -----------------------------------------------------------------
 
 export interface OnboardingProposal {
@@ -1040,209 +841,4 @@ export const onboarding = {
   proposal: (sourceId: string) => request<OnboardingProposal>(`/api/sources/${sourceId}/onboarding`),
   create: (hallId: string, body: { source_id: string; name: string; machine_type: MachineType; faults: FaultInput[] }) =>
     request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
-};
-
-// --- Planung: Vorkalkulation ------------------------------------------------------------------
-
-export type RateUnit = "unit_min" | "pallet_h";
-export type QuantityUnit = "unit" | "pallet";
-
-export interface BomInfo {
-  material_code: string;
-  material_name: string;
-  unit: string;
-  qty: number;
-  per: QuantityUnit;
-}
-
-export interface RoutingInfo {
-  seq: number;
-  machine_id: string;
-  machine_name: string;
-  machine_line: string;
-  rate: number;
-  rate_unit: RateUnit;
-  setup_min: number;
-  coupled: boolean;
-  basis: string;
-  hourly_rate: number | null;
-}
-
-export interface ArticleInfo {
-  id: string;
-  code: string;
-  name: string;
-  unit_name: string;
-  units_per_pallet: number;
-  sheets_per_unit: number;
-  sheet_w_mm: number;
-  sheet_l_mm: number;
-  plies: number;
-  gsm: number;
-  waste_pct: number;
-  line: string;
-  description: string;
-  paper_kg_per_unit: number;
-  routing: RoutingInfo[];
-  bom: BomInfo[];
-}
-
-export interface MaterialInfo {
-  id: string;
-  code: string;
-  name: string;
-  unit: string;
-  price: number | null;
-  price_source: string;
-  made_on: string | null;
-  made_rate_per_h: number | null;
-  made_basis: string;
-  bom: BomInfo[];
-}
-
-export interface CalcPositionInput {
-  article_id: string;
-  quantity: number;
-  unit: QuantityUnit;
-}
-
-export interface CalcRequest {
-  received_at?: string;
-  due_date?: string | null;
-  positions: CalcPositionInput[];
-}
-
-export type CalendarKey = "office" | "production" | "shipping";
-
-export interface CalcStation {
-  key: string;
-  label: string;
-  group: string;
-  start: string;
-  end: string;
-  work_minutes: number;
-  calendar: CalendarKey;
-  basis: string;
-  bottleneck: string | null;
-  machines: string[];
-  position: number | null;
-}
-
-export interface CalcMaterial {
-  code: string;
-  name: string;
-  unit: string;
-  qty: number;
-  level: number;
-  parent: string | null;
-  basis: string;
-  price: number | null;
-  price_source: string;
-  cost: number;
-  made: boolean;
-}
-
-export interface CalcCost {
-  article: string;
-  units: number;
-  unit_name: string;
-  material: number;
-  production: number;
-  office: number;
-  shipping: number;
-  total: number;
-  per_unit: number;
-}
-
-export interface CalcResult {
-  received_at: string;
-  due_date: string | null;
-  ready_at: string;
-  meets_due: boolean | null;
-  days_delta: number | null;
-  summary: {
-    units: number;
-    pallets: number;
-    trucks: number;
-    paper_t: number;
-    line_minutes: number;
-    bottleneck: string | null;
-    lead_minutes: number;
-  };
-  stations: CalcStation[];
-  closed: Partial<Record<CalendarKey, [string, string][]>>;
-  positions: { article_id: string; article: string; code: string; unit_name: string; units: number; pallets: number; paper_kg_per_unit: number; ready: string }[];
-  materials: CalcMaterial[];
-  costs: { positions: CalcCost[]; total: Omit<CalcCost, "article" | "units" | "unit_name" | "per_unit">; office_minutes: number; trucks: number };
-  warnings: string[];
-}
-
-export const planning = {
-  articles: () => request<ArticleInfo[]>("/api/articles"),
-  materials: () => request<MaterialInfo[]>("/api/materials"),
-  calc: (body: CalcRequest) => request<CalcResult>("/api/calc", json(body)),
-};
-
-// --- Leitstand: Auftragsbuch und Simulation ---------------------------------------------------
-
-export type SimResourceKind = "office" | "paper" | "line" | "dock";
-
-export interface SimStage {
-  stage: string;
-  label: string;
-  resource: string;
-  slot: number | null;
-  arrive: string;
-  start: string;
-  end: string;
-}
-
-export interface SimOrderResult {
-  id: string;
-  number: string;
-  customer: string;
-  value: number;
-  pallets: number;
-  due: string | null;
-  received_at: string;
-  ready_at: string | null;
-  shipped_at: string | null;
-  days_delta: number | null;
-  on_time: boolean | null;
-  positions: { code: string; units: number; from_stock: number; produced: number }[];
-  stages: SimStage[];
-  trucks: { truck: number; dock: number; start: string; end: string }[];
-}
-
-export interface SimResult {
-  start: string | null;
-  end: string | null;
-  resources: { key: string; label: string; kind: SimResourceKind; capacity: number }[];
-  orders: SimOrderResult[];
-  stock: Record<string, { name: string; units_per_pallet: number; points: [string, number][] }>;
-  closed: Partial<Record<"office" | "shipping", [string, string][]>>;
-  kpis: {
-    on_time_rate: number | null;
-    avg_lead_hours: number | null;
-    utilization: Record<string, number>;
-    avg_wait_hours: Record<string, number>;
-  };
-  warnings: string[];
-}
-
-export interface OrderInfo {
-  id: string;
-  number: string;
-  customer: string | null;
-  received_at: string;
-  due_date: string | null;
-  lines: { article_id: string; code: string; name: string; unit_name: string; quantity: number; unit: QuantityUnit }[];
-}
-
-export const leitstand = {
-  orders: () => request<OrderInfo[]>("/api/orders"),
-  createOrder: (body: { customer: string; received_at?: string; due_date?: string | null; lines: CalcPositionInput[] }) =>
-    request<OrderInfo>("/api/orders", json(body)),
-  deleteOrder: (id: string) => request<void>(`/api/orders/${id}`, { method: "DELETE" }),
-  simulate: (orderIds?: string[]) => request<SimResult>("/api/simulation", json({ order_ids: orderIds ?? null })),
 };

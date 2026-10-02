@@ -49,7 +49,7 @@ export function SchemaMap({
   if (!map || map.zones.length === 0) {
     return (
       <p className="p-3 text-sm text-muted-foreground" data-testid="schema-empty">
-        Noch kein Modell: keine Kennzeichen in der Doku, keine Stückliste, keine Draufsicht. Dokumente hochladen, dann entstehen hier die Zonen der Maschine.
+        Noch kein Modell: keine Kennzeichen in der Doku, keine Stückliste. Dokumente hochladen, dann entstehen hier die Zonen der Maschine.
       </p>
     );
   }

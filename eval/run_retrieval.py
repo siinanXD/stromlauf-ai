@@ -8,11 +8,9 @@ Jede Frage in eval/questions.jsonl mit "retrieval": {"mode", "query"} ruft den p
   tag | semantic | keyword   GET /api/search?mode=...&q=...&source_id=...
   fact                       GET /api/facts?tag=...&source_ids=...
   signal                     GET /api/signal-path?tag=...&source_id=...
-  calc                       POST /api/calc (Artikelcodes werden ueber /api/articles in IDs aufgeloest)
-  site                       GET /api/site, Halle per Namensteil
 
 Die Antwort wird zu Text plus zitierten Dateinamen und mit denselben Regeln bewertet wie eine Agentenantwort
-(fakten, quellen, sauber). Bei signal, calc und site gibt es keine Dateinamen; quellen gilt dort als erfuellt.
+(fakten, quellen, sauber). Bei signal gibt es keine Dateinamen; quellen gilt dort als erfuellt.
 Kein Modellaufruf, keine API-Kosten. Ergebnis: eval/results/retrieval_<zeitstempel>.json.
 """
 
@@ -41,8 +39,8 @@ def _auth_headers() -> dict[str, str]:
 
 
 def answer_for_error(exc: Exception) -> str:
-    """HTTP-Fehler (404 Kennzeichen unbekannt, 409 Testwerk fehlt) und unbekannte Artikel sind Retrieval-Fehler
-    und werden bewertet (fakten 0); nur Netzfehler bleiben unbewertet."""
+    """HTTP-Fehler (404 Kennzeichen unbekannt) und unbrauchbare Antworten (ValueError) sind
+    Retrieval-Fehler und werden bewertet (fakten 0); nur Netzfehler bleiben unbewertet."""
     if isinstance(exc, httpx.HTTPStatusError):
         try:
             detail = exc.response.json().get("detail", exc.response.text)
@@ -61,25 +59,7 @@ def gate_failed(summary: dict, minimum: float) -> bool:
     return summary["fakten_mittel"] < minimum or summary["nicht_bewertet_fehler"] > 0
 
 
-def find_hall(site: dict, query: str) -> dict | None:
-    needle = query.strip().lower()
-    return next((h for h in site.get("halls", []) if needle in h["name"].lower()), None)
-
-
-def calc_body(query: dict, articles: dict[str, str]) -> dict:
-    """Auftrag mit Artikelcodes -> Body fuer /api/calc mit Artikel-IDs."""
-    positions = []
-    for position in query["positions"]:
-        code = position["article"]
-        if code not in articles:
-            raise ValueError(f"Artikel {code} unbekannt")
-        positions.append({"article_id": articles[code], "quantity": position["quantity"], "unit": position["unit"]})
-    body = {k: v for k, v in query.items() if k != "positions"}
-    body["positions"] = positions
-    return body
-
-
-def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str], articles: dict[str, str]) -> object:
+def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str]) -> object:
     mode, query = question["retrieval"]["mode"], question["retrieval"]["query"]
     source_id = source_ids.get(question.get("source") or "")
     if mode in {"tag", "semantic", "keyword"}:
@@ -88,12 +68,8 @@ def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str], arti
         response = client.get("/api/facts", params={"tag": query, "source_ids": [source_id]})
     elif mode == "signal":
         response = client.get("/api/signal-path", params={"tag": query, "source_id": source_id})
-    elif mode == "calc":
-        response = client.post("/api/calc", json=calc_body(query, articles))
     else:
-        response = client.get("/api/site")
-        response.raise_for_status()
-        return find_hall(response.json(), query)
+        raise ValueError(f"Retrieval-Modus {mode!r} unbekannt")
     response.raise_for_status()
     return response.json()
 
@@ -114,7 +90,6 @@ def main() -> int:
     with httpx.Client(base_url=args.api, timeout=120, headers=_auth_headers()) as client:
         try:
             sources = client.get("/api/sources").raise_for_status().json()
-            articles = {a["code"]: a["id"] for a in client.get("/api/articles").raise_for_status().json()}
         except httpx.HTTPError as exc:
             sys.exit(f"Backend unter {args.api} nicht erreichbar: {exc}")
         by_name = {s["name"]: s["id"] for s in sources}
@@ -127,8 +102,8 @@ def main() -> int:
         for i, q in enumerate(questions, 1):
             mode = q["retrieval"]["mode"]
             try:
-                text, files = evallib.flatten(mode, fetch(client, q, by_name, articles))
-            except Exception as exc:  # HTTP-Fehler, unbekannter Artikel, Netz
+                text, files = evallib.flatten(mode, fetch(client, q, by_name))
+            except Exception as exc:  # HTTP-Fehler, Netz
                 text, files = answer_for_error(exc), []
             cited = [{"filename": f} for f in files]
             result = evallib.score(q, text, cited, None, check_sources=mode not in evallib.NO_FILES)

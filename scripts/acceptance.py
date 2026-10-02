@@ -41,7 +41,6 @@ UNKNOWN_ZONE = "?"  # Sammelzone "Ohne Einbauort" zaehlt nicht als Baugruppe
 ESTIMATE_ROWS = (
     ("vision.page", "per_page_vision_cents", "pages"),
     ("vision.cabinet", "per_photo_cents", "photos"),
-    ("flow", "per_page_extraction_cents", "pages"),
 )
 
 
@@ -98,16 +97,11 @@ def find_machine(machines: list[dict], name: str) -> dict | None:
 
 
 def map_evidence(map_json: dict, lookup: Callable[[str], dict]) -> dict:
-    """Baugruppen (Zonen mit Einbauort), Teile je Herkunft und Fundstellen je Kennzeichen (einmal je Tag).
-
-    Teile aus der Draufsicht (source "layout") stammen aus keiner Dokumentzeile; sie werden gezaehlt,
-    aber nicht nach einer Fundstelle gefragt.
-    """
+    """Baugruppen (Zonen mit Einbauort), Teile je Herkunft und Fundstellen je Kennzeichen (einmal je Tag)."""
     all_zones = map_json.get("zones", [])
     zones = [zone for zone in all_zones if zone.get("code") != UNKNOWN_ZONE]
     parts = [part for zone in all_zones for part in zone.get("parts", [])]
-    documented = [part for part in parts if part.get("source") != "layout"]
-    tags = list(dict.fromkeys(part["tag"] for part in documented if part.get("tag")))
+    tags = list(dict.fromkeys(part["tag"] for part in parts if part.get("tag")))
     without_hit = [tag for tag in tags if not lookup(tag).get("hits")]
     cited_share = (len(tags) - len(without_hit)) / len(tags) if tags else 0.0
     return {
@@ -116,7 +110,6 @@ def map_evidence(map_json: dict, lookup: Callable[[str], dict]) -> dict:
         "parts": len(parts),
         "parts_by_source": dict(Counter(part.get("source", "") for part in parts)),
         "parts_without_hit": without_hit,
-        "layout_parts": [part["tag"] for part in parts if part.get("source") == "layout" and part.get("tag")],
         "connectors": len(map_json.get("connectors", [])),  # Leitungen mit zwei Orten zaehlen nicht als Teile
         "cited_share": round(cited_share, 3),
     }
@@ -162,10 +155,7 @@ def evaluate(evidence: dict, thresholds: Thresholds) -> list[dict]:
          + (f"; dazu {map_['connectors']} Leitungen als Verbinder" if map_.get("connectors") else "")},
         {"id": "fundstellen", "label": "Teile mit mindestens einer Fundstelle", "value": map_["cited_share"],
          "threshold": "100 %", "ok": map_["parts"] > 0 and not map_["parts_without_hit"],
-         "note": "; ".join(filter(None, [
-             "ohne Fundstelle: " + ", ".join(map_["parts_without_hit"]) if map_["parts_without_hit"] else "",
-             "aus der Draufsicht, ohne Dokumentzeile: " + ", ".join(map_.get("layout_parts", [])) if map_.get("layout_parts") else "",
-         ]))},
+         "note": "ohne Fundstelle: " + ", ".join(map_["parts_without_hit"]) if map_["parts_without_hit"] else ""},
         {"id": "hotspots", "label": "Gelabelte Schaltschrankteile", "value": evidence["hotspots"],
          "threshold": f">= {thresholds.min_hotspots}", "ok": evidence["hotspots"] >= thresholds.min_hotspots, "note": ""},
         {"id": "kostenbuch", "label": "Kostenbuch der Maschine", "value": ledger["total_cents"],

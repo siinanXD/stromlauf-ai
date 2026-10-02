@@ -1,4 +1,4 @@
-"""GET /api/machines/{id}/map: das Schema-Modell einer Maschine aus Stueckliste, Index und Draufsicht.
+"""GET /api/machines/{id}/map: das Schema-Modell einer Maschine aus Stueckliste und Index.
 
 Ohne Stuecklisten-Datei (reale Exporte buendeln alles in einer PDF) kommen die Teile aus dem Kennzeichen-Index
 der Planseiten und die Zonen aus deren Blatttiteln; Stuecklistenseiten in der PDF liefern Bezeichnungen (Issue #39).
@@ -69,9 +69,8 @@ def machine_map(machine_id: str, session: Session = Depends(get_session)) -> dic
     machine = session.get(Machine, machine_id)
     if machine is None or not same_workspace(machine):
         raise HTTPException(404, "Maschine nicht gefunden")
-    layout_tags = [(p.tag, p.label) for p in (machine.layout.parts if machine.layout else []) if p.tag]
     if not machine.source_id:
-        return {"machine_id": machine_id, **build_map([], layout_tags).as_dict(), "source_id": None}
+        return {"machine_id": machine_id, **build_map([]).as_dict(), "source_id": None}
 
     rows = session.execute(
         select(
@@ -100,5 +99,5 @@ def machine_map(machine_id: str, session: Session = Depends(get_session)) -> dic
     return {
         "machine_id": machine_id,
         "source_id": machine.source_id,
-        **build_map(bom_rows, layout_tags, known, legend, index_hits).as_dict(),
+        **build_map(bom_rows, known, legend, index_hits).as_dict(),
     }

@@ -102,7 +102,6 @@ def test_schaetzung_faellt_auf_listenpreise_zurueck(monkeypatch):
     from app.config import get_settings
 
     monkeypatch.setenv("VISION_MODEL", "claude-sonnet-5")
-    monkeypatch.setenv("FLOW_MODEL_STRONG", "claude-sonnet-5")
     monkeypatch.setenv("CHAT_MODEL", "claude-sonnet-5")
     get_settings.cache_clear()
     try:
@@ -110,7 +109,8 @@ def test_schaetzung_faellt_auf_listenpreise_zurueck(monkeypatch):
     finally:
         get_settings.cache_clear()
     assert result["basis"] == {"vision.page": "list", "vision.cabinet": "list"}
-    # cost-model.md: 300 Seiten mit Sonnet 5 = rund 2.4 USD; hier ohne Embeddings und Illustration
+    # cost-model.md: 300 Seiten mit Sonnet 5 = rund 2.4 USD; hier nur Seitenanalyse und Fotos, ohne
+    # Embeddings, Illustration und Modellextraktion
     assert 150 <= result["total_cents"] <= 400
     assert result["per_page_vision_cents"] > 0 and result["chat_per_answer_cents"] > 0
     assert ledger.estimate(_NoRows(), pages=0, photos=0)["total_cents"] == 0

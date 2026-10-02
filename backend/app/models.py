@@ -1,14 +1,12 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
     BigInteger,
-    Boolean,
     Computed,
-    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -213,7 +211,7 @@ class Conversation(WorkspaceScoped, Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
-    # Stoerfall: jeder Chat einer Maschine ist einer; outcome open | resolved wie bei DiagnosisSession.
+    # Stoerfall: jeder Chat einer Maschine ist einer; outcome open | resolved.
     # Spalten kamen nach der Baseline dazu: alembic/versions/0004_stoerfall_felder.py
     outcome: Mapped[str] = mapped_column(String(16), default="open", server_default="open")
     finding: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -232,7 +230,7 @@ class MachineType(StrEnum):
 
 
 class Hall(WorkspaceScoped, Base):
-    """Produktionshalle: enthaelt Maschinen und den Materialfluss zwischen ihnen."""
+    """Halle: Gruppe von Maschinen mit Name und Beschreibung."""
 
     __tablename__ = "halls"
 
@@ -240,18 +238,10 @@ class Hall(WorkspaceScoped, Base):
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-    # Art (generic|base|production|warehouse|office) und Rechteck im Standortplan (px, 0 = nicht platziert).
-    # Spalten kamen nach der ersten Version dazu: siehe app/migrations.py
-    kind: Mapped[str] = mapped_column(String(24), default="generic", server_default="generic")
-    site_x: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_y: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_w: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
-    site_h: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
 
     machines: Mapped[list["Machine"]] = relationship(
         back_populates="hall", cascade="all, delete-orphan", order_by="Machine.order_index"
     )
-    flows: Mapped[list["HallFlow"]] = relationship(back_populates="hall", cascade="all, delete-orphan")
 
 
 class Machine(WorkspaceScoped, Base):
@@ -268,8 +258,6 @@ class Machine(WorkspaceScoped, Base):
         ForeignKey("knowledge_sources.id", ondelete="SET NULL"), nullable=True, index=True
     )
     image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    pos_x: Mapped[float] = mapped_column(Float, default=0.0)  # Layout-Position in der Halle (px)
-    pos_y: Mapped[float] = mapped_column(Float, default=0.0)
     order_index: Mapped[int] = mapped_column(Integer, default=0)  # Reihenfolge im Ablauf
     line: Mapped[str] = mapped_column(String(120), default="", server_default="")  # Linie/Sektor
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
@@ -285,34 +273,6 @@ class Machine(WorkspaceScoped, Base):
     cabinets: Mapped[list["CabinetImage"]] = relationship(
         back_populates="machine", cascade="all, delete-orphan", order_by="CabinetImage.created_at"
     )
-    layout: Mapped["MachineLayout | None"] = relationship(
-        back_populates="machine", cascade="all, delete-orphan", uselist=False
-    )
-
-
-class HallFlow(WorkspaceScoped, Base):
-    """Materialfluss-Kante zwischen zwei Maschinen einer Halle."""
-
-    __tablename__ = "hall_flows"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    from_machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"))
-    to_machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"))
-    label: Mapped[str] = mapped_column(String(120), default="")
-
-    hall: Mapped[Hall] = relationship(back_populates="flows")
-
-
-class SiteFlow(WorkspaceScoped, Base):
-    """Materialfluss zwischen zwei Hallen im Standortplan."""
-
-    __tablename__ = "site_flows"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    from_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    to_hall_id: Mapped[str] = mapped_column(ForeignKey("halls.id", ondelete="CASCADE"), index=True)
-    label: Mapped[str] = mapped_column(String(120), default="")
 
 
 class MachineSpec(WorkspaceScoped, Base):
@@ -389,227 +349,6 @@ class CabinetHotspot(WorkspaceScoped, Base):
     cabinet: Mapped[CabinetImage] = relationship(back_populates="hotspots")
 
 
-class MachineLayout(WorkspaceScoped, Base):
-    """Draufsicht einer Maschine in mm; Skizze als Upload oder als Seite eines Dokuments."""
-
-    __tablename__ = "machine_layouts"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    machine_id: Mapped[str] = mapped_column(
-        ForeignKey("machines.id", ondelete="CASCADE"), unique=True, index=True
-    )
-    width_mm: Mapped[float] = mapped_column(Float, default=0.0)
-    depth_mm: Mapped[float] = mapped_column(Float, default=0.0)
-    image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    document_id: Mapped[str | None] = mapped_column(
-        ForeignKey("documents.id", ondelete="SET NULL"), nullable=True
-    )
-    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    scale_note: Mapped[str] = mapped_column(String(60), default="")
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
-
-    machine: Mapped[Machine] = relationship(back_populates="layout")
-    parts: Mapped[list["LayoutPart"]] = relationship(
-        back_populates="layout", cascade="all, delete-orphan", order_by="LayoutPart.tag"
-    )
-
-
-class LayoutPart(WorkspaceScoped, Base):
-    """Baugruppe oder Feldgeraet in der Draufsicht (Rechteck oder Kreis, Werte in mm)."""
-
-    __tablename__ = "layout_parts"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    layout_id: Mapped[str] = mapped_column(ForeignKey("machine_layouts.id", ondelete="CASCADE"), index=True)
-    tag: Mapped[str] = mapped_column(String(120), default="")
-    label: Mapped[str] = mapped_column(String(200), default="")
-    kind: Mapped[str] = mapped_column(String(40), default="Sonstiges")
-    shape: Mapped[str] = mapped_column(String(10), default="rect")  # rect | circle
-    x_mm: Mapped[float] = mapped_column(Float, default=0.0)
-    y_mm: Mapped[float] = mapped_column(Float, default=0.0)
-    w_mm: Mapped[float] = mapped_column(Float, default=100.0)
-    h_mm: Mapped[float] = mapped_column(Float, default=100.0)
-    rotation_deg: Mapped[float] = mapped_column(Float, default=0.0)
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # nur bei Vision
-    origin: Mapped[str] = mapped_column(String(16), default="manual")  # manual | vision
-    confirmed: Mapped[bool] = mapped_column(default=True)
-
-    layout: Mapped[MachineLayout] = relationship(back_populates="parts")
-
-
-class DiagnosisSession(WorkspaceScoped, Base):
-    """Gefuehrte Fehlersuche an einer Maschine: Pruefschritte mit Ergebnis, Befund, Abschluss."""
-
-    __tablename__ = "diagnosis_sessions"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"), index=True)
-    fault_id: Mapped[str | None] = mapped_column(
-        ForeignKey("fault_entries.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    title: Mapped[str] = mapped_column(String(300), default="")  # Fehlercode + Symptom bei Start
-    steps: Mapped[list] = mapped_column(JSON, default=list)  # [{text, tag, ref, status, note}]
-    outcome: Mapped[str] = mapped_column(String(16), default="open")  # open | resolved | unresolved
-    finding: Mapped[str] = mapped_column(Text, default="")
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-# --- Vorkalkulation: Stammdaten ---------------------------------------------------------------
-
-
-class Article(Base):
-    """Verkaufsartikel mit technischen Daten (daraus Rohpapier je Einheit), Stueckliste, Arbeitsplan."""
-
-    __tablename__ = "articles"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    code: Mapped[str] = mapped_column(String(60), unique=True)
-    name: Mapped[str] = mapped_column(String(200))
-    unit_name: Mapped[str] = mapped_column(String(40), default="Paket")
-    units_per_pallet: Mapped[int] = mapped_column(Integer)
-    sheets_per_unit: Mapped[int] = mapped_column(Integer)
-    sheet_w_mm: Mapped[float] = mapped_column(Float)
-    sheet_l_mm: Mapped[float] = mapped_column(Float)
-    plies: Mapped[int] = mapped_column(Integer)
-    gsm: Mapped[float] = mapped_column(Float)
-    waste_pct: Mapped[float] = mapped_column(Float, default=3.0)
-    line: Mapped[str] = mapped_column(String(120), default="")
-    description: Mapped[str] = mapped_column(Text, default="")
-    price: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")  # Verkaufspreis EUR/Einheit
-
-    routing: Mapped[list["RoutingStep"]] = relationship(
-        cascade="all, delete-orphan", order_by="RoutingStep.seq"
-    )
-    bom: Mapped[list["BomLine"]] = relationship(
-        cascade="all, delete-orphan", foreign_keys="BomLine.article_id", order_by="BomLine.position"
-    )
-
-
-class Material(Base):
-    """Material (Zukauf mit Preis oder Eigenfertigung auf einer Maschine mit eigener Rezeptur)."""
-
-    __tablename__ = "materials"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    code: Mapped[str] = mapped_column(String(60), unique=True)
-    name: Mapped[str] = mapped_column(String(200))
-    unit: Mapped[str] = mapped_column(String(20))
-    price: Mapped[float | None] = mapped_column(Float, nullable=True)  # EUR je Einheit
-    price_source: Mapped[str] = mapped_column(Text, default="")
-    made_on_machine_id: Mapped[str | None] = mapped_column(
-        ForeignKey("machines.id", ondelete="SET NULL"), nullable=True
-    )
-    made_rate_per_h: Mapped[float | None] = mapped_column(Float, nullable=True)
-    made_basis: Mapped[str] = mapped_column(Text, default="")
-
-    made_on: Mapped["Machine | None"] = relationship()
-    bom: Mapped[list["BomLine"]] = relationship(
-        cascade="all, delete-orphan", foreign_keys="BomLine.parent_material_id", order_by="BomLine.position"
-    )
-
-
-class BomLine(Base):
-    """Stuecklistenzeile: Eltern (Artikel oder Material) braucht qty Einheiten eines Materials."""
-
-    __tablename__ = "bom_lines"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    article_id: Mapped[str | None] = mapped_column(
-        ForeignKey("articles.id", ondelete="CASCADE"), nullable=True, index=True
-    )
-    parent_material_id: Mapped[str | None] = mapped_column(
-        ForeignKey("materials.id", ondelete="CASCADE"), nullable=True, index=True
-    )
-    material_id: Mapped[str] = mapped_column(ForeignKey("materials.id", ondelete="CASCADE"))
-    qty: Mapped[float] = mapped_column(Float)
-    per: Mapped[str] = mapped_column(String(10), default="unit")  # unit | pallet
-    position: Mapped[int] = mapped_column(Integer, default=0)
-
-    material: Mapped[Material] = relationship(foreign_keys=[material_id])
-
-
-class RoutingStep(Base):
-    """Arbeitsplanschritt: Artikel auf Maschine mit Leistung, Ruestzeit und Herleitung."""
-
-    __tablename__ = "routing_steps"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), index=True)
-    seq: Mapped[int] = mapped_column(Integer, default=0)
-    # SET NULL: wird die Maschine geloescht, bleibt der Schritt (mit Leistung) und die Kalkulation warnt
-    machine_id: Mapped[str | None] = mapped_column(ForeignKey("machines.id", ondelete="SET NULL"), nullable=True)
-    rate: Mapped[float] = mapped_column(Float)
-    rate_unit: Mapped[str] = mapped_column(String(12), default="unit_min")  # unit_min | pallet_h
-    setup_min: Mapped[float] = mapped_column(Float, default=0.0)
-    coupled: Mapped[bool] = mapped_column(Boolean, default=True)
-    basis: Mapped[str] = mapped_column(Text, default="")
-
-    machine: Mapped[Machine | None] = relationship()
-
-
-class PlantSetting(Base):
-    """Werksparameter als JSON, z. B. 'calc': Kalender, Buero-Stationen, LKW, Tore, Saetze."""
-
-    __tablename__ = "plant_settings"
-
-    key: Mapped[str] = mapped_column(String(60), primary_key=True)
-    value: Mapped[dict] = mapped_column(JSON, default=dict)
-
-
-# --- Leitstand: Kunden, Auftraege, Bestand ------------------------------------------------------
-
-
-class Customer(Base):
-    """Kunde mit Kreditlimit (Finanzen pruefen offene Auftragswerte dagegen)."""
-
-    __tablename__ = "customers"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    name: Mapped[str] = mapped_column(String(200), unique=True)
-    credit_limit: Mapped[float] = mapped_column(Float, default=0.0)
-
-
-class Order(Base):
-    """Kundenauftrag im Auftragsbuch."""
-
-    __tablename__ = "orders"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    number: Mapped[str] = mapped_column(String(40), unique=True)
-    customer_id: Mapped[str | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
-    received_at: Mapped[datetime] = mapped_column(DateTime)  # Ortszeit, ohne Zeitzone
-    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-
-    customer: Mapped[Customer | None] = relationship()
-    lines: Mapped[list["OrderLine"]] = relationship(cascade="all, delete-orphan", order_by="OrderLine.position")
-
-
-class OrderLine(Base):
-    __tablename__ = "order_lines"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    order_id: Mapped[str] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
-    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"))
-    quantity: Mapped[float] = mapped_column(Float)
-    unit: Mapped[str] = mapped_column(String(10), default="unit")  # unit | pallet
-    position: Mapped[int] = mapped_column(Integer, default=0)
-
-    article: Mapped[Article] = relationship()
-
-
-class StockItem(Base):
-    """Lagerbestand je Artikel in Verkaufseinheiten (Anfangsbestand der Simulation)."""
-
-    __tablename__ = "stock"
-
-    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), primary_key=True)
-    units: Mapped[int] = mapped_column(Integer, default=0)
-
-    article: Mapped[Article] = relationship()
-
-
 class AiCall(WorkspaceScoped, Base):
     """Kostenbuch: ein KI-Aufruf, seiner Maschine und seinem Zweck zugebucht (app/ledger.py)."""
 
@@ -619,7 +358,7 @@ class AiCall(WorkspaceScoped, Base):
     machine_id: Mapped[str | None] = mapped_column(
         ForeignKey("machines.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    purpose: Mapped[str] = mapped_column(String(32))  # chat | vision.page | vision.cabinet | vision.layout | flow
+    purpose: Mapped[str] = mapped_column(String(32))  # chat | vision.page | vision.cabinet
     provider: Mapped[str] = mapped_column(String(32), default="anthropic")
     model: Mapped[str] = mapped_column(String(120))
     input_tokens: Mapped[int] = mapped_column(Integer, default=0)

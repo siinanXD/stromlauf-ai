@@ -1,4 +1,4 @@
-"""Schema-Modell aus Stueckliste, Draufsicht und Index (app/ingestion/machine_map.py) - ohne Datenbank."""
+"""Schema-Modell aus Stueckliste und Index (app/ingestion/machine_map.py) - ohne Datenbank."""
 
 from app.ingestion.machine_map import build_map, kind_of
 
@@ -38,14 +38,10 @@ def test_leitung_mit_zwei_orten_wird_verbinder():
     assert all(p["tag"] != "-W3" for z in result["zones"] for p in z["parts"])
 
 
-def test_draufsicht_und_index_fuellen_auf():
-    result = build_map(
-        BOM, layout_tags=[("-M1", "Motor"), ("-S3", "Not-Halt Einlauf")], known_tags={"-K1", "-Q1", "-X1", "-W9"}, legend=LEGEND
-    ).as_dict()
+def test_index_fuellt_auf():
+    result = build_map(BOM, known_tags={"-K1", "-Q1", "-X1", "-W9"}, legend=LEGEND).as_dict()
     codes = [z["code"] for z in result["zones"]]
-    assert codes == ["+FE1", "+ST1", "anlage", "?"]
-    anlage = next(z for z in result["zones"] if z["code"] == "anlage")
-    assert [p["tag"] for p in anlage["parts"]] == ["-S3"]  # -M1 hat schon einen Einbauort
+    assert codes == ["+FE1", "+ST1", "?"]
     unplaced = next(z for z in result["zones"] if z["code"] == "?")
     assert [p["tag"] for p in unplaced["parts"]] == ["-Q1", "-B7"] or {p["tag"] for p in unplaced["parts"]} == {"-B7", "-Q1"}
     # Klemmen und Leitungen aus dem blossen Index werden nicht als Bauteile gezeigt

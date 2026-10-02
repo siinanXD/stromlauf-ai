@@ -36,12 +36,12 @@ def client(tmp_path_factory):
 
 
 @pytest.fixture
-def vision_targets(client, tmp_path):
-    """Halle -> Maschine mit Schrankbild und Draufsicht (je ein kleines PNG) in default; loescht hinterher die Halle."""
+def vision_target(client, tmp_path):
+    """Halle -> Maschine mit Schrankbild (ein kleines PNG) in default; loescht hinterher die Halle."""
     from PIL import Image
 
     from app.db import session_scope
-    from app.models import CabinetImage, Hall, Machine, MachineLayout
+    from app.models import CabinetImage, Hall, Machine
     from app.tenancy import reset_workspace, set_workspace
 
     image = tmp_path / "bild.png"
@@ -58,13 +58,12 @@ def vision_targets(client, tmp_path):
             cabinet = CabinetImage(
                 machine_id=machine.id, title="Schrank", image_path=str(image), width=80, height=60
             )
-            layout = MachineLayout(machine_id=machine.id, image_path=str(image))
-            session.add_all([cabinet, layout])
+            session.add(cabinet)
             session.flush()
-            hall_id, cabinet_id, layout_id = hall.id, cabinet.id, layout.id
+            hall_id, cabinet_id = hall.id, cabinet.id
     finally:
         reset_workspace(token)
-    yield cabinet_id, layout_id
+    yield cabinet_id
     token = set_workspace("default")
     try:
         with session_scope() as session:
@@ -74,21 +73,19 @@ def vision_targets(client, tmp_path):
 
 
 def test_fehlender_vision_schluessel_ist_ein_400_mit_seinem_namen(
-    client, vision_targets, monkeypatch
+    client, vision_target, monkeypatch
 ):
     from app.config import Settings
-    from app.ingestion import cabinet_vision, layout_vision
+    from app.ingestion import cabinet_vision
 
     settings = Settings(
         _env_file=None, vision_model="openai:gpt-5", anthropic_api_key="sk-ant", openai_api_key=None
     )
-    for module in (cabinet_vision, layout_vision):
-        monkeypatch.setattr(module, "get_settings", lambda: settings)
-    cabinet_id, layout_id = vision_targets
-    for url in (f"/api/cabinets/{cabinet_id}/detect", f"/api/layouts/{layout_id}/detect"):
-        response = client.post(url)
-        assert response.status_code == 400, (url, response.text)
-        assert "OPENAI_API_KEY" in response.json()["detail"], url
+    monkeypatch.setattr(cabinet_vision, "get_settings", lambda: settings)
+    url = f"/api/cabinets/{vision_target}/detect"
+    response = client.post(url)
+    assert response.status_code == 400, (url, response.text)
+    assert "OPENAI_API_KEY" in response.json()["detail"], url
 
 
 def test_scl_upload_wird_ready_und_chunks_tragen_den_dateinamen(client, monkeypatch):
