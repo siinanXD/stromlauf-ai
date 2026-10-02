@@ -77,30 +77,3 @@ def inputs_from_werk(werk: dict) -> tuple[dict[str, calc.Article], dict[str, cal
             [calc.BomLine(line["material"], line["qty"], line["per"]) for line in item["bom"]],
         )
     return articles, materials, settings_from_json(werk["settings"]["calc"])
-
-
-def sim_params(value: dict) -> tuple[dict[str, int], float]:
-    """Personen je Buero-Station und Dauer einer Kreditklaerung (Minuten Buerozeit) aus den Parametern."""
-    workers = {step["key"]: max(1, int(step.get("workers", 1))) for step in value["office_steps"]}
-    return workers, float(value.get("credit_hold_min", 540))
-
-
-def sim_inputs_from_werk(werk: dict, articles: dict[str, calc.Article]):
-    """Testwerk-JSON -> (Auftraege, Bestand je Code, Preise je Code, Personen, Klaerungsdauer)."""
-    from datetime import date, datetime
-
-    from app.werk.sim import Customer, SimLine, SimOrder
-
-    customers = {c["name"]: Customer(c["name"], c["name"], float(c["credit_limit"])) for c in werk["customers"]}
-    orders = [
-        SimOrder(
-            o["number"], o["number"], customers[o["customer"]], datetime.fromisoformat(o["received_at"]),
-            date.fromisoformat(o["due_date"]) if o.get("due_date") else None,
-            [SimLine(articles[line["article"]], line["quantity"], line["unit"]) for line in o["lines"]],
-        )
-        for o in werk["orders"]
-    ]
-    stock = {s["article"]: int(s["units"]) for s in werk["stock"]}
-    prices = {a["code"]: float(a.get("price", 0)) for a in werk["articles"]}
-    workers, hold = sim_params(werk["settings"]["calc"])
-    return orders, stock, prices, workers, hold

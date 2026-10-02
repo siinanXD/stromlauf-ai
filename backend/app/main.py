@@ -17,7 +17,6 @@ from app.api import (
     layout,
     machine_map,
     onboarding,
-    orders,
     plan_read,
     planning,
     plant,
@@ -95,7 +94,6 @@ app.include_router(onboarding.router)
 app.include_router(site.router)
 app.include_router(planning.router)
 app.include_router(search.router)
-app.include_router(orders.router)
 app.include_router(flow.router)
 app.include_router(plan_read.router)
 

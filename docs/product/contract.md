@@ -73,7 +73,7 @@ Demonstrated on a Vercel Preview + Railway staging with one demo machine built f
 
 ### Known limitations (2026-09-27)
 
-Planung and Leitstand (feature-freeze modules) are not workspace-scoped; the Machine Assistant screens hide them.
+Planung (feature-freeze module) is not workspace-scoped; the Machine Assistant screens hide it.
 
 ### Non-goals (v1)
 

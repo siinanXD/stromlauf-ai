@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, Factory, Gauge, LayoutList, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
+import { Calculator, Factory, LayoutList, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -198,12 +198,10 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
           <details className="group">
             <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-md px-2.5 text-footnote font-semibold uppercase hover:text-foreground">Mehr</summary>
             {navLink("/planung", "Planung", Calculator, pathname.startsWith("/planung"))}
-            {navLink("/leitstand", "Leitstand", Gauge, pathname.startsWith("/leitstand"))}
           </details>
         ) : (
           <>
             {navLink("/planung", "Planung", Calculator, pathname.startsWith("/planung"))}
-            {navLink("/leitstand", "Leitstand", Gauge, pathname.startsWith("/leitstand"))}
           </>
         )}
       </div>

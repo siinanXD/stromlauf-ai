@@ -72,10 +72,7 @@ def master_data_payload(werk: dict, machine_ids: dict[str, str]) -> dict:
         ]
         base = {k: v for k, v in item.items() if k not in {"tech", "routing"}}
         articles.append({**base, **item["tech"], "routing": routing})
-    return {
-        "materials": materials, "articles": articles, "settings": werk.get("settings", {}),
-        "customers": werk.get("customers", []), "stock": werk.get("stock", []), "orders": werk.get("orders", []),
-    }
+    return {"materials": materials, "articles": articles, "settings": werk.get("settings", {})}
 
 
 def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
@@ -133,7 +130,7 @@ def load(client: httpx.Client, werk: dict, refresh: bool) -> None:
     master = call(client, "PUT", "/api/master-data", master_data_payload(werk, all_machines))
     total = sum(len(h["machines"]) for h in werk["halls"])
     print(f"Fertig: {len(werk['halls'])} Hallen, {total} Maschinen, {len(new)} Standort-Fluesse, "
-          f"{master['articles']} Artikel, {master['materials']} Materialien, {master['orders']} Aufträge.")
+          f"{master['articles']} Artikel, {master['materials']} Materialien.")
 
 
 # --- Testdokumentation (Teil 4): Wissensquellen fuer UR-01 und PM1-AR ---------------------------

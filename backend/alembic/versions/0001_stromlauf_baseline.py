@@ -9,6 +9,9 @@ gegen eine Datenbank. Zwei Faelle:
 
 Downgrade entfernt alle Tabellen in umgekehrter Abhaengigkeitsreihenfolge; die Extension bleibt.
 
+Die Leitstand-Tabellen (customers, orders, order_lines, stock) gehoerten bis Revision 0005 dazu; seit ihrem
+Wegfall legt die Baseline sie nicht mehr an, 0005 raeumt sie auf Datenbanken von damals ab.
+
 Revision ID: 0001_stromlauf_baseline
 Revises:
 Create Date: 2026-09-27
@@ -26,7 +29,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-TABLES = ['articles', 'conversations', 'customers', 'halls', 'knowledge_sources', 'plant_settings', 'documents', 'machines', 'orders', 'site_flows', 'stock', 'cabinet_images', 'chunks', 'fault_entries', 'hall_flows', 'machine_layouts', 'machine_specs', 'materials', 'order_lines', 'routing_steps', 'tag_occurrences', 'bom_lines', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
+TABLES = ['articles', 'conversations', 'halls', 'knowledge_sources', 'plant_settings', 'documents', 'machines', 'site_flows', 'cabinet_images', 'chunks', 'fault_entries', 'hall_flows', 'machine_layouts', 'machine_specs', 'materials', 'routing_steps', 'tag_occurrences', 'bom_lines', 'cabinet_hotspots', 'diagnosis_sessions', 'layout_parts']
 
 
 def _schema_exists() -> bool:
@@ -64,13 +67,6 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('customers',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('credit_limit', sa.Float(), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
     )
     op.create_table('halls',
     sa.Column('id', sa.String(length=32), nullable=False),
@@ -132,17 +128,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_machines_hall_id'), 'machines', ['hall_id'], unique=False)
     op.create_index(op.f('ix_machines_source_id'), 'machines', ['source_id'], unique=False)
-    op.create_table('orders',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('number', sa.String(length=40), nullable=False),
-    sa.Column('customer_id', sa.String(length=32), nullable=True),
-    sa.Column('received_at', sa.DateTime(), nullable=False),
-    sa.Column('due_date', sa.Date(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['customer_id'], ['customers.id'], ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('number')
-    )
     op.create_table('site_flows',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('from_hall_id', sa.String(length=32), nullable=False),
@@ -154,12 +139,6 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_site_flows_from_hall_id'), 'site_flows', ['from_hall_id'], unique=False)
     op.create_index(op.f('ix_site_flows_to_hall_id'), 'site_flows', ['to_hall_id'], unique=False)
-    op.create_table('stock',
-    sa.Column('article_id', sa.String(length=32), nullable=False),
-    sa.Column('units', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('article_id')
-    )
     op.create_table('cabinet_images',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('machine_id', sa.String(length=32), nullable=False),
@@ -258,18 +237,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('code')
     )
-    op.create_table('order_lines',
-    sa.Column('id', sa.String(length=32), nullable=False),
-    sa.Column('order_id', sa.String(length=32), nullable=False),
-    sa.Column('article_id', sa.String(length=32), nullable=False),
-    sa.Column('quantity', sa.Float(), nullable=False),
-    sa.Column('unit', sa.String(length=10), nullable=False),
-    sa.Column('position', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['order_id'], ['orders.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_order_lines_order_id'), 'order_lines', ['order_id'], unique=False)
     op.create_table('routing_steps',
     sa.Column('id', sa.String(length=32), nullable=False),
     sa.Column('article_id', sa.String(length=32), nullable=False),

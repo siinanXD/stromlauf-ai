@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
@@ -8,7 +8,6 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Computed,
-    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -555,59 +554,6 @@ class PlantSetting(Base):
 
     key: Mapped[str] = mapped_column(String(60), primary_key=True)
     value: Mapped[dict] = mapped_column(JSON, default=dict)
-
-
-# --- Leitstand: Kunden, Auftraege, Bestand ------------------------------------------------------
-
-
-class Customer(Base):
-    """Kunde mit Kreditlimit (Finanzen pruefen offene Auftragswerte dagegen)."""
-
-    __tablename__ = "customers"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    name: Mapped[str] = mapped_column(String(200), unique=True)
-    credit_limit: Mapped[float] = mapped_column(Float, default=0.0)
-
-
-class Order(Base):
-    """Kundenauftrag im Auftragsbuch."""
-
-    __tablename__ = "orders"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    number: Mapped[str] = mapped_column(String(40), unique=True)
-    customer_id: Mapped[str | None] = mapped_column(ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
-    received_at: Mapped[datetime] = mapped_column(DateTime)  # Ortszeit, ohne Zeitzone
-    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-
-    customer: Mapped[Customer | None] = relationship()
-    lines: Mapped[list["OrderLine"]] = relationship(cascade="all, delete-orphan", order_by="OrderLine.position")
-
-
-class OrderLine(Base):
-    __tablename__ = "order_lines"
-
-    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    order_id: Mapped[str] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
-    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"))
-    quantity: Mapped[float] = mapped_column(Float)
-    unit: Mapped[str] = mapped_column(String(10), default="unit")  # unit | pallet
-    position: Mapped[int] = mapped_column(Integer, default=0)
-
-    article: Mapped[Article] = relationship()
-
-
-class StockItem(Base):
-    """Lagerbestand je Artikel in Verkaufseinheiten (Anfangsbestand der Simulation)."""
-
-    __tablename__ = "stock"
-
-    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id", ondelete="CASCADE"), primary_key=True)
-    units: Mapped[int] = mapped_column(Integer, default=0)
-
-    article: Mapped[Article] = relationship()
 
 
 class AiCall(WorkspaceScoped, Base):

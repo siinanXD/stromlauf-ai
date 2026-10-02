@@ -67,7 +67,7 @@ Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jede
   Blatt mit Titel, Bezeichnungen von Stücklistenseiten in der PDF). Nachweis mit dem QElectroTech-Beispielprojekt
   (50 Seiten, eine PDF, Kennzeichen ohne Minus): 23 Blatt-Zonen, 105 Teile, davon 101 mit Bezeichnung, alle mit
   Fundstelle; Onboarding zählt 129 Betriebsmittel. Kein Schaltschrankfoto in dieser Doku, daher dort keine Hotspots.
-- Planung und Leitstand (Nebenmodule) sind noch nicht workspace-scoped (`contract.md`, Known limitations).
+- Planung (Nebenmodul) ist noch nicht workspace-scoped (`contract.md`, Known limitations).
 - Kosten je Antwort erscheinen nur für live gestreamte Antworten; der Verlauf trägt keine Kosten. Bauteile,
   Belege und geprüfte Zitate trägt der Verlauf seit Issue #47 (2026-09-29) nachgerechnet, der zuletzt geöffnete
   Chat je Maschine bleibt über einen Reload gewählt.
