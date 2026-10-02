@@ -32,6 +32,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# Das Backend neben diesem Skript, nicht das in der venv installierte (ein Worktree hat sonst den Stand des
+# Haupt-Checkouts: andere Preistabelle, andere cost_usd-Signatur)
+sys.path.insert(0, str(HERE.parent / "backend"))
 
 import evallib  # noqa: E402
 
@@ -74,8 +77,24 @@ def ask(
         response.raise_for_status()
         answer, sources, tools, meta = evallib.parse_sse(response.iter_lines())
     usage = meta["usage"]
-    usage["cost_usd"] = cost_usd(usage["model"], usage["input_tokens"], usage["output_tokens"])
+    usage["cost_usd"] = usage_cost(usage)
     return answer, sources, tools, time.time() - started, meta
+
+
+def output_path(requested: Path | None, run: str) -> Path:
+    """Ergebnisdatei: Wunsch aus --out (parallele Laeufe je Modell), sonst eval/results/<lauf>.json."""
+    return requested if requested else RESULTS / f"{run}.json"
+
+
+def usage_cost(usage: dict) -> float:
+    """Kosten des summierten Verbrauchs einer Frage; Cache-Treffer und -Schreiben zaehlen wie in app/flow/pricing.py."""
+    return cost_usd(
+        usage["model"],
+        usage["input_tokens"],
+        usage["output_tokens"],
+        usage.get("cache_read_tokens", 0),
+        usage.get("cache_creation_tokens", 0),
+    )
 
 
 def push_scores(run: str, rows: list[dict]) -> None:
@@ -111,7 +130,10 @@ def main() -> int:
     parser.add_argument("--resume", type=Path, help="Abgebrochenen Lauf fortsetzen (Ergebnisdatei)")
     parser.add_argument("--max-cost", type=float, default=0.0, help="Kostendeckel in USD: keine weitere Frage, sobald die Summe darueber liegt")
     parser.add_argument("--model", help="Modell fuer diesen Lauf, z. B. openai:gpt-5-mini oder claude-sonnet-5 (leer = CHAT_MODEL des Backends)")
+    parser.add_argument("--out", type=Path, help="Ergebnisdatei (Standard: eval/results/<lauf>.json); nicht mit --resume")
     args = parser.parse_args()
+    if args.out and args.resume:
+        sys.exit("--out und --resume schliessen sich aus: fortgesetzt wird in die Datei von --resume.")
 
     questions = [q for q in evallib.load_questions(QUESTIONS, args.only) if q.get("agent", True)]
     if args.limit:
@@ -133,7 +155,7 @@ def main() -> int:
         print(f"Setze {args.resume.name} fort: {len(rows)} fertig, {len(questions)} offen")
         if not questions:
             sys.exit("Alle Fragen dieses Laufs sind schon beantwortet.")
-    out = RESULTS / f"{run}.json"
+    out = output_path(args.out, run)
 
     with httpx.Client(base_url=args.api, timeout=600, headers=_auth_headers()) as client:
         try:

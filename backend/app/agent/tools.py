@@ -6,12 +6,15 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from sqlalchemy import or_, select
 
+from app.api.signal import graph_for_source
 from app.db import session_scope
 from app.embeddings import embeddings
+from app.ingestion.signal_view import main_view
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import image_block, render_page_png
 from app.models import (
     Chunk,
+    Conversation,
     DocStatus,
     Document,
     FaultEntry,
@@ -21,7 +24,7 @@ from app.models import (
     TagOccurrence,
 )
 from app.retrieval import hybrid_chunk_ids
-from app.werk.faults import fault_matches
+from app.werk.faults import FaultQuery
 
 
 def _source_ids(config: RunnableConfig) -> list[str]:
@@ -271,15 +274,36 @@ def list_documents(config: RunnableConfig) -> str:
         )
 
 
-def format_faults(rows: list[dict], query: str, limit: int = 20) -> str:
-    hits = [r for r in rows if fault_matches(r, query)][:limit]
-    if not hits:
-        return f'Kein Fehlereintrag passt zu "{query}". Die Fehlerlisten sind von Hand gepflegt und decken nicht alles ab.'
-    lines = [
-        DATA_NOTE,
-        "",
-        f'Fehlereintraege zu "{query}" ({len(hits)}, werksweit, von der Instandhaltung gepflegt):',
+def _ranked(items: list[dict], query: str, score) -> list[dict]:
+    """Treffer, bester zuerst; bei Gleichstand in der Reihenfolge der Eingabe. Leere Suche: alle."""
+    parsed = FaultQuery(query)
+    if parsed.empty:
+        return list(items)
+    scored = [(score(parsed, item), index, item) for index, item in enumerate(items)]
+    return [
+        item for points, _index, item in sorted(scored, key=lambda s: (-s[0], s[1])) if points > 0
     ]
+
+
+def format_faults(
+    rows: list[dict], query: str, incidents: list[dict] | None = None, limit: int = 20
+) -> str:
+    """Fehlereintraege (werksweit) und erledigte Stoerfaelle mit Befund zur Meldung, bester Treffer zuerst.
+
+    incidents: {"machine", "title", "finding", "date" (ISO)}; ohne Befund zaehlt ein Stoerfall nicht als Erfahrung.
+    """
+    hits = _ranked(rows, query, lambda q, r: q.score(r))[:limit]
+    known = [i for i in incidents or [] if (i.get("finding") or "").strip()]
+    solved = _ranked(
+        known, query, lambda q, i: q.score({"symptom": i["title"], "cause": i["finding"]})
+    )[:5]
+    if not hits and not solved:
+        return f'Kein Fehlereintrag passt zu "{query}". Die Fehlerlisten sind von Hand gepflegt und decken nicht alles ab.'
+    lines = [DATA_NOTE, ""]
+    if hits:
+        lines.append(
+            f'Fehlereinträge zu "{query}" ({len(hits)}, werksweit, von der Instandhaltung gepflegt):'
+        )
     for r in hits:
         tags = ", ".join(r.get("tags") or []) or "-"
         detail = escape_document(
@@ -289,15 +313,57 @@ def format_faults(rows: list[dict], query: str, limit: int = 20) -> str:
         lines.append(
             f"- {r['machine']} ({r['hall']}) | {r.get('code') or '-'} | <kontext>{detail}</kontext> | BMK: {tags}"
         )
+    if solved:
+        lines += ["", f"Erledigte Störfälle mit Befund ({len(solved)}, vor Ort festgestellt):"]
+    for i in solved:
+        day = _german_date(i.get("date") or "")
+        detail = escape_document(f"Meldung: {i['title']} | Befund: {i['finding'].strip()}")
+        lines.append(f"- {i['machine']} | {day} | <kontext>{detail}</kontext>")
     return "\n".join(lines)
+
+
+def _german_date(iso: str) -> str:
+    year, _, rest = iso[:10].partition("-")
+    month, _, day = rest.partition("-")
+    return f"{day}.{month}.{year}" if day else "-"
+
+
+def _resolved_incidents(session, config: RunnableConfig) -> list[dict]:
+    """Erledigte Stoerfaelle mit Befund aus den Chats der gewaehlten Quellen (ohne Auswahl: alle)."""
+    scope = set(_source_ids(config))
+    machines = {
+        source_id: name
+        for source_id, name in session.execute(
+            select(Machine.source_id, Machine.name).where(Machine.source_id.is_not(None))
+        ).all()
+    }
+    incidents = []
+    for conversation in session.scalars(
+        select(Conversation)
+        .where(Conversation.outcome == "resolved", Conversation.finding != "")
+        .order_by(Conversation.updated_at.desc())
+        .limit(200)
+    ).all():
+        sources = list(conversation.source_ids or [])
+        if scope and not scope & set(sources):
+            continue
+        machine = next((machines[s] for s in sources if s in machines), "ohne Maschine")
+        incidents.append(
+            {
+                "machine": machine,
+                "title": conversation.title,
+                "finding": conversation.finding,
+                "date": conversation.updated_at.isoformat() if conversation.updated_at else "",
+            }
+        )
+    return incidents
 
 
 @tool
 def search_faults(query: str, config: RunnableConfig) -> str:
-    """Durchsucht die handgepflegten Fehlerlisten ALLER Maschinen des Werks (Code, Symptom, Ursache,
-    Behebung, beteiligte Kennzeichen). Erfahrungswissen der Instandhaltung, unabhaengig von der
-    gewaehlten Dokumentation: Treffer an anderen Maschinen als Erfahrung kennzeichnen, nicht als
-    Beleg fuer diese Maschine. Gut fuer "Band steht", "Motorschutz", "-F2", "F03"."""
+    """Erfahrung der Instandhaltung zu einer Störung: Fehlerlisten ALLER Maschinen (Code, Symptom, Ursache,
+    Behebung, Kennzeichen) und erledigte Störfälle dieser Dokumentation mit Befund. Ein Treffer an einer
+    anderen Maschine ist Erfahrung, kein Beleg für diese. Gut für "Band steht", "Motorschutz", "-F2", "F03"."""
     statement = (
         select(FaultEntry, Machine.name, Hall.name)
         .join(Machine, FaultEntry.machine_id == Machine.id)
@@ -318,12 +384,147 @@ def search_faults(query: str, config: RunnableConfig) -> str:
             }
             for f, machine, hall in session.execute(statement).all()
         ]
-    return format_faults(rows, query)
+        incidents = _resolved_incidents(session, config)
+    return format_faults(rows, query, incidents)
+
+
+# --- Signalweg -----------------------------------------------------------------------------------------
+
+COLUMN_NAMES = {
+    "feld": "Feldgerät",
+    "klemme_vor": "Klemme",
+    "sps_eingang": "SPS-Eingang",
+    "programm": "Programm",
+    "sps_ausgang": "SPS-Ausgang",
+    "klemme_nach": "Klemme",
+    "schaltgeraet": "Schaltgerät",
+    "verbraucher": "Verbraucher",
+}
+ORIGIN_NAMES = {
+    "klemmenplan": "Klemmenplan",
+    "awl": "AWL",
+    "leitung": "Leitung im Plan",
+    "lage": "Lage im Plan (unsicher)",
+    "modell": "Modell (unsicher)",
+}
+CERTAIN = {"klemmenplan", "awl", "leitung"}
+FILE_KINDS = {
+    "schematic": "Stromlaufplan",
+    "bom": "Stückliste",
+    "terminal_plan": "Klemmenplan",
+    "plc_program": "AWL",
+    "plc_symbols": "Symboltabelle",
+}
+MAX_BRANCHES = 8
+
+
+def _connection(view: dict, a: str, b: str) -> str:
+    """Zeile zwischen zwei Schritten: Herkunft (Tabellen und Leitung vor Lage und Modell) und Anschluesse."""
+    edge = next((e for e in view["edges"] if (e["source"], e["target"]) in ((a, b), (b, a))), None)
+    if edge is None:
+        return "   ↓"
+    # Eine belegte Herkunft genuegt; Lage und Modell nur nennen, wenn sonst nichts die Verbindung traegt
+    origins = [v for v in ORIGIN_NAMES if v in edge["via"] and v in CERTAIN] or sorted(edge["via"])
+    text = "   ↓ " + ", ".join(ORIGIN_NAMES.get(v, v) for v in origins)
+    pins = edge.get("pins") or {}
+    if pins.get("from"):
+        text += f", von {edge['source']}:{pins['from']}"
+    if pins.get("to"):
+        text += f", an {edge['target']}:{pins['to']}"
+    return text
+
+
+def format_signal_path(view: dict, source_name: str, files: dict[str, str]) -> str:
+    """Hauptweg der Stoerfall-Arbeitsflaeche als Text fuer das Modell: Schritte in Signalrichtung, je Verbindung
+    die Herkunft (Lage im Plan und Modell als unsicher markiert), Abzweige eine Stufe tief. Bezeichnungen und
+    Orte stammen aus Kundendokumenten und stehen deshalb zwischen <kontext>-Marken."""
+    main = sorted((n for n in view["nodes"] if n["main"]), key=lambda n: n["order"])
+    named = "; ".join(
+        f"{FILE_KINDS[kind]} {name}" for kind, name in files.items() if kind in FILE_KINDS
+    )
+    lines = [
+        DATA_NOTE,
+        "",
+        f"Signalweg {view['start']} (Quelle: {source_name}). Dateien: {named or '-'}.",
+        "Ort /Blatt.Spalte gehört zum Stromlaufplan, FB/NW zur AWL; Klemmen belegt der Klemmenplan.",
+        "<kontext>",
+    ]
+    for index, node in enumerate(main):
+        if index:
+            lines.append(_connection(view, main[index - 1]["id"], node["id"]))
+        parts = [f"{index + 1}. {COLUMN_NAMES.get(node['column'], node['column'])}", node["id"]]
+        parts.append(escape_document(node["label"]) or "-")
+        parts.append(escape_document(node["ref"]) or "-")
+        flags = []
+        if node["id"] == view["start"]:
+            flags.append("gesucht")
+        if node["branches"]:
+            flags.append(f"+{node['branches']} Abzweig{'e' if node['branches'] > 1 else ''}")
+        lines.append(" | ".join(parts) + (f" ({', '.join(flags)})" if flags else ""))
+    side = [n for n in view["nodes"] if not n["main"]]
+    if side:
+        shown = ", ".join(f"{n['id']} (an {n['parent']})" for n in side[:MAX_BRANCHES])
+        more = f" und {len(side) - MAX_BRANCHES} weitere" if len(side) > MAX_BRANCHES else ""
+        lines.append(f"Abzweige: {shown}{more}")
+    lines.append("</kontext>")
+    if any(not set(e["via"]) & CERTAIN for e in view["edges"]):
+        lines.append(
+            "Unsicher: Verbindungen nur aus Lage im Plan oder Modell sind nicht als Leitung belegt; vor Ort prüfen."
+        )
+    return "\n".join(lines)
+
+
+def _source_documents(session, source_id: str) -> dict[str, Document]:
+    """Erste Datei je Dokumenttyp des Signalwegs: Das Modell schreibt damit Belege, und die Belegpruefung
+    (app/citations.py) kennt sie als Fundstellen der Antwort."""
+    documents: dict[str, Document] = {}
+    for document in session.scalars(
+        select(Document)
+        .where(Document.source_id == source_id, Document.doc_type.in_(list(FILE_KINDS)))
+        .order_by(Document.filename)
+    ).all():
+        documents.setdefault(document.doc_type, document)
+    return documents
+
+
+@tool(response_format="content_and_artifact")
+def signal_path(tag: str, config: RunnableConfig) -> tuple[str, list[dict]]:
+    """Signalweg eines Kennzeichens (-K1, -S1, -X3:9, E0.0, A4.0): der Hauptweg vom Feldgerät über Klemme,
+    SPS-Eingang, Programm und Ausgang bis zum Verbraucher, deterministisch aus Klemmenplan, Stückliste,
+    Symboltabelle, AWL und den Leitungen im Stromlaufplan. Je Verbindung steht die Herkunft; "Lage im Plan"
+    und "Modell" sind unsicher. Erstes Werkzeug für "Warum zieht -K1 nicht?" und "Was hängt an E0.2?"."""
+    found: list[str] = []
+    refs: list[dict] = []
+    with session_scope() as session:
+        statement = _scoped(
+            select(KnowledgeSource.id, KnowledgeSource.name).order_by(KnowledgeSource.name),
+            KnowledgeSource.id,
+            config,
+        )
+        for source_id, name in session.execute(statement).all():
+            graph, _schematic = graph_for_source(session, source_id)
+            view = main_view(graph, tag) if graph.nodes else None
+            if view is None:
+                continue
+            documents = _source_documents(session, source_id)
+            files = {kind: document.filename for kind, document in documents.items()}
+            found.append(format_signal_path(view, name, files))
+            refs += [_ref(document, None) for document in documents.values()]
+            if len(found) == 2:
+                break
+    if not found:
+        return (
+            f"{normalize_tag(tag)} kommt in keinem Signalweg vor. Alternative: find_tag (Fundstellen) "
+            "oder search_knowledge.",
+            [],
+        )
+    return "\n\n".join(found), refs
 
 
 TOOLS = [
     search_knowledge,
     find_tag,
+    signal_path,
     keyword_search,
     get_page,
     view_page,

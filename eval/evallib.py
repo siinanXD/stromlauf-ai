@@ -83,7 +83,14 @@ def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
     answer: list[str] = []
     sources: list[dict] = []
     tools: list[str] = []
-    usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0, "model": ""}
+    usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+    }
     meta = {"conversation_id": "", "usage": usage}
     event = None
     for line in lines:
@@ -102,6 +109,8 @@ def parse_sse(lines: Iterable[str]) -> tuple[str, list[dict], list[str], dict]:
             elif event == "usage":
                 usage["input_tokens"] += data.get("input_tokens", 0)
                 usage["output_tokens"] += data.get("output_tokens", 0)
+                usage["cache_read_tokens"] += data.get("cache_read_tokens", 0)
+                usage["cache_creation_tokens"] += data.get("cache_creation_tokens", 0)
                 usage["calls"] += 1
                 usage["model"] = data.get("model") or usage["model"]
             elif event == "meta":

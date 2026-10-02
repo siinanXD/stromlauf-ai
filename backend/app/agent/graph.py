@@ -10,7 +10,18 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from app.agent.prompts import system_prompt_for
 from app.agent.tools import TOOLS
 from app.config import get_settings
-from app.llm import make_chat_model
+from app.llm import make_chat_model, split_model
+
+
+def model_kwargs_for(model_name: str) -> dict:
+    """Aufrufparameter je Provider. Anthropic: Prompt-Caching ueber den Cache-Marker auf Anfrageebene (die API setzt
+    ihn an den letzten Block, Werkzeuge und Systemprompt liegen davor; jede Werkzeugrunde liest die vorige). OpenAI
+    cacht Praefixe von selbst und kennt den Parameter nicht."""
+    try:
+        provider, _ = split_model(model_name)
+    except ValueError:
+        return {}
+    return {"cache_control": {"type": "ephemeral"}} if provider == "anthropic" else {}
 
 
 def _build_model(model_name: str):
@@ -47,7 +58,9 @@ def build_graph(checkpointer):
     async def agent(state: MessagesState, config: RunnableConfig) -> dict:
         window = history_window(state["messages"], get_settings().chat_history_messages)
         messages = [SystemMessage(system_prompt_for(config.get("configurable"))), *window]
-        return {"messages": [await get_model(model_name_for(config)).ainvoke(messages, config)]}
+        model_name = model_name_for(config)
+        model = get_model(model_name)
+        return {"messages": [await model.ainvoke(messages, config, **model_kwargs_for(model_name))]}
 
     builder = StateGraph(MessagesState)
     builder.add_node("agent", agent)

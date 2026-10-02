@@ -145,7 +145,11 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   `PATCH /api/conversations/{id}`, Liste ueber `GET /api/conversations?machine_id=` (aeltere Server: `source_id`), Verlauf in
   Seiten (`?limit=&before=`, `MessageOut.index`). `ChatRequest.machine_id` erzwingt Scope = Quelle der Maschine
   (`chat.machine_scope`), Systemprompt mit Kontext (`prompts.system_prompt_for`); Werkzeug `search_faults` durchsucht
-  Fehlerlisten ALLER Maschinen (bewusst global). Frontend `components/incident/*` (Liste, Kopf, Detailspalte, URL in
+  Fehlerlisten ALLER Maschinen (bewusst global) und erledigte Stoerfaelle mit Befund der gewaehlten Quellen.
+  Werkzeug `signal_path` (Prompt v3): Hauptweg aus `signal_view.main_view` als Text mit Herkunft je Verbindung
+  („Lage im Plan“ und „Modell“ als unsicher); seine Fundstellen sind alle Dateien des Wegs, sonst verwirft
+  `citations.check_answer` Belege auf Klemmenplan oder AWL. Prompt ab v3 mit echten Umlauten, fester Teil vorn
+  (Prompt-Caching), Maschinenkontext hinten. Frontend `components/incident/*` (Liste, Kopf, Detailspalte, URL in
   `view.ts`), Antwortbloecke `components/answer/blocks/*` in fester Reihenfolge: Fehlerliste sofort ueber
   `GET /api/machines/{id}/fault-hits` (Trefferlogik `app/werk/faults.py`, dieselbe wie `search_faults`; andere Maschinen als
   „Erfahrung“), Text, Bauteile, Signalweg, Im Plan, Im Schrank, Belege; Bloecke ohne Inhalt entfallen, Inhalte laden erst
@@ -182,9 +186,14 @@ Navigation abgesetzt. Vor jeder Erweiterung dort: Nutzt das der Instandhaltung a
   Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
   rechnet Kosten aus `app/flow/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
   Nicht getrackt: Retrieval und Embeddings (ohne Modellkosten).
-- Modelle: zwei Provider ueber `app/llm.py` (`make_chat_model`): Anthropic (Standard) und OpenAI; Name mit Praefix
-  `openai:`/`anthropic:` oder erkennbar (`claude-*`, `gpt-*`). `POST /api/chat` nimmt `model` je Anfrage
-  (Evals: `run_eval.py --model`). Embeddings `local|voyage|openai` (`app/embeddings.py`), Wechsel = neu indexieren.
+- Modelle: drei Provider ueber `app/llm.py` (`make_chat_model`): Anthropic (Standard), OpenAI und Ollama (lokal,
+  `ollama:qwen3.5:4b` ueber `OLLAMA_BASE_URL`, kein Schluessel, Kosten 0, Thinking aus); Name mit Praefix
+  `openai:`/`anthropic:`/`ollama:` oder erkennbar (`claude-*`, `gpt-*`). Aufwand hinter `@` im Namen
+  (`openai:gpt-5.4-mini@none`) wird `reasoning_effort`; GPT-5.5/5.6 rufen Werkzeuge in Chat Completions nur mit
+  `@none`, GPT-6 Astra/6.1 Sol leitet langchain-openai mit Werkzeugen selbst ueber die Responses-API.
+  `POST /api/chat` nimmt `model` je Anfrage (Evals: `run_eval.py --model`). Anthropic-Aufrufe tragen den
+  Cache-Marker (`graph.model_kwargs_for`); Cache-Tokens stehen im `usage`-Ereignis und zaehlen in
+  `pricing.cost_usd` (Treffer meist 0,1-fach, Tabelle kennt Ausnahmen, Schreiben 1,25-fach). Embeddings `local|voyage|openai` (`app/embeddings.py`), Wechsel = neu indexieren.
   `EMBEDDING_CACHE_DIR` (nur CI/Eval, leer = aus) legt `CachedEmbeddings` um den Provider: Dokument-Vektoren je
   SHA-256 aus Provider, Modell, Dimension, Passage-Praefix und Text auf Platte, Anfragen immer live. In `eval.yml`
   haelt `actions/cache` sie je Retrieval-Gruppe; ein aelterer Stand kommt nur bei gleichem `embeddings.py`,

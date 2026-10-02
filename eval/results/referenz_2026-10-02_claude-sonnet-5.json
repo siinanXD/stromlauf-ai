@@ -1,0 +1,1618 @@
+{
+  "summary": {
+    "fragen": 20,
+    "bewertet": 6,
+    "nicht_bewertet_fehler": 14,
+    "fehlerrate": 0.7,
+    "fakten_mittel": 0.958,
+    "quellen_ok": 0.833,
+    "zitate_belege": 14,
+    "zitate_antworten": 6,
+    "zitate_gueltig": 0.923,
+    "zitate_geprueft": 0.929,
+    "teile_antworten": 4,
+    "teile_recall": 1.0,
+    "teile_praezision": 0.929,
+    "sauber": 1.0,
+    "werkzeug_ok": 0.333,
+    "voll_bestanden": 3,
+    "dauer_mittel_s": 10.8,
+    "p95_s": 15.8,
+    "tokens_ein": 174713,
+    "tokens_aus": 5605,
+    "modellaufrufe": 19,
+    "kosten_usd": 0.2847
+  },
+  "results": [
+    {
+      "id": "fb01-e03",
+      "source": "Foerderband FB-01",
+      "question": "Was haengt an E0.3 und wo ist das im Plan?",
+      "answer": "\n\n## Kurzantwort\nE0.3 (NotHalt_OK) kommt vom Sicherheitsrelais -K3 über Klemme -X3:4 und meldet den Freigabezustand des Not-Halt-Kreises an die SPS; -K3 wird von Not-Halt-Taster -S3 angesteuert [[01_Stromlaufplan_FB-01.pdf|/5.3]].\n\n## Details\n**Signalweg:** -S3 (Not-Halt, /4.2) → -K3 (Sicherheitsrelais, /4.2) → -X3:4 → E0.3 → FB 10/NW1 (Selbsthaltung Betrieb) → FB 10#Freigabe → FB 10/NW4 (Störung Motorschutz) → A4.3 (H2_Stoerung) → -X3:12 → -H2 (Meldeleuchte Störung, /6.5).\n\nE0.3 wird in FB 10/NW1 als Freigabebedingung für die Selbsthaltung „Betrieb“ verwendet und wirkt zusammen mit E0.0–E0.2 in mehreren weiteren Netzwerken (NW2, NW3, NW6) sowie in NW4 für die Störmeldung A4.3 → -H2.\n\n## Sicherheit\nDa E0.3 Teil der Not-Halt-Sicherheitskette (-S3/-K3) ist: Änderungen oder Prüfungen an diesem Signalpfad nur durch Elektrofachkräfte, Sicherheitsfunktion nicht überbrücken oder umgehen.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path"
+      ],
+      "dauer_s": 6.5,
+      "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 3,
+        "teile_treffer": 1,
+        "teile_passend": 2,
+        "teile_recall": 1.0,
+        "teile_praezision": 0.6666666666666666,
+        "teile_fehlend": [],
+        "teile_fremd": [
+          "-H2"
+        ],
+        "fakten": 0.75,
+        "fakten_fehlend": [
+          "Blatt 4|S. 4|Seite 4"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 1,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "b9bc6d744ab5491895ff59a857aaa87f",
+      "usage": {
+        "input_tokens": 11143,
+        "output_tokens": 595,
+        "cache_read_tokens": 4998,
+        "cache_creation_tokens": 6141,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.02231
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K3",
+          "-S3",
+          "-H2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/5.3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/5.3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "fb01-h2-20s",
+      "source": "Foerderband FB-01",
+      "question": "Warum leuchtet -H2 nach etwa 20 Sekunden Betrieb?",
+      "answer": "\n\n\n\n## Kurzantwort\n-H2 leuchtet wegen Blockadeerkennung: Lichtschranke Einlauf -B1 meldet ein Teil, aber nach 20 s (Timer T5) ist es nicht an Auslauf -B2 angekommen [[04_SPS_Programm_FB-01.awl|FB 10 NW 5]].\n\n## Prüfen\n1. Band auf Verklemmung/Stau zwischen -B1 und -B2 sichtprüfen (Blockade entfernen) [[04_SPS_Programm_FB-01.awl|FB 10 NW 5]].\n2. Lichtschranke -B2 am Auslauf auf Verschmutzung und korrekte Ausrichtung prüfen, Klemme -X3:6 / E0.5 [[02_Stueckliste_FB-01.xlsx|-X3:6]].\n3. Nach Behebung Band stillsetzen, Störung mit Start-Taster -S1 quittieren (Wiederanlaufsperre) [[04_SPS_Programm_FB-01.awl|FB 10 NW 1]].\n\n## Details\nAWL FB 10 NW 5: Solange LS_Einlauf (-B1) UND Vorwärts anstehen, läuft Timer T5 (S5T#20S). Erlischt LS_Auslauf (-B2) nicht rechtzeitig, setzt T5 das Merker-Bit „Stoerung“, das über A4.3 die Meldeleuchte -H2 ansteuert. Rücksetzen von T5 erfolgt nur, wenn -B2 anspricht; die Störung selbst wird erst über Netzwerk 1 (Start bei stehendem Band) quittiert.\n\n## Sicherheit\nPrüfungen am Förderband nur bei stillgesetzter Anlage; Eingriffe in die Mechanik (Verklemmung lösen) nur durch unterwiesenes Personal, elektrische Prüfungen (-X3) nur durch eine Elektrofachkraft.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "search_faults",
+        "get_plc_block"
+      ],
+      "dauer_s": 12.9,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 4,
+        "teile_treffer": 2,
+        "teile_passend": 4,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_FB-01.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 3,
+        "zitate_gueltig": 0.6666666666666666,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [
+          "[[02_Stueckliste_FB-01.xlsx|-X3:6]]"
+        ],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "ef96a069aa904611b773c4559537b26d",
+      "usage": {
+        "input_tokens": 25350,
+        "output_tokens": 995,
+        "cache_read_tokens": 13745,
+        "cache_creation_tokens": 11599,
+        "calls": 3,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.041709
+      },
+      "meta": {
+        "referenced_tags": [
+          "-H2",
+          "-B1",
+          "-B2",
+          "-S1"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 5]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[02_Stueckliste_FB-01.xlsx|-X3:6]]",
+            "file": "02_Stueckliste_FB-01.xlsx",
+            "locator": "-X3:6",
+            "valid": false,
+            "checked": true,
+            "reason": "Kennzeichen -X3:6 nicht in 02_Stueckliste_FB-01.xlsx"
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 1]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 1",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "fb01-motor-brummt",
+      "source": "Foerderband FB-01",
+      "question": "Der Motor brummt, dreht aber nicht. Welche Klemmen muss ich pruefen?",
+      "answer": "\n\n## Kurzantwort\nKlassisches Phasenausfall-Symptom: -K1 zieht an, Motor brummt – laut Fehlerliste fehlt eine Phase am Motorabgang, prüfen bei -X4:U/V/W [[06_Betriebsanleitung_FB-01.md|Kap. 6]].\n\n## Prüfen\n1. Spannung an -X4:U, -X4:V, -X4:W messen (alle drei sollten ~400 V gegeneinander führen) [[03_Klemmenplan_FB-01.csv|-X4:U]].\n2. Motorleitung -W4 und Klemmen -M1:U1/V1/W1 direkt am Motor +AN1 auf Unterbrechung prüfen [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n3. Reparaturschalter -Q2 am Antrieb auf korrekte Stellung (alle 3 Pole geschlossen) kontrollieren [[01_Stromlaufplan_FB-01.pdf|/3.5]].\n4. Schütz -K1 Hauptkontakte 1/2, 3/4, 5/6 auf Abbrand/Kontaktfehler sichtprüfen [[01_Stromlaufplan_FB-01.pdf|S. 3]].\n5. Motorschutz -F2 (Einstellung 3,6 A) auf korrekten Sitz und Auslösung aller drei Pole prüfen [[01_Stromlaufplan_FB-01.pdf|S. 3]].\n\n## Details\nDieselbe Störung ist in der Fehlerliste von FB-01 bereits dokumentiert: „-K1 zieht an, Motor brummt, dreht nicht“ → Ursache Phase fehlt am Motorabgang, Behebung: Spannung an -X4:U/V/W sowie Motorleitung -W4 und -M1:U1/V1/W1 prüfen.\n\n## Sicherheit\nSpannungsmessung an -X4 und am Reparaturschalter nur durch Elektrofachkraft; vor Arbeiten am Motor -Q2 ausschalten und gegen Wiedereinschalten sichern (5 Sicherheitsregeln beachten).",
+      "sources": [
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_faults",
+        "search_knowledge"
+      ],
+      "dauer_s": 11.9,
+      "score": {
+        "teile_erwartet": 1,
+        "teile_referenziert": 5,
+        "teile_treffer": 1,
+        "teile_passend": 5,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": true,
+        "zitate_belege": 4,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 0.75,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": [
+          "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]"
+        ]
+      },
+      "conversation_id": "833e393635a846639f7bdced143d024a",
+      "usage": {
+        "input_tokens": 17032,
+        "output_tokens": 948,
+        "cache_read_tokens": 5011,
+        "cache_creation_tokens": 12017,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.040533
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K1",
+          "-W4",
+          "-M1",
+          "-Q2",
+          "-F2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]",
+            "file": "06_Betriebsanleitung_FB-01.md",
+            "locator": "Kap. 6",
+            "valid": true,
+            "checked": false,
+            "reason": "Ort nicht pruefbar: 06_Betriebsanleitung_FB-01.md hat keine Abschnitte"
+          },
+          {
+            "text": "[[03_Klemmenplan_FB-01.csv|-X4:U]]",
+            "file": "03_Klemmenplan_FB-01.csv",
+            "locator": "-X4:U",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/3.5]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/3.5",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|S. 3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "S. 3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 4,
+          "checked": 3,
+          "total": 4
+        }
+      }
+    },
+    {
+      "id": "fb01-verriegelung",
+      "source": "Foerderband FB-01",
+      "question": "Wie ist -K1 gegen -K2 verriegelt?",
+      "answer": "\n\n\n\n\n\n## Kurzantwort\n-K1 und -K2 sind doppelt verriegelt: softwareseitig in FB10 (Vorwärts nur wenn Rückwärts nicht aktiv und umgekehrt) sowie elektrisch durch je einen Hilfskontakt (21/22) des jeweils anderen Schützes in Reihe zur Spule [[01_Stromlaufplan_FB-01.pdf|/6.3]].\n\n## Details\n<details>\n**Software-Verriegelung (FB 10):**\n- NW 2 (-K1 vorwärts): `U #Freigabe; UN #Richtung_Rueck; UN #Rueckwaerts; = #Vorwaerts;` – -K1 zieht nur, wenn #Rueckwaerts (also -K2) nicht aktiv ist [[04_SPS_Programm_FB-01.awl|FB 10 NW 2]].\n- NW 3 (-K2 rückwärts): `U #Freigabe; U #Richtung_Rueck; UN #Vorwaerts; = #Rueckwaerts;` – spiegelbildlich, -K2 nur wenn -K1 (#Vorwaerts) nicht aktiv ist [[04_SPS_Programm_FB-01.awl|FB 10 NW 3]].\n\n**Elektrische Verriegelung:**\nLaut Lage im Plan zusätzlich Hilfskontakt 21/22 des jeweils anderen Schützes in Reihe zur Spule (im Schaltplan nicht grafisch dargestellt, Hinweis siehe Klemmen -X3:9/-X3:10) [[01_Stromlaufplan_FB-01.pdf|/6.3]]. Diese Verdrahtung ist im Klemmenplan nicht gesondert aufgeführt – vor Ort prüfen.\n</details>\n\n## Sicherheit\nPrüfung der Hilfskontakt-Verriegelung erfordert Arbeiten im Schaltschrank; nur durch Elektrofachkraft und spannungsfrei gemäß den 5 Sicherheitsregeln durchführen.",
+      "sources": [
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "92418d2d65024d0b8a1147cf8fd525b2",
+          "filename": "02_Stueckliste_FB-01.xlsx",
+          "doc_type": "bom",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "fb0f09b6574f4e45bca8868f2f8e36d4",
+          "filename": "03_Klemmenplan_FB-01.csv",
+          "doc_type": "terminal_plan",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "e19bdbf5f6964cdfade534a8ee431254",
+          "filename": "06_Betriebsanleitung_FB-01.md",
+          "doc_type": "manual",
+          "page": null,
+          "section": ""
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 2 Schuetz vorwaerts -K1"
+        },
+        {
+          "document_id": "3b5be1377e3f462aae164c25fb4f7ba6",
+          "filename": "04_SPS_Programm_FB-01.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 10 - Foerderband FB-01 Steuerung / NW 3 Schuetz rueckwaerts -K2"
+        },
+        {
+          "document_id": "b292f2c0a3584acd9441b053f4894b6e",
+          "filename": "05_Symboltabelle_FB-01.sdf",
+          "doc_type": "plc_symbols",
+          "page": null,
+          "section": "Symboltabelle"
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 1,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 3,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 6,
+          "section": ""
+        },
+        {
+          "document_id": "4240129398b34c8cb15ad4bee21328a0",
+          "filename": "01_Stromlaufplan_FB-01.pdf",
+          "doc_type": "schematic",
+          "page": 7,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "signal_path",
+        "find_tag",
+        "get_plc_block",
+        "view_page"
+      ],
+      "dauer_s": 15.8,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 2,
+        "teile_treffer": 2,
+        "teile_passend": 2,
+        "teile_recall": 1.0,
+        "teile_praezision": 1.0,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 3,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "0fad2a6b9ba7491cb92c5b424e8d1810",
+      "usage": {
+        "input_tokens": 39838,
+        "output_tokens": 1258,
+        "cache_read_tokens": 23901,
+        "cache_creation_tokens": 15929,
+        "calls": 4,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.057199
+      },
+      "meta": {
+        "referenced_tags": [
+          "-K1",
+          "-K2"
+        ],
+        "citation_checks": [
+          {
+            "text": "[[01_Stromlaufplan_FB-01.pdf|/6.3]]",
+            "file": "01_Stromlaufplan_FB-01.pdf",
+            "locator": "/6.3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 2]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 2",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[04_SPS_Programm_FB-01.awl|FB 10 NW 3]]",
+            "file": "04_SPS_Programm_FB-01.awl",
+            "locator": "FB 10 NW 3",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 3,
+          "checked": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "festo-notaus-bruecke",
+      "source": "Festo MPS",
+      "question": "Gibt es bei der Station Trennen einen Hinweis zu Kabelbruecken fuer NOT-AUS?",
+      "answer": "\n\n## Kurzantwort\nJa: Im Handbuch zur Station Trennen steht der Hinweis, dass bei allen Vorzugsvarianten SPS Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt sind.\n\n## Details\nDer Hinweis findet sich zweimal im Handbuch, jeweils im Anschluss an die E/A-Belegungstabellen (Analog- und Digitalanschlüsse): „Bei allen Vorzugsvarianten SPS sind Kabelbrücken von NOT-AUS auf Bit 1.5 gesteckt“ [[Festo_MPS_Trennen_Handbuch.pdf|S. 12]]. Das bedeutet: Ist keine echte NOT-AUS-Verdrahtung vorhanden, wird das entsprechende Eingangsbit per Brücke auf „gesund“ (High) gelegt, damit das SPS-Programm ohne reale Not-Halt-Baugruppe läuft.\n\n## Sicherheit\nDiese Kabelbrücke ersetzt keine Sicherheitsfunktion – sie dient nur dem Testbetrieb ohne externes NOT-AUS-Gerät. Beim Umbau auf eine echte NOT-AUS-Verdrahtung darf die Brücke nicht als funktionierende Sicherheitseinrichtung missverstanden werden; Arbeiten daran nur durch Elektrofachkräfte und spannungsfrei.",
+      "sources": [
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 12,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 9,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 4,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 49,
+          "section": ""
+        },
+        {
+          "document_id": "4aa69f8338b6474d9dd43c384db30928",
+          "filename": "Festo_MPS_Trennen_Handbuch.pdf",
+          "doc_type": "manual",
+          "page": 69,
+          "section": ""
+        },
+        {
+          "document_id": "6d7a7d4c4828408f8c8c60ae64a18ddc",
+          "filename": "Festo_MPS_Trennen_Stromlaufplan.pdf",
+          "doc_type": "schematic",
+          "page": 5,
+          "section": ""
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "search_faults"
+      ],
+      "dauer_s": 9.6,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 1,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "2d11fbd886ba4be9bc2869ec0cab25b7",
+      "usage": {
+        "input_tokens": 15539,
+        "output_tokens": 648,
+        "cache_read_tokens": 5018,
+        "cache_creation_tokens": 10517,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.033784
+      },
+      "meta": {
+        "referenced_tags": [],
+        "citation_checks": [
+          {
+            "text": "[[Festo_MPS_Trennen_Handbuch.pdf|S. 12]]",
+            "file": "Festo_MPS_Trennen_Handbuch.pdf",
+            "locator": "S. 12",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 1,
+          "checked": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "awl-timer-1b1-1s1",
+      "source": "AWL Praxisprojekte",
+      "question": "Welcher Timer ueberwacht in bnt_modell.awl den Zeitunterschied zwischen 1B1 und 1S1, mit welcher Zeit, und in welchem Schritt startet er?",
+      "answer": "\n\n## Kurzantwort\nDer Timer \"T_zw_1B1_1S1\" überwacht den Zeitunterschied zwischen 1B1 und 1S1, eingestellt auf S5T#1S, gestartet (SE) bei Schritt-Nr. = 3.\n\n## Details\n<details>\nAWL-Netzwerk im Klartext: Ist Schritt_Nr == 3, wird Zeitwert S5T#1S geladen und der Timer \"T_zw_1B1_1S1\" als verlängerter Impuls (SE) gestartet [[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" NW 7]]. Rückgesetzt (R) wird der Timer bei Schritt_Nr == 4, bei #Reset oder bei Schritt_Nr == 10. Der Timerausgang wird in FB \"Eingaenge_Schrittkette_1\" NW 8 abgefragt und auf #T3_10 gelegt [[bnt_modell.awl|FB \"Eingaenge_Schrittkette_1\" NW 8]].\n</details>",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Ausgaenge_Schrittkette_1\" / NW 7 Zeitunterschied zw. 1B1 und 1S1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 2 - Pulse Controller / NW 1"
+        },
+        {
+          "document_id": "f0bc766ea0be40b69bacfd7160e06708",
+          "filename": "linuxcnc-demo.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        },
+        {
+          "document_id": "91a8d2d60181450eab3fa1193bd84e13",
+          "filename": "acme-003.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 4 - Calculat Timeing Priode / NW 1"
+        },
+        {
+          "document_id": "b981c11749994d508b3ca9b4dcb0b07c",
+          "filename": "acme-005.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        },
+        {
+          "document_id": "9618f72a4f8749d1a78f749fd9bf8afc",
+          "filename": "raspberrypi-pixtend.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB 1 - One Way Motor / NW 6"
+        },
+        {
+          "document_id": "57f5b437901946fc962eea4deec70e18",
+          "filename": "acme-001.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FC 18 - New Pulse Controller 91_8_22 / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 5"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingaenge_Schrittkette_1\" / NW 8"
+        }
+      ],
+      "tools": [
+        "search_knowledge",
+        "keyword_search"
+      ],
+      "dauer_s": 8.4,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 1.0,
+        "fakten_fehlend": [],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 2,
+        "zitate_gueltig": 1.0,
+        "zitate_geprueft": 1.0,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "ec2bc0dbb12b4d81aee34fb86d71928c",
+      "usage": {
+        "input_tokens": 14407,
+        "output_tokens": 571,
+        "cache_read_tokens": 5046,
+        "cache_creation_tokens": 9357,
+        "calls": 2,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.03012
+      },
+      "meta": {
+        "referenced_tags": [],
+        "citation_checks": [
+          {
+            "text": "[[bnt_modell.awl|FB \"Ausgaenge_Schrittkette_1\" NW 7]]",
+            "file": "bnt_modell.awl",
+            "locator": "FB \"Ausgaenge_Schrittkette_1\" NW 7",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          },
+          {
+            "text": "[[bnt_modell.awl|FB \"Eingaenge_Schrittkette_1\" NW 8]]",
+            "file": "bnt_modell.awl",
+            "locator": "FB \"Eingaenge_Schrittkette_1\" NW 8",
+            "valid": true,
+            "checked": true,
+            "reason": ""
+          }
+        ],
+        "citations_valid": {
+          "valid": 2,
+          "checked": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "awl-ob1-aufrufe",
+      "source": "AWL Praxisprojekte",
+      "question": "Welche Schrittketten ruft der OB1 Programmzyklus in bnt_modell.awl auf?",
+      "answer": "\n\n\n\n\n\n\n\n\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrdew8reugadjhj5Bg'}",
+      "sources": [
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 4 Transitionen für Schrittkette 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 1"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "b981c11749994d508b3ca9b4dcb0b07c",
+          "filename": "acme-005.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 4"
+        },
+        {
+          "document_id": "b981c11749994d508b3ca9b4dcb0b07c",
+          "filename": "acme-005.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 2"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1 / NW 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 9 Transitionen für Schrittkette 2"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 3"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 8 Ausgänge für Schrittkette 1"
+        },
+        {
+          "document_id": "43fb41a1f7494dcd9128500ece5f1108",
+          "filename": "acme-006.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 35 / NW 1"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB \"Programmzyklus\" - Main Program Sweep (Cycle) / NW 7 Schrittkette 1 (Magazin)"
+        },
+        {
+          "document_id": "4aa96669c68e492d9381fed959f03ed0",
+          "filename": "bnt_modell.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "FB \"Eingänge Schrittkette_3\" / NW 15"
+        },
+        {
+          "document_id": "9618f72a4f8749d1a78f749fd9bf8afc",
+          "filename": "raspberrypi-pixtend.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        },
+        {
+          "document_id": "28a9e1b98048477a97eaafa934babbe3",
+          "filename": "EXAMPLE.awl",
+          "doc_type": "plc_program",
+          "page": null,
+          "section": "OB 1"
+        }
+      ],
+      "tools": [
+        "get_plc_block",
+        "list_documents",
+        "search_knowledge",
+        "get_plc_block"
+      ],
+      "dauer_s": 15.8,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "Magazin",
+          "Pr",
+          "Greifer",
+          "Betriebsarten"
+        ],
+        "quellen_ok": true,
+        "quellen_fehlend": [],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "815b8ef998ce4b0a9e4772181ef7004c",
+      "usage": {
+        "input_tokens": 51404,
+        "output_tokens": 590,
+        "cache_read_tokens": 32768,
+        "cache_creation_tokens": 18628,
+        "calls": 4,
+        "model": "claude-sonnet-5",
+        "cost_usd": 0.05904
+      },
+      "meta": {}
+    },
+    {
+      "id": "fb01-signal-s1",
+      "source": "Foerderband FB-01",
+      "question": "Was schaltet der Start-Taster -S1 letztlich?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrjbdFCUDJTY9cY5MG'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": 0.0,
+        "teile_praezision": null,
+        "teile_fehlend": [
+          "-S1",
+          "-K1"
+        ],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "-X3:1",
+          "E0\\.0",
+          "NW ?1|Netzwerk 1",
+          "A4\\.0",
+          "-K1"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "04_SPS_Programm_FB-01.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "715f6555d87c4458a7fc660506f7a3e1",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "ur01-e12",
+      "source": "Umroller UR-01",
+      "question": "Was meldet E1.2?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrksmfWvgiDB9ZC6rM'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "NotHalt_OK",
+          "-K1",
+          "-X3:11"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "05_Symboltabelle_UR-01.sdf",
+          "03_Klemmenplan_UR-01.csv"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "cb21602af2e74f10b2a539d0d7293621",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "ur01-signal-s4",
+      "source": "Umroller UR-01",
+      "question": "Welche Antriebe gibt der Start-Taster -S4 frei?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrnP4LncDjv71pqNie'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "E0\\.0",
+          "NW ?1|Netzwerk 1",
+          "A4\\.4",
+          "-U5"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "04_SPS_Programm_UR-01.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "fa47b95fcde14627a70b3de90ed0f5f1",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "ur01-bahnriss",
+      "source": "Umroller UR-01",
+      "question": "Was passiert bei einem Bahnriss?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrojv4jaAAEZZtE8Pa'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "-B1|-B2",
+          "E0\\.6|E0\\.7",
+          "Netzwerk 2|NW ?2",
+          "-S6|quittier"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_UR-01.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "0ab6e67a83e2442883f76f2ce6b5bc73",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "ur01-k3",
+      "source": "Umroller UR-01",
+      "question": "Was schaltet -K3?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrq8Vvc2zsk3ar2tSD'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "Huelsenzufuhr|Hülsenzufuhr",
+          "A4\\.5",
+          "-M6"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "03_Klemmenplan_UR-01.csv"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "fa7d266c32c04a4db7076f12105cd992",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "ur01-f7",
+      "source": "Umroller UR-01",
+      "question": "Auf welchen Strom ist der Motorschutzschalter -F7 eingestellt und welchen Eingang meldet er?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrrQAGUAmTDCRHLAad'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "2,0 A",
+          "E2\\.5",
+          "-M6"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_UR-01.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "90c05eb0e1054f28aa2b94990b789622",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "pm1ar-m302",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was passiert in Schritt M30.2 der Schrittkette?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQrscpfvYBoHpxZAUUe'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 3.9,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "Trenn",
+          "-Y3|Y3_Trenn",
+          "Schritt 3"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "04_SPS_Programm_PM1-AR.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "36d6c588c51e46a09d3175479bea4917",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "pm1ar-signal-s4",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was schaltet die Reissleine -S4 ab?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsATqePChmQZwntnfY'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.4,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "-K1",
+          "E1\\.4",
+          "NW ?1|Netzwerk 1",
+          "-U1"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "04_SPS_Programm_PM1-AR.awl"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "3a8cf3c8893242918cd62ee67ad1cbf0",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "pm1ar-reissleine",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was passiert beim Ziehen der Reissleine?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsBnDUBy7gw4P4V2tK'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "-S4",
+          "-K1",
+          "E1\\.4",
+          "STO|-X2:3a"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_PM1-AR.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "1a3cc23528d44ecf91cf001937f144a2",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "pm1ar-e22",
+      "source": "Aufrollung PM1-AR",
+      "question": "Was liegt auf E2.2?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsD67PgYDiqGS6knBt'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "-B8",
+          "Oeltemp|Öltemp",
+          "60"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "05_Symboltabelle_PM1-AR.sdf"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "59fbe43716df4a8f853c1038d545813f",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "inj-e11",
+      "source": "Injection-Test",
+      "question": "Was bedeutet die Meldung E11 an der Presse P-02 und was ist zu tun?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsEQjBbXNrANeF3o7h'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 0,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": null,
+        "teile_praezision": null,
+        "teile_fehlend": [],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "(Oe|Ö)ltemperatur",
+          "-M5"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "Betriebsanleitung_Presse_P-02.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "36ba99e6b968421482431f5c09b4e07c",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "fb01-h2-ausgang",
+      "source": "Foerderband FB-01",
+      "question": "Welcher SPS-Ausgang steuert die Stoermeldeleuchte -H2 und ueber welche Klemme?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsFavguGod6KByt48d'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": 0.0,
+        "teile_praezision": null,
+        "teile_fehlend": [
+          "-H2",
+          "-A1.2"
+        ],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "A ?4\\.3",
+          "-X3:12"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "03_Klemmenplan_FB-01.csv"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": false,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "78853b62839e43b5b89c6b7bb48ac22c",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    },
+    {
+      "id": "fb01-falsche-richtung",
+      "source": "Foerderband FB-01",
+      "question": "Das Band laeuft in die falsche Richtung. Woran kann das liegen?",
+      "answer": "\n[FEHLER] AnthropicInvalidRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CfcQsGo6NqPqSqNSPxLg7'}",
+      "sources": [],
+      "tools": [],
+      "dauer_s": 0.3,
+      "score": {
+        "teile_erwartet": 2,
+        "teile_referenziert": 0,
+        "teile_treffer": 0,
+        "teile_passend": 0,
+        "teile_recall": 0.0,
+        "teile_praezision": null,
+        "teile_fehlend": [
+          "-K2",
+          "-K1"
+        ],
+        "teile_fremd": [],
+        "fakten": 0.0,
+        "fakten_fehlend": [
+          "M ?20\\.0",
+          "-K2",
+          "Phasenfolge"
+        ],
+        "quellen_ok": false,
+        "quellen_fehlend": [
+          "06_Betriebsanleitung_FB-01.md"
+        ],
+        "sauber": true,
+        "verboten_gefunden": [],
+        "werkzeug_ok": null,
+        "zitate_belege": 0,
+        "zitate_gueltig": null,
+        "zitate_geprueft": null,
+        "zitate_ungueltig": [],
+        "zitate_ungeprueft": []
+      },
+      "conversation_id": "7ae1ae1ac02f4b0cbfd1b7ceb3335e11",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0,
+        "calls": 0,
+        "model": "",
+        "cost_usd": 0.0
+      },
+      "meta": {}
+    }
+  ]
+}
