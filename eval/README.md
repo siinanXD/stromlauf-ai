@@ -181,24 +181,6 @@ nicht. `python eval/run_ingest.py --gold testdata/qelectrotech/qet.json --types 
 Planseiten; Precision ist dort nicht aussagekraeftig, weil Kontakte eines Schuetzes sein Kennzeichen auch auf
 anderen Folios tragen. Stand 2026-09-30: Recall 1,00 (105 von 105 Kennzeichen auf 23 Seiten), 1 s je Seite.
 
-## Ablauf-Extraktion gegen Gold (`run_flow.py`)
-
-Misst ein Extraktions-JSON (`scripts/extract_flow.py`) gegen `testdata/festo/gold.flow.json`, ohne Modellaufruf:
-
-- I/O-Liste: Recall und Precision ueber die normalisierte Adresse; je Treffer Symbol, Richtung, Art, Kontakt
-  und BMK, aber nur wo das Gold sie nennt.
-- Schrittkette: Anzahl mit Toleranz 25 % (mindestens 1), Wiedererkennung der Schrittnamen, Transitionen.
-- Belege: Anteil Annahmen, mittlere Sicherheit, Verweise ohne I/O-Punkt. Kosten, Latenz und Trace-ID aus `meta`.
-
-```bash
-python eval/run_flow.py --pred eval/results/festo_pred.flow.json [--min-recall 0.9 --min-precision 0.9]
-```
-
-Ergebnis: `eval/results/flow_<zeitstempel>.json`. Exit 2, solange das Gold noch die Vorlage ist
-(`summary` beginnt mit `VORLAGE`); Exit 1 unter einer Schwelle oder bei Schrittanzahl ausserhalb der Toleranz.
-Gold ausfuellen: `schemas/examples/gold.template.flow.json` nach `testdata/festo/gold.flow.json` kopieren (gitignored),
-Anleitung steht in `open_questions` der Vorlage.
-
 ## Aufrufe
 
 ```bash

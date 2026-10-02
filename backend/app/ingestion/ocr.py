@@ -2,7 +2,7 @@
 
 Aus einem Scan-PDF wird ein durchsuchbares PDF wie bei OCRmyPDF: gleiches Bild, darueber unsichtbar der
 erkannte Text an seiner Position, ein Textobjekt je Zeile. Danach lesen alle Leser der Textebene
-(Rohtext, Blatt-Map, Spalten, Dokumenttyp, Zitat-Resolver, Ablauf-Quellen) den Scan ohne Sonderpfad.
+(Rohtext, Blatt-Map, Spalten, Dokumenttyp, Zitat-Resolver) den Scan ohne Sonderpfad.
 
 RapidOCR laeuft mit den mitgelieferten PP-OCRv6-Modellen ueber onnxruntime auf der CPU: kein Netz, kein
 Download, keine API-Kosten. Je Seite: Detektion fuer Drehung und Schraeglage, dann die gerade gestellte
@@ -458,7 +458,7 @@ def prepare_pdf(
 
     mode: auto (Seiten ohne Textebene), always (jede Seite), off (keine). Neu verarbeiten beginnt immer beim
     Original, damit ein anderer Modus oder eine bessere Erkennung wirkt. So lesen alle Stellen, die storage_path
-    oeffnen (Seitenbild, Spalten, Zitat-Resolver, Ablauf), den Scan ohne Sonderpfad und ohne Migration.
+    oeffnen (Seitenbild, Spalten, Zitat-Resolver), den Scan ohne Sonderpfad und ohne Migration.
     Liefert None, wenn keine Seite OCR brauchte oder die Datei fehlt (das meldet dann das Parsen).
     """
     original = original_path(path)

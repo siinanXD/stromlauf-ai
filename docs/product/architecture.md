@@ -35,7 +35,7 @@ Requirement: ingestion of ≤ 300 pages runs for minutes, must survive a redeplo
 
 ### Storage decision for v1 (MB-1, 2026-09-27)
 
-Uploads, page images, cabinet photos and the flow cache stay on the local filesystem under `DATA_DIR`, mounted as a Railway volume (`/data`). One backend instance; the `BlobStore` adapter below is deferred until a second instance or object storage is actually needed. Embeddings are switchable (`EMBEDDING_PROVIDER=local|voyage`); Railway staging uses Voyage `voyage-4` (1024 dims) so the container needs no 2 GB model. The LangGraph checkpointer runs in Postgres (`CHECKPOINTER=postgres`).
+Uploads, page images and cabinet photos stay on the local filesystem under `DATA_DIR`, mounted as a Railway volume (`/data`). One backend instance; the `BlobStore` adapter below is deferred until a second instance or object storage is actually needed. Embeddings are switchable (`EMBEDDING_PROVIDER=local|voyage`); Railway staging uses Voyage `voyage-4` (1024 dims) so the container needs no 2 GB model. The LangGraph checkpointer runs in Postgres (`CHECKPOINTER=postgres`).
 
 ### Why object storage (deferred)
 

@@ -82,7 +82,7 @@ festem Composer (`frontend/src/app/werk/maschine/[id]/page.tsx`, Figma „Vision
   danach endet der Stream mit einem `error`-Ereignis statt weiterzulaufen. Das Modell sieht nur die letzten
   `CHAT_HISTORY_MESSAGES` (20) Nachrichten, beginnend bei einer Frage; der Checkpointer behält den ganzen Verlauf.
   Testdaten mit eingebetteten Anweisungen: `examples/injection/` (fünf Fragen `inj-*` im Golden-Set).
-- Die bisherigen Tabs (Schaltschrank, Signalweg, Dokumente; Ablauf, Fehler, Kennzahlen hinter
+- Die bisherigen Tabs (Schaltschrank, Signalweg, Dokumente; Fehler, Kennzahlen hinter
   „Mehr“) leben im Modell-Panel weiter. Das Panel lässt sich einklappen (Streifen) oder vergrößern.
 - Hell und dunkel: Tokens aus Figma `Foundations` in `frontend/src/app/globals.css`, Umschalter in der
   Rail (`data-theme` am `<html>`, gespeichert unter `stromlauf:theme`, sonst Systemeinstellung).
@@ -109,7 +109,7 @@ Antwort. `frontend/e2e/part-sheet.spec.ts` prüft Öffnen/Schließen/Fokus und d
 
 ## Kostenbuch: was eine Maschine kostet
 
-Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank-Erkennung, Ablauf-Extraktion)
+Jeder KI-Aufruf (Chat-Antwort, Seitenanalyse, Schaltschrank-Erkennung)
 landet als Zeile in `ai_call_ledger` mit Workspace, Maschine, Zweck, Modell, Tokens und Kosten
 (`backend/app/ledger.py`, Preise aus `backend/app/pricing.py`, Listenpreise 1:1 als Euro-Cent).
 Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht je Seite sofort.
@@ -121,8 +121,8 @@ Gebucht wird in derselben Transaktion wie das Ergebnis; die Seitenanalyse bucht 
   Upload-Dialog zeigt sie unter den erkannten Dateien („Modell erstellen · ≈ x €“).
 - Monatslimit je Workspace: `PATCH /api/workspace/budget {"cap_cents": 5000}` (Admin), `null` = kein
   Limit. Ist das Limit erreicht, lehnt die API jeden weiteren KI-Aufruf mit **402** ab, bevor der
-  Provider gerufen wird; die Ingestion laeuft ohne Vision-Seiten weiter, Cache-Treffer der
-  Ablauf-Extraktion bleiben moeglich. Die Oberflaeche zeigt ein Banner mit „Limit erhoehen“.
+  Provider gerufen wird; die Ingestion laeuft ohne Vision-Seiten weiter. Die Oberflaeche zeigt ein
+  Banner mit „Limit erhoehen“.
 
 ## Modelle und Provider
 
@@ -141,7 +141,6 @@ Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), son
   der Platte, und nur neue Abschnitte werden eingebettet. Leer ist der Cache aus, so wie im Betrieb.
 - Nightly-Eval (`eval.yml`) per Hand starten mit `chat_model` und `vision_model` als Eingabe; die Schlüssel liegen
   als Repository-Secrets (`OPEN_API_KEY` wird als `OPENAI_API_KEY` durchgereicht).
-- Nicht umgestellt: die Ablauf-Extraktion (`FLOW_MODEL_*`) nutzt das Anthropic-SDK direkt (strukturierte Ausgabe).
 
 ## Deployment (Railway)
 
@@ -150,7 +149,7 @@ Frontend auf Vercel (Projekt `stromlauf-ai`, Root Directory `frontend`). Railway
 
 1. Service aus dem GitHub-Repo, **Root Directory `backend`** (dann greift `backend/railway.toml`:
    Dockerfile-Build, Healthcheck `/api/health`).
-2. **Volume auf `/data`** (Uploads, Bilder, Flow-Cache, HF-Modellcache). Eine Instanz; fuer mehrere
+2. **Volume auf `/data`** (Uploads, Bilder, Plan-Cache, HF-Modellcache). Eine Instanz; fuer mehrere
    Instanzen waere ein Bucket noetig (siehe `docs/product/architecture.md`).
 3. Datenbank-Service mit pgvector (Image `pgvector/pgvector:pg17` oder Railway-Postgres mit
    `CREATE EXTENSION vector`), Variable `DATABASE_URL=postgresql+psycopg://...`.
@@ -243,7 +242,7 @@ Beispielhalle mit Aufbauplan und 14 fertigen Markierungen an.
 ### Kennzahlen und Suche
 
 Die Maschinenseite hat die Tabs **Modell · Schaltschrank · Signalweg · Dokumente** und hinter „Mehr“
-**Fehlerliste · Kennzahlen · Ablauf**. **Kennzahlen** sind Wert, Einheit und Quelle (URL oder „Richtwert“).
+**Fehlerliste · Kennzahlen**. **Kennzahlen** sind Wert, Einheit und Quelle (URL oder „Richtwert“).
 
 **Strg+K** sucht BMK, Klemmen und SPS-Adressen ueber alle Maschinen und springt zur Fundstelle.
 
@@ -256,45 +255,6 @@ zeigt den Vorschlag je Datei; du bestätigst oder änderst ihn, dann wird hochge
 Endung (.awl, .scl, .sdf) vor Inhalt vor Dateiname. Regeln in `backend/app/ingestion/doctype.py`, Vorschau
 `POST /api/documents/detect`. Alle 18 Beispieldateien werden allein aus dem Inhalt richtig erkannt. Ein Schweizer
 „Elektroschema“ mit Spaltenkopf 0 … 9 gilt als Stromlaufplan.
-
-## Ablauf-Visualisierung: Schrittkette aus der Doku (kostet Tokens, einmal je Dokument)
-
-Zwei Phasen, strikt getrennt. **(A) Extraktion** liest Funktionsbeschreibung, Symboltabelle, Stückliste
-und AWL und schreibt ein JSON nach `schemas/machine_flow.json`. **(B) Anzeige** liest nur dieses JSON,
-ohne Modellaufruf. Gleiche Dateien und gleiche Prompt-Version kommen aus dem Cache
-(`backend/data/flow_cache/<sha256>.json`), also null Kosten beim zweiten Mal.
-
-```bash
-python scripts/extract_flow.py examples/foerderband/06_Betriebsanleitung_FB-01.md \
-  --awl examples/foerderband/04_SPS_Programm_FB-01.awl \
-  --extra examples/foerderband/05_Symboltabelle_FB-01.sdf \
-  --extra examples/foerderband/02_Stueckliste_FB-01.xlsx \
-  --out backend/data/flows/fb01.flow.json          # oder: pip install -e backend && extract-flow ...
-```
-
-- **Modelle** über `.env`: `FLOW_MODEL_SMALL` (I/O-Liste und Sensoren/Aktoren, zwei Aufrufe parallel)
-  und `FLOW_MODEL_STRONG` (nur Schrittkette), `FLOW_EFFORT` für die Schrittkette. Layout der Draufsicht
-  entsteht deterministisch aus den I/O-Punkten, ohne Modell.
-- **Belege:** jedes Objekt trägt `source` (Datei, Seite oder Abschnitt, Zitat bis 15 Wörter), `confidence`
-  und `assumption`. Verweise auf unbekannte Adressen landen in `open_questions`, werden nicht geraten.
-- **Trace:** mit `LANGFUSE_PUBLIC_KEY`/`SECRET_KEY` (Paket `langfuse`, Extra `backend[trace]`) wird jede
-  Extraktion ein Trace mit Spans `phase_a`, `phase_b`, `layout` und einer Generation je Modellaufruf
-  (Tokens, Kosten, Latenz, Prompt-Version). Die Trace-ID steht in `meta.trace_id`. JSON-Logs auf stderr
-  tragen dieselbe Trace-ID. Ohne Langfuse: lokale ID, gleiche Logs.
-- **Kosten** stehen in `meta.total.cost_usd` (Preistabelle in `app/pricing.py`) und in Langfuse.
-  Messwert je Extraktion: noch nicht erhoben, dieser Container hat keinen API-Schlüssel. Nach dem ersten
-  Lauf hier eintragen.
-- Latenzbudget 30 s: Phase A parallel, `meta.total.latency_ms` und Log-Feld `over_budget` zeigen Verstöße.
-
-**Anzeige** (Tab **Ablauf** auf der Maschinenseite): eine eigenständige Seite `frontend/public/ablauf/index.html`,
-SVG plus Vanilla JS ohne Bibliotheken, per iframe eingebettet. Sie lädt nur das JSON (`GET /api/machines/{id}/flow`
-aus dem Cache, in der Regel unter 30 ms) und simuliert die Schrittkette: Draufsicht mit aktiven Aktoren grün,
-ausgelösten Sensoren gelb, unterbrochenem Sicherheitskreis rot; GRAFCET-Leiste mit aktuellem Schritt und
-Bedingungen; Abspielen, Pause, Einzelschritt, Geschwindigkeit; DI/DO-Tabelle, Klick auf eine DI-Zeile schaltet
-den Eingang (Störung von Hand auslösen). Klick auf Sensor, Aktor, Schritt oder Transition zeigt das Zitat mit
-Datei und Seite. Gestrichelt = Lage geschätzt. Der Knopf „Ablauf extrahieren“ ruft `POST
-/api/machines/{id}/flow/extract` (kostet Tokens, einmal je Dokumentstand). Simulationskern
-`public/ablauf/sim.js`, Tests `src/lib/ablauf.test.ts`. Demo ohne Backend: `/ablauf/index.html?src=/ablauf/example.json`.
 
 ## Steckbrief je Wissensquelle (ohne KI-Kosten)
 
@@ -364,8 +324,7 @@ Als HTTP-Server (z. B. für den MCP Inspector): `backend/.venv/Scripts/python sc
 ## Fehler markieren
 
 Tab **Fehler**, Knopf **Zeigen** an einem Eintrag: ein roter Balken über allen Tabs nennt den Fehler und seine
-Kennzeichen. Gleichzeitig werden die betroffenen Bauteile im **Schaltschrankfoto** und die I/O-Punkte
-samt Schritten im **Ablauf** rot markiert. Der Balken zählt die
+Kennzeichen. Gleichzeitig werden die betroffenen Bauteile im **Schaltschrankfoto** rot markiert. Der Balken zählt die
 Treffer je Ansicht, springt per Klick dorthin, nennt nicht platzierte Kennzeichen und startet die geführte
 Fehlersuche. Rein aus Daten, kein Modellaufruf. Logik in `frontend/src/lib/faults.ts`.
 
@@ -479,16 +438,15 @@ Wie gut das Lesen auf einem eigenen Plan klappt, zeigt eine Gold-Vorlage (siehe 
 ## Tracing: was in Langfuse landet (optional)
 
 Mit `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` in der `.env` und dem Extra
-`pip install -e "backend[trace]"` schicken drei Stellen Traces:
+`pip install -e "backend[trace]"` schicken zwei Stellen Traces:
 
 | Was | Session in Langfuse | Tags | Woher |
 | --- | --- | --- | --- |
 | Chat: Agent, Werkzeugaufrufe, Tokens, Kosten | Konversations-ID | `stromlauf-ai`, `model:…`, dazu `ChatRequest.trace_tags` | `app/tracing.py` als LangChain-Callback in `graph.astream` |
 | Vision: Seitenanalyse beim Upload, Schaltschrank | Dokument- bzw. Bild-ID | `ingestion` plus `seitenanalyse` oder `schaltschrank` | derselbe Callback über `app/tracing.py: vision_trace` |
-| Ablauf-Extraktion | ein Trace je Lauf | Spans `phase_a`, `phase_b`, `layout` | `app/flow/tracing.py`, setzt Tokens und Kosten selbst |
 
-Ohne Schlüssel ist alles ein No-op: `trace_config` liefert ein leeres Dict, die Extraktion vergibt eine
-lokale Trace-ID und loggt weiter als JSON. Die Schlüssel- und Paketprüfung steht nur in `app/tracing.py`.
+Ohne Schlüssel ist alles ein No-op: `trace_config` liefert ein leeres Dict. Die Schlüssel- und Paketprüfung
+steht nur in `app/tracing.py`.
 
 **Nicht** getrackt, weil ohne Modell und ohne Kosten: hybride Suche (`app/retrieval.py`), Embeddings
 (bge-m3 lokal) und die deterministischen Parser (Signalweg, Fehlersuche, Steckbrief).

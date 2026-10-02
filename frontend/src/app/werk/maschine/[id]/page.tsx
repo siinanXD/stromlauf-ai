@@ -28,7 +28,7 @@ const sameView = (a: MachineView, b: MachineView) => viewToQuery(a) === viewToQu
 
 /**
  * Maschinenseite mit zwei Bereichen: Stoerfaelle (Standard; Liste | Chat | Detail) und Aufbau (Modell,
- * Schaltschrank, Signalweg, Dokumente, Fehlerliste, Kennzahlen, Ablauf). Bereich, Tab, Stoerfall und
+ * Schaltschrank, Signalweg, Dokumente, Fehlerliste, Kennzahlen). Bereich, Tab, Stoerfall und
  * Detail stehen in der URL; jede neue Ebene ist ein Eintrag in der Historie, die Zurueck-Geste geht eine Ebene
  * zurueck. Beim Oeffnen laden nur Maschine und Stoerfaelle.
  */

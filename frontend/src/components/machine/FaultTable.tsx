@@ -37,7 +37,7 @@ export function FaultTable({
   activeFaultId = null,
 }: {
   faults: Fault[];
-  /** Fehler markieren: Kennzeichen in Schaltschrank und Ablauf hervorheben */
+  /** Fehler markieren: Kennzeichen im Schaltschrank hervorheben */
   onShow?: (fault: Fault) => void;
   activeFaultId?: string | null;
   tagFilter: string | null;

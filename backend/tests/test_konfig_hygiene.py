@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "FB10_Foerderband.scl"
-MODEL_VARS = ("CHAT_MODEL", "VISION_MODEL", "FLOW_MODEL_STRONG")
+MODEL_VARS = ("CHAT_MODEL", "VISION_MODEL")
 
 
 class _NoRows:
@@ -21,9 +21,6 @@ def test_standardmodelle_sind_sonnet_ohne_env(monkeypatch):
 
     settings = Settings(_env_file=None)
     assert settings.chat_model == "claude-sonnet-5" and settings.vision_model == "claude-sonnet-5"
-    assert (
-        settings.flow_model_strong == "claude-opus-5"
-    )  # Schrittkette bleibt beim starken Modell (cost-model.md)
 
 
 def test_schaetzung_rechnet_ohne_env_mit_sonnet(monkeypatch):

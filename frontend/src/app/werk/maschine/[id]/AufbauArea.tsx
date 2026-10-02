@@ -14,7 +14,6 @@ import { DocumentsTab } from "@/components/machine/DocumentsTab";
 import { FaultBanner } from "@/components/machine/FaultBanner";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
-import { FlowTab } from "@/components/machine/FlowTab";
 import { SpecsTab } from "@/components/machine/SpecsTab";
 import { SchemaMap } from "@/components/model/SchemaMap";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
@@ -47,7 +46,7 @@ type Confirm = { kind: "deleteFault"; fault: Fault } | { kind: "deleteDiagnosis"
 
 /**
  * Bereich Aufbau der Maschinenseite: Modell, Schaltschrank, Signalweg, Dokumente und hinter "Mehr"
- * Fehlerliste, Kennzahlen und Ablauf. Jeder Tab laedt seine Daten erst, wenn er offen ist.
+ * Fehlerliste und Kennzahlen. Jeder Tab laedt seine Daten erst, wenn er offen ist.
  */
 export function AufbauArea({
   machine,
@@ -219,7 +218,6 @@ export function AufbauArea({
         <FaultBanner
           fault={activeFault}
           hits={hits}
-          hasFlow={Boolean(machine.source_id)}
           onTab={onTab}
           onTag={openPart}
           onDiagnose={(fault) => void startDiagnosis(fault)}
@@ -286,11 +284,6 @@ export function AufbauArea({
               }}
               onOpenPage={setPageTarget}
             />
-          </div>
-        )}
-        {current === "ablauf" && (
-          <div className="h-full overflow-auto p-3">
-            <FlowTab machineId={machine.id} hasSource={Boolean(machine.source_id)} highlightTags={highlightTags} />
           </div>
         )}
         {current === "fehler" && (

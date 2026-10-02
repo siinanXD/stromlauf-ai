@@ -4,9 +4,6 @@ Ein Chat-Lauf wird ein Trace mit allen Modell- und Werkzeugaufrufen, Tokens und 
 Vision-Aufrufe (Seitenanalyse, Schaltschrank) haengen mit derselben Konfiguration
 am Trace ihres Dokuments bzw. Bildes, damit die teuren Aufrufe zuordenbar sind. Der
 Eval-Runner haengt Tags an (`eval:<lauf>`, `q:<frage>`) und schreibt seine Scores dazu.
-
-Die Ablauf-Extraktion instrumentiert sich selbst (`app/flow/tracing.py`, eigene Spans und
-Kosten je Modellaufruf) und nutzt von hier nur `tracing_enabled`.
 """
 
 import logging

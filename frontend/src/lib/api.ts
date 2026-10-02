@@ -111,7 +111,6 @@ export interface CostEstimate {
   photos: number;
   vision: boolean;
   per_page_vision_cents: number;
-  per_page_extraction_cents: number;
   per_photo_cents: number;
   chat_per_answer_cents: number;
   total_cents: number;
@@ -123,7 +122,6 @@ export const PURPOSE_LABELS: Record<string, string> = {
   chat: "Chat-Antworten",
   "vision.page": "Seitenanalyse",
   "vision.cabinet": "Schaltschrank-Erkennung",
-  flow: "Ablauf-Extraktion",
 };
 
 export const costs = {
@@ -636,14 +634,6 @@ const json = (body: unknown, method = "POST"): RequestInit => ({
 export const plant = {
   listHalls: () => request<Hall[]>("/api/halls"),
   listMachines: () => request<MachineListItem[]>("/api/machines"),
-  /** Ablauf-JSON (Animation) fuer die eingebettete Seite /ablauf/index.html; Browser laedt es selbst. */
-  flowUrl: (machineId: string) => withApiKey(`${API_URL}/api/machines/${machineId}/flow`),
-  /** Extraktion anstossen: kostet API-Tokens, einmal je Dokumentstand (Cache). */
-  extractFlow: (machineId: string, force = false) =>
-    request<{ machine: string; steps: unknown[]; io_points: unknown[]; meta: { cached: boolean; total: { cost_usd: number; latency_ms: number } } }>(
-      `/api/machines/${machineId}/flow/extract?force=${force}`,
-      { method: "POST" },
-    ),
   createHall: (name: string, description = "") => request<Hall>("/api/halls", json({ name, description })),
   getHall: (id: string) => request<HallDetail>(`/api/halls/${id}`),
   updateHall: (id: string, body: Partial<Pick<Hall, "name" | "description">>) =>

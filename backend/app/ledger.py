@@ -30,16 +30,12 @@ from app.pricing import cost_usd
 from app.tenancy import current_workspace_id
 
 MICROCENTS_PER_CENT = 1_000_000
-PURPOSES = ("chat", "vision.page", "vision.cabinet", "flow")
+PURPOSES = ("chat", "vision.page", "vision.cabinet")
 
 # Listenannahmen aus docs/product/cost-model.md, wenn das Kostenbuch noch keine Messwerte hat
 LIST_TOKENS = {
     "vision.page": (1_500, 600),  # Seitenanalyse je Schaltplanseite
     "vision.cabinet": (1_600, 400),  # Bauteile auf einem Foto
-    "flow.page": (
-        700,
-        250,
-    ),  # Ablauf-Extraktion, Anteil je Seite (210k in + 75k out fuer 300 Seiten)
     "chat": (8_000, 600),  # eine Antwort mit Werkzeugaufrufen
 }
 
@@ -311,23 +307,20 @@ def estimate(session: Session, pages: int, photos: int, vision: bool = True) -> 
         else _list_cents("vision.page", settings.vision_model)
     )
     photo = photo if photo is not None else _list_cents("vision.cabinet", settings.vision_model)
-    extraction_page = _list_cents("flow.page", settings.flow_model_strong)
     chat_answer = _list_cents("chat", settings.chat_model)
     vision_total = page_vision * pages if vision else 0.0
-    total = vision_total + extraction_page * pages + photo * photos
+    total = vision_total + photo * photos
     return {
         "pages": pages,
         "photos": photos,
         "vision": vision,
         "per_page_vision_cents": round(page_vision, 3),
-        "per_page_extraction_cents": round(extraction_page, 3),
         "per_photo_cents": round(photo, 3),
         "chat_per_answer_cents": round(chat_answer, 3),
         "total_cents": round(total, 2),
         "basis": basis,
         "models": {
             "vision": settings.vision_model,
-            "extraction": settings.flow_model_strong,
             "chat": settings.chat_model,
         },
     }

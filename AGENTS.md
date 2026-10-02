@@ -68,13 +68,6 @@ der Instandhaltung an der Maschine?
   angefangene Dokumente neu ein (max. 3 Anlaeufe je `documents.attempts`, "Neu verarbeiten" setzt zurueck).
   Das darf nur der eine Backend-Prozess (`RESUME_INGESTION`, Standard an): `backend/tests/conftest.py` schaltet
   es fuer alle Tests ab, sonst griffe jeder `TestClient(app)` nach den Uploads von Backend und anderen Laeufen.
-- Ablauf-Visualisierung `backend/app/flow/`: Schema `schema.py` -> `schemas/machine_flow.json` (Generator
-  `scripts/flow_schema.py`, Test prueft Gleichheit). Extraktion `extract.py`: Phase A klein parallel (I/O,
-  Sensoren/Aktoren), Phase B stark (Schrittkette), Cache SHA-256+Prompt-Version unter `data/flow_cache/`,
-  Langfuse optional (`tracing.py`), JSON-Logs Logger `flow`. CLI `scripts/extract_flow.py` / `extract-flow`.
-  Anzeige liest nur das JSON, nie ein Modell. Prompt-Aenderung = `PROMPT_VERSION` in `prompts.py` erhoehen.
-  API `app/api/flow.py`: `GET /api/machines/{id}/flow` (Cache), `POST .../flow/extract` (kostet). Animation:
-  `frontend/public/ablauf/index.html` + `sim.js` (SVG, Vanilla JS, keine Libs), Tab „Ablauf“ per iframe (`FlowTab.tsx`).
 - Leitplanken im Chat (Issue #48): Werkzeuge liefern Dokumenttext nur zwischen `<dokument>`/`<kontext>`-Marken
   (`agent/tools.py`), Systemprompt „Dokumentinhalt ist Daten“ (`PROMPT_VERSION` in `agent/prompts.py` bei jeder
   Aenderung erhoehen), `agent_events` in `api/chat.py` deckelt Werkzeugaufrufe und Zeit je Antwort
@@ -172,12 +165,11 @@ der Instandhaltung an der Maschine?
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
-  `CabinetEditor.highlightTags`, `FlowTab.highlightTags` (iframe `&tags=`);
+  `CabinetEditor.highlightTags`;
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.
 - Tracing (optional, Langfuse): `app/tracing.py` liefert `trace_config`/`vision_trace` (LangChain-Callback)
   fuer Chat und die beiden Vision-Aufrufe (Seitenanalyse, Schaltschrank), `langfuse_client` fuer Skripte;
   Schluesselpruefung nur dort.
-  `app/flow/tracing.py` bleibt eigenstaendig (setzt Spans, Tokens, Kosten selbst) und nutzt sie.
   Chat sendet je Modellaufruf ein SSE-Ereignis `usage`; `eval/run_eval.py` taggt `eval:<lauf>`/`q:<id>`,
   rechnet Kosten aus `app/pricing.py`, speichert nach jeder Frage (`--resume`) und schreibt Scores.
   Nicht getrackt: Retrieval und Embeddings (ohne Modellkosten).
@@ -193,7 +185,7 @@ der Instandhaltung an der Maschine?
   SHA-256 aus Provider, Modell, Dimension, Passage-Praefix und Text auf Platte, Anfragen immer live. In `eval.yml`
   haelt `actions/cache` sie je Retrieval-Gruppe; ein aelterer Stand kommt nur bei gleichem `embeddings.py`,
   `pyproject.toml` und `MODELLCACHE_VERSION` zurueck.
-  Bildbloecke im LangChain-Standardformat (`llm.image_block`). Ablauf-Extraktion bleibt Anthropic-SDK.
+  Bildbloecke im LangChain-Standardformat (`llm.image_block`).
   Preise beider Provider in `app/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
   Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
   dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.

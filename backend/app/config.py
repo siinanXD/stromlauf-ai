@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str | None = None
     # Standard wie docs/product/cost-model.md: Sonnet fuer Antworten und Seitenanalyse (Referenzlaeufe und
-    # Schaltschrank-IoU 0,90 damit gemessen); Opus nur fuer die Schrittkette (flow_model_strong)
+    # Schaltschrank-IoU 0,90 damit gemessen)
     chat_model: str = "claude-sonnet-5"
     vision_model: str = "claude-sonnet-5"
     # Leitplanken je Chat-Antwort (Issue #48): Werkzeugaufrufe, Zeitlimit, Nachrichten im Modellkontext (0 = alle)
@@ -71,12 +71,7 @@ class Settings(BaseSettings):
     # eval --model). Kein Schluessel, keine Kosten, Thinking aus, solange der Name keinen Aufwand nennt (@low).
     ollama_base_url: str = "http://localhost:11434/v1"
 
-    # Ablauf-Visualisierung (app/flow): kleines Modell fuer I/O und Sensor/Aktor, starkes fuer Schrittkette
-    flow_model_small: str = "claude-haiku-4-5"
-    flow_model_strong: str = "claude-opus-5"
-    flow_effort: str = "medium"  # low | medium | high fuer die Schrittkette
-
-    # Langfuse (optional): ohne Schluessel laeuft die Extraktion ohne Trace
+    # Langfuse (optional, app/tracing.py): ohne Schluessel laufen Chat und Vision ohne Trace
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_host: str = "https://cloud.langfuse.com"
@@ -111,10 +106,6 @@ class Settings(BaseSettings):
     @property
     def checkpoint_db(self) -> Path:
         return self.data_dir / "checkpoints.sqlite"
-
-    @property
-    def flow_cache_dir(self) -> Path:
-        return self.data_dir / "flow_cache"
 
 
 @lru_cache

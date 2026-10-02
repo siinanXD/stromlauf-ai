@@ -34,9 +34,9 @@ MAP = {
 }
 ESTIMATE = {
     "pages": 12, "photos": 1, "vision": True,
-    "per_page_vision_cents": 2.0, "per_page_extraction_cents": 0.5, "per_photo_cents": 1.0,
-    "chat_per_answer_cents": 1.5, "total_cents": 31.0, "basis": {"vision.page": "list", "vision.cabinet": "list"},
-    "models": {"vision": "v", "extraction": "e", "chat": "c"},
+    "per_page_vision_cents": 2.0, "per_photo_cents": 1.0,
+    "chat_per_answer_cents": 1.5, "total_cents": 25.0, "basis": {"vision.page": "list", "vision.cabinet": "list"},
+    "models": {"vision": "v", "chat": "c"},
 }
 COSTS = {
     "machine_id": MACHINE_ID,
@@ -44,7 +44,6 @@ COSTS = {
     "total": {"cents": 33.0, "calls": 13, "by_purpose": {
         "vision.page": {"cents": 30.0, "calls": 12},
         "vision.cabinet": {"cents": 3.0, "calls": 1},
-        "flow": {"cents": 0.0, "calls": 0},
     }},
     "workspace": {"month_cents": 33.0, "month_calls": 13, "cap_cents": None, "exceeded": False},
 }
@@ -138,9 +137,7 @@ def test_compare_estimate_je_zweck_mit_toleranz():
                                  "deviation": pytest.approx(0.25), "within": True}
     assert by["vision.cabinet"]["deviation"] == pytest.approx(2.0)
     assert by["vision.cabinet"]["within"] is False
-    assert by["flow"]["calls"] == 0
-    assert by["flow"]["within"] is None
-    assert by["flow"]["estimated_cents"] == 6.0
+    assert set(by) == {"vision.page", "vision.cabinet"}
 
 
 def test_compare_estimate_ohne_kostenbuch_eintraege():
@@ -238,7 +235,7 @@ def test_collect_sammelt_alle_nachweise_ohne_schreibzugriff(tmp_path: Path):
     assert evidence["hotspots"] == 14
     assert evidence["map"]["zones"] == 2 and evidence["map"]["parts"] == 4
     assert evidence["ledger"]["total_calls"] == 13
-    assert {r["purpose"] for r in evidence["estimate"]["rows"]} == {"vision.page", "vision.cabinet", "flow"}
+    assert {r["purpose"] for r in evidence["estimate"]["rows"]} == {"vision.page", "vision.cabinet"}
     assert evidence["ingest_s"] is None
     assert evidence["cold_start_s"] >= 0
 

@@ -207,7 +207,7 @@ export async function mockApi(page: Page, { withHistory = true, chatFailures = 0
     }
     if (path === `/api/machines/${MACHINE_ID}/map`) return json(route, map);
     if (path === `/api/machines/${MACHINE_ID}/costs`)
-      return json(route, { machine_id: MACHINE_ID, month: { cents: 117, calls: 12, by_purpose: { chat: { cents: 17, calls: 11 }, flow: { cents: 100, calls: 1 } } }, total: { cents: 117, calls: 12, by_purpose: {} }, workspace: { month_cents: 187.5, month_calls: 42, cap_cents: null, exceeded: false } });
+      return json(route, { machine_id: MACHINE_ID, month: { cents: 117, calls: 12, by_purpose: { chat: { cents: 17, calls: 11 }, "vision.cabinet": { cents: 100, calls: 1 } } }, total: { cents: 117, calls: 12, by_purpose: {} }, workspace: { month_cents: 187.5, month_calls: 42, cap_cents: null, exceeded: false } });
     if (path === `/api/machines/${MACHINE_ID}/diagnoses`) return json(route, []);
     if (path === "/api/sources") return json(route, [{ id: SOURCE_ID, name: "FB-01 Doku", description: "", document_count: 3, created_at: "2026-09-01T00:00:00Z" }]);
     if (path === `/api/sources/${SOURCE_ID}/documents`)

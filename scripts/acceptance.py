@@ -41,7 +41,6 @@ UNKNOWN_ZONE = "?"  # Sammelzone "Ohne Einbauort" zaehlt nicht als Baugruppe
 ESTIMATE_ROWS = (
     ("vision.page", "per_page_vision_cents", "pages"),
     ("vision.cabinet", "per_photo_cents", "photos"),
-    ("flow", "per_page_extraction_cents", "pages"),
 )
 
 

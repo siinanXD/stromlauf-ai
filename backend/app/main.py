@@ -13,7 +13,6 @@ from app.api import (
     costs,
     diagnosis,
     facts,
-    flow,
     machine_map,
     onboarding,
     plan_read,
@@ -88,7 +87,6 @@ app.include_router(signal.router)
 app.include_router(diagnosis.router)
 app.include_router(onboarding.router)
 app.include_router(search.router)
-app.include_router(flow.router)
 app.include_router(plan_read.router)
 
 
