@@ -268,3 +268,11 @@ MCP-Server: `backend/stromlauf_mcp/` (nur httpx + mcp 2.x, importiert nichts aus
 Testdokumentation UR-01/PM1-AR: Generator `scripts/testdoku/` (model, render_pdf, render_rest, machines/*),
 Ausgabe `examples/umroller/`, `examples/aufrollung/`; `scripts/load_testwerk.py --docs` laedt und verknuepft.
 Testwerk Tissue (4 Hallen, 30 Maschinen): `examples/testwerk/testwerk.json`, Laden mit `python scripts/load_testwerk.py [--refresh]`.
+
+## Claude als Ersatz-Agent (SIN-205)
+
+- Cursor zuerst. Hat Cursor kein Guthaben, setze das Label `claude` auf das Issue oder kommentiere `@claude`.
+- Der Workflow `.github/workflows/claude.yml` startet Claude (`claude-code-action@v1`, nur für Nutzer mit Schreibrechten).
+- Immer Draft-PR, nie selbst mergen.
+- Commit-Nachrichten enthalten `Part of SIN-xxx` (die Issue-Nummer des Auftrags).
+- Maximal 3 Reparaturrunden pro Pull Request, dann stoppen und den Blocker melden.
