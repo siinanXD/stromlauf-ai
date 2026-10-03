@@ -2,10 +2,9 @@ name: Eval
 
 # Eval-Gates (Issue #29): Retrieval-Schicht kostenlos bei jedem PR, Agentenlauf und Schaltschrank-IoU
 # nachts mit Kostendeckel (braucht ANTHROPIC_API_KEY als Secret; ohne Secret wird der Job uebersprungen).
+# Kein Lauf mehr bei Push auf master: der PR hat dieselben Gates schon bestanden (Squash-Merge = doppelter Lauf).
 on:
   pull_request:
-  push:
-    branches: [master]
   schedule:
     - cron: "17 3 * * 1"  # woechentlich (Montag), Issue #49: Deckel ca. 8 $/Monat statt bis zu 60 $
   workflow_dispatch:
