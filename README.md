@@ -515,3 +515,7 @@ Testwerk, Injection-Test) sind frei erfunden und stehen unter derselben Lizenz. 
 (Festo Didactic, awlsim GPLv2, QElectroTech GPL) liegen nur lokal unter `testdata/` und sind per `.gitignore`
 ausgeschlossen; `scripts/fetch_testdata.py` holt sie mit geprüften Prüfsummen (siehe „Fremd- und Firmendaten“).
 Ein Secret-Scan mit gitleaks läuft in der CI über die gesamte Historie.
+
+## Pull Requests
+
+Jeder PR wird automatisch geprüft (CI, `pr-title`, `merge-gate`). PRs mit `risk:low` oder `risk:medium` mergen von selbst, sobald alle Checks grün sind. `risk:high` wartet auf das Label `freigegeben`. Details: `AGENTS.md`, Abschnitt „Pull Requests und Merge“.
