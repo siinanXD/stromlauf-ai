@@ -24,6 +24,7 @@ from app.auth import auth_middleware
 from app.checkpointer import open_checkpointer
 from app.config import get_settings
 from app.db import init_db, session_scope
+from app.demo import demo_middleware, seed_in_background
 from app.ingestion.resume import plan_restart, resume_in_background
 from app.ledger import BudgetExceeded
 from app.llm import missing_key
@@ -46,6 +47,8 @@ async def lifespan(app: FastAPI):
         resume_in_background(resume_ids)
     else:
         logger.info("RESUME_INGESTION=false: unterbrochene Dokumente bleiben unangetastet")
+    if get_settings().demo_mode:
+        seed_in_background()
     async with open_checkpointer() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
@@ -54,6 +57,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Stromlauf AI", lifespan=lifespan)
 app.middleware("http")(auth_middleware)
+app.middleware("http")(demo_middleware)  # zuletzt hinzugefuegt = aeusserste Schicht: weist ab, bevor Auth laeuft
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",") if o.strip()],

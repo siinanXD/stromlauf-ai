@@ -195,6 +195,12 @@ der Instandhaltung an der Maschine?
   dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
+- Demo-Modus (SIN-975): `DEMO_MODE=true` (`app/demo.py`, Middleware aeusserste Schicht in `main.py`): schreibende
+  Methoden unter `/api` liefern 403 (offen bleiben `/api/chat`, `/api/answers/validate-citations`, `/api/auth/`),
+  Rate-Limit je IP im Prozess (`DEMO_RATE_LIMIT` gesamt, `DEMO_CHAT_RATE_LIMIT` Chat, je Minute) mit 429 und
+  `Retry-After`; `DEMO_TRUST_PROXY` liest die IP aus `X-Forwarded-For`. `seed_example` legt beim Start im
+  Hintergrund FB-01 (`examples/foerderband`, `DEMO_EXAMPLE_DIR`) an, nur ohne vorhandene Wissensquelle.
+  Neue schreibende Routen, die der Chat braucht, in `WRITE_ALLOWED` eintragen. Tests `tests/test_demo.py`.
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
   generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
 - Kennzeichen-Index: Schluessel immer in der Schreibweise von `tags.normalize_tag` (gross), denn `find_tag`,
