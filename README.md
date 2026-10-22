@@ -54,8 +54,22 @@ Lesegenauigkeit der Ingestion gegen die Ground Truth des Plangenerators, ohne Da
 Die Zahlen stammen aus selbst erzeugten Beispielplänen, nicht aus Kundendokumenten. Wie gut das Lesen auf einem eigenen
 Plan klappt, zeigt „Fremd- und Firmendaten“. Die Gates laufen bei jedem PR (`.github/workflows/eval.yml`).
 
-> **Offen:** Screenshot oder GIF der Maschinenseite unter `docs/assets/` (Aufnahme braucht Backend mit Datenbank und
-> Browser, in der CI-Umgebung des Auftrags nicht vorhanden).
+> **Offen:** Screenshot der Maschinenseite als `docs/assets/maschinenseite.png`. Den nimmt `frontend/e2e/screenshot.spec.ts`
+> im Compose-Job auf (Vorlage `docs/ci-demo-job.yml`, siehe „Demo in einem Befehl“); die Datei fehlt, bis der Job
+> einmal gelaufen ist und das Bild eingecheckt wurde.
+
+## Demo in einem Befehl
+
+```bash
+cp .env.example .env          # ANTHROPIC_API_KEY eintragen (nur für Chat-Antworten nötig)
+docker compose --profile demo up --build
+```
+
+Das startet Postgres mit pgvector, das Backend im Demo-Modus und das Frontend. Das Backend legt beim ersten Start die
+Beispiel-Maschine FB-01 an (`examples/foerderband`, read-only eingebunden) und liest die Dokumente ein; der erste Start
+lädt dafür `BAAI/bge-m3` (ca. 2 GB) und dauert entsprechend. Danach: Oberfläche <http://localhost:3100>, API
+<http://localhost:8010/api/health>. Ohne `--profile demo` startet wie bisher nur die Datenbank. Aufräumen:
+`docker compose --profile demo down -v`.
 
 ## Start
 
