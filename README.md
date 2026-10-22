@@ -4,6 +4,59 @@ Chatbot für industrielle Elektrodokumentation: Stromlaufpläne, Stücklisten, K
 Siemens STEP 7 AWL-Programme und Handbücher. Der Agent verfolgt Betriebsmittel (`-K12`),
 Klemmen (`-X1:5`) und SPS-Adressen (`E0.0`) über alle Dokumente hinweg.
 
+## Fallstudie: Störung an der Maschine, Antwort mit Beleg
+
+**Problem.** Steht eine Maschine, sucht die Instandhaltung in einem Stromlaufplan, einer Stückliste, einem Klemmenplan,
+einem SPS-Programm und einem Handbuch nach demselben Bauteil, unter vier Schreibweisen (`-K1`, `-X3:1`, `E0.0`,
+`/3.8`). Ein Chatbot, der nur Text sucht, rät dabei leicht: Er erfindet Spalten, Klemmen und Seiten.
+
+**Ansatz.** Die Maschine ist die zentrale Einheit. Beim Upload entsteht ein Kennzeichen-Index über alle Dokumente, dazu ein
+Signalgraph aus Klemmenplan, Stückliste, Symboltabelle, AWL und der Vektorebene des Plans. Alles, was sich deterministisch
+lesen lässt (Signalweg, Befundkarte, Lückenliste, Maschinenmodell), kommt ohne Modellaufruf. Das Sprachmodell antwortet nur
+mit Werkzeugen darauf und muss jede Aussage mit `[[Datei|Ort]]` belegen; ein Zitat-Resolver prüft die Belege gegen die
+Fundstellen. Dokumenttext gilt im Prompt als Daten, nicht als Anweisung.
+
+![Architektur: Dokumente, Ingestion, Postgres mit pgvector, Agent, deterministische Ansichten, Frontend](docs/assets/architektur.svg)
+
+**Ergebnis.** Im Beispiel FB-01 führt der Signalweg vom Taster bis zum Motor und nennt je Kante die Herkunft:
+
+![Signalweg im Beispiel Förderband FB-01, schematisch](docs/assets/signalweg-foerderband.svg)
+
+*Die Abbildung ist nach dem Beispiel gezeichnet, kein Bildschirmfoto der Oberfläche. Ein echter Screenshot oder ein GIF
+der Maschinenseite fehlt noch (siehe Hinweis am Ende des Abschnitts).*
+
+### Eval-Zahlen
+
+Agentenlauf mit 20 Fragen je Modell aus `eval/questions.jsonl` (FB-01 7, UR-01 5, PM1-AR 4, AWL 2, Festo 1, Injection 1),
+gleiche Dokumente, gleicher Agent und Prompt v3. Quelle: [`eval/results/vergleich_2026-10-02.md`](eval/results/vergleich_2026-10-02.md),
+Lauf vom 2026-10-02, Kosten nach `backend/app/pricing.py` mit Cache-Tokens. Bewertung ohne LLM-Richter (`eval/README.md`).
+
+| Modell | Fakten | Quellen | Zitate gültig | voll bestanden (von 20) | USD je Antwort | s je Antwort |
+|---|---|---|---|---|---|---|
+| claude-sonnet-5-5 | 0,988 | 0,95 | 0,991 | 18 | 0,046 | 12,2 |
+| openai:gpt-6.1-sol | 0,872 | 0,90 | 0,947 | 10 | 0,012 | 12,6 |
+| openai:gpt-5.4-mini@none | 0,820 | 0,95 | 0,721 | 11 | 0,004 | 5,5 |
+| ollama:qwen35-4b-32k (lokal) | 0,524 | 0,60 | 0,350 | 5 | 0 | 6,4 |
+
+Die Tabelle zeigt vier der neun gemessenen Modelle; alle stehen im Vergleich. `claude-opus-5-5` lief nicht
+(Guthaben erschöpft), `claude-sonnet-5` nur mit 6 Fragen.
+
+Lesegenauigkeit der Ingestion gegen die Ground Truth des Plangenerators, ohne Datenbank und Modell
+(`python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95`, Quelle [`eval/README.md`](eval/README.md), Abschnitt
+„Lesegenauigkeit“):
+
+| Plan | Stand | Betriebsmittel, Klemmen, SPS-Adressen (Recall und Precision) | Querverweise |
+|---|---|---|---|
+| FB-01, Text-PDF, 7 Seiten | 2026-09-29 | je 1,00 | 0,95 |
+| UR-01 (16 Seiten) und PM1-AR (13 Seiten), Text-PDF | 2026-09-30 | je 1,00 | 1,00 |
+| FB-01, Voll-Scan mit lokaler OCR | 2026-09-30 | Betriebsmittel 0,99, Klemmen 0,81, SPS-Adressen 1,00, Precision 1,00 | – |
+
+Die Zahlen stammen aus selbst erzeugten Beispielplänen, nicht aus Kundendokumenten. Wie gut das Lesen auf einem eigenen
+Plan klappt, zeigt „Fremd- und Firmendaten“. Die Gates laufen bei jedem PR (`.github/workflows/eval.yml`).
+
+> **Offen:** Screenshot oder GIF der Maschinenseite unter `docs/assets/` (Aufnahme braucht Backend mit Datenbank und
+> Browser, in der CI-Umgebung des Auftrags nicht vorhanden).
+
 ## Start
 
 ```bash

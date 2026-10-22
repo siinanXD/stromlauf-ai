@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 190" font-family="JetBrains Mono, Consolas, monospace" font-size="14" role="img" aria-labelledby="t d">
+  <title id="t">Signalweg im Beispiel Förderband FB-01</title>
+  <desc id="d">Schematische Darstellung des Signalwegs vom Taster -S1 über Klemmen, SPS-Eingang E0.0, Baustein FB 10, Ausgang A4.0 und Schütz -K1 bis zum Motor -M1. Gezeichnet nach dem Beispiel in der README, kein Bildschirmfoto.</desc>
+  <rect width="900" height="190" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="20" y="28" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#0f172a">Signalweg FB-01: Taster bis Motor (schematisch, aus Klemmenplan, Symboltabelle und AWL)</text>
+  <g font-size="13" text-anchor="middle" fill="#0f172a" stroke="#475569" stroke-width="1.5">
+    <rect x="15" y="60" width="70" height="40" rx="8" fill="#dbeafe"/>
+    <rect x="115" y="60" width="80" height="40" rx="8"/>
+    <rect x="225" y="60" width="70" height="40" rx="8"/>
+    <rect x="325" y="60" width="120" height="40" rx="8" fill="#fef3c7"/>
+    <rect x="475" y="60" width="70" height="40" rx="8"/>
+    <rect x="575" y="60" width="80" height="40" rx="8"/>
+    <rect x="685" y="60" width="90" height="40" rx="8"/>
+    <rect x="805" y="60" width="70" height="40" rx="8" fill="#dbeafe"/>
+  </g>
+  <g font-size="13" text-anchor="middle" fill="#0f172a">
+    <text x="50" y="85">-S1</text>
+    <text x="155" y="85">-X3:1</text>
+    <text x="260" y="85">E0.0</text>
+    <text x="385" y="85">FB 10 NW 1+2</text>
+    <text x="510" y="85">A4.0</text>
+    <text x="615" y="85">-K1:A1</text>
+    <text x="730" y="85">-K1:2</text>
+    <text x="840" y="85">-M1</text>
+  </g>
+  <g stroke="#475569" stroke-width="1.5">
+    <path d="M85 80H115M195 80H225M295 80H325M445 80H475M545 80H575M655 80H685M775 80H805"/>
+  </g>
+  <g font-family="Inter, Arial, sans-serif" font-size="12" fill="#475569" text-anchor="middle">
+    <text x="50" y="125">Taster</text>
+    <text x="155" y="125">Klemmenplan</text>
+    <text x="260" y="125">SPS-Eingang</text>
+    <text x="385" y="125">AWL (Freigabe)</text>
+    <text x="510" y="125">SPS-Ausgang</text>
+    <text x="615" y="125">Spule</text>
+    <text x="730" y="125">Hauptkontakt</text>
+    <text x="840" y="125">Motor</text>
+    <text x="20" y="165" text-anchor="start">Jede Kante nennt ihre Herkunft (klemmenplan, awl, leitung, lage, modell).</text>
+  </g>
+</svg>
