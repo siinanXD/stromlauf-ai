@@ -62,6 +62,19 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3100"
 
+    # Demo-Modus (app/demo.py): keine Uploads und Schreibzugriffe (403), Rate-Limit je IP und Minute (429),
+    # Beispiel-Maschine FB-01 beim ersten Start. Chat bleibt offen.
+    demo_mode: bool = False
+    demo_rate_limit: int = 120
+    demo_chat_rate_limit: int = 10
+    demo_trust_proxy: bool = False  # IP aus dem letzten Glied von X-Forwarded-For (nur hinter eigenem Proxy)
+    demo_example_dir: Path | None = None  # Standard: examples/foerderband im Repo
+
+    @field_validator("demo_example_dir", mode="before")
+    @classmethod
+    def _empty_demo_dir_is_default(cls, value):
+        return None if value == "" else value
+
     # Planleser per Modell (app/ingestion/plan_model.py), zuschaltbar: leer = aus, keine Seite verlaesst den
     # Rechner. Name wie CHAT_MODEL ("openai:gpt-5-mini"). Mit Basis-URL spricht "openai:<modell>" einen
     # OpenAI-kompatiblen Endpunkt an (Ollama: http://localhost:11434/v1), der Schluessel darf dann fehlen.

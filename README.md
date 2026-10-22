@@ -104,6 +104,13 @@ gehört zu einem **Workspace**. Der Workspace des Requests kommt aus dem Login:
   geht dort ebenfalls als `X-API-Key`/`STROMLAUF_API_KEY`.
 - weder noch: offen, alles im Workspace `default` (nur lokal).
 
+**Demo-Modus** (`DEMO_MODE=true`, `backend/app/demo.py`) für eine öffentliche Instanz: Upload und alle
+Schreibzugriffe unter `/api` liefern 403 (Chat, Beleg-Prüfung und Login bleiben), je IP gelten
+`DEMO_RATE_LIMIT` Anfragen und `DEMO_CHAT_RATE_LIMIT` Chat-Fragen pro Minute (darüber 429 mit `Retry-After`),
+und beim Start legt das Backend die Beispiel-Maschine FB-01 an, wenn noch keine Wissensquelle existiert.
+Hinter einem eigenen Proxy `DEMO_TRUST_PROXY=true` setzen (IP aus `X-Forwarded-For`); `DEMO_EXAMPLE_DIR`
+überschreibt den Ort der Beispieldateien.
+
 Die Filterung sitzt in `backend/app/tenancy.py`: ein SQLAlchemy-Listener hängt an jedes ORM-SELECT die
 Bedingung `workspace_id = <aktuell>`, die Modelle setzen `workspace_id` beim Anlegen aus dem Kontext, und
 die Lade-Helfer der Router prüfen zusätzlich (fremde id → 404). `backend/tests/test_tenancy_isolation.py`
