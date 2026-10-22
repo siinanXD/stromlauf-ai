@@ -165,6 +165,12 @@ der Instandhaltung an der Maschine?
   lokal, etwa Ollama `qwen3.5:4b`), `ingestion/plan_model.py`, `POST/GET /api/sources/{id}/plan-read` (`dry_run` =
   Schaetzung). Lehrer `eval/plan_teacher.py`: nur oeffentliche Plaene (`examples/`, `testdata/qelectrotech/`), Modellaufruf
   nur mit `--yes`, `--from-result` rechnet ohne Aufruf neu; bezahlte Laeufe nur nach Freigabe des Owners.
+- SPS-Erklaerer (SIN-978, ohne Modell): `ingestion/awl_explain.py`, API `api/awl.py`. `GET /api/awl/networks?source_id=`:
+  alle AWL-Netzwerke im Klartext (UND/ODER/NICHT mit Klammern, Flanken, Setzen/Ruecksetzen, Zeiten, Spruenge; Symbolnamen
+  mit Adresse; `other` = Anweisungen ohne Verknuepfung unveraendert). `GET /api/awl/why?source_id=&output=A4.0`
+  („Warum kommt Ausgang X nicht?“, `output` = Adresse oder Symbol): Netzwerke, die den Ausgang schreiben, mit allen
+  Eingaengen samt Klemme und Geraet aus dem Signalgraph; interne Merker nennen ihr schreibendes Netzwerk (`written_by`,
+  bis Tiefe 4). 404 mit `detail.reason` no_program|unknown_output|not_written. Tests `tests/test_awl_explain.py`.
 - Signalweg-Ansicht (Issue #109): `components/signal/SignalView.tsx` mit `compact` im Antwortblock und `auto` (unter
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
