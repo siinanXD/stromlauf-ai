@@ -55,7 +55,7 @@ Die Zahlen stammen aus selbst erzeugten Beispielplänen, nicht aus Kundendokumen
 Plan klappt, zeigt „Fremd- und Firmendaten“. Die Gates laufen bei jedem PR (`.github/workflows/eval.yml`).
 
 > **Offen:** Screenshot der Maschinenseite als `docs/assets/maschinenseite.png`. Den nimmt `frontend/e2e/screenshot.spec.ts`
-> im Compose-Job auf (Vorlage `docs/ci-demo-job.yml`, siehe „Demo in einem Befehl“); die Datei fehlt, bis der Job
+> im Compose-Job auf (Vorlage `.github/workflows/ci.yml (Job `compose-demo`)`, siehe „Demo in einem Befehl“); die Datei fehlt, bis der Job
 > einmal gelaufen ist und das Bild eingecheckt wurde.
 
 ## Demo in einem Befehl
