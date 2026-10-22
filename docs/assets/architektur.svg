@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" font-family="Inter, Arial, sans-serif" font-size="14" role="img" aria-labelledby="t d">
+  <title id="t">Architektur von Stromlauf AI</title>
+  <desc id="d">Dokumente laufen durch die Ingestion in Postgres mit pgvector und den Kennzeichen-Index; der LangGraph-Agent und die deterministischen Ansichten lesen daraus und liefern Antworten an das Frontend.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+  </defs>
+  <g fill="#f1f5f9" stroke="#475569" stroke-width="1.5">
+    <rect x="20" y="40" width="160" height="150" rx="10"/>
+    <rect x="250" y="40" width="190" height="150" rx="10"/>
+    <rect x="250" y="250" width="190" height="120" rx="10" fill="#e0f2fe"/>
+    <rect x="510" y="40" width="170" height="150" rx="10"/>
+    <rect x="510" y="250" width="170" height="120" rx="10"/>
+    <rect x="730" y="130" width="130" height="150" rx="10" fill="#e0f2fe"/>
+  </g>
+  <g fill="#0f172a" text-anchor="middle">
+    <text x="100" y="64" font-weight="700">Dokumente</text>
+    <text x="100" y="94">Stromlaufplan (PDF)</text>
+    <text x="100" y="116">Stückliste, Klemmenplan</text>
+    <text x="100" y="138">AWL, Symboltabelle</text>
+    <text x="100" y="160">Handbuch, Scan</text>
+    <text x="345" y="64" font-weight="700">Ingestion</text>
+    <text x="345" y="94">Docling, OCR (lokal)</text>
+    <text x="345" y="116">Planleser (Vektorebene)</text>
+    <text x="345" y="138">Kennzeichen-Parser</text>
+    <text x="345" y="160">Embeddings (bge-m3)</text>
+    <text x="345" y="274" font-weight="700">Postgres + pgvector</text>
+    <text x="345" y="304">Chunks (Vektor + Volltext)</text>
+    <text x="345" y="326">Kennzeichen-Index</text>
+    <text x="345" y="348">Signalgraph-Kanten</text>
+    <text x="595" y="64" font-weight="700">Agent (LangGraph)</text>
+    <text x="595" y="94">Claude / OpenAI / Ollama</text>
+    <text x="595" y="116">find_tag, search_knowledge,</text>
+    <text x="595" y="138">signal_path, view_page</text>
+    <text x="595" y="160">Zitat-Resolver</text>
+    <text x="595" y="274" font-weight="700">Ohne Modell</text>
+    <text x="595" y="304">Signalweg, Befundkarte</text>
+    <text x="595" y="326">Steckbrief, Lücken</text>
+    <text x="595" y="348">Maschinenmodell</text>
+    <text x="795" y="154" font-weight="700">Frontend</text>
+    <text x="795" y="184">Stoerfall-Chat</text>
+    <text x="795" y="206">Signalweg</text>
+    <text x="795" y="228">Schaltschrank</text>
+    <text x="795" y="250">Belege im Plan</text>
+  </g>
+  <g stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)">
+    <path d="M180 115H250"/>
+    <path d="M345 190V250"/>
+    <path d="M440 310H510"/>
+    <path d="M440 120H510"/>
+    <path d="M395 250L510 170"/>
+    <path d="M680 115L730 170"/>
+    <path d="M680 310L730 240"/>
+  </g>
+</svg>
