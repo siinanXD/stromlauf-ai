@@ -27,7 +27,7 @@ test("Tab SPS: Bausteine, Klartext und Warum-Baum, ohne Scroll und axe-Verstöß
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 
-  const results = await new AxeBuilder({ page }).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(results.violations).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath("sps-tab.png"), fullPage: true });

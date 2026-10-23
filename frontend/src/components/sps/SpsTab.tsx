@@ -97,7 +97,7 @@ export function SpsTab({ sourceId, onOpenDetail }: { sourceId: string; onOpenDet
                   type="button"
                   aria-current={g.block === current?.block ? "true" : undefined}
                   onClick={() => setBlock(g.block)}
-                  className={cn("min-h-11 w-full rounded-md px-3 text-left text-sm", g.block === current?.block ? "bg-accent font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}
+                  className={cn("min-h-11 w-full rounded-md px-3 text-left text-sm", g.block === current?.block ? "bg-primary-soft font-semibold" : "text-muted-foreground hover:text-foreground")}
                 >
                   {g.block}
                   <span className="ml-2 text-footnote">{g.networks.length}</span>
@@ -110,10 +110,10 @@ export function SpsTab({ sourceId, onOpenDetail }: { sourceId: string; onOpenDet
           <ol className="flex flex-col gap-3">
             {current?.networks.map((n) => (
               <li key={n.id} data-network={n.id} className="rounded-lg border border-border bg-card p-3">
-                <h3 className="text-sm font-semibold">
+                <h2 className="text-sm font-semibold">
                   Netzwerk {n.number}
                   {n.title ? <span className="font-normal text-muted-foreground">{` · ${n.title}`}</span> : null}
-                </h3>
+                </h2>
                 {n.comment && <p className="text-footnote text-muted-foreground">{n.comment}</p>}
                 <ul className="mt-1 flex flex-col gap-1">
                   {n.klartext.map((line, i) => (
