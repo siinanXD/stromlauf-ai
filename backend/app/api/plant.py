@@ -15,7 +15,7 @@ from app import ledger
 from app.api.machine_map import machine_map
 from app.config import get_settings
 from app.db import get_session
-from app.ingestion.cabinet_vision import detect_components, image_size
+from app.ingestion.cabinet_vision import detect_components, image_size, read_nameplate
 from app.ingestion.tags import normalize_tag, search_prefixes
 from app.llm import MissingKeyError
 from app.models import (
@@ -62,6 +62,7 @@ from app.tenancy import same_workspace
 from app.tracing import vision_trace
 from app.werk.cabinet_check import compare, placement
 from app.werk.faults import FaultQuery
+from app.werk.nameplate import compare as compare_nameplate
 from app.werk.specs import clean_specs, key_figure
 
 logger = logging.getLogger(__name__)
@@ -555,6 +556,29 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(cabinet)
     return CabinetOut.model_validate(cabinet)
+
+
+@router.post("/hotspots/{hotspot_id}/nameplate")
+def read_hotspot_nameplate(hotspot_id: str, session: Session = Depends(get_session)) -> dict:
+    """Typenschild im Ausschnitt des Hotspots lesen (ein Vision-Aufruf) und mit der Stuecklistenzeile vergleichen."""
+    hotspot = _get(session, CabinetHotspot, hotspot_id, "Hotspot")
+    cabinet = hotspot.cabinet
+    machine = cabinet.machine
+    ledger.check_budget(session)
+    config, usage = ledger.collect(vision_trace(cabinet.id, "typenschild"))
+    try:
+        plate = read_nameplate(Path(cabinet.image_path), (hotspot.x, hotspot.y, hotspot.w, hotspot.h), config)
+    except MissingKeyError as exc:
+        raise HTTPException(400, f"Typenschild lesen nicht moeglich: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Typenschild lesen fehlgeschlagen")
+        raise HTTPException(502, f"Typenschild lesen fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
+    ledger.record_usage(session, usage.total(), purpose="vision.nameplate", machine_id=machine.id, images=1)
+    session.commit()
+    bom_line = None
+    if hotspot.tag and machine.source_id:
+        bom_line = lookup_tag(machine.id, hotspot.tag, session).bom_line
+    return {"hotspot_id": hotspot.id, "tag": hotspot.tag, "plate": plate, "bom_line": bom_line, **compare_nameplate(plate, bom_line)}
 
 
 # --- Kennzeichen einer Maschine nachschlagen (Klick auf Hotspot) -----------------------------

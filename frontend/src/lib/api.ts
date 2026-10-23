@@ -122,6 +122,7 @@ export const PURPOSE_LABELS: Record<string, string> = {
   chat: "Chat-Antworten",
   "vision.page": "Seitenanalyse",
   "vision.cabinet": "Schaltschrank-Erkennung",
+  "vision.nameplate": "Typenschild lesen",
 };
 
 export const costs = {

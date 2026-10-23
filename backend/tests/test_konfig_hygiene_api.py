@@ -88,6 +88,23 @@ def test_fehlender_vision_schluessel_ist_ein_400_mit_seinem_namen(
     assert "OPENAI_API_KEY" in response.json()["detail"], url
 
 
+def test_fehlender_schluessel_beim_typenschild_ist_ein_400(client, vision_target, monkeypatch):
+    from app.config import Settings
+    from app.ingestion import cabinet_vision
+
+    settings = Settings(
+        _env_file=None, vision_model="openai:gpt-5", anthropic_api_key="sk-ant", openai_api_key=None
+    )
+    monkeypatch.setattr(cabinet_vision, "get_settings", lambda: settings)
+    hotspot = client.post(
+        f"/api/cabinets/{vision_target}/hotspots", json={"tag": "-K1", "x": 0.1, "y": 0.1, "w": 0.5, "h": 0.5}
+    )
+    assert hotspot.status_code == 201, hotspot.text
+    response = client.post(f"/api/hotspots/{hotspot.json()['id']}/nameplate")
+    assert response.status_code == 400, response.text
+    assert "OPENAI_API_KEY" in response.json()["detail"]
+
+
 def test_scl_upload_wird_ready_und_chunks_tragen_den_dateinamen(client, monkeypatch):
     from app.config import get_settings
     from app.ingestion import pipeline
