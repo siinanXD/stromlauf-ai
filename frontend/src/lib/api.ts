@@ -618,6 +618,13 @@ export interface TagHit {
   context: string;
 }
 
+export interface CabinetCheck {
+  in_both: string[];
+  missing_in_cabinet: string[];
+  missing_in_plan: string[];
+  cabinet_count: number;
+}
+
 export interface TagLookup {
   tag: string;
   hits: TagHit[];
@@ -674,6 +681,8 @@ export const plant = {
   updateHotspot: (id: string, body: Partial<Omit<Hotspot, "id" | "cabinet_id" | "confidence" | "origin">>) =>
     request<Hotspot>(`/api/hotspots/${id}`, json(body, "PATCH")),
   deleteHotspot: (id: string) => request<void>(`/api/hotspots/${id}`, { method: "DELETE" }),
+
+  cabinetCheck: (machineId: string) => request<CabinetCheck>(`/api/machines/${machineId}/cabinet-check`),
 
   lookupTag: (machineId: string, tag: string) =>
     request<TagLookup>(`/api/machines/${machineId}/tags/${encodeURIComponent(tag)}`),

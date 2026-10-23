@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { CabinetEditor } from "@/components/CabinetEditor";
+import { CabinetCheckPanel } from "@/components/machine/CabinetCheckPanel";
 import type { PageTarget } from "@/components/PageViewer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,12 @@ export function CabinetsTab({
         <p className="text-sm text-muted-foreground">
           Foto vom offenen Schaltschrank oder den Aufbauplan hochladen, Bauteile markieren (oder erkennen lassen) und per Klick zur Doku springen.
         </p>
+      )}
+      {machine.cabinets.length > 0 && (
+        <CabinetCheckPanel
+          machineId={machine.id}
+          version={machine.cabinets.map((c) => c.hotspots.map((h) => h.tag).join(",")).join(";")}
+        />
       )}
       {machine.cabinets.map((cabinet) => (
         <section key={cabinet.id} className="border border-line bg-card p-4">
