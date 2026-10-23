@@ -12,6 +12,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import ledger
+from app.api.machine_map import machine_map
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size
@@ -59,6 +60,7 @@ from app.schemas import (
 )
 from app.tenancy import same_workspace
 from app.tracing import vision_trace
+from app.werk.cabinet_check import compare, placement
 from app.werk.faults import FaultQuery
 from app.werk.specs import clean_specs, key_figure
 
@@ -584,6 +586,29 @@ def lookup_tag(machine_id: str, tag: str, session: Session = Depends(get_session
     ]
     bom = next((h.context for h in hits if h.doc_type == "bom"), None)
     return TagLookup(tag=normalized, hits=hits, bom_line=bom)
+
+
+@router.get("/machines/{machine_id}/cabinet-check")
+def cabinet_check(machine_id: str, session: Session = Depends(get_session)) -> dict:
+    """Schrankfotos gegen den Kennzeichen-Index der Maschine: im Schrank und Plan, fehlt im Schrank, fehlt im Plan."""
+    machine = _get(session, Machine, machine_id, "Maschine")
+    cabinet_tags = [
+        h.tag
+        for cabinet in session.scalars(select(CabinetImage).where(CabinetImage.machine_id == machine.id))
+        for h in cabinet.hotspots
+        if h.tag
+    ]
+    plan_tags: list[str] = []
+    if machine.source_id:
+        plan_tags = list(
+            session.scalars(
+                select(TagOccurrence.tag)
+                .where(TagOccurrence.source_id == machine.source_id, TagOccurrence.tag_type.in_(("device", "terminal", "device_pin")))
+                .distinct()
+            )
+        )
+    placed = placement(machine_map(machine.id, session)["zones"])  # Einbauorte aus der Stueckliste
+    return {**compare(plan_tags, cabinet_tags, placed).as_dict(), "cabinet_count": len(set(cabinet_tags))}
 
 
 # --- Globale Suche nach Kennzeichen ---------------------------------------------------------
