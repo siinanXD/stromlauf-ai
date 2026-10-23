@@ -208,3 +208,44 @@ jobs:
           docker image ls stromlauf-backend:ci --format "{{.Repository}}:{{.Tag}} {{.Size}}"
           docker run --rm -e DATABASE_URL=postgresql+psycopg://x:y@localhost:5432/z stromlauf-backend:ci \
             python -c "import app.main, app.checkpointer, app.embeddings; print('imports ok')"
+
+  compose-demo:
+    name: Demo (docker compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Demo starten
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: docker compose --profile demo up --build -d --wait --wait-timeout 1500
+      - name: Health und Startseite
+        run: |
+          curl -fsS http://localhost:8010/api/health
+          test "$(curl -sL -o /dev/null -w '%{http_code}' http://localhost:3100/)" = 200  # Startseite leitet weiter (Anmeldung bzw. Werk)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Screenshot der Maschinenseite
+        if: ${{ env.HAS_KEY == 'true' }}
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          E2E_BASE_URL: http://localhost:3100
+          E2E_API_URL: http://localhost:8010
+          E2E_SCREENSHOT: ${{ github.workspace }}/docs/assets/maschinenseite.png
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/screenshot.spec.ts --project=desktop-1440
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maschinenseite
+          path: docs/assets/maschinenseite.png
+          if-no-files-found: ignore
+      - name: Logs bei Fehler
+        if: failure()
+        run: docker compose --profile demo logs --tail=200
