@@ -358,7 +358,7 @@ class AiCall(WorkspaceScoped, Base):
     machine_id: Mapped[str | None] = mapped_column(
         ForeignKey("machines.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    purpose: Mapped[str] = mapped_column(String(32))  # chat | vision.page | vision.cabinet
+    purpose: Mapped[str] = mapped_column(String(32))  # chat | vision.page | vision.cabinet | vision.nameplate
     provider: Mapped[str] = mapped_column(String(32), default="anthropic")
     model: Mapped[str] = mapped_column(String(120))
     input_tokens: Mapped[int] = mapped_column(Integer, default=0)

@@ -33,6 +33,18 @@ Antworte NUR mit JSON, ohne Erklaertext:
 """
 
 
+NAMEPLATE_PROMPT = """Du bist Elektrokonstrukteur. Das Bild zeigt den Ausschnitt eines Bauteils im \
+Schaltschrank, darauf ein Typenschild oder eine Aufschrift. Lies Hersteller und Bestellnummer \
+(MLFB, Art.-Nr., Order No.) woertlich ab und, wenn vorhanden, die Typbezeichnung. Raten ist verboten: \
+was nicht lesbar ist, ist null.
+
+Antworte NUR mit JSON, ohne Erklaertext:
+{"manufacturer": "Siemens", "order_number": "3RT2026-1BB40", "type": "SIRIUS 3RT2", "confidence": 0.8}
+"""
+
+CROP_MARGIN = 0.15  # Anteil der Rahmengroesse, damit das Schild nicht am Rand abgeschnitten wird
+
+
 def load_png(path: Path) -> tuple[bytes, int, int]:
     image = Image.open(path).convert("RGB")
     width, height = image.size
@@ -102,3 +114,58 @@ def detect_components(
             }
         )
     return result
+
+
+def crop_png(path: Path, x: float, y: float, w: float, h: float) -> bytes:
+    """Ausschnitt eines Hotspots (relativ 0 bis 1) mit Rand in Originalaufloesung, hoechstens MAX_EDGE."""
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    left, top = max(x - w * CROP_MARGIN, 0.0), max(y - h * CROP_MARGIN, 0.0)
+    right, bottom = min(x + w * (1 + CROP_MARGIN), 1.0), min(y + h * (1 + CROP_MARGIN), 1.0)
+    x0, y0 = int(left * width), int(top * height)
+    image = image.crop((x0, y0, max(int(right * width), x0 + 1), max(int(bottom * height), y0 + 1)))
+    scale = min(1.0, MAX_EDGE / max(image.size))
+    if scale < 1.0:
+        image = image.resize((max(int(image.width * scale), 1), max(int(image.height * scale), 1)))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG", optimize=True)
+    return buffer.getvalue()
+
+
+def parse_nameplate(text: str) -> dict:
+    """JSON der Modellantwort -> Hersteller, Bestellnummer, Typ, Sicherheit (leer, wo nichts gelesen wurde)."""
+    match = re.search(r"\{.*\}", text, re.S)
+    if not match:
+        raise ValueError("Vision-Antwort enthielt kein JSON")
+    data = json.loads(match.group(0))
+
+    def clean(key: str, limit: int) -> str:
+        return str(data.get(key) or "").strip()[:limit]
+
+    try:
+        confidence = min(max(float(data.get("confidence") or 0.0), 0.0), 1.0)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    return {
+        "manufacturer": clean("manufacturer", 80),
+        "order_number": clean("order_number", 80),
+        "type": clean("type", 120),
+        "confidence": confidence,
+    }
+
+
+def read_nameplate(path: Path, rect: tuple[float, float, float, float], trace: dict | None = None) -> dict:
+    """Typenschild im Rahmen (x, y, w, h) lesen; ein Aufruf, ein Bild."""
+    settings = get_settings()
+    if missing := missing_key(settings.vision_model, settings):
+        raise MissingKeyError(missing)
+    png = crop_png(path, *rect)
+    llm = make_chat_model(settings.vision_model, max_tokens=500, max_retries=2)
+    message = HumanMessage(content=[image_block(png), {"type": "text", "text": NAMEPLATE_PROMPT}])
+    content = llm.invoke([message], trace or None).content
+    text = (
+        content
+        if isinstance(content, str)
+        else "".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+    )
+    return parse_nameplate(text)

@@ -67,6 +67,20 @@ pays 39 €/month. The setup fee also covers the human review of the machine map
 
 Break-even on fixed cost: ≈ 3 machines on model A at 39 €/month.
 
+### Nameplate reading (cabinet hotspot, on demand)
+
+`POST /api/hotspots/{id}/nameplate` crops the hotspot rectangle (plus 15 % margin) and sends it as one image to the
+vision model; the comparison with the parts-list line is deterministic and free. Ledger purpose `vision.nameplate`,
+list assumption 900 in + 150 out per call.
+
+| Model | Per call | 100 hotspots |
+| --- | --- | --- |
+| Haiku 4.5 | ≈ $0.0016 | $0.16 |
+| **Sonnet 5 (default `VISION_MODEL`)** | **≈ $0.0033** | **$0.33** |
+| Opus 5 | ≈ $0.0083 | $0.83 |
+
+Only triggered by the user per hotspot, never during ingestion; counts against `monthly_ai_cap_cents`.
+
 ## 5. Guardrails built into the product
 
 - Estimate before ingestion (pages × measured per-page median) shown in the "Maschine hinzufügen" screen.
