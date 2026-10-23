@@ -6,9 +6,11 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from sqlalchemy import or_, select
 
+from app.api.awl import load_program
 from app.api.signal import graph_for_source
 from app.db import session_scope
 from app.embeddings import embeddings
+from app.ingestion.awl_explain import explain_awl, resolve_output, why_not
 from app.ingestion.signal_view import main_view
 from app.ingestion.tags import normalize_tag
 from app.ingestion.vision import image_block, render_page_png
@@ -521,10 +523,107 @@ def signal_path(tag: str, config: RunnableConfig) -> tuple[str, list[dict]]:
     return "\n\n".join(found), refs
 
 
+# --- SPS-Erklaerer -------------------------------------------------------------------------------------
+
+MAX_WHY_NETWORKS = 8
+
+
+def _network_locator(network_id: str) -> str:
+    """Ort fuer den Beleg: "FB 10/NW2" -> "FB 10 NW 2" (so liest ihn app/citations.py)."""
+    block, _, number = network_id.partition("/NW")
+    return f"{block} NW {number}" if number else block
+
+
+def format_sps_warum(result: dict, files: dict[str, str]) -> str:
+    """Rueckverfolgung eines Ausgangs als Text fuer das Modell: Ziel mit Klemme und Geraet, je schreibendem Netzwerk
+    der Klartext und alle Eingaenge mit Klemme und Geraet, dazu der Beleg, den das Modell wortgleich uebernimmt.
+    Bezeichnungen und Klartext stammen aus Kundendokumenten und stehen deshalb zwischen <kontext>-Marken."""
+    target = result["target"]
+    awl = files.get("plc_program")
+    terminal_file = files.get("terminal_plan")
+    where = ", ".join(
+        part
+        for part in (
+            f"Klemme {target['terminal']}" if target["terminal"] else "",
+            f"Gerät {target['device']}" if target["device"] else "",
+        )
+        if part
+    )
+    lines = [
+        DATA_NOTE,
+        "",
+        f"Warum kommt {target['id']} nicht? Rückverfolgung aus dem SPS-Programm"
+        + (f" ({awl})" if awl else "")
+        + ". Jede Bedingung unten muss erfüllt sein; prüfe sie von der Klemme aus.",
+        "<kontext>",
+        f"Ausgang {target['id']} | {escape_document(target['label']) or '-'} | "
+        + (where or "ohne Klemme im Klemmenplan"),
+    ]
+    for network in result["networks"][:MAX_WHY_NETWORKS]:
+        beleg = f" [[{awl}|{_network_locator(network['id'])}]]" if awl else ""
+        lines.append(f"Netzwerk {network['id']} (Tiefe {network['depth']}){beleg}")
+        lines += ["  " + escape_document(sentence) for sentence in network["klartext"]]
+        for item in network["inputs"]:
+            parts = [f"  Eingang {item['id']}", escape_document(item["label"]) or "-"]
+            if item["terminal"]:
+                beleg = f" [[{terminal_file}|{item['terminal']}]]" if terminal_file else ""
+                parts.append(f"Klemme {item['terminal']}{beleg}")
+            if item["device"]:
+                parts.append(f"Gerät {item['device']}")
+            if item["written_by"]:
+                parts.append("geschrieben von " + ", ".join(item["written_by"]))
+            lines.append(" | ".join(parts))
+    more = len(result["networks"]) - MAX_WHY_NETWORKS
+    if more > 0:
+        lines.append(f"... und {more} weitere Netzwerke")
+    lines.append("</kontext>")
+    lines.append(
+        "Die Belege in doppelten eckigen Klammern wortgleich übernehmen. Ob ein Eingang im Betrieb anliegt, "
+        "zeigt nur die Messung."
+    )
+    return "\n".join(lines)
+
+
+@tool(response_format="content_and_artifact")
+def sps_warum(output: str, config: RunnableConfig) -> tuple[str, list[dict]]:
+    """Warum kommt ein SPS-Ausgang nicht (A4.0, Q4.2 oder Symbol "Vorwaerts")? Zeigt die AWL-Netzwerke, die den
+    Ausgang schreiben, im Klartext mit allen Bedingungen und je Eingang Klemme und Gerät; interne Merker führen
+    zum Netzwerk, das sie schreibt. Deterministisch aus AWL, Symboltabelle und Klemmenplan. Erstes Werkzeug für
+    "Warum kommt A4.0 nicht?" und "Warum läuft das Band nicht an?" mit bekanntem Ausgang."""
+    found: list[str] = []
+    refs: list[dict] = []
+    with session_scope() as session:
+        statement = _scoped(
+            select(KnowledgeSource.id, KnowledgeSource.name).order_by(KnowledgeSource.name),
+            KnowledgeSource.id,
+            config,
+        )
+        for source_id, name in session.execute(statement).all():
+            text, symbols = load_program(session, source_id)
+            networks = explain_awl(text, symbols) if text else []
+            if not networks:
+                continue
+            graph, _schematic = graph_for_source(session, source_id)
+            target = resolve_output(graph, symbols, output)
+            result = why_not(graph, networks, target) if target else None
+            if not result or not result["networks"]:
+                continue
+            documents = _source_documents(session, source_id)
+            files = {kind: document.filename for kind, document in documents.items()}
+            found.append(f"Quelle: {name}\n" + format_sps_warum(result, files))
+            refs += [_ref(document, None) for document in documents.values()]
+            if len(found) == 2:
+                break
+    if not found:
+        return f"Kein SPS-Programm schreibt {output.strip()}. Alternative: signal_path oder find_tag.", []
+    return "\n\n".join(found), refs
+
+
 TOOLS = [
     search_knowledge,
     find_tag,
     signal_path,
+    sps_warum,
     keyword_search,
     get_page,
     view_page,

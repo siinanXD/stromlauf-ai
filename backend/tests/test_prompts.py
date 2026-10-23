@@ -26,7 +26,7 @@ TRANSCRIBED = (
 
 
 def test_version_steigt_mit_dem_neuen_prompt():
-    assert PROMPT_VERSION == 3
+    assert PROMPT_VERSION == 4
 
 
 def test_prompt_schreibt_echte_umlaute():

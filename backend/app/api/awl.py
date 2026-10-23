@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/awl", tags=["awl"])
 
 
-def _program(session: Session, source_id: str) -> tuple[str, dict[str, str]]:
+def load_program(session: Session, source_id: str) -> tuple[str, dict[str, str]]:
     """AWL-Text und Symbol -> Adresse aller Dokumente der Quelle."""
     texts, symbols = [], {}
     for doc in session.scalars(select(Document).where(Document.source_id == source_id)).all():
@@ -45,7 +45,7 @@ def _no_program() -> HTTPException:
 @router.get("/networks")
 def get_networks(source_id: str, session: Session = Depends(get_session)):
     """Alle Netzwerke der AWL-Quellen im Klartext."""
-    text, symbols = _program(session, source_id)
+    text, symbols = load_program(session, source_id)
     networks = explain_awl(text, symbols)
     if not networks:
         raise _no_program()
@@ -55,7 +55,7 @@ def get_networks(source_id: str, session: Session = Depends(get_session)):
 @router.get("/why")
 def get_why(source_id: str, output: str, session: Session = Depends(get_session)):
     """Warum kommt Ausgang `output` (Adresse, Symbol) nicht? Alle Eingaenge seiner Netzwerke samt Klemme."""
-    text, symbols = _program(session, source_id)
+    text, symbols = load_program(session, source_id)
     networks = explain_awl(text, symbols)
     if not networks:
         raise _no_program()

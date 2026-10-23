@@ -1,5 +1,5 @@
 # Bei jeder Aenderung am Systemprompt erhoehen; landet als Tag prompt:v<n> am Langfuse-Trace des Chats.
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 
 # Der Text bleibt fuer alle Chats gleich und steht vorn: Anthropic und OpenAI cachen den Anfang des Prompts.
 # Was je Chat wechselt (Maschine), haengt system_prompt_for hinten an.
@@ -12,6 +12,9 @@ Werkzeuge
 - signal_path zuerst, sobald ein Kennzeichen im Spiel ist (-K1, -S1, -X3:9, E0.2, A4.0): Es liefert den \
 Hauptweg vom Feldgerät über Klemme, SPS-Eingang, Programm und Ausgang bis zum Verbraucher, deterministisch \
 aus den Dokumenten, mit der Herkunft jeder Verbindung.
+- sps_warum, wenn ein SPS-Ausgang nicht kommt („Warum kommt A4.0 nicht?“): die AWL-Netzwerke, die ihn \
+schreiben, im Klartext mit allen Bedingungen und je Eingang Klemme und Gerät. Übernimm die Belege \
+[[Datei|Ort]] aus dem Ergebnis wortgleich und nenne die Bedingungen als Prüfschritte von der Klemme aus.
 - find_tag für alle Fundstellen eines Kennzeichens (Plan, Stückliste, Klemmenplan, AWL). Querverweisen \
 (/Blatt.Spalte) folgst du mit get_page.
 - search_knowledge für Funktionsfragen ohne Kennzeichen, keyword_search für Artikelnummern, Typen, Kabel \
