@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import TypeVar
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -60,6 +61,11 @@ from app.schemas import (
 )
 from app.tenancy import same_workspace
 from app.tracing import vision_trace
+from app.werk.bom import BomItem, build_bom
+from app.werk.bom_export import annotated_photo
+from app.werk.bom_export import to_csv as bom_to_csv
+from app.werk.bom_export import to_pdf as bom_to_pdf
+from app.werk.bom_export import to_xlsx as bom_to_xlsx
 from app.werk.cabinet_check import compare, placement
 from app.werk.faults import FaultQuery
 from app.werk.nameplate import compare as compare_nameplate
@@ -556,6 +562,84 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(cabinet)
     return CabinetOut.model_validate(cabinet)
+
+
+class BomPlate(BaseModel):
+    """Gelesenes Typenschild (Antwort von `/hotspots/{id}/nameplate`) plus Nennwerte, je Hotspot."""
+
+    manufacturer: str = ""
+    type: str = ""
+    order_number: str = ""
+    rating: str = ""
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class BomRequest(BaseModel):
+    plates: dict[str, BomPlate] = {}  # Hotspot-ID -> Typenschild
+
+
+BOM_FORMATS = {
+    "json": "application/json",
+    "csv": "text/csv; charset=utf-8",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
+
+
+@router.post("/cabinets/{cabinet_id}/bom")
+def cabinet_bom(
+    cabinet_id: str,
+    body: BomRequest | None = None,
+    format: str = Query("json", pattern="^(json|csv|xlsx|pdf)$"),
+    session: Session = Depends(get_session),
+):
+    """Stueckliste des Schrankbilds: gruppiert, mit BMK-Vorschlag; `format` json | csv | xlsx | pdf.
+
+    Typenschilder liest der Aufrufer vorher je Hotspot und reicht sie in `plates` mit (kein Modellaufruf hier)."""
+    cabinet = _get(session, CabinetImage, cabinet_id, "Schaltschrankbild")
+    plates = (body or BomRequest()).plates
+    items = []
+    for hotspot in cabinet.hotspots:
+        plate = plates.get(hotspot.id) or BomPlate()
+        confidences = [c for c in (hotspot.confidence, plate.confidence) if c is not None]
+        items.append(
+            BomItem(
+                id=hotspot.id,
+                kind=hotspot.kind,
+                label=hotspot.label,
+                tag=hotspot.tag,
+                x=hotspot.x,
+                y=hotspot.y,
+                w=hotspot.w,
+                h=hotspot.h,
+                confidence=min(confidences) if confidences else None,
+                manufacturer=plate.manufacturer,
+                type=plate.type,
+                order_number=plate.order_number,
+                rating=plate.rating,
+            )
+        )
+    bom = build_bom(items)
+    if format == "json":
+        return {"cabinet_id": cabinet.id, "total": bom.total, "rows": [row.as_dict() for row in bom.rows], "bmk": bom.bmk_by_item}
+    name = "".join(c if c.isalnum() or c in "-_" else "_" for c in cabinet.title) or "Schaltschrank"
+    if format == "csv":
+        data = bom_to_csv(bom)
+    elif format == "xlsx":
+        data = bom_to_xlsx(bom)
+    else:
+        photo = None
+        if Path(cabinet.image_path).exists():
+            photo = annotated_photo(Path(cabinet.image_path), items, bom.number_by_item)
+        try:
+            data = bom_to_pdf(bom, cabinet.title, photo)
+        except ValueError as exc:
+            raise HTTPException(413, str(exc)) from exc
+    return Response(
+        data,
+        media_type=BOM_FORMATS[format],
+        headers={"Content-Disposition": f'attachment; filename="Stueckliste_{name}.{format}"'},
+    )
 
 
 @router.post("/hotspots/{hotspot_id}/nameplate")
