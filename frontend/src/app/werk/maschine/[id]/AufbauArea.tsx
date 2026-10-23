@@ -17,6 +17,7 @@ import { SchemaMap } from "@/components/model/SchemaMap";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { CabinetLightbox } from "@/components/part/CabinetLightbox";
 import { PartSheet } from "@/components/part/PartSheet";
+import { SpsTab } from "@/components/sps/SpsTab";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -216,6 +217,12 @@ export function AufbauArea({
                 )}
               </div>
             </div>
+          ) : (
+            <p className="p-3 text-sm text-muted-foreground">Keine Dokumentation verknüpft. Unter „Dokumente“ eine Wissensquelle wählen.</p>
+          ))}
+        {current === "sps" &&
+          (machine.source_id ? (
+            <SpsTab sourceId={machine.source_id} onOpenDetail={openFromSignal} />
           ) : (
             <p className="p-3 text-sm text-muted-foreground">Keine Dokumentation verknüpft. Unter „Dokumente“ eine Wissensquelle wählen.</p>
           ))}

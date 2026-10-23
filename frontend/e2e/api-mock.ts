@@ -167,6 +167,32 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
+const AWL_NETWORKS = {
+  networks: [
+    { id: "FB10/NW1", ref: "FB 10 NW 1", number: 1, title: "Freigabe", comment: "", klartext: ["M1.0 wird gesetzt, wenn Taster Start (E0.0) betätigt ist."], other: [], operands: [] },
+    { id: "FB10/NW2", ref: "FB 10 NW 2", number: 2, title: "Motor", comment: "", klartext: ["A4.0 ist an, wenn Taster Start (E0.0) und M1.0."], other: [], operands: [] },
+    { id: "OB1/NW1", ref: "OB 1 NW 1", number: 1, title: "Aufruf", comment: "", klartext: ["Ruft FB 10 auf."], other: [], operands: [] },
+  ],
+};
+
+const AWL_WHY = {
+  target: { id: "A4.0", label: "A4.0", terminal: "-X3:1", device: "-K1" },
+  networks: [
+    {
+      id: "FB10/NW2",
+      ref: "FB 10 NW 2",
+      title: "Motor",
+      klartext: ["A4.0 ist an, wenn E0.0 und M1.0."],
+      depth: 0,
+      inputs: [
+        { id: "E0.0", kind: "address", label: "E0.0", terminal: "-X1:5", device: "-S1", written_by: [] },
+        { id: "M1.0", kind: "variable", label: "M1.0", terminal: null, device: null, written_by: ["FB10/NW1"] },
+      ],
+    },
+    { id: "FB10/NW1", ref: "FB 10 NW 1", title: "Freigabe", klartext: [], depth: 1, inputs: [{ id: "E0.0", kind: "address", label: "E0.0", terminal: "-X1:5", device: "-S1", written_by: [] }] },
+  ],
+};
+
 /**
  * withHistory: conv-1 gibt es schon (Verlauf, Reload). Ohne legt erst der Chat-Stream conv-1 an, wie der Server.
  * Der Zustand gilt je Seite, PATCH aendert outcome und finding.
@@ -191,6 +217,8 @@ export async function mockApi(page: Page, { withHistory = true, chatFailures = 0
     if (path.startsWith(`/api/machines/${MACHINE_ID}/tags/`)) return json(route, { tag: decodeURIComponent(path.split("/").pop()!), hits: [], bom_line: null });
     if (path === "/api/facts") return url.searchParams.get("tag") === "-K1" ? json(route, factCard) : json(route, { detail: "nichts" }, 404);
     if (path === "/api/signal-path") return url.searchParams.get("tag") === "-K1" ? json(route, signal) : json(route, { detail: "nichts" }, 404);
+    if (path === "/api/awl/networks") return json(route, AWL_NETWORKS);
+    if (path === "/api/awl/why") return url.searchParams.get("output") === "A4.0" ? json(route, AWL_WHY) : json(route, { detail: { reason: "unknown_output", message: "nicht im Programm" } }, 404);
     if (path.startsWith("/api/hotspots/") && method === "PATCH") {
       const id = path.split("/").pop()!;
       const body = route.request().postDataJSON() as Record<string, unknown>;

@@ -834,6 +834,71 @@ export async function signalPathMain(tag: string, sourceId: string): Promise<Sig
   return { ok: true, data: await response.json() };
 }
 
+// --- SPS-Erklaerer (AWL) ---------------------------------------------------------------------
+
+export interface AwlOperand {
+  id: string;
+  name: string;
+  address: string;
+}
+
+export interface AwlNetwork {
+  id: string;
+  ref: string;
+  number: number;
+  title: string;
+  comment: string;
+  klartext: string[];
+  other: string[];
+  operands: AwlOperand[];
+}
+
+export interface WhyInput {
+  id: string;
+  kind: string;
+  label: string;
+  terminal: string | null;
+  device: string | null;
+  /** IDs der Netzwerke, die diesen Eingang schreiben (interner Merker oder Ausgang). */
+  written_by: string[];
+}
+
+export interface WhyNetwork {
+  id: string;
+  ref: string;
+  title: string;
+  klartext: string[];
+  inputs: WhyInput[];
+  depth: number;
+}
+
+export interface WhyData {
+  target: { id: string; label: string; terminal: string | null; device: string | null };
+  networks: WhyNetwork[];
+}
+
+export type AwlMissingReason = "no_program" | "unknown_output" | "not_written";
+
+export type AwlResult<T> = { ok: true; data: T } | { ok: false; reason: AwlMissingReason; message: string };
+
+/** Ein 404 des Erklaerers ist kein Fehler, sondern ein Grund fuer den leeren Zustand. */
+async function awlRequest<T>(path: string): Promise<AwlResult<T>> {
+  const response = await fetch(`${API_URL}${path}`, { headers: authHeaders() });
+  if (response.status === 404) {
+    const detail = (await response.json().catch(() => null))?.detail;
+    const reason: AwlMissingReason = detail?.reason === "unknown_output" || detail?.reason === "not_written" ? detail.reason : "no_program";
+    return { ok: false, reason, message: typeof detail?.message === "string" ? detail.message : "" };
+  }
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return { ok: true, data: await response.json() };
+}
+
+export const awlNetworks = (sourceId: string) =>
+  awlRequest<{ networks: AwlNetwork[] }>(`/api/awl/networks?source_id=${encodeURIComponent(sourceId)}`);
+
+export const awlWhy = (sourceId: string, output: string) =>
+  awlRequest<WhyData>(`/api/awl/why?source_id=${encodeURIComponent(sourceId)}&output=${encodeURIComponent(output)}`);
+
 // --- Onboarding aus der Doku -----------------------------------------------------------------
 
 export interface OnboardingProposal {
