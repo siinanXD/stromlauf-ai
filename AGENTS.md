@@ -171,6 +171,9 @@ der Instandhaltung an der Maschine?
   („Warum kommt Ausgang X nicht?“, `output` = Adresse oder Symbol): Netzwerke, die den Ausgang schreiben, mit allen
   Eingaengen samt Klemme und Geraet aus dem Signalgraph; interne Merker nennen ihr schreibendes Netzwerk (`written_by`,
   bis Tiefe 4). 404 mit `detail.reason` no_program|unknown_output|not_written. Tests `tests/test_awl_explain.py`.
+  Chat-Werkzeug `sps_warum` (SIN-980, Prompt v4, `agent/tools.py::format_sps_warum`): dieselbe Rueckverfolgung als Text
+  zwischen `<kontext>`-Marken, Belege `[[AWL|FB 10 NW 2]]` je Netzwerk und `[[Klemmenplan|-X3:1]]` je Klemme, damit
+  `citations.check_answer` sie besteht. Eval-Fragen `fb01-warum-a40`, `fb01-warum-a41`.
 - Signalweg-Ansicht (Issue #109): `components/signal/SignalView.tsx` mit `compact` im Antwortblock und `auto` (unter
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.

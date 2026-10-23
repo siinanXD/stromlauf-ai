@@ -123,3 +123,81 @@ def test_werkzeug_sucht_in_den_quellen_des_chats(monkeypatch):
 
 def test_werkzeug_ist_registriert():
     assert "signal_path" in [t.name for t in TOOLS]
+
+
+# --- sps_warum -----------------------------------------------------------------------------------------
+
+AWL = FILES["plc_program"]
+KLEMMENPLAN = FILES["terminal_plan"]
+
+
+def _why_text(output: str = "A4.0") -> str:
+    from test_awl_explain import _networks, _symbols
+
+    from app.ingestion.awl_explain import resolve_output, why_not
+
+    graph = fb01_graph()
+    result = why_not(graph, list(_networks().values()), resolve_output(graph, _symbols(), output))
+    return tools.format_sps_warum(result, FILES)
+
+
+def test_sps_warum_liefert_baum_mit_fundstellen():
+    text = _why_text("A4.0")
+    assert "<kontext>" in text and "</kontext>" in text
+    assert "Ausgang A4.0" in text and "Klemme -X3:9" in text
+    assert f"[[{AWL}|FB 10 NW 2]]" in text and f"[[{AWL}|FB 10 NW 1]]" in text
+    assert f"Klemme -X3:1 [[{KLEMMENPLAN}|-X3:1]]" in text and "Gerät -S1" in text
+    assert "geschrieben von FB 10/NW1" in text
+
+
+def test_sps_warum_belege_bestehen_den_zitat_check():
+    from app.citations import DocIndex, check_citations, parse_markers
+
+    text = _why_text("A4.0")
+    assert parse_markers(text)
+    docs = [
+        DocIndex(
+            filename=AWL,
+            is_pdf=False,
+            sections=tuple(f"FB 10 - Foerderband FB-01 Steuerung / NW {n} Netzwerk" for n in range(1, 8)),
+        ),
+        DocIndex(filename=KLEMMENPLAN, is_pdf=False, tags=frozenset({f"-X3:{n}" for n in range(1, 10)})),
+    ]
+    checks = check_citations(text, docs, {AWL, KLEMMENPLAN})
+    assert checks and all(c.valid for c in checks), [c for c in checks if not c.valid]
+
+
+def test_sps_warum_werkzeug(monkeypatch):
+    from test_awl_explain import _networks, _symbols
+
+    class Session:
+        def execute(self, _statement):
+            return SimpleNamespace(all=lambda: [("s1", "Foerderband FB-01"), ("s2", "Leer")])
+
+    class Scope:
+        def __enter__(self):
+            return Session()
+
+        def __exit__(self, *exc):
+            return False
+
+    def program(session, source_id):
+        return ("x", _symbols()) if source_id == "s1" else ("", {})
+
+    monkeypatch.setattr(tools, "session_scope", Scope)
+    monkeypatch.setattr(tools, "load_program", program)
+    monkeypatch.setattr(tools, "explain_awl", lambda text, symbols: list(_networks().values()))
+    monkeypatch.setattr(tools, "graph_for_source", lambda session, source_id: (fb01_graph(), None))
+    documents = {
+        kind: SimpleNamespace(id=f"d-{kind}", filename=name, doc_type=kind) for kind, name in FILES.items()
+    }
+    monkeypatch.setattr(tools, "_source_documents", lambda session, source_id: documents)
+    text, refs = tools.sps_warum.func("K1_Vorwaerts", {"configurable": {}})
+    assert "Quelle: Foerderband FB-01" in text and "Ausgang A4.0" in text
+    assert AWL in {r["filename"] for r in refs}
+    text, refs = tools.sps_warum.func("Q9.9", {"configurable": {}})
+    assert "Kein SPS-Programm schreibt Q9.9" in text and refs == []
+
+
+def test_sps_warum_ist_registriert():
+    assert "sps_warum" in [t.name for t in TOOLS]
