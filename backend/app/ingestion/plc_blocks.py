@@ -77,6 +77,9 @@ class SymbolTable:
 class _Use:
     raw: str
     role: str
+    op: str = ""  # Befehl (AWL/STL: `UN`, `S`, `=`), `CALL`/`INSTANCE` bei Aufrufen, `:=` in SCL
+    param: str = ""  # formaler Parameter eines Aufrufs
+    direction: str = ""  # `out` bei SCL `=>`
 
 
 def _operand(raw: str, symbols: SymbolTable) -> dict:
@@ -108,13 +111,30 @@ def _collect(uses: list[_Use], symbols: SymbolTable) -> list[dict]:
         op = _operand(use.raw, symbols)
         key = op["display"]
         if key in seen:
-            existing = seen[key]
-            if use.role not in existing["roles"]:
-                existing["roles"].append(use.role)
+            op = seen[key]
+            if use.role not in op["roles"]:
+                op["roles"].append(use.role)
         else:
             op["roles"].append(use.role)
             seen[key] = op
+        if use.op and use.role in ("read", "write") and use.op not in op.setdefault("ops", []):
+            op["ops"].append(use.op)
     return list(seen.values())
+
+
+def _calls(uses: list[_Use], symbols: SymbolTable) -> list[dict]:
+    """Aufrufe mit den Parametern, die der Netzwerktext uebergibt (formaler Name -> Operand)."""
+    calls: list[dict] = []
+    for use in uses:
+        if use.op == "CALL":
+            calls.append({"target": use.raw.strip('"'), "instance": None, "args": []})
+        elif use.op == "INSTANCE" and calls:
+            calls[-1]["instance"] = calls[-1]["instance"] or use.raw.strip('"')
+        elif use.param and calls:
+            arg = _operand(use.raw, symbols)
+            calls[-1]["args"].append({"param": use.param, "value": arg["display"], "address": arg["address"],
+                                      "scope": arg["scope"], "direction": use.direction or None})
+    return calls
 
 
 # --- AWL --------------------------------------------------------------------------------------
@@ -140,7 +160,7 @@ def _awl_uses(lines: list[str]) -> tuple[list[_Use], int]:
         if not code:
             continue
         if call_open and (m := _PARAM.match(code)):
-            uses.append(_Use(m["v"], "param"))
+            uses.append(_Use(m["v"], "param", param=m["p"]))
             continue
         call_open = False
         code = _LABEL.sub("", code, count=1).strip()
@@ -154,10 +174,10 @@ def _awl_uses(lines: list[str]) -> tuple[list[_Use], int]:
         if op in _CALLS:
             target = arg.split(",")[0].strip()
             if target:
-                uses.append(_Use(re.sub(r"\s+", " ", target), "call"))
+                uses.append(_Use(re.sub(r"\s+", " ", target), "call", op="CALL"))
             for extra in arg.split(",")[1:]:
                 if extra.strip():
-                    uses.append(_Use(re.sub(r"\s+", " ", extra.strip()), "call"))
+                    uses.append(_Use(re.sub(r"\s+", " ", extra.strip()), "call", op="INSTANCE"))
             call_open = True
             continue
         if op in _JUMPS or op in _NO_OPERAND or not arg:
@@ -167,7 +187,7 @@ def _awl_uses(lines: list[str]) -> tuple[list[_Use], int]:
             continue
         if arg.startswith(("+", "-")) and arg[1:].isdigit():
             continue
-        uses.append(_Use(re.sub(r"\s+", " ", arg), "write" if op in _WRITES else "read"))
+        uses.append(_Use(re.sub(r"\s+", " ", arg), "write" if op in _WRITES else "read", op=op))
     return uses, statements
 
 
@@ -205,8 +225,11 @@ def _block(kind: str, raw_name: str, title: str, declaration: list[str], network
 
 
 def _network(number: int, title: str, comment: str, uses: list[_Use], statements: int, symbols: SymbolTable) -> dict:
-    return {"number": number, "title": title, "comment": comment, "statements": statements,
-            "operands": _collect(uses, symbols)}
+    network = {"number": number, "title": title, "comment": comment, "statements": statements,
+               "operands": _collect(uses, symbols)}
+    if calls := _calls(uses, symbols):
+        network["calls"] = calls
+    return network
 
 
 def parse_awl_blocks(text: str, symbols: SymbolTable | None = None) -> list[dict]:
@@ -242,17 +265,18 @@ def _scl_uses(body: str) -> tuple[list[_Use], int]:
         statements += 1
         statement = re.sub(r"^(?:IF|ELSIF|WHILE|UNTIL|CASE|FOR)\b", " ", statement, flags=re.I)
         if "(" in statement and (call := re.match(r"\s*(?P<c>\"[^\"]+\"|#\w+|\w+)\s*\((?P<args>.*)\)\s*$", statement, re.S)):
-            uses.append(_Use(call["c"], "call"))
+            uses.append(_Use(call["c"], "call", op="CALL"))
             for arg in _SCL_CALL_ARG.finditer(call["args"]):
                 value = arg["v"]
                 if value.upper() in {"TRUE", "FALSE"} or value[0].isdigit():
                     continue
-                uses.append(_Use(value, "write" if arg["op"] == "=>" else "param"))
+                out = arg["op"] == "=>"
+                uses.append(_Use(value, "write" if out else "param", param=arg["p"], direction="out" if out else "in"))
             continue
         # Zuweisung: Ziel links von := (ausserhalb von Klammern) schreibt, alles andere liest
         parts = re.split(r"(?<![<>])\:=", statement, maxsplit=1)
         if len(parts) == 2 and (target := _SCL_REF.search(parts[0])):
-            uses.append(_Use(target["o"], "write"))
+            uses.append(_Use(target["o"], "write", op=":="))
             rest = parts[1]
         else:
             rest = statement
@@ -357,13 +381,13 @@ def _xml_network(unit: ET.Element, number: int, symbols: SymbolTable) -> dict:
             if _local(tok.tag) == "StlToken":
                 mnemonic = mnemonic or tok.get("Text", "").upper()
             elif _local(tok.tag) == "Access" and (raw := _xml_access(tok)):
-                uses.append(_Use(raw, "write" if mnemonic in _WRITES else "read"))
+                uses.append(_Use(raw, "write" if mnemonic in _WRITES else "read", op=mnemonic))
     for text_src in (n for n in unit.iter() if _local(n.tag) == "StructuredText"):
         statements += 1
         pending_write = True
         for node in text_src:
             if _local(node.tag) == "Access" and (raw := _xml_access(node)):
-                uses.append(_Use(raw, "write" if pending_write else "read"))
+                uses.append(_Use(raw, "write" if pending_write else "read", op=":=" if pending_write else ""))
                 pending_write = False
             elif _local(node.tag) == "Token" and node.get("Text") == ";":
                 pending_write = True
