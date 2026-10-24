@@ -174,6 +174,12 @@ der Instandhaltung an der Maschine?
   Chat-Werkzeug `sps_warum` (SIN-980, Prompt v4, `agent/tools.py::format_sps_warum`): dieselbe Rueckverfolgung als Text
   zwischen `<kontext>`-Marken, Belege `[[AWL|FB 10 NW 2]]` je Netzwerk und `[[Klemmenplan|-X3:1]]` je Klemme, damit
   `citations.check_answer` sie besteht. Eval-Fragen `fb01-warum-a40`, `fb01-warum-a41`.
+- Signalfluss-Graph (SIN-724, ohne Modell): `app/sps/graph/build.py` baut aus dem Baustein-Modell (`plc_blocks`) einen
+  `networkx.DiGraph`; Kante `a -> b` = „a beeinflusst b“. Im Netzwerk beeinflusst jeder gelesene Operand jeden
+  geschriebenen (konservativ), die Kante nennt Leser-Befehle (UND/ODER/NICHT) und Schreiber (assign, set, reset, edge,
+  timer, counter). `CALL` loest Parameter ueber `networks[].calls` (formal -> aktuell, Richtung aus der Schnittstelle).
+  Vergleicher: nur Abhaengigkeit, keine Vergleichsart. `FlowGraph.upstream/downstream(operand, depth)`, `sources`;
+  Export `export.to_json` (`graph.json`) und `to_mermaid` (max. 50 Knoten, sonst Teilgraph um `focus`). Tests `test_sps_graph.py`.
 - Signalweg-Ansicht (Issue #109): `components/signal/SignalView.tsx` mit `compact` im Antwortblock und `auto` (unter
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
