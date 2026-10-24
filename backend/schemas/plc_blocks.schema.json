@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/siinanXD/stromlauf-ai/backend/schemas/plc_blocks.schema.json",
+  "title": "SPS-Baustein-Modell (SIN-723)",
+  "type": "object",
+  "required": ["source_format", "blocks"],
+  "additionalProperties": false,
+  "properties": {
+    "source_format": { "enum": ["awl", "scl", "xml"] },
+    "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+  },
+  "$defs": {
+    "block": {
+      "type": "object",
+      "required": ["kind", "name", "number", "title", "interface", "networks"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["OB", "FB", "FC", "DB", "UDT"] },
+        "name": { "type": "string" },
+        "number": { "type": ["integer", "null"] },
+        "title": { "type": "string" },
+        "interface": { "type": "array", "items": { "$ref": "#/$defs/member" } },
+        "networks": { "type": "array", "items": { "$ref": "#/$defs/network" } }
+      }
+    },
+    "member": {
+      "type": "object",
+      "required": ["section", "name", "type", "comment"],
+      "additionalProperties": false,
+      "properties": {
+        "section": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "comment": { "type": "string" }
+      }
+    },
+    "network": {
+      "type": "object",
+      "required": ["number", "title", "comment", "statements", "operands"],
+      "additionalProperties": false,
+      "properties": {
+        "number": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string" },
+        "comment": { "type": "string" },
+        "statements": { "type": "integer", "minimum": 0 },
+        "operands": { "type": "array", "items": { "$ref": "#/$defs/operand" } }
+      }
+    },
+    "operand": {
+      "type": "object",
+      "required": ["display", "name", "address", "scope", "roles"],
+      "additionalProperties": false,
+      "properties": {
+        "display": { "type": "string", "minLength": 1, "description": "Symbolname, sonst Absolutadresse, sonst Rohtext" },
+        "name": { "type": ["string", "null"] },
+        "address": { "type": ["string", "null"] },
+        "scope": { "enum": ["global", "local", "absolute"] },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["read", "write", "param", "call"] }
+        }
+      }
+    }
+  }
+}
