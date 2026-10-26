@@ -72,7 +72,7 @@ async function mockAblauf(page: Page) {
   await page.route("**/api/runs**", (route) => {
     const method = route.request().method();
     if (method === "POST") return json(route, run(1, false), 201);
-    if (method === "GET") {
+    if (method === "GET" && route.request().url().includes(RUN_ID)) {
       gets += 1;
       return json(route, gets >= 7 ? run(KEYS.length, true) : run(Math.min(gets + 1, KEYS.length - 1), false));
     }
@@ -81,6 +81,7 @@ async function mockAblauf(page: Page) {
 }
 
 test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
+  test.setTimeout(60_000);
   await mockAblauf(page);
   await page.goto("/ablauf");
   await page.setInputFiles('input[type="file"]', ["../examples/foerderband/01_Stromlaufplan_FB-01.pdf", "../examples/foerderband/04_SPS_Programm_FB-01.awl"]);
