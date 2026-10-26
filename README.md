@@ -127,6 +127,12 @@ npm run dev                   # http://localhost:3100
 Beim ersten Upload lädt das Backend das Embedding-Modell (`BAAI/bge-m3`, ca. 2 GB) und die
 Docling-Layoutmodelle von Hugging Face.
 
+**Ohne Docker gegen Supabase.** `DATABASE_URL` kommt aus Infisical (`/stromlauf-ai`) und zeigt auf das Supabase-Projekt; das Schema wählt der Zusatz `?options=-c%20search_path%3Dstromlauf%2Cextensions`. Leere Werte in Infisical brechen `infisical run`, weil pydantic leere Zahlen und Bools ablehnt: leere Einträge löschen statt leer lassen.
+
+## Ablauf: Dateien rein, Ergebnis raus
+
+Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt sieben Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel bleibt der Link weg.
+
 ## Schema-Migrationen (Alembic)
 
 Das Schema wird beim Start über Alembic auf den neuesten Stand gebracht (`init_db()` ruft
