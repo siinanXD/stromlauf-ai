@@ -38,7 +38,8 @@ ein Link zur Maschinenseite. Jeder Knoten zeigt beim Klick Eingabe, Ausgabe, Dau
 
 ### Backend
 
-**Tabelle `runs`** (`app/models.py`, Spalten per `migrations.py` wie bisher, `create_all`):
+**Tabelle `runs`** (`app/models.py`, Alembic-Revision `0006_runs` unter `backend/alembic/versions/`;
+`migrations.py` ist eingefroren):
 
 | Spalte | Typ | Inhalt |
 | --- | --- | --- |
