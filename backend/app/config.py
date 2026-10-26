@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     # Lokale Modelle ueber Ollamas OpenAI-Endpunkt: Modellname "ollama:qwen3.5:4b" (CHAT_MODEL, PLAN_READER_MODEL,
     # eval --model). Kein Schluessel, keine Kosten, Thinking aus, solange der Name keinen Aufwand nennt (@low).
     ollama_base_url: str = "http://localhost:11434/v1"
+    # Ablauf (app/ablauf/lauf.py): Modell fuer die drei Fragen in Schritt 6, Standard lokal ohne Kosten
+    ablauf_model: str = "ollama:qwen3.5:9b"
 
     # Langfuse (optional, app/tracing.py): ohne Schluessel laufen Chat und Vision ohne Trace
     langfuse_public_key: str | None = None

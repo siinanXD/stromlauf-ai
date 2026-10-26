@@ -69,6 +69,12 @@ def machine_map(machine_id: str, session: Session = Depends(get_session)) -> dic
     machine = session.get(Machine, machine_id)
     if machine is None or not same_workspace(machine):
         raise HTTPException(404, "Maschine nicht gefunden")
+    return machine_map_data(session, machine)
+
+
+def machine_map_data(session: Session, machine: Machine) -> dict:
+    """Modell einer Maschine; auch fuer den Ablauf (app/ablauf/lauf.py)."""
+    machine_id = machine.id
     if not machine.source_id:
         return {"machine_id": machine_id, **build_map([]).as_dict(), "source_id": None}
 
