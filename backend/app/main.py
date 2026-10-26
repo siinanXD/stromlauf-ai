@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.agent.graph import build_graph
 from app.api import (
+    ablauf,
     auth,
     awl,
     chat,
@@ -81,6 +82,7 @@ async def _budget_exceeded(request: Request, exc: BudgetExceeded) -> JSONRespons
 
 
 app.include_router(auth.router)
+app.include_router(ablauf.router)
 app.include_router(sources.router)
 app.include_router(costs.router)
 app.include_router(machine_map.router)
