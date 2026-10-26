@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { WhyData } from "@/lib/api";
 
 import { WhyTree } from "./WhyTree";
-import { buildWhyTree } from "./whyTree";
+import { buildWhyTree } from "./whyTreeLogik";
 
 const data: WhyData = {
   target: { id: "A4.0", label: "A4.0", terminal: "-X3:1", device: "-K1" },
