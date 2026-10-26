@@ -1,5 +1,39 @@
 # Stromlauf AI
 
+A chat assistant for maintenance staff that answers questions about a machine's electrical documentation (circuit diagrams, parts lists, terminal plans, Siemens STEP 7 AWL programs, manuals) and backs every statement with a citation to file and location.
+
+## Why
+
+When a machine stops, maintenance searches the same component across five documents under four notations (`-K1`, `-X3:1`, `E0.0`, `/3.8`), and a chatbot that only searches text tends to invent terminals and pages. Stromlauf AI builds a tag index and a signal graph across all documents at upload time, answers the deterministic questions (signal path, fact card, gap list) without a model call, and lets the language model answer only through tools, with every claim cited as `[[file|location]]` and checked by a citation resolver. The OT background sets the input contract: it reads what a CAE tool exports as PDF, parts and terminal lists as tables, and PLC code as AWL/SCL sources, not the proprietary project files.
+
+![Architecture: documents, ingestion, Postgres with pgvector, agent, deterministic views, frontend](docs/assets/architektur.svg)
+
+## Stack
+
+Python 3.11+ · FastAPI · LangGraph · Docling · RapidOCR · Postgres with pgvector · Alembic · Next.js 16 · React 19 · TypeScript · Docker Compose · GitHub Actions
+
+## Quick start
+
+```bash
+git clone https://github.com/siinanXD/stromlauf-ai && cd stromlauf-ai
+cp .env.example .env                       # ANTHROPIC_API_KEY is only needed for chat answers
+docker compose --profile demo up --build   # UI http://localhost:3100, API http://localhost:8010/api/health
+```
+
+The demo loads the example machine FB-01 (`examples/foerderband`, invented documentation); the first start downloads the embedding model `BAAI/bge-m3` (about 2 GB). Evaluation results per model are in [`eval/results/vergleich_2026-10-02.md`](eval/results/vergleich_2026-10-02.md) and in the table below.
+
+## What I learned
+
+1. Deterministic first: whatever can be read from the documents (signal path, fact card, gap list, machine model) needs no model call, which makes those answers free and reproducible.
+2. Citations have to be checked by code: the resolver marks a citation on an uncertain sheet map as "not checked" instead of "valid".
+3. Parser rules per example document do not scale; the reading rules are frozen and unfamiliar formats go through a per-page model fallback below a confidence threshold.
+
+## License
+
+MIT, see [`LICENSE`](LICENSE). The rest of this README documents the system in German.
+
+---
+
 Chatbot für industrielle Elektrodokumentation: Stromlaufpläne, Stücklisten, Klemmenpläne,
 Siemens STEP 7 AWL-Programme und Handbücher. Der Agent verfolgt Betriebsmittel (`-K12`),
 Klemmen (`-X1:5`) und SPS-Adressen (`E0.0`) über alle Dokumente hinweg.
@@ -14,9 +48,7 @@ einem SPS-Programm und einem Handbuch nach demselben Bauteil, unter vier Schreib
 Signalgraph aus Klemmenplan, Stückliste, Symboltabelle, AWL und der Vektorebene des Plans. Alles, was sich deterministisch
 lesen lässt (Signalweg, Befundkarte, Lückenliste, Maschinenmodell), kommt ohne Modellaufruf. Das Sprachmodell antwortet nur
 mit Werkzeugen darauf und muss jede Aussage mit `[[Datei|Ort]]` belegen; ein Zitat-Resolver prüft die Belege gegen die
-Fundstellen. Dokumenttext gilt im Prompt als Daten, nicht als Anweisung.
-
-![Architektur: Dokumente, Ingestion, Postgres mit pgvector, Agent, deterministische Ansichten, Frontend](docs/assets/architektur.svg)
+Fundstellen. Dokumenttext gilt im Prompt als Daten, nicht als Anweisung. Architektur: Diagramm oben.
 
 **Ergebnis.** Im Beispiel FB-01 führt der Signalweg vom Taster bis zum Motor und nennt je Kante die Herkunft:
 
