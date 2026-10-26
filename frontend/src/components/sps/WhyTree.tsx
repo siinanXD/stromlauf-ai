@@ -1,7 +1,7 @@
 import type { WhyData, WhyInput } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
 
-import { buildWhyTree, type WhyNode } from "./whyTree";
+import { buildWhyTree, type WhyNode } from "./whyTreeLogik";
 
 function InputRow({ input, writers, onOpenDetail }: { input: WhyInput; writers: WhyNode[]; onOpenDetail: (detail: DetailRef) => void }) {
   const linkClass = "min-h-11 rounded-md px-2 font-mono text-[13px] text-primary underline-offset-2 hover:underline";

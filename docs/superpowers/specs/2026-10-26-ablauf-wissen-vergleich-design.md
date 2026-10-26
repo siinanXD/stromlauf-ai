@@ -238,11 +238,88 @@ Ollama-Modelle. Freigabe heißt: Schlüssel in `.env`, Deckel `VERGLEICH_MAX_USD
 
 ---
 
+## Ergänzung 27.10.2026 (Sinan nach dem ersten Handy-Test)
+
+Drei Punkte, in dieser Reihenfolge: 0 (Fehlerbehebung), 5 (Zeiten), 4 (Ordner). Baustein 1 ist gebaut
+(SIN-1103, PR #177); 2 und 3 bleiben wie oben.
+
+### Fix 0: Produktionsbuild auf Windows und Seitenwechsel ohne Neuladen
+
+Befund: Der Dev-Server kompiliert jede Seite beim ersten Aufruf, das wirkt wie ein Neuladen. Der
+Produktionsbuild (`next build`) läuft auf Windows nicht, weil `src/components/sps/WhyTree.tsx` und
+`src/components/sps/whyTree.ts` sich nur in der Schreibweise unterscheiden (TS1149). Fix: `whyTree.ts`
+nach `whyTreeLogik.ts` (reine Logik) umbenennen, Importe nachziehen, `tsc`, Vitest und Build müssen auf
+Windows und Linux grün sein. Danach läuft die Tailnet-Bereitstellung über `next start` (Port 3101),
+nicht über den Dev-Server. Beleg: `npm run build` grün auf Windows, Seitenwechsel im Tailnet unter
+200 ms (Playwright-Messung `navigation` im Bericht).
+
+### Baustein 5: Zeiten im Blick
+
+Ziel: Je Schritt und je Modellantwort ist die Dauer sichtbar und vergleichbar, damit Beschleunigung
+messbar wird.
+
+- Backend: `GET /api/runs/zeiten` liefert je Schritt über die letzten 50 Läufe des Workspaces: Anzahl,
+  Mittel, Median, Langsamster, Letzter (aus `runs.steps[*].started_at/finished_at`, rein berechnet in
+  `app/ablauf/zeiten.py`, mit Tests). Dazu je Lauf die Summe und die Dauer von Schritt 6 je Frage
+  (aus `steps[zusammenfassung].result[*].dauer_s`, neu mitgeschrieben).
+- Zielwerte in `app/ablauf/zeiten.py` (`ZIELE`): lesen ≤ 60 s je Dokument, zusammenfassung ≤ 30 s je
+  Frage, gesamt ≤ 180 s für das Förderband. Überschreitung wird in der Antwort als `ueber_ziel`
+  markiert.
+- Frontend: Abschnitt „Zeiten“ unten auf `/ablauf`: Tabelle je Schritt (Mittel, Letzter, Langsamster,
+  Ziel), rote Zelle bei `ueber_ziel`, ein Satz „Langsamster Schritt der letzten 50 Läufe: Lesen,
+  im Mittel 48 s“. Keine Diagramme in v1.
+- Langfuse bleibt die Quelle für Tokens und Modell-Latenz; die Tabelle verlinkt die Session des
+  langsamsten Laufs.
+- Tests: rein (Kennzahlen, Zielwert-Vergleich, leere Liste), API (zwei Läufe → korrekte Mittelwerte),
+  Vitest (Zelle rot bei `ueber_ziel`).
+
+### Baustein 4: Ordner-Upload mit Maschinenerkennung
+
+Ziel: Ein ganzer Ordner (auch verschachtelt, auch gemischt) wird abgelegt; das System bündelt die
+Dateien zu Anlagen, schlägt die Maschinen vor, und je Anlage läuft der Ablauf aus Baustein 1.
+
+Erkennung in drei Stufen, vom Sicheren zum Unsicheren (Entscheidung Sinan, 27.10.: beides kommt vor,
+Unterordner und gemischte Ordner):
+
+1. **Unterordner:** jeder Unterordner mit mindestens einer erlaubten Datei ist eine Anlage; Dateien
+   direkt im Wurzelordner gehen in Stufe 2.
+2. **Kennzeichen:** Anlagenkennzeichen aus Dateiname (`_FB-01`, `FB01`), Schriftfeld (vorhandener
+   `title_block`-Leser) und `=`-Präfixen im Kennzeichen-Index. Gleiche Kennung = gleiche Anlage.
+   Rein, ohne Modell, in `app/ablauf/gruppieren.py` mit Tests gegen `examples/` (Förderband,
+   Umroller, Aufrollung gemischt in einem Ordner müssen drei Gruppen ergeben).
+3. **Ähnlichkeit (Rückfall):** Dateien ohne Kennung werden nach dem Lesen per Embedding-Ähnlichkeit
+   der nächsten Gruppe zugeordnet; liegt die Ähnlichkeit unter einer Schwelle, bleibt die Datei
+   „unzugeordnet“ und die Seite fragt nach. Nie stillschweigend raten.
+
+Ablauf: Upload (Ordner per `webkitdirectory` und Drag-and-drop, relative Pfade werden mitgeschickt) →
+neuer Schritt „Gruppieren“ zwischen „Lesen“ und „Maschine anlegen“ → die Seite zeigt den Vorschlag
+(„3 Anlagen erkannt“, je Anlage die Dateien, Herkunft der Zuordnung: Ordner, Kennung, Ähnlichkeit)
+und lässt Dateien per Auswahl umsortieren → „Weiter“ startet je Anlage die Schritte Maschine,
+Steckbrief, Modell, Zusammenfassung. Ein Lauf hat dann mehrere Anlagen; der Graph zeigt je Anlage
+eine Reihe.
+
+Backend: `POST /api/runs` nimmt zusätzlich `paths[]` (relative Pfade je Datei); `runs.steps` bekommt den
+Schritt `gruppieren` mit `result = {gruppen: [{name, quelle, dateien}], unzugeordnet: [...]}`;
+`POST /api/runs/{id}/gruppen` übernimmt die bestätigte Einteilung und setzt den Lauf fort. Je Gruppe
+eine Wissensquelle und eine Maschine; Halle „Ablauf“ wie bisher.
+
+Grenzen v1: höchstens 200 Dateien oder 500 MB je Lauf (klare Fehlermeldung darüber), keine ZIP-Dateien,
+keine Erkennung über Bildinhalte. Ausgelassen: automatisches Zusammenlegen bereits vorhandener
+Maschinen.
+
+Tests: rein (drei Stufen, gemischter Beispielordner → drei Gruppen, unzugeordnete Datei), API (Ordner
+mit zwei Anlagen → zwei Maschinen), Playwright (Ordner ablegen, Vorschlag bestätigen, zwei Reihen grün).
+
+---
+
 ## Reihenfolge und Zeit
 
 | Baustein | Dauer (Schätzung) | PR |
 | --- | --- | --- |
-| 1 Ablauf | 4 h | `feat(ablauf): Pipeline sichtbar mit Langfuse-Trace` |
+| 1 Ablauf | 4 h, gebaut (SIN-1103) | `feat(ablauf): Pipeline sichtbar mit Langfuse-Trace` |
+| 0 Fix Casing/Build | 1 h | `fix(frontend): whyTree-Logik umbenannt, Produktionsbuild auf Windows` |
+| 5 Zeiten | 3 h | `feat(ablauf): Zeiten je Schritt mit Zielwerten` |
+| 4 Ordner | 1 Tag | `feat(ablauf): Ordner-Upload mit Maschinenerkennung` |
 | 2 Wissen | 3 h | `feat(wissen): Maschine lernt belegte Sätze` |
 | 3 Vergleich | 2 h | `feat(vergleich): Modelle parallel nach Sorgfalt und Kosten` |
 
