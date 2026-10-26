@@ -917,3 +917,63 @@ export const onboarding = {
   create: (hallId: string, body: { source_id: string; name: string; machine_type: MachineType; faults: FaultInput[] }) =>
     request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
 };
+
+// --- Ablauf: ein Lauf mit sieben Schritten (POST/GET /api/runs) -------------------------------
+
+export type SchrittStatus = "wartet" | "laeuft" | "fertig" | "fehler";
+
+export interface RunStep {
+  key: string;
+  label: string;
+  status: SchrittStatus;
+  started_at: string | null;
+  finished_at: string | null;
+  input: string;
+  output: string;
+  trace_url: string | null;
+  error: string | null;
+}
+
+export interface RunAnswer {
+  question: string;
+  answer_md: string;
+  sources: SourceRef[];
+}
+
+export interface RunResult {
+  profile: SourceProfile | null;
+  map_counts: { zones: number; parts: number } | null;
+  answers: RunAnswer[] | null;
+  machine_id: string | null;
+}
+
+export interface Run {
+  id: string;
+  name: string;
+  status: "laeuft" | "fertig" | "fehler";
+  model: string;
+  steps: RunStep[];
+  trace_url: string | null;
+  error: string | null;
+  created_at: string;
+  finished_at: string | null;
+  result: RunResult;
+}
+
+export interface RunListItem {
+  id: string;
+  name: string;
+  status: Run["status"];
+  created_at: string;
+}
+
+export const ablauf = {
+  start: (files: File[], name: string) => {
+    const form = new FormData();
+    files.forEach((file) => form.append("files", file));
+    if (name) form.append("name", name);
+    return request<Run>("/api/runs", { method: "POST", body: form });
+  },
+  get: (id: string) => request<Run>(`/api/runs/${encodeURIComponent(id)}`),
+  list: () => request<RunListItem[]>("/api/runs"),
+};
