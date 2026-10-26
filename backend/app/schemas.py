@@ -450,3 +450,51 @@ class SpecOut(SpecIn):
 
     id: str
     position: int
+
+
+# --- Ablauf -----------------------------------------------------------------------------------
+
+
+class RunStep(BaseModel):
+    key: str
+    label: str
+    status: str
+    started_at: str | None = None
+    finished_at: str | None = None
+    input: str = ""
+    output: str = ""
+    trace_url: str | None = None
+    error: str | None = None
+
+
+class RunAnswer(BaseModel):
+    question: str
+    answer_md: str
+    sources: list[SourceRef] = []
+
+
+class RunResult(BaseModel):
+    profile: SourceProfile | None = None
+    map_counts: dict | None = None
+    answers: list[RunAnswer] | None = None
+    machine_id: str | None = None
+
+
+class RunOut(BaseModel):
+    id: str
+    name: str
+    status: str
+    model: str
+    steps: list[RunStep]
+    trace_url: str | None = None
+    error: str | None = None
+    created_at: datetime
+    finished_at: datetime | None = None
+    result: RunResult
+
+
+class RunListItem(BaseModel):
+    id: str
+    name: str
+    status: str
+    created_at: datetime

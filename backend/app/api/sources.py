@@ -94,6 +94,11 @@ def list_documents(source_id: str, session: Session = Depends(get_session)):
 @router.get("/sources/{source_id}/profile", response_model=SourceProfile)
 def source_profile(source_id: str, session: Session = Depends(get_session)):
     """Steckbrief: welche Dokumenttypen da sind, wie die Kennzeichen sie abdecken, wo Luecken sind."""
+    return source_profile_data(session, source_id)
+
+
+def source_profile_data(session: Session, source_id: str) -> SourceProfile:
+    """Steckbrief einer Quelle; auch fuer den Ablauf (app/ablauf/lauf.py). 404 bei fremder Quelle."""
     source = _get_source(session, source_id)
     documents = session.scalars(
         select(Document).where(Document.source_id == source_id).order_by(Document.doc_type, Document.filename)

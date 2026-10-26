@@ -29,7 +29,8 @@ def init_db() -> None:
 
     config = Config(str(BACKEND_DIR / "alembic.ini"))
     config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    config.set_main_option("sqlalchemy.url", get_settings().database_url)
+    # Alembic liest die Option ueber configparser: "%" muss als "%%" hinein (Supabase-URLs sind prozentkodiert)
+    config.set_main_option("sqlalchemy.url", get_settings().database_url.strip().replace("%", "%%"))
     with engine.begin() as conn:
         config.attributes["connection"] = conn
         command.upgrade(config, "head")

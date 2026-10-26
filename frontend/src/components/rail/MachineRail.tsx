@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutList, MessageSquare, Moon, Plus, Search, Sun } from "lucide-react";
+import { LayoutList, MessageSquare, Moon, Plus, Search, Sun, Workflow } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -129,6 +129,7 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
       <div className={cn("space-y-0.5 px-2", !full && "space-y-3.5 px-3")}>
         {navLink("/werk/maschinen", "Alle Maschinen", LayoutList, pathname === "/werk/maschinen")}
         {navLink("/", "Chat über alles", MessageSquare, pathname === "/")}
+        {navLink("/ablauf", "Ablauf", Workflow, pathname === "/ablauf")}
       </div>
 
       <div className="mt-1 min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:thin]" data-testid="machine-rail">

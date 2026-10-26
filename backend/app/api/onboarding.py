@@ -87,6 +87,11 @@ def _bom_title(path: Path) -> str:
 @router.get("/sources/{source_id}/onboarding", response_model=OnboardingProposal)
 def onboarding_proposal(source_id: str, session: Session = Depends(get_session)):
     source = _get(session, KnowledgeSource, source_id, "Wissensquelle")
+    return proposal_for(session, source)
+
+
+def proposal_for(session: Session, source: KnowledgeSource) -> OnboardingProposal:
+    """Vorschlag fuer eine Quelle; auch fuer den Ablauf (app/ablauf/lauf.py)."""
     documents = session.scalars(select(Document).where(Document.source_id == source.id).order_by(Document.filename)).all()
     boms = [d for d in documents if d.doc_type == "bom" and Path(d.storage_path).suffix.lower() in {".xlsx", ".xlsm"}]
     bom_title = _bom_title(Path(boms[0].storage_path)) if boms else ""
@@ -144,6 +149,11 @@ def _unique_name(hall: Hall, name: str) -> str:
 def onboard(hall_id: str, body: OnboardingRequest, session: Session = Depends(get_session)):
     hall = _get(session, Hall, hall_id, "Halle")
     _get(session, KnowledgeSource, body.source_id, "Wissensquelle")
+    return _machine_out(session, onboard_machine(session, hall, body))
+
+
+def onboard_machine(session: Session, hall: Hall, body: OnboardingRequest) -> Machine:
+    """Maschine samt Stoerfaellen anlegen (commit); auch fuer den Ablauf (app/ablauf/lauf.py)."""
     if body.machine_type not in set(MachineType):
         raise HTTPException(400, f"machine_type muss eins sein von {sorted(MachineType)}")
     count = len(hall.machines)
@@ -163,4 +173,4 @@ def onboard(hall_id: str, body: OnboardingRequest, session: Session = Depends(ge
         session.add(FaultEntry(machine_id=machine.id, **data))
     session.commit()
     session.refresh(machine)
-    return _machine_out(session, machine)
+    return machine

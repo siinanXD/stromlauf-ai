@@ -74,3 +74,17 @@ Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jede
 
 Label `READY FOR HUMAN ACCEPTANCE` wird erst gesetzt, wenn Staging läuft, die Nightly-Läufe grün sind und ein
 unabhängiges Review ohne blockierende Findings vorliegt.
+
+## Ablauf (SIN-823, 26.10.2026)
+
+| Feature | Beleg | Status |
+| --- | --- | --- |
+| Sieben Schritte, Fehler stoppt Folge-Schritte | [`backend/tests/test_ablauf_schritte.py`](../../backend/tests/test_ablauf_schritte.py) | grün lokal |
+| Tabelle `runs` aus Alembic | [`backend/tests/test_alembic_baseline.py`](../../backend/tests/test_alembic_baseline.py) | grün lokal, Migration auf Supabase `stromlauf` angewendet (0006_runs) |
+| Lauf mit Förderband wird fertig (Steckbrief, Modell, Antworten) | [`backend/tests/test_ablauf_api.py::test_lauf_mit_foerderband_wird_fertig`](../../backend/tests/test_ablauf_api.py) | grün lokal gegen Supabase (Schema stromlauf_test): 13 passed in 84 s, Förderband-Test 32,5 s, Controller-Lauf 26.10.2026; CI-Lauf offen |
+| Demo-Modus blockiert Start | [`backend/tests/test_demo.py`](../../backend/tests/test_demo.py) | grün lokal |
+| Fremder Workspace sieht nichts | `test_fremder_workspace_404` | grün lokal gegen Supabase, CI-Lauf offen |
+| Knoten färben sich live, Hänger erkannt | [`frontend/src/components/ablauf/knoten.test.ts`](../../frontend/src/components/ablauf/knoten.test.ts) | grün lokal |
+| Seite in 390/768/1440 px, barrierefrei | [`frontend/e2e/ablauf.spec.ts`](../../frontend/e2e/ablauf.spec.ts) | grün lokal (3 von 3 Breiten, axe wcag2a/wcag2aa ohne Verstöße) |
+| Echter Lauf mit Langfuse-Trace | [`docs/superpowers/nachweise/2026-10-26-ablauf.png`](../superpowers/nachweise/2026-10-26-ablauf.png) | grün (7/7 fertig in ca. 25 s, Link vorhanden) |
+| Kosten gebucht | Zeile `ablauf.zusammenfassung` in `ai_call_ledger` | offen (Ollama bucht 0; Beleg folgt im PR) |

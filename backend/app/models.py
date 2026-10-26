@@ -367,3 +367,25 @@ class AiCall(WorkspaceScoped, Base):
     cost_microcents: Mapped[int] = mapped_column(BigInteger, default=0)  # 1 Cent = 1_000_000
     trace_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+
+class Run(WorkspaceScoped, Base):
+    """Ein Ablauf: die sieben Schritte einer Quelle samt Zustand (app/ablauf/)."""
+
+    __tablename__ = "runs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("knowledge_sources.id", ondelete="CASCADE"), index=True
+    )
+    machine_id: Mapped[str | None] = mapped_column(
+        ForeignKey("machines.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="laeuft")  # laeuft | fertig | fehler
+    steps: Mapped[list] = mapped_column(JSON, default=list)  # Eintraege wie neue_schritte()
+    model: Mapped[str] = mapped_column(String(120))
+    trace_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
