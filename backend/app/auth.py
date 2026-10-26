@@ -32,6 +32,8 @@ QUERY = "api_key"
 TOKEN_QUERY = "token"
 OPEN_PREFIXES = ("/api/health", "/api/auth/")
 ALGORITHM = "HS256"
+AGENT_ROLE = "agent"  # Agent-Testnutzer (SIN-1102): darf lesen, jede Aktion endet mit 403
+READ_METHODS = ("GET", "HEAD", "OPTIONS")
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +47,10 @@ class Principal:
     @property
     def is_admin(self) -> bool:
         return self.role == "admin"
+
+    @property
+    def is_agent(self) -> bool:
+        return self.role == AGENT_ROLE
 
 
 def issue_token(*, user_id: str, email: str, workspace_id: str, role: str, secret: str, hours: int) -> tuple[str, datetime]:
@@ -102,6 +108,11 @@ def resolve_principal(credentials: list[str], *, api_key: str | None, jwt_secret
     return None
 
 
+def agent_may(principal: Principal, method: str) -> bool:
+    """Das Agent-Konto darf nur lesen; alle anderen Rollen sind hier nicht eingeschraenkt."""
+    return not principal.is_agent or method.upper() in READ_METHODS
+
+
 def is_open(path: str, method: str) -> bool:
     """Offen: alles ausserhalb /api, CORS-Preflight, Health und der Login-Fluss. `/api/auth/me` braucht
     den Principal aus der Middleware und ist deshalb NICHT offen."""
@@ -127,6 +138,8 @@ async def auth_middleware(request: Request, call_next):
         return JSONResponse(
             {"detail": "Anmeldung erforderlich (Bearer-Token, X-API-Key oder ?token=)"}, status_code=401
         )
+    if not agent_may(principal, request.method):
+        return JSONResponse({"detail": "Das Agent-Testkonto darf nur lesen"}, status_code=403)
     request.state.principal = principal
     token = set_workspace(principal.workspace_id)
     try:
