@@ -1,5 +1,6 @@
 from app.ablauf.schritte import (
     SCHRITTE,
+    abbrechen,
     beende,
     dauer_s,
     lauf_status,
@@ -50,3 +51,18 @@ def test_funktionen_mutieren_eingabe_nicht():
     steps = neue_schritte()
     starte(steps, "lesen", "t", "x")
     assert steps[1]["status"] == "wartet"
+
+
+def test_abbrechen_setzt_laufenden_schritt_auf_fehler():
+    steps = starte(beende(neue_schritte(), "hochladen", "t0", "ok"), "lesen", "t1", "x")
+    neu = abbrechen(steps, "t2", "Backend neu gestartet")
+    assert neu[1]["status"] == "fehler" and neu[1]["finished_at"] == "t2"
+    assert neu[1]["error"] == "Backend neu gestartet"
+    assert neu[0]["status"] == "fertig"
+    assert steps[1]["status"] == "laeuft"
+    assert lauf_status(neu) == "fehler"
+
+
+def test_abbrechen_laesst_wartende_schritte_wartend():
+    neu = abbrechen(neue_schritte(), "t", "x")
+    assert all(s["status"] == "wartet" and s["error"] is None for s in neu)

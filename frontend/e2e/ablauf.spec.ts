@@ -9,6 +9,8 @@ const KEYS = ["hochladen", "lesen", "maschine", "steckbrief", "modell", "zusamme
 const LABELS = ["Hochladen", "Lesen", "Maschine", "Steckbrief", "Modell", "Zusammenfassung", "Fertig"];
 const TRACE = "https://cloud.langfuse.com/trace/x";
 const RUN_ID = "run-1";
+// Zeiten relativ zu jetzt: ältere Zeiten ließen den Lauf als hängend gelten (haengt in knoten.ts).
+const JETZT = new Date().toISOString();
 
 const profile = {
   source_id: "s-run",
@@ -29,8 +31,8 @@ function steps(fertig: number) {
     key,
     label: LABELS[i],
     status: i < fertig ? "fertig" : i === fertig ? "laeuft" : "wartet",
-    started_at: i <= fertig ? "2026-10-26T10:00:00Z" : null,
-    finished_at: i < fertig ? "2026-10-26T10:00:01Z" : null,
+    started_at: i <= fertig ? JETZT : null,
+    finished_at: i < fertig ? JETZT : null,
     input: "",
     output: i < fertig ? "ok" : "",
     trace_url: TRACE,
@@ -47,8 +49,8 @@ function run(fertig: number, done: boolean) {
     steps: steps(done ? KEYS.length : fertig),
     trace_url: TRACE,
     error: null,
-    created_at: "2026-10-26T10:00:00Z",
-    finished_at: done ? "2026-10-26T10:00:20Z" : null,
+    created_at: JETZT,
+    finished_at: done ? JETZT : null,
     result: done
       ? {
           profile,

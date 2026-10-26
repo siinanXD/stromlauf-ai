@@ -131,7 +131,7 @@ Docling-Layoutmodelle von Hugging Face.
 
 ## Ablauf: Dateien rein, Ergebnis raus
 
-Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt sieben Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel bleibt der Link weg.
+Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt sieben Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel zeigt das Panel „Tracing aus“.
 
 ## Schema-Migrationen (Alembic)
 

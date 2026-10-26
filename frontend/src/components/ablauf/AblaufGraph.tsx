@@ -8,7 +8,7 @@ import { useEffect, useMemo } from "react";
 import type { RunStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-import { dauerText, flowOf, statusKlasse } from "./knoten";
+import { dauerText, flowOf, STATUS_LABELS, statusKlasse } from "./knoten";
 import type { SchrittStatus } from "@/lib/api";
 
 const NODE_W = 196;
@@ -36,7 +36,7 @@ function SchrittKnoten({ data, positionAbsoluteX, positionAbsoluteY }: NodeProps
         type="button"
         data-testid={`schritt-${step.key}`}
         data-status={step.status}
-        aria-label={`${step.label}: ${step.status}`}
+        aria-label={`${step.label}: ${STATUS_LABELS[step.status]}`}
         aria-pressed={selected}
         onClick={() => onSelect(step)}
         onFocus={() => setCenter(positionAbsoluteX + NODE_W / 2, positionAbsoluteY + NODE_H / 2, { zoom: 1, duration: 150 })}
@@ -51,7 +51,7 @@ function SchrittKnoten({ data, positionAbsoluteX, positionAbsoluteY }: NodeProps
           <span className="truncate text-subhead font-semibold text-foreground">{step.label}</span>
         </span>
         <span className="w-full truncate text-footnote text-muted-foreground">{step.output || step.error || "–"}</span>
-        <span className="font-mono text-caption-1 text-muted-foreground">{step.status}{dauer && ` · ${dauer}`}</span>
+        <span className="font-mono text-caption-1 text-muted-foreground">{STATUS_LABELS[step.status]}{dauer && ` · ${dauer}`}</span>
       </button>
       <Handle type="source" position={Position.Right} isConnectable={false} className="!opacity-0" />
     </>

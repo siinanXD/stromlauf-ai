@@ -21,6 +21,14 @@ describe("knoten", () => {
     expect(haengt(run, new Date("2026-10-26T10:05:00+00:00"))).toBe(false);
     expect(haengt(run, new Date("2026-10-26T10:11:00+00:00"))).toBe(true);
   });
+  it("erkennt einen Lauf, der zwischen den Schritten stehen blieb", () => {
+    const fertig = step("hochladen", "fertig", { started_at: "2026-10-26T10:00:00+00:00", finished_at: "2026-10-26T10:01:00+00:00" });
+    const run = { status: "laeuft", created_at: "2026-10-26T09:59:00+00:00", steps: [fertig, step("lesen")] } as never;
+    expect(haengt(run, new Date("2026-10-26T10:05:00+00:00"))).toBe(false);
+    expect(haengt(run, new Date("2026-10-26T10:12:00+00:00"))).toBe(true);
+    const ohne = { status: "laeuft", created_at: "2026-10-26T10:00:00+00:00", steps: [step("hochladen")] } as never;
+    expect(haengt(ohne, new Date("2026-10-26T10:12:00+00:00"))).toBe(true);
+  });
   it("formatiert die Dauer deutsch", () => {
     expect(dauerText(step("x", "fertig", { started_at: "2026-10-26T10:00:00+00:00", finished_at: "2026-10-26T10:00:12.300+00:00" }) as never)).toBe("12,3 s");
     expect(dauerText(step("x") as never)).toBe("");

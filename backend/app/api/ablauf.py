@@ -1,6 +1,5 @@
 """Ablauf: Dateien hochladen, Lauf anlegen, Zustand abfragen (Orchestrierung in app/ablauf/lauf.py)."""
 
-import asyncio
 import shutil
 import threading
 import uuid
@@ -71,7 +70,7 @@ def run_out(run: Run) -> RunOut:
 
 
 @router.post("/runs", response_model=RunOut, status_code=201)
-async def create_run(
+def create_run(
     request: Request,
     files: list[UploadFile] = File(default=[]),
     name: str = Form(""),
@@ -89,12 +88,11 @@ async def create_run(
     ledger.check_budget(session)
 
     now = datetime.now(UTC)
-    source = KnowledgeSource(name=name.strip() or f"Lauf {now:%d.%m.%Y %H:%M}")
+    source = KnowledgeSource(name=(name.strip() or f"Lauf {now:%d.%m.%Y %H:%M}")[:200])
     session.add(source)
     session.flush()
     upload_dir = get_settings().upload_dir
     types: list[str] = []
-    # shortcut: synchron im Request gelesen, bei sehr grossen Dateien in einen Thread auslagern
     for file in files:
         filename = Path(file.filename or "upload").name
         suffix = Path(filename).suffix.lower()
@@ -114,16 +112,16 @@ async def create_run(
         )
         types.append(DOC_TYPE_LABELS.get(doc_type, str(doc_type)))
 
-    steps = beende(
-        neue_schritte(), "hochladen", now.isoformat(), f"{len(files)} Dateien: {', '.join(types)}"
-    )
+    anzahl = f"{len(files)} Datei" if len(files) == 1 else f"{len(files)} Dateien"
+    steps = beende(neue_schritte(), "hochladen", now.isoformat(), f"{anzahl}: {', '.join(types)}")
     run = Run(name=source.name, source_id=source.id, steps=steps, model=get_settings().ablauf_model)
     session.add(run)
     session.commit()
 
-    loop = asyncio.get_running_loop()
     threading.Thread(
-        target=starte_lauf, args=(run.id, request.app.state.graph, loop), daemon=True
+        target=starte_lauf,
+        args=(run.id, request.app.state.graph, request.app.state.loop),
+        daemon=True,
     ).start()
     return run_out(run)
 

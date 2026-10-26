@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
+from app.ablauf.lauf import brich_haengende_laeufe_ab
 from app.agent.graph import build_graph
 from app.api import (
     ablauf,
@@ -39,11 +41,17 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    with session_scope() as session:
+        abgebrochen = brich_haengende_laeufe_ab(session)
+    if abgebrochen:
+        logger.info("%d hängende(r) Ablauf-Lauf/Läufe nach Neustart abgebrochen", abgebrochen)
     if get_settings().resume_ingestion:
         with session_scope() as session:
             # Jobs laufen im Prozess; nach einem Neustart werden angefangene neu eingereiht.
             interrupted = session.scalars(
-                select(Document).where(Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING]))
+                select(Document).where(
+                    Document.status.in_([DocStatus.PENDING, DocStatus.PROCESSING])
+                )
             ).all()
             resume_ids = plan_restart(interrupted)
         resume_in_background(resume_ids)
@@ -54,12 +62,15 @@ async def lifespan(app: FastAPI):
     async with open_checkpointer() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
+        app.state.loop = asyncio.get_running_loop()  # Schritt 6 der Läufe läuft auf dieser Loop
         yield
 
 
 app = FastAPI(title="Stromlauf AI", lifespan=lifespan)
 app.middleware("http")(auth_middleware)
-app.middleware("http")(demo_middleware)  # zuletzt hinzugefuegt = aeusserste Schicht: weist ab, bevor Auth laeuft
+app.middleware("http")(
+    demo_middleware
+)  # zuletzt hinzugefuegt = aeusserste Schicht: weist ab, bevor Auth laeuft
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in get_settings().cors_origins.split(",") if o.strip()],

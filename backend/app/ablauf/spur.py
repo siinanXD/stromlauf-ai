@@ -9,7 +9,7 @@ Lauf nie ab.
 
 import logging
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 
 from app.tracing import langfuse_client, tracing_enabled
 
@@ -21,8 +21,12 @@ class _Schritt:
         self._span = span
 
     def output(self, text: str) -> None:
-        if self._span is not None:
+        if self._span is None:
+            return
+        try:
             self._span.update(output=text)
+        except Exception:  # noqa: BLE001 - Tracing darf den Schritt nie kippen
+            logger.warning("Langfuse-Ausgabe nicht gesetzt", exc_info=True)
 
 
 class Spur:
@@ -59,15 +63,31 @@ class Spur:
         if self._root is None:
             yield _Schritt()
             return
-        from langfuse import propagate_attributes
+        stack = ExitStack()
+        try:
+            from langfuse import propagate_attributes
 
-        with self._root.start_as_current_observation(name=key, as_type="span", input=input) as span:
-            with propagate_attributes(**self._attrs):
-                try:
-                    yield _Schritt(span)
-                except Exception as exc:
-                    span.update(level="ERROR", status_message=f"{type(exc).__name__}: {exc}")
-                    raise
+            span = stack.enter_context(
+                self._root.start_as_current_observation(name=key, as_type="span", input=input)
+            )
+            stack.enter_context(propagate_attributes(**self._attrs))
+        except Exception:  # noqa: BLE001 - ohne Span weiterlaufen
+            logger.warning("Langfuse-Span fuer Schritt %s nicht angelegt", key, exc_info=True)
+            yield _Schritt()
+            return
+        try:
+            yield _Schritt(span)
+        except Exception as exc:
+            try:
+                span.update(level="ERROR", status_message=f"{type(exc).__name__}: {exc}")
+            except Exception:  # noqa: BLE001
+                logger.warning("Langfuse-Fehlerstatus nicht gesetzt", exc_info=True)
+            raise
+        finally:
+            try:
+                stack.close()
+            except Exception:  # noqa: BLE001
+                logger.warning("Langfuse-Span nicht beendet", exc_info=True)
 
     def url(self) -> str | None:
         if self._root is None:

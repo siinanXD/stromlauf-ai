@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import httpx
 
 from app.ablauf.fragen import FRAGEN
-from app.ablauf.schritte import beende, neue_schritte
+from app.ablauf.schritte import beende, neue_schritte, starte
 from app.ablauf.spur import Spur
 
 
@@ -31,6 +31,7 @@ def test_modellfehler_wird_lesbar():
         == "Modell nicht erreichbar: ollama:qwen3.5:9b"
     )
     assert fehlertext(ValueError("x"), "m") == "ValueError: x"
+    assert fehlertext(TimeoutError(), "m") == "Zeitlimit überschritten"
 
 
 def test_verbindungsfehler_der_clients_werden_lesbar():
@@ -78,3 +79,24 @@ def test_fehler_in_einem_schritt_beendet_den_lauf_ohne_zu_werfen(monkeypatch):
     assert run.status == "fehler" and run.error == "ValueError: Datei unlesbar"
     assert run.finished_at is not None
     assert all(s["status"] == "wartet" for s in run.steps[2:])
+
+
+def test_kaputtes_langfuse_laesst_den_schritt_fertig_werden(monkeypatch):
+    from app.ablauf import lauf
+
+    class KaputteWurzel:
+        def start_as_current_observation(self, **_kwargs):
+            raise RuntimeError("langfuse down")
+
+    gespeichert = []
+    monkeypatch.setattr(
+        lauf, "_speichere", lambda run_id, aendere, **f: gespeichert.append(aendere)
+    )
+    ctx = SimpleNamespace(run_id="r1", model="m", machine_id=None, ergebnis={})
+    spur = Spur(client=None, root=KaputteWurzel(), attrs={})
+
+    ausgabe = lauf._fuehre_aus(ctx, spur, "lesen", lambda _ctx: "3 Dokumente", "in")
+
+    assert ausgabe == "3 Dokumente"
+    steps = gespeichert[-1](starte(neue_schritte(), "lesen", "t", "in"))
+    assert next(s for s in steps if s["key"] == "lesen")["status"] == "fertig"

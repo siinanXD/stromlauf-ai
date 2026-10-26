@@ -62,8 +62,13 @@ export default function AblaufPage() {
 
   const select = useCallback((step: RunStep) => setSelected(step.key), []);
   const close = useCallback(() => setSelected(null), []);
-  const running = starting || run?.status === "laeuft";
+  const hung = run ? haengt(run, now) : false;
+  // Ein hängender Lauf zählt wie ein beendeter: Seite wieder frei, Polling aus.
+  const running = starting || (run?.status === "laeuft" && !hung);
   const step = run?.steps.find((s) => s.key === selected) ?? null;
+  useEffect(() => {
+    if (hung) stop();
+  }, [hung, stop]);
 
   return (
     <AppShell breadcrumb={[{ label: "Ablauf" }]}>
@@ -85,7 +90,7 @@ export default function AblaufPage() {
               {error}
             </p>
           )}
-          {run && haengt(run, now) && (
+          {hung && (
             <p role="alert" className="text-footnote text-danger">
               Lauf hängt seit 10 Minuten. Backend neu gestartet? Lauf neu starten.
             </p>

@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 
 from app import ledger
 from app.ablauf.fragen import FRAGEN
-from app.ablauf.schritte import beende, lauf_status, scheitere, starte
+from app.ablauf.schritte import abbrechen, beende, lauf_status, scheitere, starte
 from app.ablauf.spur import Spur
 from app.api.chat import _dedupe_sources, _text_of, machine_scope
 from app.api.machine_map import machine_map_data
@@ -35,6 +35,7 @@ from app.tracing import trace_config
 logger = logging.getLogger(__name__)
 
 HALLE = "Ablauf"
+NEUSTART_FEHLER = "Backend neu gestartet"
 
 
 @dataclass
@@ -55,11 +56,26 @@ def fehlertext(exc: BaseException, model: str) -> str:
     """Fehler als Satz fuer die Ablauf-Seite; nicht erreichbares Modell bekommt einen eigenen."""
     if isinstance(exc, ConnectionError | httpx.ConnectError) or "Connection" in type(exc).__name__:
         return f"Modell nicht erreichbar: {model}"
+    if isinstance(exc, TimeoutError) and not str(exc):
+        return "Zeitlimit überschritten"
     return f"{type(exc).__name__}: {exc}"
 
 
 def _jetzt() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def brich_haengende_laeufe_ab(session) -> int:
+    """Läufe, die ein Neustart mitten im Lauf erwischt hat, als gescheitert markieren (alle Workspaces).
+
+    Ohne gesetzten Workspace filtert der ORM-Listener nicht (siehe app/tenancy.py).
+    """
+    laufende = session.scalars(select(Run).where(Run.status == "laeuft")).all()
+    jetzt = datetime.now(UTC)
+    for run in laufende:
+        run.steps = abbrechen(list(run.steps), jetzt.isoformat(), NEUSTART_FEHLER)
+        run.status, run.error, run.finished_at = "fehler", NEUSTART_FEHLER, jetzt
+    return len(laufende)
 
 
 def _speichere(run_id: str, aendere: Callable[[list[dict]], list[dict]], **felder) -> None:

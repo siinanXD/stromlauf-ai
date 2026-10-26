@@ -54,6 +54,16 @@ def scheitere(steps: list[dict], key: str, now: str, error: str) -> list[dict]:
     return _aendere(steps, key, status="fehler", finished_at=now, error=error)
 
 
+def abbrechen(steps: list[dict], now: str, error: str) -> list[dict]:
+    """Laufenden Schritt auf 'fehler' setzen; wartende und fertige Schritte bleiben."""
+    return [
+        {**s, "status": "fehler", "finished_at": now, "error": error}
+        if s["status"] == "laeuft"
+        else dict(s)
+        for s in steps
+    ]
+
+
 def lauf_status(steps: list[dict]) -> str:
     """Gesamtstatus: 'fehler', sobald ein Schritt fehlschlaegt, 'fertig' wenn alle fertig sind."""
     stati = {s["status"] for s in steps}

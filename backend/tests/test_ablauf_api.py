@@ -155,3 +155,36 @@ def test_fehler_im_lesen_stoppt_lauf(client, headers, monkeypatch):
     assert run["status"] == "fehler"
     assert run["steps"][1]["status"] == "fehler" and "Kein Text" in run["steps"][1]["error"]
     assert all(s["status"] == "wartet" for s in run["steps"][2:])
+
+
+def test_neustart_bricht_haengende_laeufe_ab(client):
+    from app.ablauf.lauf import brich_haengende_laeufe_ab
+    from app.ablauf.schritte import beende, neue_schritte, starte
+    from app.db import session_scope
+    from app.models import KnowledgeSource, Run
+    from app.tenancy import reset_workspace, set_workspace
+
+    _login(WS)
+    token = set_workspace(WS)
+    try:
+        with session_scope() as session:
+            source = KnowledgeSource(name="haengt")
+            session.add(source)
+            session.flush()
+            steps = starte(beende(neue_schritte(), "hochladen", "t0", "ok"), "lesen", "t1", "x")
+            run = Run(name="haengt", source_id=source.id, steps=steps, model="m")
+            session.add(run)
+            session.flush()
+            run_id = run.id
+    finally:
+        reset_workspace(token)
+
+    with session_scope() as session:  # ohne Workspace-Kontext, wie im lifespan
+        assert brich_haengende_laeufe_ab(session) >= 1
+    with session_scope() as session:
+        run = session.get(Run, run_id)
+        assert run.status == "fehler" and run.error == "Backend neu gestartet"
+        assert run.finished_at is not None
+        assert run.steps[1]["status"] == "fehler" and run.steps[2]["status"] == "wartet"
+        assert brich_haengende_laeufe_ab(session) == 0
+    _wipe(WS)

@@ -36,11 +36,23 @@ const KLASSEN: Record<SchrittStatus, string> = {
 
 export const statusKlasse = (status: SchrittStatus): string => KLASSEN[status];
 
-/** Der Lauf läuft, und sein laufender Schritt ist seit mehr als 10 Minuten dabei. */
+export const STATUS_LABELS: Record<SchrittStatus, string> = {
+  wartet: "wartet",
+  laeuft: "läuft",
+  fertig: "fertig",
+  fehler: "Fehler",
+};
+
+/**
+ * Der Lauf läuft, aber seit mehr als 10 Minuten tut sich nichts: Bezugszeit ist der Start des
+ * laufenden Schritts, ohne laufenden Schritt das jüngste Ende eines Schritts, sonst der Anlegezeitpunkt.
+ */
 export function haengt(run: Run, now: Date): boolean {
   if (run.status !== "laeuft") return false;
-  const start = run.steps.find((s) => s.status === "laeuft")?.started_at;
-  return !!start && now.getTime() - new Date(start).getTime() > HAENGT_NACH_MS;
+  const laufend = run.steps.find((s) => s.status === "laeuft");
+  const enden = run.steps.flatMap((s) => (s.finished_at ? [new Date(s.finished_at).getTime()] : []));
+  const bezug = laufend ? laufend.started_at : enden.length ? new Date(Math.max(...enden)).toISOString() : run.created_at;
+  return !!bezug && now.getTime() - new Date(bezug).getTime() > HAENGT_NACH_MS;
 }
 
 /** "12,3 s" aus Start und Ende des Schritts, sonst leer. */
