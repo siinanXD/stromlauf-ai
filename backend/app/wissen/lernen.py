@@ -111,11 +111,17 @@ def ohne_dubletten(neu: list[dict], vorhanden: list[str]) -> list[dict]:
     return ergebnis
 
 
+def _einzeilig(satz: str) -> str:
+    """Eine Zeile je Satz; schließende Rahmenmarken entschärfen (wie `escape_document`)."""
+    satz = " ".join(satz.split())
+    return satz.replace("</dokument", "<\\/dokument").replace("</kontext", "<\\/kontext")
+
+
 def prompt_block(saetze: list[str]) -> str:
     """Kontextblock für Prompts; leer, wenn nichts gelernt wurde."""
     if not saetze:
         return ""
-    zeilen = "\n".join(f"- {s}" for s in saetze)
+    zeilen = "\n".join(f"- {_einzeilig(s)}" for s in saetze)
     return (
         "\n<kontext>\nBisher über diese Maschine gelernt "
         "(aus Dokumenten belegt, vom Menschen geprüfte zuerst):\n"

@@ -9,6 +9,11 @@ def dateiname(name: str, fallback: str) -> str:
     return sauber or fallback
 
 
+def pfadname(name: str, machine_id: str) -> str:
+    """Eindeutiger Dateiname je Maschine: Namen sind nicht eindeutig, die ID-Endung schon."""
+    return f"{dateiname(name, machine_id)} ({machine_id[:8]}).md"
+
+
 def markdown(machine_id: str, name: str, stand: str, notizen: list[dict]) -> str:
     """Markdown-Notiz mit Frontmatter und je Satz einer Zeile samt Beleg-Links."""
     zeilen = ["---", f"machine_id: {machine_id}", f"stand: {stand}", "---", f"# {name}", ""]

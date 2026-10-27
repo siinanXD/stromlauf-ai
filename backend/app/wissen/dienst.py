@@ -28,7 +28,7 @@ from app.wissen.lernen import (
     ohne_dubletten,
     parse_saetze,
 )
-from app.wissen.obsidian import dateiname, markdown
+from app.wissen.obsidian import markdown, pfadname
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def schreibe_obsidian(session: Session, machine: Machine) -> Path:
         }
         for n in notes
     ]
-    pfad = get_settings().data_dir / "wissen" / f"{dateiname(machine.name, machine.id)}.md"
+    pfad = get_settings().data_dir / "wissen" / pfadname(machine.name, machine.id)
     pfad.parent.mkdir(parents=True, exist_ok=True)
     stand = datetime.now(UTC).isoformat()
     inhalt = markdown(machine.id, machine.name, stand, eintraege)

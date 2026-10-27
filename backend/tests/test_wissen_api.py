@@ -128,10 +128,10 @@ def test_tabelle_leer_und_post_patch_delete(client, headers):
     )
     assert patched.status_code == 200 and patched.json()["text"] == "Der Antrieb ist -M1 (4 kW)."
     from app.config import get_settings
-    from app.wissen.obsidian import dateiname
+    from app.wissen.obsidian import pfadname
 
     ordner = get_settings().data_dir / "wissen"
-    datei = ordner / f"{dateiname('FB-01', machine_id)}.md"
+    datei = ordner / pfadname('FB-01', machine_id)
     inhalt = datei.read_text(encoding="utf-8")
     assert "Der Antrieb ist -M1 (4 kW)." in inhalt and "machine_id:" in inhalt
     assert client.delete(f"/api/machines/{machine_id}/notes/{note['id']}", headers=headers).status_code == 204
@@ -200,6 +200,47 @@ def test_lerne_speichert_nur_belegte_saetze(client, headers, monkeypatch):
     assert n == 1
     notes = client.get(f"/api/machines/{machine_id}/notes", headers=headers).json()
     assert [(x["text"], x["quelle"], x["run_id"]) for x in notes] == [("Belegt.", "lauf", "r1")]
+
+
+def test_patch_sperrt_gelernten_satz(client, headers, monkeypatch):
+    from app.tenancy import reset_workspace, set_workspace
+    from app.wissen import dienst
+
+    machine_id, document_id = _maschine(headers)
+    antwort = '[{"text": "Gelernt.", "belege": [1]}]'
+    monkeypatch.setattr(dienst, "frage_modell", lambda *a, **k: antwort)
+    quellen = [{"document_id": document_id, "filename": "01_Plan.pdf", "page": 2}]
+    token = set_workspace(WS)
+    try:
+        dienst.lerne(
+            machine_id, "m", "FB-01", [{"question": "q", "answer_md": "a", "sources": quellen}],
+            max_saetze=5, quelle="lauf", run_id="r2", session_id="run:r2",
+        )
+    finally:
+        reset_workspace(token)
+    note = client.get(f"/api/machines/{machine_id}/notes", headers=headers).json()[0]
+    assert note["quelle"] == "lauf" and note["gesperrt"] is False
+    patched = client.patch(f"/api/machines/{machine_id}/notes/{note['id']}", json={}, headers=headers)
+    assert patched.status_code == 200
+    assert patched.json()["gesperrt"] is True and patched.json()["quelle"] == "mensch"
+    assert patched.json()["text"] == "Gelernt."
+
+
+def test_lerne_aus_chat_im_demo_modus_ruft_kein_modell(client, headers, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.wissen import dienst
+
+    machine_id, document_id = _maschine(headers)
+
+    def verboten(*a, **k):
+        raise AssertionError("darf nicht aufgerufen werden")
+
+    monkeypatch.setattr(dienst, "frage_modell", verboten)
+    monkeypatch.setattr(dienst, "get_settings", lambda: SimpleNamespace(demo_mode=True))
+    refs = [{"document_id": document_id, "filename": "01_Plan.pdf", "page": 1}]
+    assert dienst.lerne_aus_chat(machine_id, WS, "m", "Frage", "Antwort", refs, "c2") is None
+    assert client.get(f"/api/machines/{machine_id}/notes", headers=headers).json() == []
 
 
 def test_lernen_nach_chat_wirft_nie(client, headers, monkeypatch):

@@ -102,10 +102,10 @@ function WissenListe({ machineId }: { machineId: string }) {
                   <div className="space-y-2">
                     <Textarea aria-label="Satz" value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} />
                     <div className="flex gap-2">
-                      <Button size="sm" disabled={saving || !draft.trim()} onClick={() => void save(note)}>
+                      <Button size="sm" className="h-11" disabled={saving || !draft.trim()} onClick={() => void save(note)}>
                         Speichern
                       </Button>
-                      <Button size="sm" variant="outline" className="border-line" disabled={saving} onClick={() => closeEdit(note.id)}>
+                      <Button size="sm" variant="outline" className="h-11 border-line" disabled={saving} onClick={() => closeEdit(note.id)}>
                         Abbrechen
                       </Button>
                     </div>
