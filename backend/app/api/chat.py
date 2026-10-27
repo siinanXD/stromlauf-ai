@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import threading
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
@@ -31,6 +32,7 @@ from app.schemas import (
 )
 from app.tenancy import current_workspace_id, reset_workspace, same_workspace, set_workspace
 from app.tracing import trace_config
+from app.wissen.dienst import lerne_aus_chat, notizen_fuer
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -105,6 +107,7 @@ def machine_scope(session: Session, machine_id: str) -> tuple[list[str], dict]:
         "id": machine.id,
         "name": machine.name,
         "hall": machine.hall.name if machine.hall else "",
+        "wissen": [note.text for note in notizen_fuer(session, machine.id)],
     }
     return [machine.source_id], context
 
@@ -468,6 +471,20 @@ async def chat(body: ChatRequest, request: Request):
             )
             yield _sse("meta", meta)
             yield _sse("done", {})
+            if body.machine_id and refs:
+                threading.Thread(
+                    target=lerne_aus_chat,
+                    args=(
+                        body.machine_id,
+                        workspace_id,
+                        model,
+                        body.message,
+                        "".join(answer_parts),
+                        refs,
+                        conversation_id,
+                    ),
+                    daemon=True,
+                ).start()
         except Exception as exc:
             logger.exception("Chat fehlgeschlagen")
             yield _sse("error", {"message": f"{type(exc).__name__}: {exc}"})

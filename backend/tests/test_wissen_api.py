@@ -214,3 +214,25 @@ def test_lernen_nach_chat_wirft_nie(client, headers, monkeypatch):
     refs = [{"document_id": document_id, "filename": "01_Plan.pdf", "page": 1}]
     dienst.lerne_aus_chat(machine_id, WS, "m", "Frage", "Antwort", refs, "c1")
     assert client.get(f"/api/machines/{machine_id}/notes", headers=headers).json() == []
+
+
+def test_chat_kontext_enthaelt_gelernte_saetze(client, headers):
+    from app.agent.prompts import system_prompt_for
+    from app.api.chat import machine_scope
+    from app.db import session_scope
+    from app.tenancy import reset_workspace, set_workspace
+
+    machine_id, document_id = _maschine(headers)
+    client.post(
+        f"/api/machines/{machine_id}/notes",
+        json={"text": "Gesperrter Satz.", "belege": [{"document_id": document_id, "page": 1}]},
+        headers=headers,
+    )
+    token = set_workspace(WS)
+    try:
+        with session_scope() as session:
+            _, kontext = machine_scope(session, machine_id)
+    finally:
+        reset_workspace(token)
+    assert kontext["wissen"] == ["Gesperrter Satz."]
+    assert "- Gesperrter Satz." in system_prompt_for({"machine": kontext})

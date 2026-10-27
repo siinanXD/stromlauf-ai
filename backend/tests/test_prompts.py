@@ -26,7 +26,7 @@ TRANSCRIBED = (
 
 
 def test_version_steigt_mit_dem_neuen_prompt():
-    assert PROMPT_VERSION == 4
+    assert PROMPT_VERSION == 5
 
 
 def test_prompt_schreibt_echte_umlaute():
@@ -57,3 +57,20 @@ def test_details_wiederholen_nicht_was_die_oberflaeche_zeigt():
 def test_maschinenkontext_steht_am_ende_damit_der_anfang_cachebar_bleibt():
     text = system_prompt_for({"machine": {"id": "m1", "name": "FB-01", "hall": "Halle 1"}})
     assert text.startswith(SYSTEM_PROMPT) and text.rstrip().endswith("Kennzeichen.")
+
+
+def test_gelerntes_steht_als_kontext_nach_der_maschine():
+    machine = {
+        "id": "m1",
+        "name": "FB-01",
+        "hall": "H1",
+        "wissen": ["Der Antrieb ist -M1.", "-F2 schützt -M1."],
+    }
+    text = system_prompt_for({"machine": machine})
+    # Der feste Systemprompt erwähnt <kontext> selbst; geprüft wird nur der angehängte Teil.
+    angehaengt = text[len(SYSTEM_PROMPT) :]
+    assert angehaengt.index("Dieser Chat gehört zur Maschine") < angehaengt.index("<kontext>")
+    assert "Bisher über diese Maschine gelernt" in text
+    assert "- Der Antrieb ist -M1.\n- -F2 schützt -M1.\n</kontext>" in text
+    leer = {"id": "m1", "name": "FB-01", "hall": "", "wissen": []}
+    assert "<kontext>" not in system_prompt_for({"machine": leer})[len(SYSTEM_PROMPT) :]
