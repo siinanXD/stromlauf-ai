@@ -522,6 +522,36 @@ class RunListItem(BaseModel):
     created_at: datetime
 
 
+class Beleg(BaseModel):
+    document_id: str
+    page: int | None = None
+
+
+class BelegOut(Beleg):
+    filename: str
+
+
+class NoteIn(BaseModel):
+    text: str = Field(min_length=1, max_length=300)
+    belege: list[Beleg] = Field(min_length=1)
+
+
+class NotePatch(BaseModel):
+    text: str | None = Field(default=None, min_length=1, max_length=300)
+
+
+class NoteOut(BaseModel):
+    id: str
+    machine_id: str
+    text: str
+    quelle: str
+    belege: list[BelegOut]
+    gesperrt: bool
+    run_id: str | None
+    conversation_id: str | None
+    created_at: datetime
+
+
 class ZeitenKennzahl(BaseModel):
     anzahl: int
     mittel_s: float | None = None

@@ -30,7 +30,14 @@ from app.pricing import cost_usd
 from app.tenancy import current_workspace_id
 
 MICROCENTS_PER_CENT = 1_000_000
-PURPOSES = ("chat", "vision.page", "vision.cabinet", "vision.nameplate", "ablauf.zusammenfassung")
+PURPOSES = (
+    "chat",
+    "vision.page",
+    "vision.cabinet",
+    "vision.nameplate",
+    "ablauf.zusammenfassung",
+    "wissen.lernen",
+)
 
 # Listenannahmen aus docs/product/cost-model.md, wenn das Kostenbuch noch keine Messwerte hat
 LIST_TOKENS = {
