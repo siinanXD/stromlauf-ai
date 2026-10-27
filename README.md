@@ -135,7 +135,7 @@ Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen
 
 Unten auf der Seite steht „Zeiten“: je Schritt Median, letzter und langsamster Wert über die letzten 50 Läufe, dazu feste Zielwerte (Lesen ≤ 60 s je Dokument, Zusammenfassung ≤ 30 s je Frage, gesamt ≤ 180 s), die rot werden, sobald der letzte Lauf darüber liegt. Die Zahlen kommen aus `GET /api/runs/zeiten`; Tokens und Modell-Latenz bleiben in Langfuse.
 
-Ein ganzer Ordner geht auch: Unterordner werden zu Anlagen, Dateien ohne Ordner nach der Kennung im Namen (`FB-01`, `PM1-AR`) gebündelt, der Rest steht als „unzugeordnet“ und wird per Auswahl zugewiesen. Die Seite zeigt den Vorschlag („3 Anlagen erkannt“), Namen und Zuordnung lassen sich ändern, „Alle starten“ startet je Anlage einen Lauf. Grenzen: 200 Dateien oder 500 MB je Ablage, 100 Dateien je Anlage.
+Ein ganzer Ordner geht auch: Unterordner werden zu Anlagen, Dateien ohne Ordner nach der Kennung im Namen (`FB-01`, `FB01`, `=FB-01`, `PM1-AR`; `FB01` und `FB-01` zählen als dieselbe Anlage) gebündelt, der Rest steht als „unzugeordnet“ und wird per Auswahl zugewiesen. Die Seite zeigt den Vorschlag („3 Anlagen erkannt“), Namen und Zuordnung lassen sich ändern, „Alle starten“ startet je Anlage einen Lauf. Grenzen: 200 Dateien oder 500 MB je Ablage, 100 Dateien je Anlage.
 
 ## Schema-Migrationen (Alembic)
 
