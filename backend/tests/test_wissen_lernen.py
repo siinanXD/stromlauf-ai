@@ -32,6 +32,7 @@ def test_prompt_nennt_grenze_belege_und_antworten():
     assert "höchstens 5" in text and "[1] 01_Plan.pdf S. 3" in text
     assert "[2] 06_Anleitung.md" in text
     assert "Störung?" in text and "-F2 löst aus." in text
+    assert text.rstrip().endswith("das letzte ].")
 
 
 def test_parse_mit_zaun_und_vortext():

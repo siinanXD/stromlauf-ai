@@ -52,6 +52,11 @@ def lern_prompt(kontext: str, antworten: list[dict], belege: list[dict], max_sae
         teile.append("")
     teile.append("Belege:")
     teile.extend(_beleg_zeile(b) for b in belege)
+    teile.append("")
+    teile.append(
+        "Antworte nur mit dem JSON-Array, ohne Erklärung, ohne Markdown-Zaun. "
+        "Das erste Zeichen deiner Antwort ist [ und das letzte ]."
+    )
     return "\n".join(teile)
 
 
