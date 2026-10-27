@@ -29,6 +29,7 @@ from app.api.sources import source_profile_data
 from app.config import get_settings
 from app.db import session_scope
 from app.ingestion.pipeline import ingest_document
+from app.logsafe import log_failure
 from app.models import Chunk, DocStatus, Document, Hall, KnowledgeSource, Machine, Run
 from app.tenancy import require_workspace, reset_workspace, set_workspace
 from app.tracing import trace_config
@@ -251,7 +252,7 @@ def _fuehre_aus(ctx: LaufKontext, spur: Spur, key: str, schritt, eingabe: str) -
             ausgabe = schritt(ctx)
             span.output(ausgabe)
     except Exception as exc:  # noqa: BLE001 - jeder Fehler endet als Schrittfehler
-        logger.exception("Ablauf %s: Schritt %s fehlgeschlagen", ctx.run_id, key)
+        log_failure(logger, "Ablauf %s: Schritt %s fehlgeschlagen", ctx.run_id, key)
         text = fehlertext(exc, ctx.model)
         _speichere(ctx.run_id, lambda steps: scheitere(steps, key, _jetzt(), text), error=text)
         return None
@@ -271,7 +272,7 @@ def _markiere_abbruch(run_id: str, text: str) -> None:
             run = session.get(Run, run_id)
             run.status, run.error, run.finished_at = "fehler", text, datetime.now(UTC)
     except Exception:  # noqa: BLE001
-        logger.exception("Ablauf %s: Abbruch nicht gespeichert", run_id)
+        log_failure(logger, "Ablauf %s: Abbruch nicht gespeichert", run_id)
 
 
 def starte_lauf(
@@ -288,7 +289,7 @@ def starte_lauf(
             )
             eingabe = next((s["output"] for s in run.steps if s["key"] == "hochladen"), "")
     except Exception:  # noqa: BLE001
-        logger.exception("Ablauf %s nicht gestartet", run_id)
+        log_failure(logger, "Ablauf %s nicht gestartet", run_id)
         return
     token = set_workspace(ctx.workspace_id)
     spur = Spur.fuer(run_id, ctx.model)
@@ -311,7 +312,7 @@ def starte_lauf(
                 return
         status = "fertig"
     except Exception as exc:  # noqa: BLE001 - etwa Datenbank weg beim Speichern
-        logger.exception("Ablauf %s abgebrochen", run_id)
+        log_failure(logger, "Ablauf %s abgebrochen", run_id)
         _markiere_abbruch(run_id, fehlertext(exc, ctx.model))
     finally:
         spur.schliessen(status)

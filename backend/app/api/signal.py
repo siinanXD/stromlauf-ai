@@ -24,6 +24,7 @@ from app.ingestion.plan_edges import read_model_edges
 from app.ingestion.plan_wires import plan_edges
 from app.ingestion.signal_graph import Graph, add_plan_edges, build_graph, signal_path
 from app.ingestion.signal_view import main_view
+from app.logsafe import log_failure
 from app.models import Document
 
 logger = logging.getLogger(__name__)
@@ -107,7 +108,7 @@ def _graph(files: tuple[tuple[str, str, float], ...], model_stamp: int = 0) -> G
             elif doc_type == "plc_program" or suffix == ".awl":
                 awl.append(read_text(path))
         except Exception:  # noqa: BLE001 - kaputte/fremde Datei (BadZipFile, csv.Error ...): Graph ohne sie
-            logger.warning("Signalweg ohne %s", path.name, exc_info=True)
+            log_failure(logger, "Signalweg ohne %s", path.name, level=logging.WARNING)
             continue
     graph = build_graph(terminal_rows, bom_rows, symbols, "\n".join(awl))
     return add_plan_edges(graph, plans)

@@ -28,6 +28,7 @@ from app.ingestion.plan_wires import plan_edges
 from app.ingestion.tags import detect_folio_style, detect_spaced_terminals, extract_tags
 from app.ingestion.vision import describe_page
 from app.llm import missing_key
+from app.logsafe import log_failure
 from app.models import Chunk, DocStatus, DocType, Document, TagOccurrence, TagType
 from app.tenancy import reset_workspace, set_workspace
 from app.tracing import vision_trace
@@ -270,7 +271,9 @@ def _vision_pieces(
         try:
             return page, describe_page(path, page, pages[page], config), collector.total()
         except Exception:
-            logger.exception("Vision-Analyse fehlgeschlagen: %s Seite %s", path.name, page)
+            log_failure(
+                logger, "Vision-Analyse fehlgeschlagen: %s Seite %s (Dokument %s)", path.name, page, document_id
+            )
             return page, None, collector.total()
 
     ordered = sorted(pages)
@@ -450,7 +453,7 @@ def _prepare_scan(document_id: str, path: Path, doc_type: str) -> tuple[ocr.OcrR
             progress=lambda page, total: _set_progress(document_id, f"OCR Seite {page}/{total}"),
         )
     except Exception as exc:
-        logger.exception("Texterkennung fehlgeschlagen: %s", path.name)
+        log_failure(logger, "Texterkennung fehlgeschlagen: %s (Dokument %s)", path.name, document_id)
         return None, f"Texterkennung fehlgeschlagen: {type(exc).__name__}"
     return report, ""
 
@@ -477,7 +480,7 @@ def _warm_plan_edges(path: Path) -> None:
     try:
         plan_edges(path)
     except Exception:
-        logger.exception("Leitungen im Plan nicht gelesen: %s", path.name)
+        log_failure(logger, "Leitungen im Plan nicht gelesen: %s", path.name)
 
 
 def ingest_document(document_id: str) -> None:
@@ -564,7 +567,7 @@ def ingest_document(document_id: str) -> None:
         if doc_type == DocType.SCHEMATIC and path.suffix.lower() == ".pdf":
             _warm_plan_edges(path)
     except Exception as exc:
-        logger.exception("Ingestion fehlgeschlagen: %s", filename)
+        log_failure(logger, "Ingestion fehlgeschlagen: %s (Dokument %s)", filename, document_id)
         with session_scope() as session:
             document = session.get(Document, document_id)
             if document:
