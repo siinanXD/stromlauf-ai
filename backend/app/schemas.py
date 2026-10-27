@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SourceCreate(BaseModel):
@@ -531,13 +531,23 @@ class BelegOut(Beleg):
     filename: str
 
 
+def _satz_nicht_leer(text: str | None) -> str | None:
+    if text is not None and not text.strip():
+        raise ValueError("Satz darf nicht leer sein")
+    return text
+
+
 class NoteIn(BaseModel):
     text: str = Field(min_length=1, max_length=300)
     belege: list[Beleg] = Field(min_length=1)
 
+    _text_nicht_leer = field_validator("text")(_satz_nicht_leer)
+
 
 class NotePatch(BaseModel):
     text: str | None = Field(default=None, min_length=1, max_length=300)
+
+    _text_nicht_leer = field_validator("text")(_satz_nicht_leer)
 
 
 class NoteOut(BaseModel):

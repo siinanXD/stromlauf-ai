@@ -93,35 +93,35 @@ def notizen_fuer(
 def schreibe_obsidian(session: Session, machine: Machine) -> Path:
     """Markdown-Datei der Maschine atomar neu schreiben; nach dem Commit aufrufen.
 
-    Reihenfolge: gesperrte zuerst, dann älteste zuerst.
+    Reihenfolge: gesperrte zuerst, dann älteste zuerst. Notizen werden erst unter der Sperre gelesen,
+    sonst könnte ein langsamer Schreiber mit älterem Stand die Datei eines schnelleren überschreiben.
     """
-    notes = list(
-        session.scalars(
-            select(MachineNote)
-            .where(MachineNote.machine_id == machine.id)
-            .order_by(MachineNote.gesperrt.desc(), MachineNote.created_at.asc())
-        )
-    )
-    dateinamen = _dateinamen(session, notes)
-    eintraege = [
-        {
-            "text": n.text,
-            "quelle": n.quelle,
-            "gesperrt": n.gesperrt,
-            "belege": [
-                {"filename": dateinamen.get(b["document_id"], ""), "page": b.get("page")}
-                for b in n.belege
-            ],
-        }
-        for n in notes
-    ]
     pfad = get_settings().data_dir / "wissen" / pfadname(machine.name, machine.id)
     pfad.parent.mkdir(parents=True, exist_ok=True)
-    stand = datetime.now(UTC).isoformat()
-    inhalt = markdown(machine.id, machine.name, stand, eintraege)
     with _sperren_zugriff:
         sperre = _sperren[pfad]
-    with sperre:  # ein Schreiber je Datei; der Inhalt wird erst unter der Sperre gelesen
+    with sperre:  # ein Schreiber je Datei
+        notes = list(
+            session.scalars(
+                select(MachineNote)
+                .where(MachineNote.machine_id == machine.id)
+                .order_by(MachineNote.gesperrt.desc(), MachineNote.created_at.asc())
+            )
+        )
+        dateinamen = _dateinamen(session, notes)
+        eintraege = [
+            {
+                "text": n.text,
+                "quelle": n.quelle,
+                "gesperrt": n.gesperrt,
+                "belege": [
+                    {"filename": dateinamen.get(b["document_id"], ""), "page": b.get("page")}
+                    for b in n.belege
+                ],
+            }
+            for n in notes
+        ]
+        inhalt = markdown(machine.id, machine.name, datetime.now(UTC).isoformat(), eintraege)
         temp = pfad.with_name(f"{pfad.name}.{threading.get_ident()}.tmp")
         temp.write_text(inhalt, encoding="utf-8")
         os.replace(temp, pfad)

@@ -115,3 +115,17 @@ def test_markdown():
     assert text.startswith("---\nmachine_id: m1\nstand: 2026-10-27T10:00:00+00:00\n---\n# FB-01\n")
     assert "- 🔒 Gesperrt. [[01_Plan.pdf|S. 3]] (mensch)\n" in text
     assert "- Aus dem Lauf. [[06_Anleitung.md]] (lauf)\n" in text
+
+
+def test_satz_nur_aus_leerzeichen_wird_abgelehnt():
+    import pytest
+    from pydantic import ValidationError
+
+    from app.schemas import NoteIn, NotePatch
+
+    with pytest.raises(ValidationError):
+        NoteIn(text="   ", belege=[{"document_id": "d1"}])
+    with pytest.raises(ValidationError):
+        NotePatch(text=" \n ")
+    assert NotePatch().text is None
+    assert NoteIn(text="Motor -M1 hat 0,75 kW", belege=[{"document_id": "d1"}]).text
