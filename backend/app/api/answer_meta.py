@@ -35,6 +35,7 @@ from app.ingestion.pdf_layout import sheet_map
 from app.ingestion.signal_graph import signal_path
 from app.ingestion.tag_columns import tag_columns
 from app.ingestion.tags import extract_tags
+from app.logsafe import log_failure
 from app.models import DocType, Document, Machine, TagOccurrence, TagType
 
 logger = logging.getLogger(__name__)
@@ -180,7 +181,7 @@ def signal_start(
             "Signalweg-Start: Graph nach %.1f s noch nicht fertig, Block ohne Weg", timeout_s
         )
     except Exception:  # noqa: BLE001 - der Signalweg ist ein Zusatz, die Antwort darf daran nicht scheitern
-        logger.warning("Signalweg-Start fehlgeschlagen", exc_info=True)
+        log_failure(logger, "Signalweg-Start fehlgeschlagen (Quelle %s)", source_ids[0], level=logging.WARNING)
     return None
 
 

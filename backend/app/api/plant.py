@@ -19,6 +19,7 @@ from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size, read_nameplate
 from app.ingestion.tags import normalize_tag, search_prefixes
 from app.llm import MissingKeyError
+from app.logsafe import log_failure
 from app.models import (
     CabinetHotspot,
     CabinetImage,
@@ -549,7 +550,7 @@ def detect_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
     except MissingKeyError as exc:  # Konfiguration, kein Fehler des Providers (Issue #50)
         raise HTTPException(400, f"Vision-Erkennung nicht moeglich: {exc}") from exc
     except Exception as exc:
-        logger.exception("Vision-Erkennung fehlgeschlagen")
+        log_failure(logger, "Vision-Erkennung fehlgeschlagen (Schaltschrank %s)", cabinet_id)
         raise HTTPException(502, f"Vision-Erkennung fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
 
     # alte, unbestaetigte Vorschlaege ersetzen, bestaetigte behalten
@@ -655,7 +656,7 @@ def read_hotspot_nameplate(hotspot_id: str, session: Session = Depends(get_sessi
     except MissingKeyError as exc:
         raise HTTPException(400, f"Typenschild lesen nicht moeglich: {exc}") from exc
     except Exception as exc:
-        logger.exception("Typenschild lesen fehlgeschlagen")
+        log_failure(logger, "Typenschild lesen fehlgeschlagen (Hotspot %s)", hotspot_id)
         raise HTTPException(502, f"Typenschild lesen fehlgeschlagen: {type(exc).__name__}: {exc}") from exc
     ledger.record_usage(session, usage.total(), purpose="vision.nameplate", machine_id=machine.id, images=1)
     session.commit()

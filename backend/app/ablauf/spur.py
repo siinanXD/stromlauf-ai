@@ -13,6 +13,8 @@ from contextlib import ExitStack, contextmanager
 
 from app.tracing import langfuse_client, tracing_enabled
 
+# Die Tracebacks unten (exc_info) stammen aus dem Langfuse-Client (Netz, Konfiguration). Er bekommt nur
+# Lauf-ID, Modellname und kurze Statuszeilen der Schritte, nie Dokumenttext; deshalb kein log_failure (SIN-130).
 logger = logging.getLogger(__name__)
 
 
