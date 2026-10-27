@@ -98,9 +98,11 @@ def _warte(client, headers, run_id: str, timeout: float = 600) -> dict:
 
 
 def test_lauf_mit_foerderband_wird_fertig(client, headers, monkeypatch):
-    monkeypatch.setattr(
-        "app.ablauf.lauf.beantworte", lambda *a, **k: ("Förderband mit zwei Bändern.", [])
-    )
+    def antwort(*a, **k):
+        time.sleep(0.1)
+        return "Förderband mit zwei Bändern.", []
+
+    monkeypatch.setattr("app.ablauf.lauf.beantworte", antwort)
     files = [("files", (p.name, p.read_bytes())) for p in sorted(EXAMPLES.glob("0[1-6]_*"))]
     created = client.post("/api/runs", files=files, data={"name": "FB-01 Test"}, headers=headers)
     assert created.status_code == 201, created.text
@@ -110,11 +112,43 @@ def test_lauf_mit_foerderband_wird_fertig(client, headers, monkeypatch):
     run = _warte(client, headers, run_id)
     assert run["status"] == "fertig", run
     assert [s["status"] for s in run["steps"]] == ["fertig"] * 7
+    from app.db import session_scope
+    from app.models import Run
+
+    with session_scope() as session:
+        assert session.get(Run, run_id).steps[1]["result"]["dokumente"] == 6
     assert run["result"]["machine_id"]
     assert run["result"]["profile"]["doc_types"]
     assert run["result"]["map_counts"]["parts"] > 0
     assert run["result"]["answers"][0]["answer_md"].startswith("Förderband")
+    assert run["result"]["answers"][0]["dauer_s"] > 0
     assert client.get("/api/runs", headers=headers).json()[0]["id"] == run_id
+
+
+def test_zeiten_endpunkt(client, headers, fremde_headers, monkeypatch):
+    monkeypatch.setattr("app.ablauf.lauf.ingest_document", lambda document_id: None)
+    monkeypatch.setattr("app.ablauf.lauf.beantworte", lambda *a, **k: ("Antwort.", []))
+    ids = []
+    for name in ("a.md", "b.md"):
+        created = client.post("/api/runs", files=[("files", (name, b"# Doku"))], headers=headers)
+        assert created.status_code == 201, created.text
+        ids.append(created.json()["id"])
+    eigene = [_warte(client, headers, i, timeout=120) for i in ids]
+    assert all(r["status"] in {"fertig", "fehler"} for r in eigene), eigene
+    lesen_fertig = sum(
+        1
+        for r in eigene
+        if next(s for s in r["steps"] if s["key"] == "lesen")["status"] == "fertig"
+    )
+    antwort = client.get("/api/runs/zeiten", headers=headers)
+    assert antwort.status_code == 200, antwort.text
+    zeiten = antwort.json()
+    assert 2 <= zeiten["laeufe"] <= 50
+    assert zeiten["schritte"]["lesen"]["anzahl"] >= lesen_fertig
+    assert {"gesamt", "fragen"} <= zeiten.keys()
+    assert "langsamster_trace_url" in zeiten["gesamt"]
+    fremd = client.get("/api/runs/zeiten", headers=fremde_headers)
+    assert fremd.status_code == 200 and fremd.json()["laeufe"] == 0
 
 
 def test_ohne_datei_400_und_keine_quelle(client, headers):

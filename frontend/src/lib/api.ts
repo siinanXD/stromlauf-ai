@@ -939,6 +939,7 @@ export interface RunAnswer {
   question: string;
   answer_md: string;
   sources: SourceRef[];
+  dauer_s?: number | null;
 }
 
 export interface RunResult {
@@ -968,6 +969,25 @@ export interface RunListItem {
   created_at: string;
 }
 
+export interface ZeitenKennzahl {
+  anzahl: number;
+  mittel_s: number | null;
+  median_s: number | null;
+  max_s: number | null;
+  letzter_s: number | null;
+  ziel_s: number | null;
+  ueber_ziel: boolean;
+  langsamster_run_id: string | null;
+  langsamster_trace_url: string | null;
+}
+
+export interface Zeiten {
+  laeufe: number;
+  schritte: Record<string, ZeitenKennzahl>;
+  gesamt: ZeitenKennzahl;
+  fragen: ZeitenKennzahl;
+}
+
 export const ablauf = {
   start: (files: File[], name: string) => {
     const form = new FormData();
@@ -977,4 +997,5 @@ export const ablauf = {
   },
   get: (id: string) => request<Run>(`/api/runs/${encodeURIComponent(id)}`),
   list: () => request<RunListItem[]>("/api/runs"),
+  zeiten: () => request<Zeiten>("/api/runs/zeiten"),
 };

@@ -133,6 +133,8 @@ Docling-Layoutmodelle von Hugging Face.
 
 Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt sieben Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel zeigt das Panel „Tracing aus“.
 
+Unten auf der Seite steht „Zeiten“: je Schritt Median, letzter und langsamster Wert über die letzten 50 Läufe, dazu feste Zielwerte (Lesen ≤ 60 s je Dokument, Zusammenfassung ≤ 30 s je Frage, gesamt ≤ 180 s), die rot werden, sobald der letzte Lauf darüber liegt. Die Zahlen kommen aus `GET /api/runs/zeiten`; Tokens und Modell-Latenz bleiben in Langfuse.
+
 ## Schema-Migrationen (Alembic)
 
 Das Schema wird beim Start über Alembic auf den neuesten Stand gebracht (`init_db()` ruft

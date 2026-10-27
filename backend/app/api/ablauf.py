@@ -12,13 +12,22 @@ from sqlalchemy.orm import Session
 
 from app import ledger
 from app.ablauf.lauf import starte_lauf
-from app.ablauf.schritte import beende, neue_schritte
+from app.ablauf.schritte import beende, neue_schritte, starte
+from app.ablauf.zeiten import kennzahlen
 from app.api.sources import ALLOWED_SUFFIXES
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.pipeline import detect_doc_type
 from app.models import DocType, Document, KnowledgeSource, Run
-from app.schemas import RunAnswer, RunListItem, RunOut, RunResult, RunStep
+from app.schemas import (
+    RunAnswer,
+    RunListItem,
+    RunOut,
+    RunResult,
+    RunStep,
+    ZeitenKennzahl,
+    ZeitenOut,
+)
 from app.tenancy import same_workspace
 
 router = APIRouter(prefix="/api", tags=["ablauf"])
@@ -113,7 +122,10 @@ def create_run(
         types.append(DOC_TYPE_LABELS.get(doc_type, str(doc_type)))
 
     anzahl = f"{len(files)} Datei" if len(files) == 1 else f"{len(files)} Dateien"
-    steps = beende(neue_schritte(), "hochladen", now.isoformat(), f"{anzahl}: {', '.join(types)}")
+    steps = starte(neue_schritte(), "hochladen", now.isoformat(), "")
+    steps = beende(
+        steps, "hochladen", datetime.now(UTC).isoformat(), f"{anzahl}: {', '.join(types)}"
+    )
     run = Run(name=source.name, source_id=source.id, steps=steps, model=get_settings().ablauf_model)
     session.add(run)
     session.commit()
@@ -131,6 +143,31 @@ def _get_run(session: Session, run_id: str) -> Run:
     if run is None or not same_workspace(run):
         raise HTTPException(404, "Lauf nicht gefunden")
     return run
+
+
+@router.get("/runs/zeiten", response_model=ZeitenOut)
+def get_zeiten(session: Session = Depends(get_session)):
+    """Kennzahlen aus den letzten 50 Läufen des Workspaces (vor `/runs/{run_id}` registriert)."""
+    rows = session.scalars(select(Run).order_by(Run.created_at.desc()).limit(50)).all()
+    daten = kennzahlen(
+        [
+            {"id": r.id, "steps": r.steps, "trace_url": r.trace_url, "created_at": r.created_at}
+            for r in rows
+        ]
+    )
+    trace_url = {r.id: r.trace_url for r in rows}
+
+    def kennzahl(werte: dict) -> ZeitenKennzahl:
+        return ZeitenKennzahl(
+            **werte, langsamster_trace_url=trace_url.get(werte["langsamster_run_id"])
+        )
+
+    return ZeitenOut(
+        laeufe=daten["laeufe"],
+        schritte={key: kennzahl(w) for key, w in daten["schritte"].items()},
+        gesamt=kennzahl(daten["gesamt"]),
+        fragen=kennzahl(daten["fragen"]),
+    )
 
 
 @router.get("/runs/{run_id}", response_model=RunOut)

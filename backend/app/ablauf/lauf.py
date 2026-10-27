@@ -8,6 +8,7 @@ Schritt 6 laeuft auf der Event-Loop von FastAPI, weil der Checkpointer des Graph
 
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -121,6 +122,7 @@ def schritt_lesen(ctx: LaufKontext) -> str:
         )
         pages = sum(d.page_count or 0 for d in documents)
         lines = [f"{d.filename}: {d.progress}" for d in documents]
+    ctx.ergebnis["lesen"] = {"dokumente": len(ids)}
     return "\n".join([f"{len(ids)} Dokumente, {pages} Seiten, {chunks} Abschnitte", *lines])
 
 
@@ -208,8 +210,12 @@ def schritt_zusammenfassung(ctx: LaufKontext) -> str:
         _, ctx.machine = machine_scope(session, ctx.machine_id)
     antworten = []
     for n, frage in enumerate(FRAGEN, start=1):
+        start = time.perf_counter()
         answer, sources = beantworte(ctx.graph, ctx, frage, n)
-        antworten.append({"question": frage, "answer_md": answer, "sources": sources})
+        dauer_s = round(time.perf_counter() - start, 1)
+        antworten.append(
+            {"question": frage, "answer_md": answer, "sources": sources, "dauer_s": dauer_s}
+        )
     ctx.ergebnis["zusammenfassung"] = antworten
     belege = sum(len(a["sources"]) for a in antworten)
     return f"{len(antworten)} Antworten, {belege} Belege"
