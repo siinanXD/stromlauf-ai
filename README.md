@@ -131,9 +131,11 @@ Docling-Layoutmodelle von Hugging Face.
 
 ## Ablauf: Dateien rein, Ergebnis raus
 
-Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt sieben Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel zeigt das Panel „Tracing aus“.
+Die Seite `/ablauf` nimmt Stromlaufplan, Stückliste, AWL oder Handbuch entgegen und führt acht Schritte aus (Hochladen, Lesen, Maschine, Steckbrief, Modell, Zusammenfassung, Lernen, Fertig), die sich live färben. Das Modell für die Zusammenfassung steht in `ABLAUF_MODEL` (Standard `ollama:qwen3.5:9b`). Sind die Langfuse-Schlüssel gesetzt, zeigt jeder Schritt einen Link „In Langfuse öffnen“ auf seinen Trace, ohne Schlüssel zeigt das Panel „Tracing aus“.
 
 Unten auf der Seite steht „Zeiten“: je Schritt Median, letzter und langsamster Wert über die letzten 50 Läufe, dazu feste Zielwerte (Lesen ≤ 60 s je Dokument, Zusammenfassung ≤ 30 s je Frage, gesamt ≤ 180 s), die rot werden, sobald der letzte Lauf darüber liegt. Die Zahlen kommen aus `GET /api/runs/zeiten`; Tokens und Modell-Latenz bleiben in Langfuse.
+
+Der Schritt „Lernen“ zieht aus den drei Antworten und dem Steckbrief höchstens fünf belegte Sätze je Maschine; nach jeder Chat-Antwort mit Quellen kommen im Hintergrund bis zu zwei dazu, nur Sätze mit Beleg aus der Dokumentation werden gespeichert, und der Agent liest die jüngsten 30 bei jeder Antwort mit. Der Tab „Wissen“ auf der Maschinenseite (unter „Mehr“) zeigt die Sätze mit Beleg und Quelle (API: `GET/POST/PATCH/DELETE /api/machines/{id}/notes`); Sperren oder Korrigieren markiert einen Satz als vom Menschen bestätigt, und solche Sätze gewinnen gegen neue. Jede Änderung schreibt `DATA_DIR/wissen/<Maschine>.md` neu; der Ordner lässt sich als Obsidian-Vault öffnen.
 
 Ein ganzer Ordner geht auch: Unterordner werden zu Anlagen, Dateien ohne Ordner nach der Kennung im Namen (`FB-01`, `PM1-AR`) gebündelt, der Rest steht als „unzugeordnet“ und wird per Auswahl zugewiesen. Die Seite zeigt den Vorschlag („3 Anlagen erkannt“), Namen und Zuordnung lassen sich ändern, „Alle starten“ startet je Anlage einen Lauf. Grenzen: 200 Dateien oder 500 MB je Ablage, 100 Dateien je Anlage.
 
