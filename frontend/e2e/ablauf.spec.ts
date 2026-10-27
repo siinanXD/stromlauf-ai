@@ -125,6 +125,7 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
   await mockAblauf(page);
   const gets: Record<string, number> = {};
   let posts = 0;
+  let aufrufe = 0;
   const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
   const A = "01_Stromlaufplan_FB-01.pdf";
   const B = "01_Stromlaufplan_UR-01.pdf";
@@ -146,6 +147,9 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
   });
   await page.route("**/api/runs", (route) => {
     if (route.request().method() !== "POST") return route.fallback();
+    aufrufe += 1;
+    // der zweite Aufruf scheitert einmal
+    if (aufrufe === 2) return json(route, { detail: "Backend nicht erreichbar" }, 500);
     posts += 1;
     return json(route, run(1, false, `run-${posts}`, posts === 1 ? "FB-01" : "UR-01"), 201);
   });
@@ -156,6 +160,13 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
   const axeVorschlag = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axeVorschlag.violations, JSON.stringify(axeVorschlag.violations, null, 1)).toEqual([]);
   await page.getByRole("button", { name: "Alle starten" }).click();
+  // Teilstart: Lauf 1 steht, der Vorschlag behält nur die gescheiterte Gruppe
+  await expect(page.getByRole("alert").filter({ hasText: "Lauf für UR-01 konnte nicht gestartet werden" })).toBeVisible();
+  await expect(page.getByTestId("lauf-run-1")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "1 Anlage erkannt" })).toBeVisible();
+  await expect(page.getByLabel("Name der Anlage 1")).toHaveValue("UR-01");
+  await page.getByRole("button", { name: "Alle starten" }).click();
+  await expect(page.getByTestId("lauf-run-1")).toBeVisible();
   for (const id of ["run-1", "run-2"]) {
     const block = page.getByTestId(`lauf-${id}`);
     for (const key of KEYS) {
@@ -163,6 +174,11 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
     }
   }
   expect(posts).toBe(2);
+  // Blöcke überlappen nicht; Bild als Beleg
+  const eins = (await page.getByTestId("lauf-run-1").boundingBox())!;
+  const zwei = (await page.getByTestId("lauf-run-2").boundingBox())!;
+  expect(eins.y + eins.height).toBeLessThanOrEqual(zwei.y + 1);
+  await page.screenshot({ path: `test-results/ablauf-zwei-laeufe-${test.info().project.name}.png`, fullPage: true });
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
 });

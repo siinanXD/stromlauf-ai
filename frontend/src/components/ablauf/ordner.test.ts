@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ausDrop, ausInput, kannStarten, pruefeLimits, verschiebe, wendeAn, type Abgelegt } from "./ordner";
+import { ausDrop, ausInput, kannStarten, ohneGestartete, pruefeLimits, verschiebe, wendeAn, type Abgelegt } from "./ordner";
 
 const datei = (name: string, rel?: string, size?: number) => {
   const f = new File([new Uint8Array(0)], name);
@@ -117,5 +117,13 @@ describe("kannStarten", () => {
   });
   it("erlaubt vollständig zugeordnete benannte Gruppen", () => {
     expect(kannStarten({ gruppen: [gruppe], unzugeordnet: [] })).toBe(true);
+  });
+});
+
+describe("ohneGestartete", () => {
+  it("entfernt nur die gestarteten Gruppen", () => {
+    const g = (id: string) => ({ id, name: id, quelle: "ordner" as const, dateien: [] });
+    const r = ohneGestartete({ gruppen: [g("g1"), g("g2")], unzugeordnet: [] }, ["g1"]);
+    expect(r.gruppen.map((x) => x.id)).toEqual(["g2"]);
   });
 });

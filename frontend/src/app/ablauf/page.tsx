@@ -8,7 +8,7 @@ import { Dropzone } from "@/components/ablauf/Dropzone";
 import { Ergebnis } from "@/components/ablauf/Ergebnis";
 import { GruppenVorschlag } from "@/components/ablauf/GruppenVorschlag";
 import { haengt } from "@/components/ablauf/knoten";
-import { pruefeLimits, wendeAn, type Abgelegt, type Gruppierung } from "@/components/ablauf/ordner";
+import { ohneGestartete, pruefeLimits, wendeAn, type Abgelegt, type Gruppierung } from "@/components/ablauf/ordner";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
 import { Zeiten } from "@/components/ablauf/ZeitenTabelle";
 import { ablauf, type Run, type Zeiten as ZeitenDaten } from "@/lib/api";
@@ -56,6 +56,8 @@ export default function AblaufPage() {
     const nr = ++anfrage.current;
     setAbgelegt(liste);
     setGruppierung(null);
+    setRuns([]);
+    setSelected(null);
     setError(null);
     setPruefe(false);
     if (liste.length === 0) return;
@@ -70,17 +72,18 @@ export default function AblaufPage() {
       .finally(() => nr === anfrage.current && setPruefe(false));
   }
 
-  /** Läufe nacheinander anlegen; bei einem Fehler bleiben die bisherigen stehen. */
-  async function starte(jobs: { files: File[]; name: string }[]) {
+  /** Einzeldatei: ein neuer Lauf ersetzt die bisherigen. */
+  async function starteEinzeln() {
     setError(null);
     setSelected(null);
     setRuns([]);
     setStarting(true);
     try {
-      for (const job of jobs) {
-        const created = await ablauf.start(job.files, job.name);
-        setRuns((alt) => [...alt, created]);
-      }
+      const created = await ablauf.start(
+        abgelegt.map((a) => a.file),
+        "",
+      );
+      setRuns([created]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -88,12 +91,31 @@ export default function AblaufPage() {
     }
   }
 
+  /** Gruppen nacheinander starten; erst nach Erfolg verlässt eine Gruppe den Vorschlag, bei einem Fehler bleibt der Rest stehen. */
   async function startAlle() {
     if (!gruppierung) return;
-    const jobs = gruppierung.gruppen.map((g) => ({ files: g.dateien.map((d) => d.file), name: g.name.trim() }));
-    setGruppierung(null);
-    setAbgelegt([]);
-    await starte(jobs);
+    setError(null);
+    setStarting(true);
+    try {
+      for (const g of gruppierung.gruppen) {
+        let created: Run;
+        try {
+          created = await ablauf.start(
+            g.dateien.map((d) => d.file),
+            g.name.trim(),
+          );
+        } catch (err) {
+          setError(`Lauf für ${g.name.trim()} konnte nicht gestartet werden: ${(err as Error).message}`);
+          return;
+        }
+        setRuns((alt) => [...alt, created]);
+        setGruppierung((alt) => (alt ? ohneGestartete(alt, [g.id]) : alt));
+      }
+      setGruppierung(null);
+      setAbgelegt([]);
+    } finally {
+      setStarting(false);
+    }
   }
 
   const ladeZeiten = useCallback(() => {
@@ -130,7 +152,7 @@ export default function AblaufPage() {
               {einfach(abgelegt) && (
                 <button
                   type="button"
-                  onClick={() => starte([{ files: abgelegt.map((a) => a.file), name: "" }])}
+                  onClick={starteEinzeln}
                   disabled={running}
                   className="min-h-11 rounded-md bg-primary px-4 text-subhead font-medium text-primary-foreground disabled:opacity-50"
                 >
@@ -164,7 +186,7 @@ export default function AblaufPage() {
         {runs.map((run) => {
           const step = selected?.runId === run.id ? (run.steps.find((s) => s.key === selected.key) ?? null) : null;
           return (
-            <section key={run.id} aria-label={run.name || "Lauf"} data-testid={`lauf-${run.id}`} className="flex min-h-0 flex-col border-b border-border md:flex-row">
+            <section key={run.id} aria-label={run.name || "Lauf"} data-testid={`lauf-${run.id}`} className="flex shrink-0 flex-col border-b border-border md:flex-row">
               <div className="flex min-w-0 flex-1 flex-col">
                 {runs.length > 1 && <h2 className="px-4 pt-3 text-headline font-semibold md:px-6">{run.name}</h2>}
                 <div className="h-[220px] shrink-0 border-b border-border">

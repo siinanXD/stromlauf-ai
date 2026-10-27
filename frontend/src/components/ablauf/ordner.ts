@@ -115,3 +115,8 @@ export function verschiebe(g: Gruppierung, pfad: string, zielId: string | "neu" 
 export function kannStarten(g: Gruppierung): boolean {
   return g.gruppen.length > 0 && g.unzugeordnet.length === 0 && g.gruppen.every((x) => x.name.trim() !== "");
 }
+
+/** Vorschlag ohne die bereits gestarteten Gruppen. */
+export function ohneGestartete(g: Gruppierung, ids: string[]): Gruppierung {
+  return { ...g, gruppen: g.gruppen.filter((x) => !ids.includes(x.id)) };
+}
