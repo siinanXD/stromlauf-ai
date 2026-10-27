@@ -919,7 +919,7 @@ export const onboarding = {
     request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
 };
 
-// --- Ablauf: ein Lauf mit sieben Schritten (POST/GET /api/runs) -------------------------------
+// --- Ablauf: ein Lauf mit acht Schritten (POST/GET /api/runs) -------------------------------
 
 export type SchrittStatus = "wartet" | "laeuft" | "fertig" | "fehler";
 

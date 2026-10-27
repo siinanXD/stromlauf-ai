@@ -4,12 +4,12 @@ import { dauerText, flowOf, haengt, statusKlasse, zuPollen } from "./knoten";
 const step = (key: string, status = "wartet", extra = {}) => ({ key, label: key, status, started_at: null, finished_at: null, input: "", output: "", trace_url: null, error: null, ...extra });
 
 describe("knoten", () => {
-  it("baut sieben Knoten in einer Reihe mit sechs Kanten", () => {
-    const steps = ["hochladen","lesen","maschine","steckbrief","modell","zusammenfassung","fertig"].map((k) => step(k));
+  it("baut acht Knoten in einer Reihe mit sieben Kanten", () => {
+    const steps = ["hochladen","lesen","maschine","steckbrief","modell","zusammenfassung","lernen","fertig"].map((k) => step(k));
     const { nodes, edges } = flowOf(steps as never);
     expect(nodes.map((n) => n.id)).toEqual(steps.map((s) => s.key));
     expect(nodes[3].position).toEqual({ x: 660, y: 0 });
-    expect(edges.map((e) => `${e.source}>${e.target}`)).toEqual(["hochladen>lesen","lesen>maschine","maschine>steckbrief","steckbrief>modell","modell>zusammenfassung","zusammenfassung>fertig"]);
+    expect(edges.map((e) => `${e.source}>${e.target}`)).toEqual(["hochladen>lesen","lesen>maschine","maschine>steckbrief","steckbrief>modell","modell>zusammenfassung","zusammenfassung>lernen","lernen>fertig"]);
   });
   it("färbt nach Status nur über Tokens", () => {
     expect(statusKlasse("fertig")).toContain("border-ok");
