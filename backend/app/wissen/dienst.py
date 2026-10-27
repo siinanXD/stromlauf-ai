@@ -1,6 +1,9 @@
 """Gelerntes Wissen: Notizen speichern, Lern-Aufruf ans Modell, Obsidian-Datei schreiben."""
 
 import logging
+import os
+import threading
+from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,7 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import ledger
-from app.api.chat import _text_of
 from app.config import get_settings
 from app.db import session_scope
 from app.llm import make_chat_model
@@ -29,6 +31,9 @@ from app.wissen.lernen import (
 from app.wissen.obsidian import dateiname, markdown
 
 logger = logging.getLogger(__name__)
+
+_sperren: defaultdict[Path, threading.Lock] = defaultdict(threading.Lock)
+_sperren_zugriff = threading.Lock()
 
 
 def _dateinamen(session: Session, notes: list[MachineNote]) -> dict[str, str]:
@@ -85,7 +90,10 @@ def notizen_fuer(
 
 
 def schreibe_obsidian(session: Session, machine: Machine) -> Path:
-    """Markdown-Datei der Maschine neu schreiben (gesperrte zuerst, dann älteste zuerst)."""
+    """Markdown-Datei der Maschine atomar neu schreiben; nach dem Commit aufrufen.
+
+    Reihenfolge: gesperrte zuerst, dann älteste zuerst.
+    """
     notes = list(
         session.scalars(
             select(MachineNote)
@@ -109,7 +117,13 @@ def schreibe_obsidian(session: Session, machine: Machine) -> Path:
     pfad = get_settings().data_dir / "wissen" / f"{dateiname(machine.name, machine.id)}.md"
     pfad.parent.mkdir(parents=True, exist_ok=True)
     stand = datetime.now(UTC).isoformat()
-    pfad.write_text(markdown(machine.id, machine.name, stand, eintraege), encoding="utf-8")
+    inhalt = markdown(machine.id, machine.name, stand, eintraege)
+    with _sperren_zugriff:
+        sperre = _sperren[pfad]
+    with sperre:  # ein Schreiber je Datei; der Inhalt wird erst unter der Sperre gelesen
+        temp = pfad.with_name(f"{pfad.name}.{threading.get_ident()}.tmp")
+        temp.write_text(inhalt, encoding="utf-8")
+        os.replace(temp, pfad)
     return pfad
 
 
@@ -122,7 +136,7 @@ def speichere(
     run_id: str | None = None,
     conversation_id: str | None = None,
 ) -> int:
-    """Neue Sätze (ohne Dubletten) ablegen und die Obsidian-Datei erneuern; Anzahl neu."""
+    """Neue Sätze (ohne Dubletten) ablegen; Anzahl neu. Die Datei schreibt der Aufrufer nach dem Commit."""
     vorhanden = [normalisiert(n.text) for n in notizen_fuer(session, machine.id, limit=None)]
     neu = ohne_dubletten(saetze, vorhanden)
     for satz in neu:
@@ -137,7 +151,6 @@ def speichere(
             )
         )
     session.flush()
-    schreibe_obsidian(session, machine)
     return len(neu)
 
 
@@ -145,6 +158,8 @@ def frage_modell(
     model: str, prompt: str, *, machine_id: str, session_id: str, tags: list[str]
 ) -> str:
     """Ein Modellaufruf ohne Werkzeuge; Kosten kommen mit Zweck `wissen.lernen` ins Kostenbuch."""
+    from app.api.chat import _text_of  # lazy: app.api.chat importiert dieses Modul (kein Zyklus)
+
     config, collector = ledger.collect(trace_config(session_id, ["wissen", *tags], model), model)
     antwort = make_chat_model(model, max_tokens=1500, max_retries=2).invoke(
         [HumanMessage(prompt)], config
@@ -184,9 +199,12 @@ def lerne(
     saetze = parse_saetze(text, belege, max_saetze)
     with session_scope() as session:
         machine = session.get(Machine, machine_id)
-        return speichere(
+        neu = speichere(
             session, machine, saetze, quelle=quelle, run_id=run_id, conversation_id=conversation_id
         )
+    with session_scope() as session:  # erst nach dem Commit: Datei zeigt nur Festgeschriebenes
+        schreibe_obsidian(session, session.get(Machine, machine_id))
+    return neu
 
 
 def lerne_aus_chat(

@@ -128,13 +128,16 @@ def test_tabelle_leer_und_post_patch_delete(client, headers):
     )
     assert patched.status_code == 200 and patched.json()["text"] == "Der Antrieb ist -M1 (4 kW)."
     from app.config import get_settings
+    from app.wissen.obsidian import dateiname
 
-    datei = next((get_settings().data_dir / "wissen").glob("*.md"))
+    ordner = get_settings().data_dir / "wissen"
+    datei = ordner / f"{dateiname('FB-01', machine_id)}.md"
     inhalt = datei.read_text(encoding="utf-8")
     assert "Der Antrieb ist -M1 (4 kW)." in inhalt and "machine_id:" in inhalt
     assert client.delete(f"/api/machines/{machine_id}/notes/{note['id']}", headers=headers).status_code == 204
     assert client.get(f"/api/machines/{machine_id}/notes", headers=headers).json() == []
     assert "Der Antrieb" not in datei.read_text(encoding="utf-8")
+    assert list(ordner.glob("*.tmp")) == []
 
 
 def test_post_dublette_bleibt_einmal(client, headers):

@@ -67,8 +67,8 @@ def create_note(
     )
     session.add(note)
     session.flush()
-    dienst.schreibe_obsidian(session, machine)
     session.commit()
+    dienst.schreibe_obsidian(session, machine)
     return dienst.note_out(session, note)
 
 
@@ -83,8 +83,8 @@ def update_note(
     note.gesperrt = True
     note.quelle = "mensch"
     session.flush()
-    dienst.schreibe_obsidian(session, machine)
     session.commit()
+    dienst.schreibe_obsidian(session, machine)
     return dienst.note_out(session, note)
 
 
@@ -93,6 +93,6 @@ def delete_note(machine_id: str, note_id: str, session: Session = Depends(get_se
     machine = _machine(session, machine_id)
     session.delete(_note(session, machine, note_id))
     session.flush()
-    dienst.schreibe_obsidian(session, machine)
     session.commit()
+    dienst.schreibe_obsidian(session, machine)
     return Response(status_code=204)
