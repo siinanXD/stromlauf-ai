@@ -40,10 +40,10 @@ function steps(fertig: number) {
   }));
 }
 
-function run(fertig: number, done: boolean) {
+function run(fertig: number, done: boolean, id = RUN_ID, name = "Förderband FB-01") {
   return {
-    id: RUN_ID,
-    name: "Förderband FB-01",
+    id,
+    name,
     status: done ? "fertig" : "laeuft",
     model: "ollama:qwen3.5:9b",
     steps: steps(done ? KEYS.length : fertig),
@@ -102,7 +102,8 @@ test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
   test.setTimeout(60_000);
   await mockAblauf(page);
   await page.goto("/ablauf");
-  await page.setInputFiles('input[type="file"]', ["../examples/foerderband/01_Stromlaufplan_FB-01.pdf", "../examples/foerderband/04_SPS_Programm_FB-01.awl"]);
+  // genau eine Datei ohne Ordner: der direkte Weg ohne Vorschlag
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', "../examples/foerderband/01_Stromlaufplan_FB-01.pdf");
   await page.getByRole("button", { name: "Lauf starten" }).click();
   for (const key of KEYS) {
     await expect(page.getByTestId(`schritt-${key}`)).toHaveAttribute("data-status", "fertig", { timeout: 25_000 });
@@ -115,6 +116,53 @@ test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
   await expect(lesen.getByRole("rowheader", { name: "Lesen je Dokument" })).toBeVisible();
   await expect(lesen.locator("[aria-label*='über Ziel']")).toBeVisible();
   await expect(lesen.getByRole("link", { name: "Langfuse" })).toHaveAttribute("href", TRACE);
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
+});
+
+test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ page }) => {
+  test.setTimeout(90_000);
+  await mockAblauf(page);
+  const gets: Record<string, number> = {};
+  let posts = 0;
+  const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  const A = "01_Stromlaufplan_FB-01.pdf";
+  const B = "01_Stromlaufplan_UR-01.pdf";
+  await page.route("**/api/runs/gruppen", (route) =>
+    json(route, {
+      gruppen: [
+        { name: "FB-01", quelle: "kennung", dateien: [A] },
+        { name: "UR-01", quelle: "kennung", dateien: [B] },
+      ],
+      unzugeordnet: [],
+      ignoriert: [],
+    }),
+  );
+  await page.route("**/api/runs/run-*", (route) => {
+    const id = route.request().url().split("/").pop()!;
+    gets[id] = (gets[id] ?? 0) + 1;
+    const name = id === "run-1" ? "FB-01" : "UR-01";
+    return json(route, gets[id] >= 7 ? run(KEYS.length, true, id, name) : run(Math.min(gets[id] + 1, KEYS.length - 1), false, id, name));
+  });
+  await page.route("**/api/runs", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    posts += 1;
+    return json(route, run(1, false, `run-${posts}`, posts === 1 ? "FB-01" : "UR-01"), 201);
+  });
+  await page.goto("/ablauf");
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', [`../examples/foerderband/${A}`, `../examples/umroller/${B}`]);
+  await expect(page.getByRole("heading", { name: "2 Anlagen erkannt" })).toBeVisible();
+  await expect(page.getByLabel(`${A} verschieben nach`)).toBeVisible();
+  const axeVorschlag = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(axeVorschlag.violations, JSON.stringify(axeVorschlag.violations, null, 1)).toEqual([]);
+  await page.getByRole("button", { name: "Alle starten" }).click();
+  for (const id of ["run-1", "run-2"]) {
+    const block = page.getByTestId(`lauf-${id}`);
+    for (const key of KEYS) {
+      await expect(block.getByTestId(`schritt-${key}`)).toHaveAttribute("data-status", "fertig", { timeout: 40_000 });
+    }
+  }
+  expect(posts).toBe(2);
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
 });

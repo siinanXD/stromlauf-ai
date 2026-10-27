@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ausDrop, ausInput, pruefeLimits, verschiebe, wendeAn, type Abgelegt } from "./ordner";
+import { ausDrop, ausInput, kannStarten, pruefeLimits, verschiebe, wendeAn, type Abgelegt } from "./ordner";
 
 const datei = (name: string, rel?: string, size?: number) => {
   const f = new File([new Uint8Array(0)], name);
@@ -100,5 +100,22 @@ describe("ausDrop", () => {
   });
   it("behält den Namen einer einzelnen Datei", async () => {
     expect((await ausDrop(items(dateiEntry("a.pdf")))).map((a) => a.pfad)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("kannStarten", () => {
+  const d = { file: new File(["x"], "a.pdf"), pfad: "a.pdf" };
+  const gruppe = { id: "g1", name: "FB-01", quelle: "ordner" as const, dateien: [d] };
+  it("braucht mindestens eine Gruppe", () => {
+    expect(kannStarten({ gruppen: [], unzugeordnet: [] })).toBe(false);
+  });
+  it("sperrt bei Unzugeordnetem", () => {
+    expect(kannStarten({ gruppen: [gruppe], unzugeordnet: [d] })).toBe(false);
+  });
+  it("sperrt bei leerem Namen", () => {
+    expect(kannStarten({ gruppen: [{ ...gruppe, name: "  " }], unzugeordnet: [] })).toBe(false);
+  });
+  it("erlaubt vollständig zugeordnete benannte Gruppen", () => {
+    expect(kannStarten({ gruppen: [gruppe], unzugeordnet: [] })).toBe(true);
   });
 });

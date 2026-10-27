@@ -110,3 +110,8 @@ export function verschiebe(g: Gruppierung, pfad: string, zielId: string | "neu" 
   } else gruppen.find((x) => x.id === zielId)!.dateien.push(datei);
   return { gruppen: gruppen.filter((x) => x.dateien.length > 0), unzugeordnet };
 }
+
+/** "Alle starten" ist erst frei, wenn nichts mehr unzugeordnet ist und jede Anlage einen Namen hat. */
+export function kannStarten(g: Gruppierung): boolean {
+  return g.gruppen.length > 0 && g.unzugeordnet.length === 0 && g.gruppen.every((x) => x.name.trim() !== "");
+}
