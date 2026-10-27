@@ -127,12 +127,13 @@ export default function AblaufPage() {
                 <AblaufGraph steps={run.steps} selected={selected} onSelect={select} />
               </div>
               <Ergebnis run={run} />
-              {zeiten && !zeitenFehler && <Zeiten zeiten={zeiten} />}
-              {zeitenFehler && <p className="p-4 text-footnote text-muted-foreground md:px-6">Zeiten nicht verfügbar</p>}
             </div>
             {step && <SchrittPanel step={step} onClose={close} />}
           </div>
         )}
+
+        {zeiten && !zeitenFehler && <Zeiten zeiten={zeiten} />}
+        {zeitenFehler && <p className="p-4 text-footnote text-muted-foreground md:px-6">Zeiten nicht verfügbar</p>}
       </div>
     </AppShell>
   );

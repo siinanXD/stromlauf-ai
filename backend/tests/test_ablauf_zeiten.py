@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.ablauf.schritte import SCHRITTE, beende, neue_schritte, starte
+from app.ablauf.schritte import SCHRITTE, beende, neue_schritte, scheitere, starte
 from app.ablauf.zeiten import kennzahlen
 
 BASIS = datetime(2026, 10, 27, 10, 0, tzinfo=timezone.utc)
@@ -77,10 +77,37 @@ def test_nur_abgeschlossene_schritte_zaehlen():
 
 
 def test_gesamt_und_fragen():
-    k = kennzahlen([_lauf("a", {"lesen": 100, "zusammenfassung": 50}, fragen=[10.0, 40.0])])
+    dauern = {key: 0.0 for key, _ in SCHRITTE} | {"lesen": 100.0, "zusammenfassung": 50.0}
+    k = kennzahlen([_lauf("a", dauern, fragen=[10.0, 40.0])])
     assert k["gesamt"]["letzter_s"] == 150.0 and k["gesamt"]["ueber_ziel"] is False
     assert (
         k["fragen"]["anzahl"] == 2
         and k["fragen"]["max_s"] == 40.0
         and k["fragen"]["ueber_ziel"] is True
     )
+
+
+def test_fehlgeschlagener_schritt_zaehlt_nicht():
+    lauf = _lauf("a", {"hochladen": 1})
+    steps = starte(lauf["steps"], "lesen", _zeit(1), "")
+    lauf["steps"] = scheitere(steps, "lesen", _zeit(3), "kaputt")
+    k = kennzahlen([lauf])
+    assert k["schritte"]["lesen"]["anzahl"] == 0 and k["schritte"]["lesen"]["letzter_s"] is None
+    assert k["schritte"]["hochladen"]["anzahl"] == 1
+    assert k["gesamt"]["anzahl"] == 0
+
+
+def test_gesamt_nur_bei_allen_fertig():
+    lauf = _lauf("a", {"hochladen": 1, "lesen": 5})
+    k = kennzahlen([lauf])
+    assert k["schritte"]["lesen"]["anzahl"] == 1 and k["schritte"]["hochladen"]["anzahl"] == 1
+    assert k["gesamt"]["anzahl"] == 0
+
+
+def test_lesen_je_dokument():
+    lauf = _lauf("a", {"lesen": 90})
+    lauf["steps"] = [
+        {**s, "result": {"dokumente": 6}} if s["key"] == "lesen" else s for s in lauf["steps"]
+    ]
+    s = kennzahlen([lauf])["schritte"]["lesen"]
+    assert s["letzter_s"] == 15.0 and s["ueber_ziel"] is False

@@ -35,7 +35,7 @@ export function Zeiten({ zeiten }: { zeiten: ZeitenDaten }) {
                   {k.langsamster_trace_url && (
                     <>
                       {" "}
-                      <a href={k.langsamster_trace_url} target="_blank" rel="noopener noreferrer" className="font-sans text-accent underline">
+                      <a href={k.langsamster_trace_url} target="_blank" rel="noopener noreferrer" className="font-sans text-primary underline">
                         Langfuse
                       </a>
                     </>

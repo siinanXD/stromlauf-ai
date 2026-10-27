@@ -12,22 +12,30 @@ const zeiten = (laeufe = 3, schritte: Record<string, ReturnType<typeof k>> = {})
 
 describe("zeiten", () => {
   it("liefert Zeilen in Schrittreihenfolge, dann Gesamt und Fragen", () => {
-    expect(zeilen(zeiten()).map((z) => z.label)).toEqual(["Hochladen", "Lesen", "Maschine anlegen", "Steckbrief", "Maschinenmodell", "Zusammenfassung", "Fertig", "Gesamt je Lauf", "Je Frage (Schritt 6)"]);
+    expect(zeilen(zeiten()).map((z) => z.label)).toEqual(["Hochladen", "Lesen je Dokument", "Maschine anlegen", "Steckbrief", "Maschinenmodell", "Zusammenfassung", "Fertig", "Gesamt je Lauf", "Je Frage (Schritt 6)"]);
+  });
+  it("verträgt einen fehlenden Schritt", () => {
+    const z = zeiten();
+    delete z.schritte.lesen;
+    const lesen = zeilen(z).find((r) => r.key === "lesen");
+    expect(lesen?.kennzahl.anzahl).toBe(0);
+    expect(lesen?.kennzahl.median_s).toBeNull();
+    expect(satz({ ...z, schritte: {} })).toContain("Noch keine Zeiten");
   });
   it("formatiert Sekunden deutsch", () => {
     expect(sekunden(12.34)).toBe("12,3 s");
     expect(sekunden(null)).toBe("–");
   });
   it("färbt Überschreitungen nur über Tokens", () => {
-    expect(zellenKlasse(true)).toContain("text-error");
+    expect(zellenKlasse(true)).toContain("text-danger");
     expect(zellenKlasse(true)).toContain("bg-error-soft");
-    expect(zellenKlasse(false)).not.toContain("text-error");
+    expect(zellenKlasse(false)).not.toContain("text-danger");
     expect(zellenKlasse(false)).not.toContain("bg-error-soft");
   });
   it("nennt den Satz ohne Läufe", () => {
     expect(satz(zeiten(0))).toBe("Noch keine Läufe");
   });
   it("nennt den langsamsten Schritt nach Median, bei Gleichstand den ersten", () => {
-    expect(satz(zeiten(5, { lesen: k({ median_s: 48 }), modell: k({ median_s: 48 }), fertig: k({ median_s: 2 }) }))).toBe("Langsamster Schritt der letzten 5 Läufe: Lesen, im Median 48,0 s");
+    expect(satz(zeiten(5, { lesen: k({ median_s: 48 }), modell: k({ median_s: 48 }), fertig: k({ median_s: 2 }) }))).toBe("Langsamster Schritt der letzten 5 Läufe: Lesen je Dokument, im Median 48,0 s");
   });
 });

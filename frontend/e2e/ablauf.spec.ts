@@ -91,6 +91,13 @@ async function mockAblauf(page: Page) {
   });
 }
 
+test("Zeiten stehen auch vor dem ersten Lauf da", async ({ page }) => {
+  await mockAblauf(page);
+  await page.goto("/ablauf");
+  await expect(page.getByRole("heading", { name: "Zeiten" })).toBeVisible();
+  await expect(page.getByTestId("zeiten-lesen")).toBeVisible();
+});
+
 test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
   test.setTimeout(60_000);
   await mockAblauf(page);
@@ -105,7 +112,7 @@ test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Maschine öffnen" })).toBeVisible();
   const lesen = page.getByTestId("zeiten-lesen");
   await expect(page.getByRole("heading", { name: "Zeiten" })).toBeVisible();
-  await expect(lesen.getByRole("rowheader", { name: "Lesen" })).toBeVisible();
+  await expect(lesen.getByRole("rowheader", { name: "Lesen je Dokument" })).toBeVisible();
   await expect(lesen.locator("[aria-label*='über Ziel']")).toBeVisible();
   await expect(lesen.getByRole("link", { name: "Langfuse" })).toHaveAttribute("href", TRACE);
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

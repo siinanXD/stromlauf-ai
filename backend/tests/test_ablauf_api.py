@@ -112,6 +112,11 @@ def test_lauf_mit_foerderband_wird_fertig(client, headers, monkeypatch):
     run = _warte(client, headers, run_id)
     assert run["status"] == "fertig", run
     assert [s["status"] for s in run["steps"]] == ["fertig"] * 7
+    from app.db import session_scope
+    from app.models import Run
+
+    with session_scope() as session:
+        assert session.get(Run, run_id).steps[1]["result"]["dokumente"] == 6
     assert run["result"]["machine_id"]
     assert run["result"]["profile"]["doc_types"]
     assert run["result"]["map_counts"]["parts"] > 0

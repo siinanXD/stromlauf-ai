@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import ledger
 from app.ablauf.lauf import starte_lauf
-from app.ablauf.schritte import beende, neue_schritte
+from app.ablauf.schritte import beende, neue_schritte, starte
 from app.ablauf.zeiten import kennzahlen
 from app.api.sources import ALLOWED_SUFFIXES
 from app.config import get_settings
@@ -122,7 +122,10 @@ def create_run(
         types.append(DOC_TYPE_LABELS.get(doc_type, str(doc_type)))
 
     anzahl = f"{len(files)} Datei" if len(files) == 1 else f"{len(files)} Dateien"
-    steps = beende(neue_schritte(), "hochladen", now.isoformat(), f"{anzahl}: {', '.join(types)}")
+    steps = starte(neue_schritte(), "hochladen", now.isoformat(), "")
+    steps = beende(
+        steps, "hochladen", datetime.now(UTC).isoformat(), f"{anzahl}: {', '.join(types)}"
+    )
     run = Run(name=source.name, source_id=source.id, steps=steps, model=get_settings().ablauf_model)
     session.add(run)
     session.commit()

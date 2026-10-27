@@ -58,6 +58,21 @@ def _fragendauern(lauf: dict) -> list[float]:
     return []
 
 
+def _schrittwert(schritt: dict | None, key: str) -> float | None:
+    """Dauer eines fertigen Schritts; Lesen wird je Dokument gerechnet (Ziel gilt je Dokument)."""
+    if not schritt or schritt["status"] != "fertig":
+        return None
+    wert = dauer_s(schritt)
+    if wert is None:
+        return None
+    if key == "lesen":
+        ergebnis = schritt.get("result")
+        dokumente = ergebnis.get("dokumente") if isinstance(ergebnis, dict) else None
+        if isinstance(dokumente, int) and dokumente > 0:
+            return round(wert / dokumente, 1)
+    return wert
+
+
 def kennzahlen(laeufe: list[dict]) -> dict:
     """Anzahl, Mittel, Median, Maximum, letzter Wert und Ziel je Schritt, Gesamtzeit und Fragen."""
     schritte: dict[str, dict] = {}
@@ -65,13 +80,15 @@ def kennzahlen(laeufe: list[dict]) -> dict:
         pro_lauf = []
         for lauf in laeufe:
             schritt = next((s for s in lauf["steps"] if s["key"] == key), None)
-            wert = dauer_s(schritt) if schritt else None
+            wert = _schrittwert(schritt, key)
             if wert is not None:
                 pro_lauf.append((lauf["id"], wert))
         schritte[key] = _auswertung(pro_lauf, _erster(pro_lauf), ZIELE.get(key))
 
     gesamt_pro_lauf = []
     for lauf in laeufe:
+        if not all(s["status"] == "fertig" for s in lauf["steps"]):
+            continue
         dauern = [d for s in lauf["steps"] if (d := dauer_s(s)) is not None]
         if dauern:
             gesamt_pro_lauf.append((lauf["id"], round(sum(dauern), 1)))

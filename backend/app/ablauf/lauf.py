@@ -122,6 +122,7 @@ def schritt_lesen(ctx: LaufKontext) -> str:
         )
         pages = sum(d.page_count or 0 for d in documents)
         lines = [f"{d.filename}: {d.progress}" for d in documents]
+    ctx.ergebnis["lesen"] = {"dokumente": len(ids)}
     return "\n".join([f"{len(ids)} Dokumente, {pages} Seiten, {chunks} Abschnitte", *lines])
 
 
