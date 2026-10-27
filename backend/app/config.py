@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434/v1"
     # Ablauf (app/ablauf/lauf.py): Modell fuer die drei Fragen in Schritt 6, Standard lokal ohne Kosten
     ablauf_model: str = "ollama:qwen3.5:9b"
+    # Ablauf-Zuordnung (app/ablauf/aehnlichkeit.py): Datei ohne Anlage kommt zur aehnlichsten Gruppe, wenn der
+    # Cosinus mindestens die Schwelle erreicht und die zweitbeste Gruppe mindestens den Abstand darunter liegt.
+    # TODO: Schwelle an echten Ordnern messen (SIN-1131); 0,75 ist ein Startwert fuer bge-m3, kein Messwert.
+    ablauf_aehnlichkeit_schwelle: float = 0.75
+    ablauf_aehnlichkeit_abstand: float = 0.05
 
     # Langfuse (optional, app/tracing.py): ohne Schluessel laufen Chat und Vision ohne Trace
     langfuse_public_key: str | None = None

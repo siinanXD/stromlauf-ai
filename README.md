@@ -137,7 +137,7 @@ Unten auf der Seite steht „Zeiten“: je Schritt Median, letzter und langsamst
 
 Der Schritt „Lernen“ zieht aus den drei Antworten und dem Steckbrief höchstens fünf belegte Sätze je Maschine; nach jeder Chat-Antwort mit Quellen kommen im Hintergrund bis zu zwei dazu, nur Sätze mit Beleg aus der Dokumentation werden gespeichert, und der Agent liest die jüngsten 30 bei jeder Antwort mit. Der Tab „Wissen“ auf der Maschinenseite (unter „Mehr“) zeigt die Sätze mit Beleg und Quelle (API: `GET/POST/PATCH/DELETE /api/machines/{id}/notes`); Sperren oder Korrigieren markiert einen Satz als vom Menschen bestätigt, und solche Sätze gewinnen gegen neue. Jede Änderung schreibt `DATA_DIR/wissen/<Maschine> (<ID-Anfang>).md` neu; der Ordner lässt sich als Obsidian-Vault öffnen.
 
-Ein ganzer Ordner geht auch: Unterordner werden zu Anlagen, Dateien ohne Ordner nach der Kennung im Namen (`FB-01`, `PM1-AR`) gebündelt, der Rest steht als „unzugeordnet“ und wird per Auswahl zugewiesen. Die Seite zeigt den Vorschlag („3 Anlagen erkannt“), Namen und Zuordnung lassen sich ändern, „Alle starten“ startet je Anlage einen Lauf. Grenzen: 200 Dateien oder 500 MB je Ablage, 100 Dateien je Anlage.
+Ein ganzer Ordner geht auch: Unterordner werden zu Anlagen, Dateien ohne Ordner nach der Kennung im Namen (`FB-01`, `FB01`, `=FB-01`, `PM1-AR`; `FB01` und `FB-01` zählen als dieselbe Anlage) gebündelt, der Rest steht als „unzugeordnet“ und wird per Auswahl zugewiesen. Die Seite zeigt den Vorschlag („3 Anlagen erkannt“), Namen und Zuordnung lassen sich ändern, „Alle starten“ startet je Anlage einen Lauf. Grenzen: 200 Dateien oder 500 MB je Ablage, 100 Dateien je Anlage.
 
 ## Schema-Migrationen (Alembic)
 
