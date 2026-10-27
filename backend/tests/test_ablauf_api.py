@@ -222,3 +222,114 @@ def test_neustart_bricht_haengende_laeufe_ab(client):
         assert run.steps[1]["status"] == "fehler" and run.steps[2]["status"] == "wartet"
         assert brich_haengende_laeufe_ab(session) == 0
     _wipe(WS)
+
+
+def test_gruppen_vorschlag(client, headers):
+    beispiele = Path(__file__).resolve().parents[2] / "examples"
+    dateien = [
+        {"name": p.name, "pfad": p.name}
+        for ordner in ("foerderband", "umroller", "aufrollung")
+        for p in sorted((beispiele / ordner).iterdir())
+        if p.name != "README.md"
+    ]
+    assert len(dateien) == 20
+    r = client.post("/api/runs/gruppen", json={"dateien": dateien}, headers=headers)
+    assert r.status_code == 200, r.text
+    daten = r.json()
+    assert sorted(g["name"] for g in daten["gruppen"]) == ["FB-01", "PM1-AR", "UR-01"]
+    assert daten["unzugeordnet"] == [] and daten["ignoriert"] == []
+
+
+def test_zwei_laeufe_landen_in_derselben_halle(client, headers, monkeypatch):
+    # Kein Wettrennen-Nachweis (siehe test_halle_sichern_parallel_eine_halle), nur Regressionsschutz.
+    monkeypatch.setattr("app.ablauf.lauf.ingest_document", lambda document_id: None)
+    monkeypatch.setattr("app.ablauf.lauf.beantworte", lambda *a, **k: ("Antwort.", []))
+    from app.db import session_scope
+    from app.models import Machine
+    from app.tenancy import reset_workspace, set_workspace
+
+    try:
+        ids = []
+        for name in ("p1.md", "p2.md"):
+            created = client.post(
+                "/api/runs", files=[("files", (name, b"# Doku"))], headers=headers
+            )
+            assert created.status_code == 201, created.text
+            ids.append(created.json()["id"])
+        laeufe = [_warte(client, headers, i, timeout=120) for i in ids]
+        assert all(r["status"] in {"fertig", "fehler"} for r in laeufe), laeufe
+        token = set_workspace(WS)
+        try:
+            with session_scope() as session:
+                hall_ids = {session.get(Machine, r["result"]["machine_id"]).hall_id for r in laeufe}
+        finally:
+            reset_workspace(token)
+        assert len(hall_ids) == 1
+        hallen = client.get("/api/halls", headers=headers).json()
+        assert [h["name"] for h in hallen if h["id"] in hall_ids] == ["Ablauf"]
+    finally:
+        _wipe(WS)
+
+
+def test_halle_sichern_parallel_eine_halle(client, headers):
+    import threading
+
+    from sqlalchemy import select
+
+    from app.ablauf.lauf import halle_sichern
+    from app.db import session_scope
+    from app.models import Hall
+    from app.tenancy import reset_workspace, set_workspace
+
+    def tenant(funktion):
+        token = set_workspace(WS)
+        try:
+            return funktion()
+        finally:
+            reset_workspace(token)
+
+    def loesche_hallen():
+        with session_scope() as session:
+            for hall in session.scalars(select(Hall).where(Hall.name == "Ablauf")).all():
+                session.delete(hall)
+
+    tenant(loesche_hallen)
+    barriere = threading.Barrier(4)
+    ids: list[str] = []
+    fehler: list[BaseException] = []
+
+    def arbeiter():
+        token = set_workspace(WS)
+        try:
+            with session_scope() as session:
+                barriere.wait(timeout=30)
+                ids.append(halle_sichern(session).id)
+        except BaseException as exc:  # noqa: BLE001
+            fehler.append(exc)
+        finally:
+            reset_workspace(token)
+
+    threads = [threading.Thread(target=arbeiter) for _ in range(4)]
+    try:
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(60)
+        assert not fehler, fehler
+
+        def zaehle():
+            with session_scope() as session:
+                return len(session.scalars(select(Hall).where(Hall.name == "Ablauf")).all())
+
+        assert len(ids) == 4 and len(set(ids)) == 1
+        assert tenant(zaehle) == 1
+    finally:
+        tenant(loesche_hallen)
+
+
+def test_zu_viele_dateien_400(client, headers):
+    before = len(client.get("/api/sources", headers=headers).json())
+    files = [("files", (f"d{i}.md", b"# x")) for i in range(101)]
+    r = client.post("/api/runs", files=files, headers=headers)
+    assert r.status_code == 400 and "100" in r.json()["detail"]
+    assert len(client.get("/api/sources", headers=headers).json()) == before

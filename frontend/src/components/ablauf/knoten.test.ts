@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dauerText, flowOf, haengt, statusKlasse } from "./knoten";
+import { dauerText, flowOf, haengt, statusKlasse, zuPollen } from "./knoten";
 
 const step = (key: string, status = "wartet", extra = {}) => ({ key, label: key, status, started_at: null, finished_at: null, input: "", output: "", trace_url: null, error: null, ...extra });
 
@@ -28,6 +28,12 @@ describe("knoten", () => {
     expect(haengt(run, new Date("2026-10-26T10:12:00+00:00"))).toBe(true);
     const ohne = { status: "laeuft", created_at: "2026-10-26T10:00:00+00:00", steps: [step("hochladen")] } as never;
     expect(haengt(ohne, new Date("2026-10-26T10:12:00+00:00"))).toBe(true);
+  });
+  it("fragt auch scheinbar hängende laufende Läufe weiter ab", () => {
+    const haengend = { id: "a", status: "laeuft", created_at: "2026-10-26T09:00:00+00:00", steps: [step("lesen", "laeuft", { started_at: "2026-10-26T09:00:00+00:00" })] };
+    const fertig = { id: "b", status: "fertig", created_at: "2026-10-26T09:00:00+00:00", steps: [] };
+    expect(haengt(haengend as never, new Date("2026-10-26T10:00:00+00:00"))).toBe(true);
+    expect(zuPollen([haengend, fertig] as never).map((r) => r.id)).toEqual(["a"]);
   });
   it("formatiert die Dauer deutsch", () => {
     expect(dauerText(step("x", "fertig", { started_at: "2026-10-26T10:00:00+00:00", finished_at: "2026-10-26T10:00:12.300+00:00" }) as never)).toBe("12,3 s");

@@ -160,7 +160,7 @@ export function SteckbriefKarte({ profile }: { profile: SourceProfile }) {
 
     <p className="text-xs text-muted-foreground">
       Zählwerte sind Fundstellen je Dokumenttyp. Lücken sind Regeln zwischen zwei Dokumenttypen; sie greifen nur, wenn beide vorhanden sind.
-      Kennzeichen suchen: <Link href="/" className="text-primary hover:underline">Chat</Link> oder Strg+K.
+      Kennzeichen suchen: <Link href="/" className="text-primary underline">Chat</Link> oder Strg+K.
     </p>
     </div>
   );

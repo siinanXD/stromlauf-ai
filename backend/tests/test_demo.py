@@ -59,6 +59,7 @@ def test_schreibzugriffe_liefern_403(settings):
     assert client.patch("/api/machines/1").status_code == 403
     assert client.put("/api/machines/1/specs").status_code == 403
     assert demo.write_blocked("POST", "/api/runs")
+    assert demo.write_blocked("POST", "/api/runs/gruppen")
     assert client.post("/api/sources/x/documents").json()["code"] == "demo_readonly"
 
 

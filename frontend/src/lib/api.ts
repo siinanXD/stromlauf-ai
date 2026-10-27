@@ -981,6 +981,24 @@ export interface ZeitenKennzahl {
   langsamster_trace_url: string | null;
 }
 
+export interface GruppenDatei {
+  name: string;
+  pfad: string;
+}
+
+export interface Gruppe {
+  name: string;
+  quelle: "ordner" | "kennung";
+  dateien: string[];
+}
+
+/** Antwort von POST /api/runs/gruppen; alle Listen enthalten Pfade. */
+export interface GruppenVorschlag {
+  gruppen: Gruppe[];
+  unzugeordnet: string[];
+  ignoriert: string[];
+}
+
 export interface Zeiten {
   laeufe: number;
   schritte: Record<string, ZeitenKennzahl>;
@@ -998,4 +1016,10 @@ export const ablauf = {
   get: (id: string) => request<Run>(`/api/runs/${encodeURIComponent(id)}`),
   list: () => request<RunListItem[]>("/api/runs"),
   zeiten: () => request<Zeiten>("/api/runs/zeiten"),
+  gruppen: (dateien: GruppenDatei[]) =>
+    request<GruppenVorschlag>("/api/runs/gruppen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dateien }),
+    }),
 };

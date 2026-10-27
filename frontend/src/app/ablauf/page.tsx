@@ -6,62 +6,130 @@ import { AppShell } from "@/components/AppShell";
 import { AblaufGraph } from "@/components/ablauf/AblaufGraph";
 import { Dropzone } from "@/components/ablauf/Dropzone";
 import { Ergebnis } from "@/components/ablauf/Ergebnis";
-import { haengt } from "@/components/ablauf/knoten";
+import { GruppenVorschlag } from "@/components/ablauf/GruppenVorschlag";
+import { haengt, zuPollen } from "@/components/ablauf/knoten";
+import { ohneGestartete, pruefeLimits, wendeAn, type Abgelegt, type Gruppierung } from "@/components/ablauf/ordner";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
 import { Zeiten } from "@/components/ablauf/ZeitenTabelle";
-import { ablauf, type Run, type RunStep, type Zeiten as ZeitenDaten } from "@/lib/api";
+import { ablauf, type Run, type Zeiten as ZeitenDaten } from "@/lib/api";
 
 const POLL_MS = 2000;
 
-/** Ablauf: Unterlagen ablegen, Lauf starten, die sieben Schritte live verfolgen. */
+/** Genau eine Datei ohne Ordner: der alte Weg, ein Lauf ohne Vorschlag. */
+const einfach = (abgelegt: Abgelegt[]) => abgelegt.length === 1 && !abgelegt[0].pfad.includes("/");
+
+/** Ablauf: Unterlagen oder Ordner ablegen, Anlagen bestätigen, Läufe starten, die sieben Schritte live verfolgen. */
 export default function AblaufPage() {
-  const [files, setFiles] = useState<File[]>([]);
-  const [run, setRun] = useState<Run | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [abgelegt, setAbgelegt] = useState<Abgelegt[]>([]);
+  const [gruppierung, setGruppierung] = useState<Gruppierung | null>(null);
+  const [pruefe, setPruefe] = useState(false);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [selected, setSelected] = useState<{ runId: string; key: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [zeiten, setZeiten] = useState<ZeitenDaten | null>(null);
   const [zeitenFehler, setZeitenFehler] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const anfrage = useRef(0);
+  const zone = useRef<HTMLDivElement>(null);
+  const ersterLauf = useRef<HTMLElement>(null);
+  const hatteVorschlag = useRef(false);
+  const runsRef = useRef<Run[]>([]);
+  useEffect(() => {
+    runsRef.current = runs;
+  }, [runs]);
 
-  const stop = useCallback(() => {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = null;
-  }, []);
-  useEffect(() => stop, [stop]);
+  // Ein hängender Lauf gibt die Seite wieder frei, wird aber weiter abgefragt: bei mehreren Anlagen wartet er nur auf das Lesen der anderen.
+  const aktiv = runs.some((r) => r.status === "laeuft" && !haengt(r, now));
+  const pollt = zuPollen(runs).length > 0;
+  useEffect(() => {
+    if (!pollt) return;
+    const timer = setInterval(() => {
+      const offen = zuPollen(runsRef.current);
+      Promise.all(offen.map((r) => ablauf.get(r.id)))
+        .then((neu) => {
+          setRuns((alt) => alt.map((r) => neu.find((n) => n.id === r.id) ?? r));
+          setNow(new Date());
+        })
+        .catch((err) => setError((err as Error).message));
+    }, POLL_MS);
+    return () => clearInterval(timer);
+  }, [pollt]);
 
-  const poll = useCallback(
-    (id: string) => {
-      stop();
-      timer.current = setInterval(() => {
-        ablauf
-          .get(id)
-          .then((next) => {
-            setRun(next);
-            setNow(new Date());
-            if (next.status !== "laeuft") stop();
-          })
-          .catch((err) => setError((err as Error).message));
-      }, POLL_MS);
-    },
-    [stop],
-  );
+  function ablegen(liste: Abgelegt[]) {
+    const nr = ++anfrage.current;
+    setAbgelegt(liste);
+    setGruppierung(null);
+    setRuns([]);
+    setSelected(null);
+    setError(null);
+    setPruefe(false);
+    if (liste.length === 0) return;
+    const grenze = pruefeLimits(liste);
+    if (grenze) return setError(grenze);
+    if (einfach(liste)) return;
+    setPruefe(true);
+    ablauf
+      .gruppen(liste.map((a) => ({ name: a.file.name, pfad: a.pfad })))
+      .then((vorschlag) => nr === anfrage.current && setGruppierung(wendeAn(vorschlag, liste)))
+      .catch((err) => nr === anfrage.current && setError((err as Error).message))
+      .finally(() => nr === anfrage.current && setPruefe(false));
+  }
 
-  async function start() {
+  /** Einzeldatei: ein neuer Lauf ersetzt die bisherigen. */
+  async function starteEinzeln() {
     setError(null);
     setSelected(null);
+    setRuns([]);
     setStarting(true);
     try {
-      const created = await ablauf.start(files, "");
-      setRun(created);
-      if (created.status === "laeuft") poll(created.id);
+      const created = await ablauf.start(
+        abgelegt.map((a) => a.file),
+        "",
+      );
+      setRuns([created]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setStarting(false);
     }
   }
+
+  /** Gruppen nacheinander starten; erst nach Erfolg verlässt eine Gruppe den Vorschlag, bei einem Fehler bleibt der Rest stehen. */
+  async function startAlle() {
+    if (!gruppierung) return;
+    setError(null);
+    setStarting(true);
+    try {
+      for (const g of gruppierung.gruppen) {
+        let created: Run;
+        try {
+          created = await ablauf.start(
+            g.dateien.map((d) => d.file),
+            g.name.trim(),
+          );
+        } catch (err) {
+          setError(`Lauf für ${g.name.trim()} konnte nicht gestartet werden: ${(err as Error).message}`);
+          return;
+        }
+        setRuns((alt) => [...alt, created]);
+        setGruppierung((alt) => (alt ? ohneGestartete(alt, [g.id]) : alt));
+      }
+      setGruppierung(null);
+      setAbgelegt([]);
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  // Der Vorschlag verschwindet (gestartet oder verworfen): Fokus auf den ersten Lauf, sonst auf die Ablage.
+  useEffect(() => {
+    if (gruppierung) hatteVorschlag.current = true;
+    else if (hatteVorschlag.current) {
+      hatteVorschlag.current = false;
+      (ersterLauf.current ?? zone.current)?.focus();
+    }
+  }, [gruppierung]);
 
   const ladeZeiten = useCallback(() => {
     ablauf
@@ -73,20 +141,14 @@ export default function AblaufPage() {
       .catch(() => setZeitenFehler(true));
   }, []);
   useEffect(ladeZeiten, [ladeZeiten]);
-  const status = run?.status;
+  const ende = runs.length > 0 && runs.every((r) => r.status !== "laeuft");
   useEffect(() => {
-    if (status === "fertig" || status === "fehler") ladeZeiten();
-  }, [status, ladeZeiten]);
+    if (ende) ladeZeiten();
+  }, [ende, ladeZeiten]);
 
-  const select = useCallback((step: RunStep) => setSelected(step.key), []);
   const close = useCallback(() => setSelected(null), []);
-  const hung = run ? haengt(run, now) : false;
-  // Ein hängender Lauf zählt wie ein beendeter: Seite wieder frei, Polling aus.
-  const running = starting || (run?.status === "laeuft" && !hung);
-  const step = run?.steps.find((s) => s.key === selected) ?? null;
-  useEffect(() => {
-    if (hung) stop();
-  }, [hung, stop]);
+  const haengende = runs.filter((r) => haengt(r, now));
+  const running = starting || pruefe || aktiv;
 
   return (
     <AppShell breadcrumb={[{ label: "Ablauf" }]}>
@@ -94,43 +156,72 @@ export default function AblaufPage() {
         <div className="space-y-3 border-b border-border p-4 md:px-6">
           <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Ablauf</h1>
           <p className="text-subhead text-muted-foreground">Stromlaufplan, Stückliste, AWL oder Handbuch hier ablegen. Alles Weitere passiert von selbst.</p>
-          <Dropzone files={files} onFiles={setFiles} disabled={running} />
-          <button
-            type="button"
-            onClick={start}
-            disabled={files.length === 0 || running}
-            className="min-h-11 rounded-md bg-primary px-4 text-subhead font-medium text-primary-foreground disabled:opacity-50"
-          >
-            Lauf starten
-          </button>
+          {gruppierung ? (
+            <GruppenVorschlag gruppierung={gruppierung} onChange={setGruppierung} onStart={startAlle} onAbbrechen={() => ablegen([])} disabled={running} />
+          ) : (
+            <>
+              <div ref={zone} tabIndex={-1} className="outline-none">
+                <Dropzone files={abgelegt} onFiles={ablegen} onError={setError} disabled={running} />
+              </div>
+              {pruefe && <p role="status" className="text-footnote text-muted-foreground">
+                  Anlagen werden erkannt …
+                </p>}
+              {einfach(abgelegt) && (
+                <button
+                  type="button"
+                  onClick={starteEinzeln}
+                  disabled={running}
+                  className="min-h-11 rounded-md bg-primary px-4 text-subhead font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  Lauf starten
+                </button>
+              )}
+            </>
+          )}
           {error && (
             <p role="alert" className="text-footnote text-danger">
               {error}
             </p>
           )}
-          {hung && (
+          {haengende.length > 0 && (
             <p role="alert" className="text-footnote text-danger">
-              Lauf hängt seit 10 Minuten. Backend neu gestartet? Lauf neu starten.
+              {haengende.length === 1 ? "Ein Lauf läuft" : `${haengende.length} Läufe laufen`} seit über 10 Minuten. Bei mehreren Anlagen gleichzeitig ist das normal (Lesen läuft nacheinander); sonst Backend prüfen.
             </p>
           )}
-          {run?.status === "fehler" && run.error && (
-            <p role="alert" className="text-footnote text-danger">
-              {run.error}
-            </p>
+          {runs.map(
+            (r) =>
+              r.status === "fehler" &&
+              r.error && (
+                <p key={r.id} role="alert" className="text-footnote text-danger">
+                  {runs.length > 1 ? `${r.name}: ` : ""}
+                  {r.error}
+                </p>
+              ),
           )}
         </div>
 
-        {run && (
-          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="h-[220px] shrink-0 border-b border-border">
-                <AblaufGraph steps={run.steps} selected={selected} onSelect={select} />
+        {runs.map((run, i) => {
+          const step = selected?.runId === run.id ? (run.steps.find((s) => s.key === selected.key) ?? null) : null;
+          return (
+            <section
+              key={run.id}
+              ref={i === 0 ? ersterLauf : undefined}
+              tabIndex={-1}
+              aria-label={run.name || "Lauf"}
+              data-testid={`lauf-${run.id}`}
+              className="flex shrink-0 flex-col border-b border-border outline-none md:flex-row"
+            >
+              <div className="flex min-w-0 flex-1 flex-col">
+                {runs.length > 1 && <h2 className="px-4 pt-3 text-headline font-semibold md:px-6">{run.name}</h2>}
+                <div className="h-[220px] shrink-0 border-b border-border">
+                  <AblaufGraph steps={run.steps} selected={step?.key ?? null} onSelect={(s) => setSelected({ runId: run.id, key: s.key })} />
+                </div>
+                <Ergebnis run={run} />
               </div>
-              <Ergebnis run={run} />
-            </div>
-            {step && <SchrittPanel step={step} onClose={close} />}
-          </div>
-        )}
+              {step && <SchrittPanel step={step} onClose={close} />}
+            </section>
+          );
+        })}
 
         {zeiten && !zeitenFehler && <Zeiten zeiten={zeiten} />}
         {zeitenFehler && <p className="p-4 text-footnote text-muted-foreground md:px-6">Zeiten nicht verfügbar</p>}
