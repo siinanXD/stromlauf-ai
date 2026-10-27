@@ -15,6 +15,7 @@ from app import ledger
 from app.config import get_settings
 from app.db import session_scope
 from app.llm import make_chat_model
+from app.logsafe import log_failure
 from app.models import Document, Machine, MachineNote
 from app.schemas import BelegOut, NoteOut
 from app.tenancy import reset_workspace, set_workspace
@@ -237,6 +238,6 @@ def lerne_aus_chat(
             session_id=conversation_id,
         )
     except Exception:
-        logger.exception("Lernen nach dem Chat fehlgeschlagen (Maschine %s)", machine_id)
+        log_failure(logger, "Lernen nach dem Chat fehlgeschlagen (Maschine %s)", machine_id)
     finally:
         reset_workspace(token)
