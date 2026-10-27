@@ -12,6 +12,7 @@ from app.db import get_session
 from app.ingestion.awl_explain import explain_awl, resolve_output, why_not
 from app.ingestion.awl_parser import parse_symbol_table, read_text
 from app.ingestion.signal_graph import _address
+from app.logsafe import log_failure
 from app.models import Document
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def load_program(session: Session, source_id: str) -> tuple[str, dict[str, str]]
                     if address := _address(row["address"]):
                         symbols[row["symbol"]] = address
         except Exception:  # noqa: BLE001 - kaputte Datei: Erklaerung ohne sie
-            logger.warning("AWL-Erklaerer ohne %s", path.name, exc_info=True)
+            log_failure(logger, "AWL-Erklaerer ohne %s (Dokument %s)", path.name, doc.id, level=logging.WARNING)
     return "\n".join(texts), symbols
 
 

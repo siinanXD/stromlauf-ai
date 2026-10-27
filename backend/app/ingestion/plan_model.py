@@ -30,6 +30,7 @@ from app.ingestion.plan_edges import PlanEdge
 from app.ingestion.tags import normalize_tag, pin_kind
 from app.ingestion.vision import pdfium_lock, render_page_png
 from app.llm import image_block, is_reasoning_model, make_chat_model
+from app.logsafe import log_failure
 from app.pricing import cost_usd
 
 logger = logging.getLogger(__name__)
@@ -360,12 +361,14 @@ def read_pages(
         except Exception as exc:  # noqa: BLE001 - Anbieter- oder Netzfehler: Seite melden, Lauf geht weiter
             extra = None
             if is_length_limit(exc):
-                logger.warning("Planleser: Seite %s am Laengenlimit: %s", payload["page"], exc)
+                logger.warning(
+                    "Planleser: Seite %s am Laengenlimit (%s)", payload["page"], type(exc).__name__
+                )
                 result.error = LENGTH_LIMIT
                 extra = _length_usage(exc, model_name)
             else:
-                logger.exception(
-                    "Planleser: Seite %s von %s fehlgeschlagen", payload["page"], Path(path).name
+                log_failure(
+                    logger, "Planleser: Seite %s von %s fehlgeschlagen", payload["page"], Path(path).name
                 )
                 result.error = f"{type(exc).__name__}: {exc}"
             result.usage = _plus(collector.total(), extra)

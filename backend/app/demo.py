@@ -190,6 +190,7 @@ def seed_in_background() -> threading.Thread:
         try:
             seed_example()
         except Exception:  # noqa: BLE001 - die Demo startet auch ohne Beispiel
+            # Traceback bleibt: eingelesen wird nur das oeffentliche Beispiel (examples/foerderband), kein Kundentext (SIN-130)
             logger.exception("DEMO_MODE: Beispiel-Maschine konnte nicht angelegt werden")
 
     thread = threading.Thread(target=run, name="demo-seed", daemon=True)

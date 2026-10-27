@@ -19,6 +19,7 @@ from app.citations import check_answer
 from app.config import get_settings
 from app.db import get_session, session_scope
 from app.llm import missing_key
+from app.logsafe import log_failure
 from app.models import Conversation, KnowledgeSource, Machine
 from app.schemas import (
     ChatRequest,
@@ -502,7 +503,7 @@ async def chat(body: ChatRequest, request: Request):
                     conversation_id,
                 )
         except Exception as exc:
-            logger.exception("Chat fehlgeschlagen")
+            log_failure(logger, "Chat fehlgeschlagen (Konversation %s)", conversation_id)
             yield _sse("error", {"message": f"{type(exc).__name__}: {exc}"})
         finally:
             reset_workspace(workspace_token)
