@@ -8,7 +8,7 @@ import { Dropzone } from "@/components/ablauf/Dropzone";
 import { Ergebnis } from "@/components/ablauf/Ergebnis";
 import { haengt } from "@/components/ablauf/knoten";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
-import { Zeiten } from "@/components/ablauf/Zeiten";
+import { Zeiten } from "@/components/ablauf/ZeitenTabelle";
 import { ablauf, type Run, type RunStep, type Zeiten as ZeitenDaten } from "@/lib/api";
 
 const POLL_MS = 2000;
