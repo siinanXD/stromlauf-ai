@@ -1,6 +1,7 @@
 import { clearToken, getToken, redirectToLogin } from "./auth";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010";
+// Schraegstriche am Ende entfernen: "https://host/" + "/api/..." gaebe sonst "//api/..." (404)
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010").replace(/\/+$/, "");
 /** Gemeinsamer Schlüssel (Backend-Setting API_KEY). Leer = Backend läuft offen oder per Login (JWT). */
 export const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
