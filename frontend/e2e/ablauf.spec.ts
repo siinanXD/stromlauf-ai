@@ -70,7 +70,16 @@ async function mockAblauf(page: Page) {
   await mockApi(page);
   let gets = 0;
   const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  const kennzahl = (extra = {}) => ({ anzahl: 3, mittel_s: 10, median_s: 9, max_s: 12, letzter_s: 8, ziel_s: null, ueber_ziel: false, langsamster_run_id: null, langsamster_trace_url: null, ...extra });
+  const zeiten = {
+    laeufe: 3,
+    schritte: Object.fromEntries(KEYS.map((key) => [key, kennzahl()])),
+    gesamt: kennzahl(),
+    fragen: kennzahl(),
+  };
+  zeiten.schritte.lesen = kennzahl({ median_s: 48, max_s: 75, letzter_s: 75, ziel_s: 60, ueber_ziel: true, langsamster_run_id: RUN_ID, langsamster_trace_url: TRACE });
   // spaeter registrierte Routen gelten zuerst
+  await page.route("**/api/runs/zeiten", (route) => json(route, zeiten));
   await page.route("**/api/runs**", (route) => {
     const method = route.request().method();
     if (method === "POST") return json(route, run(1, false), 201);
@@ -94,6 +103,11 @@ test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
   await page.getByTestId("schritt-zusammenfassung").click();
   await expect(page.getByRole("link", { name: "In Langfuse öffnen" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Maschine öffnen" })).toBeVisible();
+  const lesen = page.getByTestId("zeiten-lesen");
+  await expect(page.getByRole("heading", { name: "Zeiten" })).toBeVisible();
+  await expect(lesen.getByRole("rowheader", { name: "Lesen" })).toBeVisible();
+  await expect(lesen.locator("[aria-label*='über Ziel']")).toBeVisible();
+  await expect(lesen.getByRole("link", { name: "Langfuse" })).toHaveAttribute("href", TRACE);
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
 });

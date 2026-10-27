@@ -8,7 +8,8 @@ import { Dropzone } from "@/components/ablauf/Dropzone";
 import { Ergebnis } from "@/components/ablauf/Ergebnis";
 import { haengt } from "@/components/ablauf/knoten";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
-import { ablauf, type Run, type RunStep } from "@/lib/api";
+import { Zeiten } from "@/components/ablauf/Zeiten";
+import { ablauf, type Run, type RunStep, type Zeiten as ZeitenDaten } from "@/lib/api";
 
 const POLL_MS = 2000;
 
@@ -19,6 +20,8 @@ export default function AblaufPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [zeiten, setZeiten] = useState<ZeitenDaten | null>(null);
+  const [zeitenFehler, setZeitenFehler] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -59,6 +62,21 @@ export default function AblaufPage() {
       setStarting(false);
     }
   }
+
+  const ladeZeiten = useCallback(() => {
+    ablauf
+      .zeiten()
+      .then((z) => {
+        setZeiten(z);
+        setZeitenFehler(false);
+      })
+      .catch(() => setZeitenFehler(true));
+  }, []);
+  useEffect(ladeZeiten, [ladeZeiten]);
+  const status = run?.status;
+  useEffect(() => {
+    if (status === "fertig" || status === "fehler") ladeZeiten();
+  }, [status, ladeZeiten]);
 
   const select = useCallback((step: RunStep) => setSelected(step.key), []);
   const close = useCallback(() => setSelected(null), []);
@@ -109,6 +127,8 @@ export default function AblaufPage() {
                 <AblaufGraph steps={run.steps} selected={selected} onSelect={select} />
               </div>
               <Ergebnis run={run} />
+              {zeiten && !zeitenFehler && <Zeiten zeiten={zeiten} />}
+              {zeitenFehler && <p className="p-4 text-footnote text-muted-foreground md:px-6">Zeiten nicht verfügbar</p>}
             </div>
             {step && <SchrittPanel step={step} onClose={close} />}
           </div>
