@@ -1,7 +1,7 @@
 """Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
 
 Schritt 1 (hochladen) erledigt `POST /api/runs` und startet danach
-`threading.Thread(target=starte_lauf, args=(run_id, graph, loop), daemon=True)`. Jeder Schritt
+`threading.Thread(target=starte_lauf, args=(run_id, graph, loop, hall_id), daemon=True)`. Jeder Schritt
 schreibt seinen Zustand sofort in `runs.steps`; ein Fehler beendet den Lauf, nichts wirft.
 Schritt 6 laeuft auf der Event-Loop von FastAPI, weil der Checkpointer des Graphen daran haengt.
 """
@@ -16,7 +16,7 @@ from typing import Any
 
 import httpx
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from app import ledger
 from app.ablauf.fragen import FRAGEN
@@ -30,7 +30,7 @@ from app.config import get_settings
 from app.db import session_scope
 from app.ingestion.pipeline import ingest_document
 from app.models import Chunk, DocStatus, Document, Hall, KnowledgeSource, Machine, Run
-from app.tenancy import reset_workspace, set_workspace
+from app.tenancy import require_workspace, reset_workspace, set_workspace
 from app.tracing import trace_config
 
 logger = logging.getLogger(__name__)
@@ -126,16 +126,30 @@ def schritt_lesen(ctx: LaufKontext) -> str:
     return "\n".join([f"{len(ids)} Dokumente, {pages} Seiten, {chunks} Abschnitte", *lines])
 
 
+def halle_sichern(session) -> Hall:
+    """Halle „Ablauf“ des aktuellen Workspaces; legt sie an, falls sie fehlt.
+
+    Der Advisory-Lock (gilt bis Commit) serialisiert parallele Anfragen, sonst entstuenden
+    zwei Hallen gleichen Namens.
+    """
+    session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"halle-ablauf:{require_workspace()}"},
+    )
+    hall = session.scalars(select(Hall).where(Hall.name == HALLE)).first()
+    if hall is None:
+        hall = Hall(name=HALLE, description="Maschinen aus dem Ablauf")
+        session.add(hall)
+        session.flush()
+    return hall
+
+
 def schritt_maschine(ctx: LaufKontext) -> str:
-    """Vorschlag holen und die Maschine in der Halle „Ablauf“ anlegen (Halle notfalls neu)."""
+    """Vorschlag holen und die Maschine in der vorbereiteten Halle „Ablauf“ anlegen."""
     with session_scope() as session:
         source = session.get(KnowledgeSource, ctx.source_id)
         proposal = proposal_for(session, source)
-        hall = session.scalars(select(Hall).where(Hall.name == HALLE)).first()
-        if hall is None:
-            hall = Hall(name=HALLE, description="Maschinen aus dem Ablauf")
-            session.add(hall)
-            session.flush()
+        hall = session.get(Hall, ctx.hall_id) if ctx.hall_id else halle_sichern(session)
         request = OnboardingRequest(
             source_id=source.id,
             name=proposal.name,
@@ -259,14 +273,18 @@ def _markiere_abbruch(run_id: str, text: str) -> None:
         logger.exception("Ablauf %s: Abbruch nicht gespeichert", run_id)
 
 
-def starte_lauf(run_id: str, graph, loop: asyncio.AbstractEventLoop | None) -> None:
+def starte_lauf(
+    run_id: str, graph, loop: asyncio.AbstractEventLoop | None, hall_id: str | None = None
+) -> None:
     """Thread-Ziel: Schritte 2 bis 7 nacheinander. Wirft nie; Fehler stehen im Run."""
     try:
         with session_scope() as session:
             run = session.get(Run, run_id)
             if run is None:
                 return
-            ctx = LaufKontext(run.id, run.source_id, run.workspace_id, run.model, graph, loop)
+            ctx = LaufKontext(
+                run.id, run.source_id, run.workspace_id, run.model, graph, loop, hall_id=hall_id
+            )
             eingabe = next((s["output"] for s in run.steps if s["key"] == "hochladen"), "")
     except Exception:  # noqa: BLE001
         logger.exception("Ablauf %s nicht gestartet", run_id)

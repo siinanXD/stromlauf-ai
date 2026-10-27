@@ -455,6 +455,27 @@ class SpecOut(SpecIn):
 # --- Ablauf -----------------------------------------------------------------------------------
 
 
+class GruppenDatei(BaseModel):
+    name: str
+    pfad: str
+
+
+class GruppenAnfrage(BaseModel):
+    dateien: list[GruppenDatei]
+
+
+class Gruppe(BaseModel):
+    name: str
+    quelle: str
+    dateien: list[str]
+
+
+class GruppenVorschlag(BaseModel):
+    gruppen: list[Gruppe]
+    unzugeordnet: list[str]
+    ignoriert: list[str]
+
+
 class RunStep(BaseModel):
     key: str
     label: str

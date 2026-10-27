@@ -11,7 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import ledger
-from app.ablauf.lauf import starte_lauf
+from app.ablauf.gruppieren import gruppiere
+from app.ablauf.lauf import halle_sichern, starte_lauf
 from app.ablauf.schritte import beende, neue_schritte, starte
 from app.ablauf.zeiten import kennzahlen
 from app.api.sources import ALLOWED_SUFFIXES
@@ -20,6 +21,8 @@ from app.db import get_session
 from app.ingestion.pipeline import detect_doc_type
 from app.models import DocType, Document, KnowledgeSource, Run
 from app.schemas import (
+    GruppenAnfrage,
+    GruppenVorschlag,
     RunAnswer,
     RunListItem,
     RunOut,
@@ -31,6 +34,8 @@ from app.schemas import (
 from app.tenancy import same_workspace
 
 router = APIRouter(prefix="/api", tags=["ablauf"])
+
+MAX_DATEIEN = 100
 
 DOC_TYPE_LABELS = {
     DocType.SCHEMATIC: "Stromlaufplan",
@@ -87,6 +92,8 @@ def create_run(
 ):
     if not files:
         raise HTTPException(400, "Mindestens eine Datei hochladen")
+    if len(files) > MAX_DATEIEN:
+        raise HTTPException(400, f"Höchstens {MAX_DATEIEN} Dateien je Lauf")
     for file in files:
         suffix = Path(file.filename or "").suffix.lower()
         if suffix not in ALLOWED_SUFFIXES:
@@ -128,14 +135,21 @@ def create_run(
     )
     run = Run(name=source.name, source_id=source.id, steps=steps, model=get_settings().ablauf_model)
     session.add(run)
+    hall_id = halle_sichern(session).id
     session.commit()
 
     threading.Thread(
         target=starte_lauf,
-        args=(run.id, request.app.state.graph, request.app.state.loop),
+        args=(run.id, request.app.state.graph, request.app.state.loop, hall_id),
         daemon=True,
     ).start()
     return run_out(run)
+
+
+@router.post("/runs/gruppen", response_model=GruppenVorschlag)
+def gruppen_vorschlag(body: GruppenAnfrage):
+    """Ordnet abgelegte Dateien Anlagen zu (reine Abbildung, keine Dateien, keine Datenbank)."""
+    return gruppiere([d.model_dump() for d in body.dateien])
 
 
 def _get_run(session: Session, run_id: str) -> Run:
