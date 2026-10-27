@@ -1,4 +1,4 @@
-"""Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
+﻿"""Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
 
 Schritt 1 (hochladen) erledigt `POST /api/runs` und startet danach
 `threading.Thread(target=starte_lauf, args=(run_id, graph, loop, hall_id), daemon=True)`. Jeder Schritt
@@ -132,6 +132,7 @@ def halle_sichern(session) -> Hall:
     Der Advisory-Lock (gilt bis Commit) serialisiert parallele Anfragen, sonst entstuenden
     zwei Hallen gleichen Namens.
     """
+    # Nur Postgres (pg_advisory_xact_lock, hashtext).
     session.execute(
         text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
         {"key": f"halle-ablauf:{require_workspace()}"},
@@ -149,7 +150,7 @@ def schritt_maschine(ctx: LaufKontext) -> str:
     with session_scope() as session:
         source = session.get(KnowledgeSource, ctx.source_id)
         proposal = proposal_for(session, source)
-        hall = session.get(Hall, ctx.hall_id) if ctx.hall_id else halle_sichern(session)
+        hall = (ctx.hall_id and session.get(Hall, ctx.hall_id)) or halle_sichern(session)
         request = OnboardingRequest(
             source_id=source.id,
             name=proposal.name,

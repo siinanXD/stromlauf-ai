@@ -240,29 +240,91 @@ def test_gruppen_vorschlag(client, headers):
     assert daten["unzugeordnet"] == [] and daten["ignoriert"] == []
 
 
-def test_parallele_laeufe_eine_halle(client, headers, monkeypatch):
+def test_zwei_laeufe_landen_in_derselben_halle(client, headers, monkeypatch):
+    # Kein Wettrennen-Nachweis (siehe test_halle_sichern_parallel_eine_halle), nur Regressionsschutz.
     monkeypatch.setattr("app.ablauf.lauf.ingest_document", lambda document_id: None)
     monkeypatch.setattr("app.ablauf.lauf.beantworte", lambda *a, **k: ("Antwort.", []))
-    ids = []
-    for name in ("p1.md", "p2.md"):
-        created = client.post("/api/runs", files=[("files", (name, b"# Doku"))], headers=headers)
-        assert created.status_code == 201, created.text
-        ids.append(created.json()["id"])
-    laeufe = [_warte(client, headers, i, timeout=120) for i in ids]
-    assert all(r["status"] in {"fertig", "fehler"} for r in laeufe), laeufe
-    hallen = [h for h in client.get("/api/halls", headers=headers).json() if h["name"] == "Ablauf"]
-    assert len(hallen) == 1
     from app.db import session_scope
     from app.models import Machine
     from app.tenancy import reset_workspace, set_workspace
 
-    token = set_workspace(WS)
     try:
-        with session_scope() as session:
-            maschinen = [session.get(Machine, r["result"]["machine_id"]) for r in laeufe]
-            assert all(m is not None and m.hall_id == hallen[0]["id"] for m in maschinen)
+        ids = []
+        for name in ("p1.md", "p2.md"):
+            created = client.post(
+                "/api/runs", files=[("files", (name, b"# Doku"))], headers=headers
+            )
+            assert created.status_code == 201, created.text
+            ids.append(created.json()["id"])
+        laeufe = [_warte(client, headers, i, timeout=120) for i in ids]
+        assert all(r["status"] in {"fertig", "fehler"} for r in laeufe), laeufe
+        token = set_workspace(WS)
+        try:
+            with session_scope() as session:
+                hall_ids = {session.get(Machine, r["result"]["machine_id"]).hall_id for r in laeufe}
+        finally:
+            reset_workspace(token)
+        assert len(hall_ids) == 1
+        hallen = client.get("/api/halls", headers=headers).json()
+        assert [h["name"] for h in hallen if h["id"] in hall_ids] == ["Ablauf"]
     finally:
-        reset_workspace(token)
+        _wipe(WS)
+
+
+def test_halle_sichern_parallel_eine_halle(client, headers):
+    import threading
+
+    from sqlalchemy import select
+
+    from app.ablauf.lauf import halle_sichern
+    from app.db import session_scope
+    from app.models import Hall
+    from app.tenancy import reset_workspace, set_workspace
+
+    def tenant(funktion):
+        token = set_workspace(WS)
+        try:
+            return funktion()
+        finally:
+            reset_workspace(token)
+
+    def loesche_hallen():
+        with session_scope() as session:
+            for hall in session.scalars(select(Hall).where(Hall.name == "Ablauf")).all():
+                session.delete(hall)
+
+    tenant(loesche_hallen)
+    barriere = threading.Barrier(4)
+    ids: list[str] = []
+    fehler: list[BaseException] = []
+
+    def arbeiter():
+        token = set_workspace(WS)
+        try:
+            with session_scope() as session:
+                barriere.wait(timeout=30)
+                ids.append(halle_sichern(session).id)
+        except BaseException as exc:  # noqa: BLE001
+            fehler.append(exc)
+        finally:
+            reset_workspace(token)
+
+    threads = [threading.Thread(target=arbeiter) for _ in range(4)]
+    try:
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(60)
+        assert not fehler, fehler
+
+        def zaehle():
+            with session_scope() as session:
+                return len(session.scalars(select(Hall).where(Hall.name == "Ablauf")).all())
+
+        assert len(ids) == 4 and len(set(ids)) == 1
+        assert tenant(zaehle) == 1
+    finally:
+        tenant(loesche_hallen)
 
 
 def test_zu_viele_dateien_400(client, headers):
