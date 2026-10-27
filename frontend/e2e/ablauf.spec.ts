@@ -174,11 +174,38 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
     }
   }
   expect(posts).toBe(2);
-  // Blöcke überlappen nicht; Bild als Beleg
+  // Kein Inhalt läuft über seinen Block hinaus (Überlappung mit dem nächsten Lauf); Bild als Beleg
+  for (const id of ["run-1", "run-2"]) {
+    const { hoehe, sichtbar } = await page.getByTestId(`lauf-${id}`).evaluate((el) => ({ hoehe: el.scrollHeight - el.clientHeight, sichtbar: el.clientHeight }));
+    expect(sichtbar).toBeGreaterThan(0);
+    expect(hoehe).toBeLessThanOrEqual(1);
+  }
   const eins = (await page.getByTestId("lauf-run-1").boundingBox())!;
   const zwei = (await page.getByTestId("lauf-run-2").boundingBox())!;
   expect(eins.y + eins.height).toBeLessThanOrEqual(zwei.y + 1);
   await page.screenshot({ path: `test-results/ablauf-zwei-laeufe-${test.info().project.name}.png`, fullPage: true });
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
+});
+
+test("Lose Dateien bilden eine Anlage; Verschieben nur per Knopf, Fokus bleibt an der Datei", async ({ page }) => {
+  await mockAblauf(page);
+  const A = "01_Stromlaufplan_FB-01.pdf";
+  const B = "01_Stromlaufplan_UR-01.pdf";
+  await page.route("**/api/runs/gruppen", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ gruppen: [], unzugeordnet: [A, B], ignoriert: [] }) }),
+  );
+  await page.goto("/ablauf");
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', [`../examples/foerderband/${A}`, `../examples/umroller/${B}`]);
+  await expect(page.getByRole("heading", { name: "1 Anlage erkannt" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Alle starten" })).toBeEnabled();
+  const wahl = page.getByLabel(`${B} verschieben nach`);
+  await wahl.selectOption("neu");
+  // Auswahl allein verschiebt nichts
+  await expect(page.getByRole("heading", { name: "1 Anlage erkannt" })).toBeVisible();
+  await page.getByRole("button", { name: `${B} jetzt verschieben` }).click();
+  await expect(page.getByRole("heading", { name: "2 Anlagen erkannt" })).toBeVisible();
+  await expect(page.getByLabel(`${B} verschieben nach`)).toBeFocused();
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
 });

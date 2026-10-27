@@ -7,7 +7,7 @@ import { AblaufGraph } from "@/components/ablauf/AblaufGraph";
 import { Dropzone } from "@/components/ablauf/Dropzone";
 import { Ergebnis } from "@/components/ablauf/Ergebnis";
 import { GruppenVorschlag } from "@/components/ablauf/GruppenVorschlag";
-import { haengt } from "@/components/ablauf/knoten";
+import { haengt, zuPollen } from "@/components/ablauf/knoten";
 import { ohneGestartete, pruefeLimits, wendeAn, type Abgelegt, type Gruppierung } from "@/components/ablauf/ordner";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
 import { Zeiten } from "@/components/ablauf/ZeitenTabelle";
@@ -31,17 +31,21 @@ export default function AblaufPage() {
   const [zeitenFehler, setZeitenFehler] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const anfrage = useRef(0);
+  const zone = useRef<HTMLDivElement>(null);
+  const ersterLauf = useRef<HTMLElement>(null);
+  const hatteVorschlag = useRef(false);
   const runsRef = useRef<Run[]>([]);
   useEffect(() => {
     runsRef.current = runs;
   }, [runs]);
 
-  // Ein hängender Lauf zählt wie ein beendeter: Seite wieder frei, kein Polling mehr für ihn.
+  // Ein hängender Lauf gibt die Seite wieder frei, wird aber weiter abgefragt: bei mehreren Anlagen wartet er nur auf das Lesen der anderen.
   const aktiv = runs.some((r) => r.status === "laeuft" && !haengt(r, now));
+  const pollt = zuPollen(runs).length > 0;
   useEffect(() => {
-    if (!aktiv) return;
+    if (!pollt) return;
     const timer = setInterval(() => {
-      const offen = runsRef.current.filter((r) => r.status === "laeuft" && !haengt(r, new Date()));
+      const offen = zuPollen(runsRef.current);
       Promise.all(offen.map((r) => ablauf.get(r.id)))
         .then((neu) => {
           setRuns((alt) => alt.map((r) => neu.find((n) => n.id === r.id) ?? r));
@@ -50,7 +54,7 @@ export default function AblaufPage() {
         .catch((err) => setError((err as Error).message));
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [aktiv]);
+  }, [pollt]);
 
   function ablegen(liste: Abgelegt[]) {
     const nr = ++anfrage.current;
@@ -118,6 +122,15 @@ export default function AblaufPage() {
     }
   }
 
+  // Der Vorschlag verschwindet (gestartet oder verworfen): Fokus auf den ersten Lauf, sonst auf die Ablage.
+  useEffect(() => {
+    if (gruppierung) hatteVorschlag.current = true;
+    else if (hatteVorschlag.current) {
+      hatteVorschlag.current = false;
+      (ersterLauf.current ?? zone.current)?.focus();
+    }
+  }, [gruppierung]);
+
   const ladeZeiten = useCallback(() => {
     ablauf
       .zeiten()
@@ -147,8 +160,12 @@ export default function AblaufPage() {
             <GruppenVorschlag gruppierung={gruppierung} onChange={setGruppierung} onStart={startAlle} onAbbrechen={() => ablegen([])} disabled={running} />
           ) : (
             <>
-              <Dropzone files={abgelegt} onFiles={ablegen} disabled={running} />
-              {pruefe && <p className="text-footnote text-muted-foreground">Anlagen werden erkannt …</p>}
+              <div ref={zone} tabIndex={-1} className="outline-none">
+                <Dropzone files={abgelegt} onFiles={ablegen} onError={setError} disabled={running} />
+              </div>
+              {pruefe && <p role="status" className="text-footnote text-muted-foreground">
+                  Anlagen werden erkannt …
+                </p>}
               {einfach(abgelegt) && (
                 <button
                   type="button"
@@ -168,7 +185,7 @@ export default function AblaufPage() {
           )}
           {haengende.length > 0 && (
             <p role="alert" className="text-footnote text-danger">
-              {haengende.length === 1 ? "Lauf hängt" : `${haengende.length} Läufe hängen`} seit 10 Minuten. Backend neu gestartet? Neu starten.
+              {haengende.length === 1 ? "Ein Lauf läuft" : `${haengende.length} Läufe laufen`} seit über 10 Minuten. Bei mehreren Anlagen gleichzeitig ist das normal (Lesen läuft nacheinander); sonst Backend prüfen.
             </p>
           )}
           {runs.map(
@@ -183,10 +200,17 @@ export default function AblaufPage() {
           )}
         </div>
 
-        {runs.map((run) => {
+        {runs.map((run, i) => {
           const step = selected?.runId === run.id ? (run.steps.find((s) => s.key === selected.key) ?? null) : null;
           return (
-            <section key={run.id} aria-label={run.name || "Lauf"} data-testid={`lauf-${run.id}`} className="flex shrink-0 flex-col border-b border-border md:flex-row">
+            <section
+              key={run.id}
+              ref={i === 0 ? ersterLauf : undefined}
+              tabIndex={-1}
+              aria-label={run.name || "Lauf"}
+              data-testid={`lauf-${run.id}`}
+              className="flex shrink-0 flex-col border-b border-border outline-none md:flex-row"
+            >
               <div className="flex min-w-0 flex-1 flex-col">
                 {runs.length > 1 && <h2 className="px-4 pt-3 text-headline font-semibold md:px-6">{run.name}</h2>}
                 <div className="h-[220px] shrink-0 border-b border-border">

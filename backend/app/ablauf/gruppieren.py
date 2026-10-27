@@ -11,14 +11,21 @@ from app.api.sources import ALLOWED_SUFFIXES
 
 # Kennung: 2-4 Grossbuchstaben, optional eine Ziffer, Bindestrich, 1-3 Buchstaben/Ziffern.
 # Gilt nur als ganzes Wort (Klammer, Unterstrich, Leerzeichen oder Namensende davor/danach).
-KENNUNG = re.compile(r"(?<![A-Za-z0-9])[A-Z]{2,4}\d?-[A-Za-z0-9]{1,3}(?![A-Za-z0-9])")
+KENNUNG = re.compile(r"(?<![A-Za-z0-9])([A-Z]{2,4}\d?)-[A-Za-z0-9]{1,3}(?![A-Za-z0-9])")
+
+# Praefixe, die nie eine Anlagenkennung sind (Sprachen, Normen, Dateiformate, Revisionen).
+KEINE_KENNUNG = frozenset(
+    "DE EN US FR IT ES NL PL UTF REV IP PDF DIN ISO IEC VDE EOL SPS PLC AWL FUP SCL CAD DXF".split()
+)
 
 
 def _kennung_roh(name: str) -> str | None:
-    """Letzte Kennung im Dateinamen (ohne Endung), in Originalschreibweise."""
+    """Erste Kennung im Dateinamen (ohne Endung), in Originalschreibweise."""
     stamm = PurePosixPath(name).stem
-    treffer = KENNUNG.findall(stamm)
-    return treffer[-1] if treffer else None
+    for treffer in KENNUNG.finditer(stamm):
+        if treffer.group(1) not in KEINE_KENNUNG:
+            return treffer.group(0)
+    return None
 
 
 def kennung_aus_name(name: str) -> str | None:

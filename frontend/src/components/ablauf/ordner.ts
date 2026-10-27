@@ -10,13 +10,22 @@ export type Gruppierung = {
 
 const MAX_DATEIEN = 200;
 const MAX_MB = 500;
+/** Höchstens so viele Dateien je Lauf (Backend-Grenze von POST /api/runs). */
+export const MAX_JE_ANLAGE = 100;
 
-/** Dateien aus <input webkitdirectory>: Pfad ohne den Namen des gewählten Ordners, sonst der Dateiname. */
+/** Ohne Wurzelnamen nur, wenn darunter noch Unterordner liegen; sonst bliebe die Gruppierung nach Ordner aus. */
+const ohneWurzel = (voll: string[]): string[] => {
+  const ab = voll.map((p) => p.split("/").slice(1).join("/"));
+  return ab.some((p) => p.includes("/")) ? ab : voll;
+};
+
+/** Dateien aus <input webkitdirectory>: Pfad ohne den Namen des gewählten Ordners (außer er trägt die Gruppen), sonst der Dateiname. */
 export function ausInput(files: FileList | File[]): Abgelegt[] {
-  return Array.from(files).map((file) => {
-    const rel = file.webkitRelativePath;
-    return { file, pfad: rel ? rel.split("/").slice(1).join("/") || file.name : file.name };
-  });
+  const liste = Array.from(files);
+  const mitOrdner = liste.filter((f) => f.webkitRelativePath);
+  const neu = ohneWurzel(mitOrdner.map((f) => f.webkitRelativePath));
+  const pfade = new Map(mitOrdner.map((f, i) => [f, neu[i]]));
+  return liste.map((file) => ({ file, pfad: pfade.get(file) || file.name }));
 }
 
 // Nur die benötigten Teile der (nicht standardisierten) FileSystem-Entry-API.
@@ -47,15 +56,16 @@ async function geheDurch(e: Eintrag, praefix: string): Promise<Abgelegt[]> {
   return teile.flat();
 }
 
-/** Drag-and-drop: Ordner rekursiv ablaufen; Pfade relativ zum abgelegten Ordner ohne dessen Namen. */
+/** Drag-and-drop: Ordner rekursiv ablaufen; ein einzelner Ordner verliert seinen Namen nur, wenn darunter Unterordner liegen. */
 export async function ausDrop(items: DataTransferItemList): Promise<Abgelegt[]> {
   const eintraege = Array.from(items)
     .map((i) => i.webkitGetAsEntry() as Eintrag | null)
     .filter((e): e is Eintrag => e !== null);
   // Nur bei genau einem abgelegten Ordner entfällt dessen Name; sonst bleibt er erstes Pfadsegment.
   if (eintraege.length === 1 && eintraege[0].isDirectory) {
-    const unter = await Promise.all((await kinder(eintraege[0])).map((k) => geheDurch(k, "")));
-    return unter.flat();
+    const alle = await geheDurch(eintraege[0], "");
+    const neu = ohneWurzel(alle.map((a) => a.pfad));
+    return alle.map((a, i) => ({ ...a, pfad: neu[i] }));
   }
   const teile = await Promise.all(eintraege.map((e) => geheDurch(e, "")));
   return teile.flat();
@@ -89,6 +99,8 @@ export function wendeAn(vorschlag: GruppenVorschlag, abgelegt: Abgelegt[]): Grup
   const gruppen = vorschlag.gruppen.map((g, i) => ({ id: `g${i + 1}`, name: g.name, quelle: g.quelle, dateien: nimm(g.dateien) }));
   const unzugeordnet = nimm(vorschlag.unzugeordnet);
   for (const a of abgelegt) if (!benutzt.has(a.pfad) && !ignoriert.has(a.pfad)) unzugeordnet.push(a);
+  // Nichts erkannt: alles gehört zu einer Anlage, der Nutzer muss nicht jede Datei einzeln zuordnen.
+  if (gruppen.length === 0 && unzugeordnet.length > 0) return { gruppen: [{ id: "g1", name: "Anlage 1", quelle: "mensch", dateien: unzugeordnet }], unzugeordnet: [] };
   return { gruppen, unzugeordnet };
 }
 
@@ -111,10 +123,18 @@ export function verschiebe(g: Gruppierung, pfad: string, zielId: string | "neu" 
   return { gruppen: gruppen.filter((x) => x.dateien.length > 0), unzugeordnet };
 }
 
-/** "Alle starten" ist erst frei, wenn nichts mehr unzugeordnet ist und jede Anlage einen Namen hat. */
-export function kannStarten(g: Gruppierung): boolean {
-  return g.gruppen.length > 0 && g.unzugeordnet.length === 0 && g.gruppen.every((x) => x.name.trim() !== "");
+/** Grund, warum "Alle starten" gesperrt ist, sonst null. */
+export function startHindernis(g: Gruppierung): string | null {
+  if (g.gruppen.length === 0) return "Keine Anlage vorhanden.";
+  if (g.unzugeordnet.length > 0) return `${g.unzugeordnet.length} ${g.unzugeordnet.length === 1 ? "Datei ist" : "Dateien sind"} noch unzugeordnet.`;
+  if (g.gruppen.some((x) => x.name.trim() === "")) return "Jede Anlage braucht einen Namen.";
+  const zuViel = g.gruppen.find((x) => x.dateien.length > MAX_JE_ANLAGE);
+  if (zuViel) return `${zuViel.name.trim() || "Anlage"}: ${zuViel.dateien.length} Dateien, höchstens ${MAX_JE_ANLAGE} je Anlage.`;
+  return null;
 }
+
+/** "Alle starten" ist erst frei, wenn nichts mehr unzugeordnet ist, jede Anlage einen Namen hat und keine zu groß ist. */
+export const kannStarten = (g: Gruppierung): boolean => startHindernis(g) === null;
 
 /** Vorschlag ohne die bereits gestarteten Gruppen. */
 export function ohneGestartete(g: Gruppierung, ids: string[]): Gruppierung {

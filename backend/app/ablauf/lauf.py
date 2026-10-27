@@ -1,4 +1,4 @@
-﻿"""Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
+"""Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
 
 Schritt 1 (hochladen) erledigt `POST /api/runs` und startet danach
 `threading.Thread(target=starte_lauf, args=(run_id, graph, loop, hall_id), daemon=True)`. Jeder Schritt

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.ablauf.gruppieren import gruppiere, kennung_aus_name
 
 EX = Path(__file__).resolve().parents[2] / "examples"
@@ -14,6 +16,23 @@ def test_kennung_aus_dateiname():
     assert kennung_aus_name("01_Stromlaufplan_FB-01.pdf") == "FB01"
     assert kennung_aus_name("04_SPS_Programm_PM1-AR.awl") == "PM1AR"
     assert kennung_aus_name("Betriebsanleitung.md") is None
+    assert kennung_aus_name("FB-01_Handbuch_DE-EN.pdf") == "FB01"
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Handbuch_DE-EN.pdf",
+        "Manual_EN-US.pdf",
+        "Handbuch_UTF-8.txt",
+        "Plan_REV-01.pdf",
+        "IP-65.pdf",
+        "PDF-A.pdf",
+        "DIN-EN-60204.pdf",
+    ],
+)
+def test_normen_und_sprachen_sind_keine_kennung(name):
+    assert kennung_aus_name(name) is None
 
 
 def test_gemischter_ordner_ergibt_drei_gruppen():

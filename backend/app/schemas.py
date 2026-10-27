@@ -456,12 +456,12 @@ class SpecOut(SpecIn):
 
 
 class GruppenDatei(BaseModel):
-    name: str
-    pfad: str
+    name: str = Field(max_length=1000)
+    pfad: str = Field(max_length=1000)
 
 
 class GruppenAnfrage(BaseModel):
-    dateien: list[GruppenDatei]
+    dateien: list[GruppenDatei] = Field(max_length=200)
 
 
 class Gruppe(BaseModel):

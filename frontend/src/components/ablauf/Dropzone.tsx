@@ -13,7 +13,17 @@ const ACCEPT = ".pdf,.awl,.scl,.sdf,.xlsx,.csv,.docx,.pptx,.md,.txt,.html,.png,.
 const ORDNER = { webkitdirectory: "" } as Record<string, string>;
 
 /** Dateien oder Ordner ablegen oder wählen; die Liste zeigt die Pfade und erlaubt das Entfernen einzelner Dateien. */
-export function Dropzone({ files, onFiles, disabled = false }: { files: Abgelegt[]; onFiles: (files: Abgelegt[]) => void; disabled?: boolean }) {
+export function Dropzone({
+  files,
+  onFiles,
+  onError,
+  disabled = false,
+}: {
+  files: Abgelegt[];
+  onFiles: (files: Abgelegt[]) => void;
+  onError: (text: string) => void;
+  disabled?: boolean;
+}) {
   const input = useRef<HTMLInputElement>(null);
   const ordner = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -37,7 +47,7 @@ export function Dropzone({ files, onFiles, disabled = false }: { files: Abgelegt
           e.preventDefault();
           setOver(false);
           // ausDrop muss synchron im Handler starten, danach sind die Einträge der Ablage leer.
-          ausDrop(e.dataTransfer.items).then(add, () => undefined);
+          ausDrop(e.dataTransfer.items).then(add, () => onError("Ordner konnte nicht gelesen werden"));
         }}
         className={cn("rounded-md border border-dashed p-4 text-center", over ? "border-accent bg-accent-soft" : "border-line-strong")}
       >

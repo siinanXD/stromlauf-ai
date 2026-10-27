@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ausDrop, ausInput, kannStarten, ohneGestartete, pruefeLimits, verschiebe, wendeAn, type Abgelegt } from "./ordner";
+import { ausDrop, ausInput, kannStarten, ohneGestartete, pruefeLimits, startHindernis, verschiebe, wendeAn, type Abgelegt } from "./ordner";
 
 const datei = (name: string, rel?: string, size?: number) => {
   const f = new File([new Uint8Array(0)], name);
@@ -13,6 +13,17 @@ describe("ausInput", () => {
   it("entfernt den Wurzelordner aus webkitRelativePath", () => {
     const r = ausInput([datei("01.pdf", "root/fb01/01.pdf"), datei("README.md", "root/README.md"), datei("x.pdf")]);
     expect(r.map((a) => a.pfad)).toEqual(["fb01/01.pdf", "README.md", "x.pdf"]);
+  });
+});
+
+describe("ausInput bei einem einzelnen Ordner", () => {
+  it("behält den Ordnernamen, wenn nur Dateien direkt darin liegen", () => {
+    const r = ausInput([datei("Schaltplan.pdf", "Förderband FB-01/Schaltplan.pdf"), datei("Liste.xlsx", "Förderband FB-01/Liste.xlsx")]);
+    expect(r.map((a) => a.pfad)).toEqual(["Förderband FB-01/Schaltplan.pdf", "Förderband FB-01/Liste.xlsx"]);
+  });
+  it("entfernt den Ordnernamen, wenn Unterordner darunter liegen", () => {
+    const r = ausInput([datei("a.pdf", "root/x/a.pdf"), datei("b.pdf", "root/b.pdf")]);
+    expect(r.map((a) => a.pfad)).toEqual(["x/a.pdf", "b.pdf"]);
   });
 });
 
@@ -98,8 +109,27 @@ describe("ausDrop", () => {
     const r = await ausDrop(items(ordnerEntry("fb01", [[dateiEntry("01.pdf")]]), ordnerEntry("ur01", [[dateiEntry("01.pdf")]])));
     expect(r.map((a) => a.pfad).sort()).toEqual(["fb01/01.pdf", "ur01/01.pdf"]);
   });
+  it("behält den Namen eines einzelnen Ordners ohne Unterordner", async () => {
+    const r = await ausDrop(items(ordnerEntry("Förderband FB-01", [[dateiEntry("Schaltplan.pdf"), dateiEntry("Liste.xlsx")]])));
+    expect(r.map((a) => a.pfad).sort()).toEqual(["Förderband FB-01/Liste.xlsx", "Förderband FB-01/Schaltplan.pdf"]);
+  });
   it("behält den Namen einer einzelnen Datei", async () => {
     expect((await ausDrop(items(dateiEntry("a.pdf")))).map((a) => a.pfad)).toEqual(["a.pdf"]);
+  });
+});
+
+describe("wendeAn ohne erkannte Gruppen", () => {
+  it("fasst lose Dateien ohne Kennung zu einer Anlage zusammen", () => {
+    const g = wendeAn({ gruppen: [], unzugeordnet: ["a.pdf", "b.pdf"], ignoriert: [] }, [ab("a.pdf"), ab("b.pdf")]);
+    expect(g.gruppen).toHaveLength(1);
+    expect(g.gruppen[0]).toMatchObject({ name: "Anlage 1", quelle: "mensch" });
+    expect(g.gruppen[0].dateien.map((a) => a.pfad)).toEqual(["a.pdf", "b.pdf"]);
+    expect(g.unzugeordnet).toEqual([]);
+    expect(kannStarten(g)).toBe(true);
+  });
+  it("lässt Gemischtes unverändert", () => {
+    const g = wendeAn({ gruppen: [{ name: "A", quelle: "ordner", dateien: ["a/1.pdf"] }], unzugeordnet: ["b.pdf"], ignoriert: [] }, [ab("a/1.pdf"), ab("b.pdf")]);
+    expect(g.unzugeordnet).toHaveLength(1);
   });
 });
 
@@ -114,6 +144,13 @@ describe("kannStarten", () => {
   });
   it("sperrt bei leerem Namen", () => {
     expect(kannStarten({ gruppen: [{ ...gruppe, name: "  " }], unzugeordnet: [] })).toBe(false);
+  });
+  it("sperrt bei mehr als 100 Dateien in einer Anlage und nennt den Grund", () => {
+    const viele = Array.from({ length: 101 }, (_, i) => ab(`${i}.pdf`));
+    const g = { gruppen: [{ ...gruppe, dateien: viele }], unzugeordnet: [] };
+    expect(kannStarten(g)).toBe(false);
+    expect(startHindernis(g)).toBe("FB-01: 101 Dateien, höchstens 100 je Anlage.");
+    expect(kannStarten({ gruppen: [{ ...gruppe, dateien: viele.slice(0, 100) }], unzugeordnet: [] })).toBe(true);
   });
   it("erlaubt vollständig zugeordnete benannte Gruppen", () => {
     expect(kannStarten({ gruppen: [gruppe], unzugeordnet: [] })).toBe(true);

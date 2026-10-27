@@ -55,6 +55,9 @@ export function haengt(run: Run, now: Date): boolean {
   return !!bezug && now.getTime() - new Date(bezug).getTime() > HAENGT_NACH_MS;
 }
 
+/** Läufe, die noch abgefragt werden: alle laufenden, auch die scheinbar hängenden (bei mehreren Anlagen wartet Lesen nacheinander). */
+export const zuPollen = (runs: Run[]): Run[] => runs.filter((r) => r.status === "laeuft");
+
 /** "12,3 s" aus Start und Ende des Schritts, sonst leer. */
 export function dauerText(step: RunStep): string {
   if (!step.started_at || !step.finished_at) return "";
