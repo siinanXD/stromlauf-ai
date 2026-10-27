@@ -1,7 +1,7 @@
 "use client";
 
 import { Lock, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CitationChip } from "@/components/chat/CitationChip";
@@ -15,25 +15,46 @@ const ICON_BUTTON = "grid size-11 shrink-0 place-items-center rounded-xs text-mu
 
 /** Gelernte Sätze einer Maschine: ansehen, bearbeiten (sperrt den Satz), löschen. */
 export function WissenTab({ machineId }: { machineId: string }) {
+  // key: bei anderer Maschine beginnt der Zustand (Liste, Bearbeiten, Dialog) von vorn
+  return <WissenListe key={machineId} machineId={machineId} />;
+}
+
+function WissenListe({ machineId }: { machineId: string }) {
   const [notes, setNotes] = useState<MachineNote[] | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<MachineNote | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const editButtons = useRef(new Map<string, HTMLButtonElement>());
 
   useEffect(() => {
+    let cancelled = false;
     wissen
       .list(machineId)
-      .then(setNotes)
-      .catch((err: Error) => toast.error(`Wissen nicht geladen: ${err.message}`));
-  }, [machineId]);
+      .then((list) => !cancelled && setNotes(list))
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setLoadError(err.message);
+        toast.error(`Wissen nicht geladen: ${err.message}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [machineId, attempt]);
+
+  function closeEdit(noteId: string) {
+    setEditId(null);
+    editButtons.current.get(noteId)?.focus();
+  }
 
   async function save(note: MachineNote) {
     setSaving(true);
     try {
       const updated = await wissen.patch(machineId, note.id, { text: draft });
       setNotes((list) => list && list.map((n) => (n.id === note.id ? updated : n)));
-      setEditId(null);
+      closeEdit(note.id);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -51,6 +72,18 @@ export function WissenTab({ machineId }: { machineId: string }) {
     }
   }
 
+  if (loadError !== null)
+    return (
+      <div className="space-y-2">
+        <p className="text-muted-foreground">Wissen nicht geladen: {loadError}</p>
+        <Button variant="outline" className="h-11 border-line" onClick={() => {
+            setLoadError(null);
+            setAttempt((n) => n + 1);
+          }}>
+          Erneut laden
+        </Button>
+      </div>
+    );
   if (notes === null) return <p className="text-muted-foreground">Lade Wissen …</p>;
 
   return (
@@ -72,7 +105,7 @@ export function WissenTab({ machineId }: { machineId: string }) {
                       <Button size="sm" disabled={saving || !draft.trim()} onClick={() => void save(note)}>
                         Speichern
                       </Button>
-                      <Button size="sm" variant="outline" className="border-line" disabled={saving} onClick={() => setEditId(null)}>
+                      <Button size="sm" variant="outline" className="border-line" disabled={saving} onClick={() => closeEdit(note.id)}>
                         Abbrechen
                       </Button>
                     </div>
@@ -93,6 +126,10 @@ export function WissenTab({ machineId }: { machineId: string }) {
               <button
                 type="button"
                 aria-label="Satz bearbeiten"
+                ref={(el) => {
+                  if (el) editButtons.current.set(note.id, el);
+                  else editButtons.current.delete(note.id);
+                }}
                 className={ICON_BUTTON}
                 onClick={() => {
                   setEditId(note.id);
