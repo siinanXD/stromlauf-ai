@@ -119,3 +119,36 @@ def test_zusammenfassung_schreibt_dauer_je_frage(monkeypatch):
     antworten = ctx.ergebnis["zusammenfassung"]
     assert len(antworten) == len(FRAGEN)
     assert all(a["dauer_s"] >= 0 for a in antworten)
+
+
+def test_schritt_lernen_null_saetze_ist_fertig(monkeypatch):
+    from app.ablauf import lauf
+
+    monkeypatch.setattr(lauf, "lerne", lambda *a, **k: 0)
+    ctx = lauf.LaufKontext("r1", "s1", None, "m", graph=None, loop=None, machine_id="m1")
+    ctx.machine = {"name": "FB-01"}
+    ctx.ergebnis = {"zusammenfassung": [], "steckbrief": {"summary": {}, "documents": []}}
+    assert lauf.schritt_lernen(ctx) == "0 Sätze gelernt"
+    assert ctx.ergebnis["lernen"] == {"saetze": 0}
+
+
+def test_schritt_lernen_einzahl_und_uebergabe(monkeypatch):
+    from app.ablauf import lauf
+
+    gesehen = {}
+
+    def fake(machine_id, model, kontext, antworten, **k):
+        gesehen.update(machine_id=machine_id, kontext=kontext, **k)
+        return 1
+
+    monkeypatch.setattr(lauf, "lerne", fake)
+    ctx = lauf.LaufKontext("r1", "s1", None, "m", graph=None, loop=None, machine_id="m1")
+    ctx.machine = {"name": "FB-01"}
+    ctx.ergebnis = {
+        "zusammenfassung": [{"question": "q", "answer_md": "a", "sources": []}],
+        "steckbrief": {"summary": {"devices": 2}, "documents": [{"filename": "01.pdf"}]},
+    }
+    assert lauf.schritt_lernen(ctx) == "1 Satz gelernt"
+    assert gesehen["machine_id"] == "m1" and gesehen["max_saetze"] == 5
+    assert gesehen["quelle"] == "lauf" and gesehen["run_id"] == "r1"
+    assert "FB-01" in gesehen["kontext"] and "01.pdf" in gesehen["kontext"]

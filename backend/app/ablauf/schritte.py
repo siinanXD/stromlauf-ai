@@ -1,4 +1,4 @@
-"""Zustandsmaschine der sieben Ablauf-Schritte (rein, ohne Datenbank).
+"""Zustandsmaschine der acht Ablauf-Schritte (rein, ohne Datenbank).
 
 Jede Funktion gibt eine neue Liste zurueck. Die Eingabe bleibt unveraendert.
 """
@@ -12,12 +12,13 @@ SCHRITTE: list[tuple[str, str]] = [
     ("steckbrief", "Steckbrief"),
     ("modell", "Maschinenmodell"),
     ("zusammenfassung", "Zusammenfassung"),
+    ("lernen", "Lernen"),
     ("fertig", "Fertig"),
 ]
 
 
 def neue_schritte() -> list[dict]:
-    """Alle sieben Schritte im Zustand 'wartet'."""
+    """Alle acht Schritte im Zustand 'wartet'."""
     return [
         {
             "key": key,

@@ -98,11 +98,25 @@ def _warte(client, headers, run_id: str, timeout: float = 600) -> dict:
 
 
 def test_lauf_mit_foerderband_wird_fertig(client, headers, monkeypatch):
-    def antwort(*a, **k):
+    def antwort(graph, ctx, frage, n):
+        from sqlalchemy import select
+
+        from app.db import session_scope
+        from app.models import Document
+
         time.sleep(0.1)
-        return "Förderband mit zwei Bändern.", []
+        with session_scope() as session:
+            document_id = session.scalars(
+                select(Document.id).where(Document.source_id == ctx.source_id)
+            ).first()
+        quelle = {"document_id": document_id, "filename": "01.pdf", "page": 1}
+        return "Förderband mit zwei Bändern.", [quelle]
 
     monkeypatch.setattr("app.ablauf.lauf.beantworte", antwort)
+    monkeypatch.setattr(
+        "app.wissen.dienst.frage_modell",
+        lambda *a, **k: '[{"text": "Förderband mit zwei Bändern.", "belege": [1]}]',
+    )
     files = [("files", (p.name, p.read_bytes())) for p in sorted(EXAMPLES.glob("0[1-6]_*"))]
     created = client.post("/api/runs", files=files, data={"name": "FB-01 Test"}, headers=headers)
     assert created.status_code == 201, created.text
@@ -111,13 +125,16 @@ def test_lauf_mit_foerderband_wird_fertig(client, headers, monkeypatch):
     assert created.json()["steps"][0]["output"].startswith("6 Dateien: ")
     run = _warte(client, headers, run_id)
     assert run["status"] == "fertig", run
-    assert [s["status"] for s in run["steps"]] == ["fertig"] * 7
+    assert [s["status"] for s in run["steps"]] == ["fertig"] * 8
+    assert run["steps"][6]["output"] == "1 Satz gelernt"
     from app.db import session_scope
     from app.models import Run
 
     with session_scope() as session:
         assert session.get(Run, run_id).steps[1]["result"]["dokumente"] == 6
     assert run["result"]["machine_id"]
+    notizen = client.get(f"/api/machines/{run['result']['machine_id']}/notes", headers=headers).json()
+    assert [(n["text"], n["quelle"]) for n in notizen] == [("Förderband mit zwei Bändern.", "lauf")]
     assert run["result"]["profile"]["doc_types"]
     assert run["result"]["map_counts"]["parts"] > 0
     assert run["result"]["answers"][0]["answer_md"].startswith("Förderband")

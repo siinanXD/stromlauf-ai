@@ -373,7 +373,7 @@ class AiCall(WorkspaceScoped, Base):
 
 
 class Run(WorkspaceScoped, Base):
-    """Ein Ablauf: die sieben Schritte einer Quelle samt Zustand (app/ablauf/)."""
+    """Ein Ablauf: die acht Schritte einer Quelle samt Zustand (app/ablauf/)."""
 
     __tablename__ = "runs"
 
