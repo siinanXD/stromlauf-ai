@@ -19,7 +19,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import Principal, current_principal, issue_token
+from app.auth import AGENT_ROLE, Principal, current_principal, issue_token
 from app.config import get_settings
 from app.db import get_session
 from app.models import LoginToken, User, Workspace, WorkspaceMember
@@ -61,6 +61,10 @@ class MeOut(BaseModel):
     user_id: str | None
     workspace: WorkspaceOut
     via: str
+
+
+def is_agent_email(email: str, configured: str | None) -> bool:
+    return bool(configured) and email.lower().strip() == configured.lower().strip()
 
 
 def _hash(token: str) -> str:
@@ -151,11 +155,12 @@ def exchange(body: ExchangeRequest, session: Session = Depends(get_session)):
         session.flush()
     workspace = session.get(Workspace, membership.workspace_id)
     session.commit()
+    role = AGENT_ROLE if is_agent_email(user.email, settings.agent_test_email) else membership.role
     token, expires = issue_token(
         user_id=user.id,
         email=user.email,
         workspace_id=workspace.id,
-        role=membership.role,
+        role=role,
         secret=settings.jwt_secret,
         hours=settings.jwt_ttl_hours,
     )
@@ -163,7 +168,7 @@ def exchange(body: ExchangeRequest, session: Session = Depends(get_session)):
         token=token,
         expires_at=expires,
         email=user.email,
-        workspace=WorkspaceOut(id=workspace.id, name=workspace.name, role=membership.role),
+        workspace=WorkspaceOut(id=workspace.id, name=workspace.name, role=role),
     )
 
 

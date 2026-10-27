@@ -101,6 +101,7 @@ class Settings(BaseSettings):
     jwt_secret: str | None = None
     jwt_ttl_hours: int = 12
     auth_dev_link: bool = False  # Link in der Antwort statt per Mail (nur Entwicklung)
+    agent_test_email: str | None = None  # Agent-Testnutzer (SIN-1102): Rolle "agent", nur lesend
     smtp_url: str | None = None  # smtp://user:pass@host:587 oder smtps://user:pass@host:465
     mail_from: str = "stromlauf@localhost"
     frontend_url: str = "http://localhost:3100"

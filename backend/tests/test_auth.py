@@ -62,3 +62,47 @@ def test_offene_pfade():
     assert not auth.is_open("/api/sources", "GET")
     assert auth.is_open("/api/auth/mode", "GET")
     assert not auth.is_open("/api/auth/me", "GET")
+
+
+def test_agent_konto_darf_nur_lesen():
+    agent = auth.Principal(workspace_id="ws1", role=auth.AGENT_ROLE, via="jwt")
+    assert agent.is_agent and not agent.is_admin
+    for method in ("GET", "HEAD", "OPTIONS"):
+        assert auth.agent_may(agent, method)
+    for method in ("POST", "PUT", "PATCH", "DELETE", "post"):
+        assert not auth.agent_may(agent, method)
+    assert auth.agent_may(auth.Principal(workspace_id="ws1", role="admin"), "DELETE")
+    assert auth.agent_may(auth.Principal(workspace_id="ws1", role="member"), "POST")
+
+
+def test_agent_konto_bekommt_403_ueber_die_middleware(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.config import get_settings
+
+    app = FastAPI()
+    app.middleware("http")(auth.auth_middleware)
+
+    @app.get("/api/ping")
+    def ping():
+        return {"ok": True}
+
+    @app.post("/api/ping")
+    def act():
+        return {"ok": True}
+
+    monkeypatch.setattr(get_settings(), "jwt_secret", SECRET)
+    token, _ = auth.issue_token(user_id="a", email="agent@x.de", workspace_id="ws1", role=auth.AGENT_ROLE, secret=SECRET, hours=1)
+    client = TestClient(app)
+    headers = {"Authorization": f"Bearer {token}"}
+    assert client.get("/api/ping", headers=headers).status_code == 200
+    assert client.post("/api/ping", headers=headers).status_code == 403
+
+
+def test_agent_email_wird_ohne_gross_klein_erkannt():
+    from app.api.auth import is_agent_email
+
+    assert is_agent_email("Agent@X.de", "agent@x.de")
+    assert not is_agent_email("andere@x.de", "agent@x.de")
+    assert not is_agent_email("agent@x.de", None)
