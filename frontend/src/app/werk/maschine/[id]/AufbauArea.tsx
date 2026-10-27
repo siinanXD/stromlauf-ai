@@ -13,6 +13,7 @@ import { FaultBanner } from "@/components/machine/FaultBanner";
 import { FaultDialog } from "@/components/machine/FaultDialog";
 import { FaultTable } from "@/components/machine/FaultTable";
 import { SpecsTab } from "@/components/machine/SpecsTab";
+import { WissenTab } from "@/components/machine/WissenTab";
 import { SchemaMap } from "@/components/model/SchemaMap";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { CabinetLightbox } from "@/components/part/CabinetLightbox";
@@ -264,6 +265,11 @@ export function AufbauArea({
         {current === "kennzahlen" && (
           <div className="h-full overflow-auto p-3">
             <SpecsTab machineId={machine.id} onSaved={onMachineChanged} />
+          </div>
+        )}
+        {current === "wissen" && (
+          <div className="h-full overflow-auto p-3">
+            <WissenTab machineId={machine.id} />
           </div>
         )}
       </div>

@@ -74,7 +74,7 @@ function ZumGewaehlten({ steps, selected }: { steps: RunStep[]; selected: string
   return null;
 }
 
-/** Die sieben Schritte eines Laufs als Reihe von Knoten; Klick oder Enter wählt einen Schritt. */
+/** Die acht Schritte eines Laufs als Reihe von Knoten; Klick oder Enter wählt einen Schritt. */
 export function AblaufGraph({ steps, selected, onSelect }: { steps: RunStep[]; selected: string | null; onSelect: (step: RunStep) => void }) {
   const flow = useMemo(() => {
     const { nodes, edges } = flowOf(steps);

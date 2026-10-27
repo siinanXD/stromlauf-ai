@@ -919,7 +919,7 @@ export const onboarding = {
     request<Machine>(`/api/halls/${hallId}/onboard`, json(body)),
 };
 
-// --- Ablauf: ein Lauf mit sieben Schritten (POST/GET /api/runs) -------------------------------
+// --- Ablauf: ein Lauf mit acht Schritten (POST/GET /api/runs) -------------------------------
 
 export type SchrittStatus = "wartet" | "laeuft" | "fertig" | "fehler";
 
@@ -1022,4 +1022,24 @@ export const ablauf = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dateien }),
     }),
+};
+
+export interface MachineNote {
+  id: string;
+  machine_id: string;
+  text: string;
+  quelle: "lauf" | "chat" | "mensch";
+  belege: { document_id: string; filename: string; page: number | null }[];
+  gesperrt: boolean;
+  run_id: string | null;
+  conversation_id: string | null;
+  created_at: string;
+}
+
+export const wissen = {
+  list: (machineId: string) => request<MachineNote[]>(`/api/machines/${machineId}/notes`),
+  patch: (machineId: string, noteId: string, body: { text?: string }) =>
+    request<MachineNote>(`/api/machines/${machineId}/notes/${noteId}`, json(body, "PATCH")),
+  remove: (machineId: string, noteId: string) =>
+    request<void>(`/api/machines/${machineId}/notes/${noteId}`, { method: "DELETE" }),
 };

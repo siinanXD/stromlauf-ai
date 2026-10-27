@@ -18,7 +18,7 @@ const POLL_MS = 2000;
 /** Genau eine Datei ohne Ordner: der alte Weg, ein Lauf ohne Vorschlag. */
 const einfach = (abgelegt: Abgelegt[]) => abgelegt.length === 1 && !abgelegt[0].pfad.includes("/");
 
-/** Ablauf: Unterlagen oder Ordner ablegen, Anlagen bestätigen, Läufe starten, die sieben Schritte live verfolgen. */
+/** Ablauf: Unterlagen oder Ordner ablegen, Anlagen bestätigen, Läufe starten, die acht Schritte live verfolgen. */
 export default function AblaufPage() {
   const [abgelegt, setAbgelegt] = useState<Abgelegt[]>([]);
   const [gruppierung, setGruppierung] = useState<Gruppierung | null>(null);

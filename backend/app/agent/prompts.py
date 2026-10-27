@@ -1,5 +1,7 @@
+from app.wissen.lernen import prompt_block
+
 # Bei jeder Aenderung am Systemprompt erhoehen; landet als Tag prompt:v<n> am Langfuse-Trace des Chats.
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
 
 # Der Text bleibt fuer alle Chats gleich und steht vorn: Anthropic und OpenAI cachen den Anfang des Prompts.
 # Was je Chat wechselt (Maschine), haengt system_prompt_for hinten an.
@@ -94,4 +96,5 @@ def system_prompt_for(configurable: dict | None) -> str:
         + f"\nKontext\nDieser Chat gehört zur Maschine {machine['name']}{where}. Nur ihre Dokumentation ist "
         "durchsuchbar; Aussagen zu anderen Maschinen nur aus search_faults und als solche gekennzeichnet. "
         "Beziehe Antworten auf diese Maschine und ihre Kennzeichen.\n"
+        + prompt_block(machine.get("wissen") or [])
     )

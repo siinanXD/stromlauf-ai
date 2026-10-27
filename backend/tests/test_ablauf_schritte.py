@@ -10,7 +10,7 @@ from app.ablauf.schritte import (
 )
 
 
-def test_sieben_schritte_in_reihenfolge():
+def test_acht_schritte_in_reihenfolge():
     assert [k for k, _ in SCHRITTE] == [
         "hochladen",
         "lesen",
@@ -18,6 +18,7 @@ def test_sieben_schritte_in_reihenfolge():
         "steckbrief",
         "modell",
         "zusammenfassung",
+        "lernen",
         "fertig",
     ]
     assert all(s["status"] == "wartet" for s in neue_schritte())

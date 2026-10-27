@@ -273,6 +273,9 @@ class Machine(WorkspaceScoped, Base):
     cabinets: Mapped[list["CabinetImage"]] = relationship(
         back_populates="machine", cascade="all, delete-orphan", order_by="CabinetImage.created_at"
     )
+    notes: Mapped[list["MachineNote"]] = relationship(
+        back_populates="machine", cascade="all, delete-orphan", order_by="MachineNote.created_at"
+    )
 
 
 class MachineSpec(WorkspaceScoped, Base):
@@ -370,7 +373,7 @@ class AiCall(WorkspaceScoped, Base):
 
 
 class Run(WorkspaceScoped, Base):
-    """Ein Ablauf: die sieben Schritte einer Quelle samt Zustand (app/ablauf/)."""
+    """Ein Ablauf: die acht Schritte einer Quelle samt Zustand (app/ablauf/)."""
 
     __tablename__ = "runs"
 
@@ -389,3 +392,21 @@ class Run(WorkspaceScoped, Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MachineNote(WorkspaceScoped, Base):
+    """Ein belegter Satz, den eine Maschine gelernt hat (app/wissen/)."""
+
+    __tablename__ = "machine_notes"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"), index=True)
+    text: Mapped[str] = mapped_column(Text)
+    quelle: Mapped[str] = mapped_column(String(8))  # lauf | chat | mensch
+    belege: Mapped[list] = mapped_column(JSON, default=list)  # [{"document_id", "page"}]
+    gesperrt: Mapped[bool] = mapped_column(default=False, server_default="false")
+    run_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    conversation_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+    machine: Mapped[Machine] = relationship(back_populates="notes")

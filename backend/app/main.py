@@ -23,6 +23,7 @@ from app.api import (
     search,
     signal,
     sources,
+    wissen,
 )
 from app.auth import auth_middleware
 from app.checkpointer import open_checkpointer
@@ -94,6 +95,7 @@ async def _budget_exceeded(request: Request, exc: BudgetExceeded) -> JSONRespons
 
 app.include_router(auth.router)
 app.include_router(ablauf.router)
+app.include_router(wissen.router)
 app.include_router(sources.router)
 app.include_router(costs.router)
 app.include_router(machine_map.router)

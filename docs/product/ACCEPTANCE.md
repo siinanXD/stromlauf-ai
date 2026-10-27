@@ -88,3 +88,16 @@ unabhängiges Review ohne blockierende Findings vorliegt.
 | Seite in 390/768/1440 px, barrierefrei | [`frontend/e2e/ablauf.spec.ts`](../../frontend/e2e/ablauf.spec.ts) | grün lokal (3 von 3 Breiten, axe wcag2a/wcag2aa ohne Verstöße) |
 | Echter Lauf mit Langfuse-Trace | [`docs/superpowers/nachweise/2026-10-26-ablauf.png`](../superpowers/nachweise/2026-10-26-ablauf.png) | grün (7/7 fertig in ca. 25 s, Link vorhanden) |
 | Kosten gebucht | Zeile `ablauf.zusammenfassung` in `ai_call_ledger` | offen (Ollama bucht 0; Beleg folgt im PR) |
+
+## Wissen (SIN-1114, 27.10.2026)
+
+| Feature | Beleg | Status |
+| --- | --- | --- |
+| Parsen, Beleg-Pflicht, Dubletten, Prompt-Block, Markdown | [`backend/tests/test_wissen_lernen.py`](../../backend/tests/test_wissen_lernen.py) | grün lokal (10 Tests) |
+| Tabelle `machine_notes` aus Alembic (0007), API GET/POST/PATCH/DELETE, Dublette, fremder Workspace 404, Markdown-Datei | [`backend/tests/test_wissen_api.py`](../../backend/tests/test_wissen_api.py), [`backend/tests/test_alembic_baseline.py`](../../backend/tests/test_alembic_baseline.py) | grün lokal gegen Supabase (Schema stromlauf_test): 8 Tests; Migration auf Schema stromlauf angewendet (0007_machine_notes) |
+| Lauf erzeugt Sätze, Schritt „Lernen“ als 7. von 8 | [`backend/tests/test_ablauf_schritte.py`](../../backend/tests/test_ablauf_schritte.py), [`backend/tests/test_ablauf_lauf.py`](../../backend/tests/test_ablauf_lauf.py), [`backend/tests/test_ablauf_api.py::test_lauf_mit_foerderband_wird_fertig`](../../backend/tests/test_ablauf_api.py) | grün lokal |
+| Agent liest den Block, Chat lernt nur nach erfolgreicher Antwort mit Quellen | [`backend/tests/test_prompts.py`](../../backend/tests/test_prompts.py), [`backend/tests/test_wissen_api.py::test_chat_lernt_nur_nach_erfolgreicher_antwort_mit_quellen`](../../backend/tests/test_wissen_api.py) | grün lokal |
+| Tab „Wissen“: Liste, Schloss, Stift, Papierkorb; barrierefrei in 390/768/1440 px | [`frontend/src/components/machine/wissen.test.ts`](../../frontend/src/components/machine/wissen.test.ts), [`frontend/e2e/wissen.spec.ts`](../../frontend/e2e/wissen.spec.ts) | grün lokal (axe wcag2a/wcag2aa ohne Verstöße) |
+| Ablauf-Seite zeigt acht Knoten | [`frontend/src/components/ablauf/knoten.test.ts`](../../frontend/src/components/ablauf/knoten.test.ts), [`frontend/e2e/ablauf.spec.ts`](../../frontend/e2e/ablauf.spec.ts) | grün lokal |
+| Volle Backend-Suite | `python -m pytest` | 1356 passed, 3 failed (bekannte Fehler in `test_plan_read_api.py`, unverändert seit SIN-1111) |
+| Echter Lauf mit Tab „Wissen“ | [`docs/superpowers/nachweise/2026-10-27-wissen.png`](../superpowers/nachweise/2026-10-27-wissen.png) | grün live im Tailnet (Chat mit lokalem Modell: 2 belegte Sätze im Tab, 27.10.2026); Ablauf-Lauf mit Ollama lieferte 0 Belege in Schritt 6, Lern-Schritt fertig mit „0 Sätze gelernt“ |

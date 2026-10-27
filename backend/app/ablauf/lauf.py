@@ -1,4 +1,4 @@
-"""Orchestrator eines Ablaufs: Schritte 2 bis 7 nacheinander im Hintergrund-Thread.
+"""Orchestrator eines Ablaufs: Schritte 2 bis 8 nacheinander im Hintergrund-Thread.
 
 Schritt 1 (hochladen) erledigt `POST /api/runs` und startet danach
 `threading.Thread(target=starte_lauf, args=(run_id, graph, loop, hall_id), daemon=True)`. Jeder Schritt
@@ -7,6 +7,7 @@ Schritt 6 laeuft auf der Event-Loop von FastAPI, weil der Checkpointer des Graph
 """
 
 import asyncio
+import json
 import logging
 import time
 from collections.abc import Callable
@@ -33,6 +34,8 @@ from app.logsafe import log_failure
 from app.models import Chunk, DocStatus, Document, Hall, KnowledgeSource, Machine, Run
 from app.tenancy import require_workspace, reset_workspace, set_workspace
 from app.tracing import trace_config
+from app.wissen.dienst import lerne
+from app.wissen.lernen import MAX_LAUF
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +240,31 @@ def schritt_zusammenfassung(ctx: LaufKontext) -> str:
     return f"{len(antworten)} Antworten, {belege} Belege"
 
 
+def schritt_lernen(ctx: LaufKontext) -> str:
+    """Aus den Antworten belegte Sätze für die Maschine lernen (ohne Beleg: 0 Sätze)."""
+    profile = ctx.ergebnis.get("steckbrief") or {}
+    kontext = json.dumps(
+        {
+            "maschine": ctx.machine["name"],
+            "zusammenfassung": profile.get("summary"),
+            "dokumente": [d["filename"] for d in profile.get("documents", [])],
+        },
+        ensure_ascii=False,
+    )
+    n = lerne(
+        ctx.machine_id,
+        ctx.model,
+        kontext,
+        ctx.ergebnis["zusammenfassung"],
+        max_saetze=MAX_LAUF,
+        quelle="lauf",
+        run_id=ctx.run_id,
+        session_id=f"run:{ctx.run_id}",
+    )
+    ctx.ergebnis["lernen"] = {"saetze": n}
+    return "1 Satz gelernt" if n == 1 else f"{n} Sätze gelernt"
+
+
 def schritt_fertig(ctx: LaufKontext) -> str:
     return f"/werk/maschine/{ctx.machine_id}"
 
@@ -278,7 +306,7 @@ def _markiere_abbruch(run_id: str, text: str) -> None:
 def starte_lauf(
     run_id: str, graph, loop: asyncio.AbstractEventLoop | None, hall_id: str | None = None
 ) -> None:
-    """Thread-Ziel: Schritte 2 bis 7 nacheinander. Wirft nie; Fehler stehen im Run."""
+    """Thread-Ziel: Schritte 2 bis 8 nacheinander. Wirft nie; Fehler stehen im Run."""
     try:
         with session_scope() as session:
             run = session.get(Run, run_id)
@@ -304,6 +332,7 @@ def starte_lauf(
             ("steckbrief", schritt_steckbrief),
             ("modell", schritt_modell),
             ("zusammenfassung", schritt_zusammenfassung),
+            ("lernen", schritt_lernen),
             ("fertig", schritt_fertig),
         ]
         for key, schritt in schritte:

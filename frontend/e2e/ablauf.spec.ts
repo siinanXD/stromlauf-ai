@@ -3,10 +3,10 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { mockApi } from "./api-mock";
 
-/** Gemockter Ablauf: POST /api/runs liefert Schritt 1 fertig, jedes GET einen Schritt mehr, das 7. GET den Abschluss. */
+/** Gemockter Ablauf: POST /api/runs liefert Schritt 1 fertig, jedes GET einen Schritt mehr, das 8. GET den Abschluss. */
 
-const KEYS = ["hochladen", "lesen", "maschine", "steckbrief", "modell", "zusammenfassung", "fertig"] as const;
-const LABELS = ["Hochladen", "Lesen", "Maschine", "Steckbrief", "Modell", "Zusammenfassung", "Fertig"];
+const KEYS = ["hochladen", "lesen", "maschine", "steckbrief", "modell", "zusammenfassung", "lernen", "fertig"] as const;
+const LABELS = ["Hochladen", "Lesen", "Maschine", "Steckbrief", "Modell", "Zusammenfassung", "Lernen", "Fertig"];
 const TRACE = "https://cloud.langfuse.com/trace/x";
 const RUN_ID = "run-1";
 // Zeiten relativ zu jetzt: ältere Zeiten ließen den Lauf als hängend gelten (haengt in knoten.ts).
@@ -85,7 +85,7 @@ async function mockAblauf(page: Page) {
     if (method === "POST") return json(route, run(1, false), 201);
     if (method === "GET" && route.request().url().includes(RUN_ID)) {
       gets += 1;
-      return json(route, gets >= 7 ? run(KEYS.length, true) : run(Math.min(gets + 1, KEYS.length - 1), false));
+      return json(route, gets >= KEYS.length ? run(KEYS.length, true) : run(Math.min(gets + 1, KEYS.length - 1), false));
     }
     return route.fallback();
   });
@@ -98,7 +98,7 @@ test("Zeiten stehen auch vor dem ersten Lauf da", async ({ page }) => {
   await expect(page.getByTestId("zeiten-lesen")).toBeVisible();
 });
 
-test("Förderband-Lauf wird in sieben Schritten grün", async ({ page }) => {
+test("Förderband-Lauf wird in acht Schritten grün", async ({ page }) => {
   test.setTimeout(60_000);
   await mockAblauf(page);
   await page.goto("/ablauf");
@@ -143,7 +143,7 @@ test("Zwei Anlagen: Vorschlag bestätigen, zwei Läufe werden grün", async ({ p
     const id = route.request().url().split("/").pop()!;
     gets[id] = (gets[id] ?? 0) + 1;
     const name = id === "run-1" ? "FB-01" : "UR-01";
-    return json(route, gets[id] >= 7 ? run(KEYS.length, true, id, name) : run(Math.min(gets[id] + 1, KEYS.length - 1), false, id, name));
+    return json(route, gets[id] >= KEYS.length ? run(KEYS.length, true, id, name) : run(Math.min(gets[id] + 1, KEYS.length - 1), false, id, name));
   });
   await page.route("**/api/runs", (route) => {
     if (route.request().method() !== "POST") return route.fallback();

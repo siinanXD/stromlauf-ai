@@ -11,7 +11,7 @@ export interface SchrittNodeData extends Record<string, unknown> {
 const ABSTAND_X = 220;
 const HAENGT_NACH_MS = 10 * 60 * 1000;
 
-/** Sieben Schritte als Knoten in einer Reihe, verbunden von links nach rechts. */
+/** Acht Schritte als Knoten in einer Reihe, verbunden von links nach rechts. */
 export function flowOf(steps: RunStep[]): { nodes: Node<SchrittNodeData, "schritt">[]; edges: Edge[] } {
   const nodes = steps.map((step, index) => ({
     id: step.key,

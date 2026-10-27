@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import threading
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
@@ -32,6 +33,7 @@ from app.schemas import (
 )
 from app.tenancy import current_workspace_id, reset_workspace, same_workspace, set_workspace
 from app.tracing import trace_config
+from app.wissen.dienst import lerne_aus_chat, notizen_fuer
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -106,6 +108,7 @@ def machine_scope(session: Session, machine_id: str) -> tuple[list[str], dict]:
         "id": machine.id,
         "name": machine.name,
         "hall": machine.hall.name if machine.hall else "",
+        "wissen": [note.text for note in notizen_fuer(session, machine.id)],
     }
     return [machine.source_id], context
 
@@ -398,6 +401,23 @@ def validate_citations(body: CitationValidateRequest, session: Session = Depends
     return {"citation_checks": checks, "citations_valid": valid, "referenced_tags": referenced}
 
 
+def _lerne_im_hintergrund(
+    machine_id: str,
+    workspace_id: str,
+    model: str,
+    frage: str,
+    antwort: str,
+    refs: list[dict],
+    conversation_id: str,
+) -> None:
+    """Lernen nach der Antwort in einem eigenen Thread, damit der Stream nicht wartet."""
+    threading.Thread(
+        target=lerne_aus_chat,
+        args=(machine_id, workspace_id, model, frage, antwort, refs, conversation_id),
+        daemon=True,
+    ).start()
+
+
 @router.post("/chat")
 async def chat(body: ChatRequest, request: Request):
     model = effective_model(body.model)
@@ -443,6 +463,7 @@ async def chat(body: ChatRequest, request: Request):
         yield _sse("conversation", {"id": conversation_id, "title": title})
         refs: list[dict] = []
         answer_parts: list[str] = []
+        fehlgeschlagen = False
         # Der Stream laeuft nach der Middleware weiter: Workspace fuer die Agenten-Werkzeuge erneut setzen
         workspace_token = set_workspace(workspace_id)
         try:
@@ -460,6 +481,8 @@ async def chat(body: ChatRequest, request: Request):
                     answer_parts.append(data["text"])
                 elif event == "sources":
                     refs = list(data)
+                elif event == "error":
+                    fehlgeschlagen = True
                 yield _sse(event, data)
             # Antwort-Vertrag (MB-4): referenzierte Bauteile, Zitate, Belege - deterministisch aus Index und Fundstellen.
             # Im Threadpool, weil der Zitat-Resolver Blaetter per pdfium (globaler Lock) nachschlaegt und der
@@ -469,6 +492,16 @@ async def chat(body: ChatRequest, request: Request):
             )
             yield _sse("meta", meta)
             yield _sse("done", {})
+            if body.machine_id and refs and not fehlgeschlagen:
+                _lerne_im_hintergrund(
+                    body.machine_id,
+                    workspace_id,
+                    model,
+                    body.message,
+                    "".join(answer_parts),
+                    refs,
+                    conversation_id,
+                )
         except Exception as exc:
             log_failure(logger, "Chat fehlgeschlagen (Konversation %s)", conversation_id)
             yield _sse("error", {"message": f"{type(exc).__name__}: {exc}"})
