@@ -9,13 +9,18 @@ from pathlib import PurePosixPath
 
 from app.api.sources import ALLOWED_SUFFIXES
 
-# Kennung: 2-4 Grossbuchstaben, optional eine Ziffer, Bindestrich, 1-3 Buchstaben/Ziffern.
-# Gilt nur als ganzes Wort (Klammer, Unterstrich, Leerzeichen oder Namensende davor/danach).
-KENNUNG = re.compile(r"(?<![A-Za-z0-9])([A-Z]{2,4}\d?)-[A-Za-z0-9]{1,3}(?![A-Za-z0-9])")
+# Kennung: 2-4 Grossbuchstaben, dann entweder (optional eine Ziffer, Bindestrich, 1-3
+# Buchstaben/Ziffern), z. B. `FB-01`, `PM1-AR`, oder genau zwei Ziffern ohne Bindestrich,
+# z. B. `FB01`. Eine Ziffer (`SPS7`, `PDF1`) oder drei und mehr (`RS485`, `ISO9001`) ohne
+# Bindestrich sind keine Kennung. Gilt nur als ganzes Wort (Klammer, Unterstrich, Leerzeichen
+# oder Namensende davor/danach); ein `=`-Praefix (`=FB-01`, EPLAN-Anlagenkennzeichen) ist so ein
+# Wortrand und gehoert nicht zur Kennung.
+KENNUNG = re.compile(r"(?<![A-Za-z0-9])([A-Z]{2,4})(?:\d?-[A-Za-z0-9]{1,3}|\d{2})(?![A-Za-z0-9])")
 
-# Praefixe, die nie eine Anlagenkennung sind (Sprachen, Normen, Dateiformate, Revisionen).
+# Praefixe, die nie eine Anlagenkennung sind (Sprachen, Normen, Dateiformate, Revisionen,
+# Engineering-Werkzeuge mit Versionsnummer wie `TIA17`).
 KEINE_KENNUNG = frozenset(
-    "DE EN US FR IT ES NL PL UTF REV IP PDF DIN ISO IEC VDE EOL SPS PLC AWL FUP SCL CAD DXF".split()
+    "DE EN US FR IT ES NL PL UTF REV IP PDF DIN ISO IEC VDE EOL SPS PLC AWL FUP SCL CAD DXF TIA".split()
 )
 
 

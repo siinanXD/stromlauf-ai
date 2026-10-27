@@ -20,6 +20,20 @@ def test_kennung_aus_dateiname():
 
 
 @pytest.mark.parametrize(
+    ("name", "erwartet"),
+    [
+        ("FB01_Stromlaufplan.pdf", "FB01"),
+        ("=FB-01_Handbuch.pdf", "FB01"),
+        ("=FB01_Handbuch.pdf", "FB01"),
+        ("Stromlaufplan_UR01.pdf", "UR01"),
+        ("01_Plan_fb01.pdf", None),
+    ],
+)
+def test_kennung_ohne_bindestrich_und_mit_gleichheitszeichen(name, erwartet):
+    assert kennung_aus_name(name) == erwartet
+
+
+@pytest.mark.parametrize(
     "name",
     [
         "Handbuch_DE-EN.pdf",
@@ -29,6 +43,14 @@ def test_kennung_aus_dateiname():
         "IP-65.pdf",
         "PDF-A.pdf",
         "DIN-EN-60204.pdf",
+        "SPS7_Programm.awl",
+        "PDF1.pdf",
+        "DIN1_Norm.pdf",
+        "UTF8_liste.csv",
+        "REV2_Plan.pdf",
+        "ISO9001.pdf",
+        "DIN01_Norm.pdf",
+        "TIA17_Projekt.pdf",
     ],
 )
 def test_normen_und_sprachen_sind_keine_kennung(name):
@@ -44,6 +66,18 @@ def test_gemischter_ordner_ergibt_drei_gruppen():
     assert all(x["quelle"] == "kennung" for x in g["gruppen"])
     # foerderband 8 (inkl. 07_ png/json) + umroller 6 + aufrollung 6
     assert sum(len(x["dateien"]) for x in g["gruppen"]) == 20 and g["unzugeordnet"] == []
+
+
+def test_schreibweisen_einer_kennung_landen_in_einer_gruppe():
+    g = gruppiere(
+        [
+            {"name": "FB01_x.pdf", "pfad": "FB01_x.pdf"},
+            {"name": "FB-01_y.pdf", "pfad": "FB-01_y.pdf"},
+            {"name": "=FB-01_z.pdf", "pfad": "=FB-01_z.pdf"},
+        ]
+    )
+    assert len(g["gruppen"]) == 1 and g["unzugeordnet"] == []
+    assert g["gruppen"][0]["dateien"] == ["FB01_x.pdf", "FB-01_y.pdf", "=FB-01_z.pdf"]
 
 
 def test_unterordner_gewinnt_vor_kennung():
