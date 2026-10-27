@@ -52,13 +52,12 @@ export async function ausDrop(items: DataTransferItemList): Promise<Abgelegt[]> 
   const eintraege = Array.from(items)
     .map((i) => i.webkitGetAsEntry() as Eintrag | null)
     .filter((e): e is Eintrag => e !== null);
-  const teile = await Promise.all(
-    eintraege.map(async (e) => {
-      if (e.isFile) return geheDurch(e, "");
-      const unter = await Promise.all((await kinder(e)).map((k) => geheDurch(k, "")));
-      return unter.flat();
-    }),
-  );
+  // Nur bei genau einem abgelegten Ordner entfällt dessen Name; sonst bleibt er erstes Pfadsegment.
+  if (eintraege.length === 1 && eintraege[0].isDirectory) {
+    const unter = await Promise.all((await kinder(eintraege[0])).map((k) => geheDurch(k, "")));
+    return unter.flat();
+  }
+  const teile = await Promise.all(eintraege.map((e) => geheDurch(e, "")));
   return teile.flat();
 }
 
@@ -66,7 +65,12 @@ export async function ausDrop(items: DataTransferItemList): Promise<Abgelegt[]> 
 export function pruefeLimits(abgelegt: Abgelegt[]): string | null {
   if (abgelegt.length > MAX_DATEIEN) return `Höchstens ${MAX_DATEIEN} Dateien je Ablage (es sind ${abgelegt.length}).`;
   const bytes = abgelegt.reduce((summe, a) => summe + a.file.size, 0);
-  if (bytes > MAX_MB * 1_000_000) return `Höchstens ${MAX_MB} MB je Ablage (es sind ${Math.round(bytes / 1_000_000)} MB).`;
+  if (bytes > MAX_MB * 1_000_000) return `Höchstens ${MAX_MB} MB je Ablage (es sind ${Math.ceil(bytes / 1_000_000)} MB).`;
+  const gesehen = new Set<string>();
+  for (const a of abgelegt) {
+    if (gesehen.has(a.pfad)) return `Doppelte Pfade in der Ablage: ${a.pfad}`;
+    gesehen.add(a.pfad);
+  }
   return null;
 }
 

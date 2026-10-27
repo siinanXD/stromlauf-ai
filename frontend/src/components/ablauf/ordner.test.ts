@@ -25,6 +25,12 @@ describe("pruefeLimits", () => {
     const gross = [{ file: datei("a.pdf", undefined, 501_000_000), pfad: "a.pdf" }];
     expect(pruefeLimits(gross)).toBe("Höchstens 500 MB je Ablage (es sind 501 MB).");
   });
+  it("rundet MB auf", () => {
+    expect(pruefeLimits([{ file: datei("a.pdf", undefined, 500_000_001), pfad: "a.pdf" }])).toBe("Höchstens 500 MB je Ablage (es sind 501 MB).");
+  });
+  it("meldet doppelte Pfade", () => {
+    expect(pruefeLimits([ab("a/1.pdf"), ab("b/1.pdf"), ab("a/1.pdf")])).toBe("Doppelte Pfade in der Ablage: a/1.pdf");
+  });
   it("lässt Zulässiges durch", () => {
     expect(pruefeLimits([ab("a.pdf")])).toBeNull();
   });
@@ -85,7 +91,14 @@ describe("ausDrop", () => {
   it("läuft rekursiv, liest Reader bis zum leeren Stapel, ohne Wurzelnamen", async () => {
     const tief = ordnerEntry("fb01", [[dateiEntry("01.pdf")], [dateiEntry("02.pdf")]]);
     const wurzel = ordnerEntry("root", [[tief, dateiEntry("README.md")]]);
-    const r = await ausDrop(items(wurzel, dateiEntry("lose.pdf")));
-    expect(r.map((a) => a.pfad).sort()).toEqual(["README.md", "fb01/01.pdf", "fb01/02.pdf", "lose.pdf"]);
+    const r = await ausDrop(items(wurzel));
+    expect(r.map((a) => a.pfad).sort()).toEqual(["README.md", "fb01/01.pdf", "fb01/02.pdf"]);
+  });
+  it("behält Ordnernamen bei mehreren Ordnern", async () => {
+    const r = await ausDrop(items(ordnerEntry("fb01", [[dateiEntry("01.pdf")]]), ordnerEntry("ur01", [[dateiEntry("01.pdf")]])));
+    expect(r.map((a) => a.pfad).sort()).toEqual(["fb01/01.pdf", "ur01/01.pdf"]);
+  });
+  it("behält den Namen einer einzelnen Datei", async () => {
+    expect((await ausDrop(items(dateiEntry("a.pdf")))).map((a) => a.pfad)).toEqual(["a.pdf"]);
   });
 });
