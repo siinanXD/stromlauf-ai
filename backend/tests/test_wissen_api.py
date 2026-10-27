@@ -236,3 +236,38 @@ def test_chat_kontext_enthaelt_gelernte_saetze(client, headers):
         reset_workspace(token)
     assert kontext["wissen"] == ["Gesperrter Satz."]
     assert "- Gesperrter Satz." in system_prompt_for({"machine": kontext})
+
+
+def test_chat_lernt_nur_nach_erfolgreicher_antwort_mit_quellen(client, headers, monkeypatch):
+    from app.api import chat
+
+    machine_id, document_id = _maschine(headers)
+    quellen = [{"document_id": document_id, "filename": "01_Plan.pdf", "page": 1}]
+    aufrufe: list[tuple] = []
+    monkeypatch.setattr(chat, "_lerne_im_hintergrund", lambda *args: aufrufe.append(args))
+
+    def agent(ende: tuple[str, dict]):
+        async def events(*_args, **_kwargs):
+            yield "sources", quellen
+            yield "token", {"text": "Antwort."}
+            yield ende
+
+        return events
+
+    def frage():
+        antwort = client.post(
+            "/api/chat", json={"message": "Frage?", "machine_id": machine_id}, headers=headers
+        )
+        assert antwort.status_code == 200
+        return antwort.text
+
+    monkeypatch.setattr(chat, "agent_events", agent(("error", {"message": "Abgebrochen"})))
+    assert "event: done" in frage()
+    assert aufrufe == []
+
+    monkeypatch.setattr(chat, "agent_events", agent(("token", {"text": " Ende."})))
+    assert "event: done" in frage()
+    assert len(aufrufe) == 1
+    gewaehlt, workspace, _model, text, antwort_text, refs, _conversation = aufrufe[0]
+    assert (gewaehlt, workspace, text) == (machine_id, WS, "Frage?")
+    assert antwort_text == "Antwort. Ende." and refs == quellen
