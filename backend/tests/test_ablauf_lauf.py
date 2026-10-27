@@ -100,3 +100,22 @@ def test_kaputtes_langfuse_laesst_den_schritt_fertig_werden(monkeypatch):
     assert ausgabe == "3 Dokumente"
     steps = gespeichert[-1](starte(neue_schritte(), "lesen", "t", "in"))
     assert next(s for s in steps if s["key"] == "lesen")["status"] == "fertig"
+
+
+def test_zusammenfassung_schreibt_dauer_je_frage(monkeypatch):
+    from app.ablauf import lauf
+
+    @contextmanager
+    def fake_scope():
+        yield SimpleNamespace()
+
+    monkeypatch.setattr(lauf, "session_scope", fake_scope)
+    monkeypatch.setattr(lauf, "machine_scope", lambda _session, _id: (None, {"name": "M"}))
+    monkeypatch.setattr(lauf, "beantworte", lambda *a, **k: ("Antwort", []))
+    ctx = lauf.LaufKontext("r1", "s1", None, "m", graph=None, loop=None, machine_id="m1")
+
+    lauf.schritt_zusammenfassung(ctx)
+
+    antworten = ctx.ergebnis["zusammenfassung"]
+    assert len(antworten) == len(FRAGEN)
+    assert all(a["dauer_s"] >= 0 for a in antworten)

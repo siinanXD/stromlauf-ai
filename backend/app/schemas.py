@@ -471,6 +471,7 @@ class RunAnswer(BaseModel):
     question: str
     answer_md: str
     sources: list[SourceRef] = []
+    dauer_s: float | None = None
 
 
 class RunResult(BaseModel):
@@ -498,3 +499,22 @@ class RunListItem(BaseModel):
     name: str
     status: str
     created_at: datetime
+
+
+class ZeitenKennzahl(BaseModel):
+    anzahl: int
+    mittel_s: float | None = None
+    median_s: float | None = None
+    max_s: float | None = None
+    letzter_s: float | None = None
+    ziel_s: float | None = None
+    ueber_ziel: bool = False
+    langsamster_run_id: str | None = None
+    langsamster_trace_url: str | None = None
+
+
+class ZeitenOut(BaseModel):
+    laeufe: int
+    schritte: dict[str, ZeitenKennzahl]
+    gesamt: ZeitenKennzahl
+    fragen: ZeitenKennzahl
