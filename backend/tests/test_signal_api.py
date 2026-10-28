@@ -98,3 +98,33 @@ def test_view_main_mit_tabellen_und_plan_nennt_beide_herkuenfte():
     assert body["view"] == "main" and body["start"] == "E0.0"
     edge = next(e for e in body["edges"] if (e["source"], e["target"]) == ("-X3:1", "E0.0"))
     assert edge["via"] == ["klemmenplan", "leitung"] and edge["pins"] == {"from": None, "to": None}
+
+
+def test_werkzeug_und_api_liefern_denselben_hauptweg(monkeypatch):
+    """Beide rufen main_view auf; gaebe es eine zweite Rangfolge, laufen die Wege hier auseinander."""
+    from app.agent import tools
+
+    documents = [_document(doc_type, name) for doc_type, name in TABLES.items()]
+    documents.append(_document("schematic", PLAN))
+    session = _Session(documents)
+    session.execute = lambda _statement: SimpleNamespace(all=lambda: [("src", "FB-01")])
+
+    class Scope:
+        def __enter__(self):
+            return session
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(tools, "session_scope", Scope)
+    api = _client(documents).get(
+        "/api/signal-path", params={"tag": "-S1", "source_id": "src", "view": "main"}
+    )
+    main = [
+        n["id"] for n in sorted(api.json()["nodes"], key=lambda n: n["order"] or 0) if n["main"]
+    ]
+    text, _refs = tools.signal_path.func("-S1", {"configurable": {"source_ids": ["src"]}})
+    steps = [
+        line.split(" | ")[1] for line in text.splitlines() if line[:1].isdigit() and " | " in line
+    ]
+    assert steps == main and main[-1] == "-M1" and "-H2" not in main
