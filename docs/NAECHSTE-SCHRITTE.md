@@ -1,5 +1,7 @@
 # Nächste Schritte (SIN-821)
 
+Stand 2026-10-17, teils überholt, aktuelle Lage steht in `docs/FERTIG.md`.
+
 Stand: 2026-10-17. Grundlage: `docs/FERTIG.md` (Fertig-Liste und Lücken). Jeder Schritt ist als Linear-Issue im Backlog
 gedacht (Projekt „Stromlauf AI“). Reihenfolge laut FERTIG.md: 1 und 3 zuerst, dann 4; 2 läuft parallel; 7 zuletzt.
 Punkt 5 (Hosting) und 6 bleiben gesperrt, bis 1 bis 4 abgehakt sind.

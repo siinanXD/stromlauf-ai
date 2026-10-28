@@ -1,6 +1,7 @@
 # Fertig-Liste Stromlauf AI v1 (öffentliche Demo)
 
-Stand: 2026-10-17 · Linear SIN-799 · freigegeben von Sinan am 2026-10-17.
+Stand: 2026-10-28 (Lücken-Tabelle angepasst, SIN-1170) · Linear SIN-799 · freigegeben von Sinan am 2026-10-17.
+Ist-Stand und Messwerte darunter stammen weiter vom 2026-10-17; neu gemessen wurde nichts.
 
 **Regel:** Erst muss alles funktionieren, bevor Geld ausgegeben wird. Die Demo wird lokal und in CI fertig getestet.
 Live geht sie erst, wenn daran nichts mehr gebaut werden muss. Bis dahin fällt kein Hosting-Geld an.
@@ -13,7 +14,7 @@ Live geht sie erst, wenn daran nichts mehr gebaut werden muss. Bis dahin fällt 
   steht in [`docs/DATEN.md`](DATEN.md). Eine Festo-MPS-Station nur, wenn die Lizenz die Weitergabe erlaubt.
 - [ ] **2. Eval in CI.** Das Eval-Set läuft in CI; mindestens 80 % der Antworten sind richtig und nennen die richtige
   Quelle (Blatt/Pfad oder AWL-Netzwerk).
-- [ ] **3. Demo-Modus.** Fertig indexierte Beispiel-Maschine, keine eigenen Uploads, Rate-Limit, kein Login.
+- [x] **3. Demo-Modus.** Fertig indexierte Beispiel-Maschine, keine eigenen Uploads, Rate-Limit, kein Login.
 - [ ] **4. Demo ohne Hosting.** `docker compose up` startet Backend, Frontend und Datenbank mit der Beispiel-Maschine.
   Ein Playwright-Test stellt 10 Fragen im Browser und prüft Antwort und Quelle. Er ist in CI grün, 3 Läufe hintereinander.
 - [ ] **5. Hosting (nur nach Freigabe).** Erst wenn 1 bis 4 abgehakt sind, legt der Loop ein Issue mit Label `sinan` an:
@@ -57,17 +58,17 @@ Gegen das Ziel (80 % richtig mit korrekter Quelle) heißt das: Sonnet 5.5 erreic
   deren Status je PR steht dort, nicht hier.
 - Wöchentlicher Agentenlauf (`eval.yml`, Gate `--min 0.8`): nur mit `ANTHROPIC_API_KEY`; ein aktueller Wert fehlt hier.
 
-### Lücken gegen die Fertig-Liste
+### Lücken gegen die Fertig-Liste (Stand 2026-10-28)
 
-| Punkt | Stand | Was fehlt |
+| Punkt | Stand | Nachweis und Rest |
 | --- | --- | --- |
-| 1 | Offen | `docs/DATEN.md` existiert nicht. Festo-Dateien haben keine Download-URL und die Lizenz („nur lokal testen, nicht weiterverteilen“, `scripts/testdata_manifest.json`) verbietet sie im Repo. Im Repo liegen nur erfundene Anlagen (`examples/foerderband` u. a.), davon FB-01 mit Stromlaufplan und AWL. Entscheidung nötig, ob FB-01 als Demo reicht. |
+| 1 | Offen | `docs/DATEN.md` liegt vor (SIN-1169, #188) und nennt Herkunft und Lizenz der FB-01-Dateien. Festo-Dateien haben keine Download-URL, ihre Lizenz („nur lokal testen, nicht weiterverteilen“, `scripts/testdata_manifest.json`) verbietet sie im Repo. Rest: Sinan entscheidet, ob FB-01 (Stromlaufplan und AWL) als Demo reicht (`docs/NAECHSTE-SCHRITTE.md` Schritt 1). |
 | 2 | Teilweise | Agentenlauf nur wöchentlich und nur auf FB-01 und Injection (`--only`), nicht auf allen 69 Fragen. Kein Gate auf „richtig mit Quelle“ über das ganze Set; Retrieval-Gate kostet nichts, misst aber nicht den Agenten. Offene Datenlücken: Issue #121 (Signalweg endet an der Meldeleuchte), Aufrufliste OB 1. |
-| 3 | Offen | Kein Demo-Modus gefunden: keine Upload-Sperre, kein Rate-Limit, `API_KEY` ist nur ein Schlüssel, kein Login. Ausnahme: `CHAT_MAX_TOOL_CALLS` und `CHAT_TIMEOUT_S` begrenzen je Antwort, aber nicht je Besucher. |
-| 4 | Offen | `docker-compose.yml` startet nur `db` und `langflow`. Es gibt ein `backend/Dockerfile`, aber kein Frontend-Dockerfile und keinen Dienst für beides. Die Playwright-Tests laufen gegen eine gemockte API (`e2e/api-mock.ts`); `staging.spec.ts` stellt nur eine Frage mit `E2E_ASK=1`. Kein Test mit 10 Fragen und keine drei Läufe in Folge. |
+| 3 | Erledigt | Demo-Modus `backend/app/demo.py` (SIN-975). `backend/tests/test_demo.py` belegt die drei Zusagen: 403 bei Schreibzugriff (`test_schreibzugriffe_liefern_403`), 429 durch Rate-Limit (`test_chat_rate_limit_greift_mit_429`, `test_gesamtlimit_je_ip`), Chat bleibt offen (`test_lesen_und_chat_funktionieren`). `seed_example` legt FB-01 beim Start an, kein Login. Der CI-Status der Tests steht im jeweiligen PR-Lauf, hier nicht neu gemessen. |
+| 4 | Offen | Compose steht (SIN-976): `docker compose --profile demo up --build` startet Datenbank, Backend und Frontend; Job `compose-demo` in `ci.yml` prüft Health und Startseite. Rest: der Playwright-Test mit 10 Fragen im Browser gegen die Compose-Demo, 3 Läufe in Folge (SIN-1161, wartet auf Sinans Antwort). |
 | 5 | Gesperrt | Erst nach 1 bis 4. |
 | 6 | Gesperrt | Erst nach 5. |
-| 7 | Offen | README ohne Screenshot, GIF, Video und ohne Link auf sjcode.de/-K3. |
+| 7 | Teilweise | README-Fallstudie steht (SIN-977, Abschnitt „Fallstudie“). Rest: Screenshot `docs/assets/maschinenseite.png` fehlt (SIN-1003, wartet auf Sinan; der Job `compose-demo` nimmt ihn auf), 1-Minuten-Video fehlt, Link auf [sjcode.de/-K3](http://sjcode.de/-K3) steht nicht in der README. |
 
 Reihenfolge: 1 und 3 zuerst (Daten und Modus), dann 4 (braucht beide), 2 läuft parallel und blockiert nur den
 Abschluss, 7 zuletzt, weil Bild und Video die fertige Demo zeigen.
