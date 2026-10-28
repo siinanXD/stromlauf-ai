@@ -10,7 +10,7 @@ Live geht sie erst, wenn daran nichts mehr gebaut werden muss. Bis dahin fällt 
 ## Fertig-Liste
 
 - [ ] **1. Beispiel-Doku im Repo.** Frei lizenzierte oder selbst erstellte Doku mit Stromlaufplan und AWL; die Lizenz
-  steht in `docs/DATEN.md`. Eine Festo-MPS-Station nur, wenn die Lizenz die Weitergabe erlaubt.
+  steht in [`docs/DATEN.md`](DATEN.md). Eine Festo-MPS-Station nur, wenn die Lizenz die Weitergabe erlaubt.
 - [ ] **2. Eval in CI.** Das Eval-Set läuft in CI; mindestens 80 % der Antworten sind richtig und nennen die richtige
   Quelle (Blatt/Pfad oder AWL-Netzwerk).
 - [ ] **3. Demo-Modus.** Fertig indexierte Beispiel-Maschine, keine eigenen Uploads, Rate-Limit, kein Login.
