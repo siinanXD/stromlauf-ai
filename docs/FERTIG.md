@@ -16,7 +16,9 @@ Live geht sie erst, wenn daran nichts mehr gebaut werden muss. Bis dahin fällt 
   Quelle (Blatt/Pfad oder AWL-Netzwerk).
 - [x] **3. Demo-Modus.** Fertig indexierte Beispiel-Maschine, keine eigenen Uploads, Rate-Limit, kein Login.
 - [ ] **4. Demo ohne Hosting.** `docker compose up` startet Backend, Frontend und Datenbank mit der Beispiel-Maschine.
-  Ein Playwright-Test stellt 10 Fragen im Browser und prüft Antwort und Quelle. Er ist in CI grün, 3 Läufe hintereinander.
+  Ein Playwright-Test stellt 10 Fragen im Browser und prüft Antwort und Quelle: [`frontend/e2e/demo.spec.ts`](../frontend/e2e/demo.spec.ts),
+  Job `compose-demo` in `ci.yml` mit `--repeat-each=3`. Er ist in CI grün, 3 Läufe hintereinander. Abhaken mit Datum und Run-Links.
+  Offen bis dahin: drei grüne Master-Läufe mit Schlüssel (SIN-1161).
 - [ ] **5. Hosting (nur nach Freigabe).** Erst wenn 1 bis 4 abgehakt sind, legt der Loop ein Issue mit Label `sinan` an:
   2 bis 3 Optionen mit Monatskosten (bge-m3 braucht etwa 2 GB RAM). Vorher fällt kein Geld an.
 - [ ] **6. Keine Bau-Arbeit nach dem Livegang.** Derselbe E2E-Test läuft grün gegen die öffentliche URL.
@@ -65,7 +67,7 @@ Gegen das Ziel (80 % richtig mit korrekter Quelle) heißt das: Sonnet 5.5 erreic
 | 1 | Offen | `docs/DATEN.md` liegt vor (SIN-1169, #188) und nennt Herkunft und Lizenz der FB-01-Dateien. Festo-Dateien haben keine Download-URL, ihre Lizenz („nur lokal testen, nicht weiterverteilen“, `scripts/testdata_manifest.json`) verbietet sie im Repo. Rest: Sinan entscheidet, ob FB-01 (Stromlaufplan und AWL) als Demo reicht (`docs/NAECHSTE-SCHRITTE.md` Schritt 1). |
 | 2 | Teilweise | Agentenlauf nur wöchentlich und nur auf FB-01 und Injection (`--only`), nicht auf allen 69 Fragen. Kein Gate auf „richtig mit Quelle“ über das ganze Set; Retrieval-Gate kostet nichts, misst aber nicht den Agenten. Offene Datenlücken: Issue #121 (Signalweg endet an der Meldeleuchte), Aufrufliste OB 1. |
 | 3 | Erledigt | Demo-Modus `backend/app/demo.py` (SIN-975). `backend/tests/test_demo.py` belegt die drei Zusagen: 403 bei Schreibzugriff (`test_schreibzugriffe_liefern_403`), 429 durch Rate-Limit (`test_chat_rate_limit_greift_mit_429`, `test_gesamtlimit_je_ip`), Chat bleibt offen (`test_lesen_und_chat_funktionieren`). `seed_example` legt FB-01 beim Start an, kein Login. Der CI-Status der Tests steht im jeweiligen PR-Lauf, hier nicht neu gemessen. |
-| 4 | Offen | Compose steht (SIN-976): `docker compose --profile demo up --build` startet Datenbank, Backend und Frontend; Job `compose-demo` in `ci.yml` prüft Health und Startseite. Rest: der Playwright-Test mit 10 Fragen im Browser gegen die Compose-Demo, 3 Läufe in Folge (SIN-1161, wartet auf Sinans Antwort). |
+| 4 | Teilweise | Compose steht (SIN-976), der Browser-Test steht (SIN-1161): `frontend/e2e/demo.spec.ts` stellt 10 Fragen aus `eval/questions.jsonl` (FB-01) und prüft je Frage Wert und Quelle in der Ansicht ohne Modell (Befundkarte, SPS „Warum“, Signalweg, 0 USD); mit Schlüssel auf master zusätzlich dieselben Fragen im Chat (Antwort, Beleg, erwartete Quelle). Job `compose-demo` führt ihn mit `--repeat-each=3` aus. Rest: drei grüne Master-Läufe in Folge mit Run-Links, dann abhaken. Der Signalweg von `-S1` endet an `-H2` statt bei `-K1` (Issue #121), der Test prüft nur, was die Ansicht belegt. |
 | 5 | Gesperrt | Erst nach 1 bis 4. |
 | 6 | Gesperrt | Erst nach 5. |
 | 7 | Teilweise | README-Fallstudie steht (SIN-977, Abschnitt „Fallstudie“). Rest: Screenshot `docs/assets/maschinenseite.png` fehlt (SIN-1003, wartet auf Sinan; der Job `compose-demo` nimmt ihn auf), 1-Minuten-Video fehlt, Link auf [sjcode.de/-K3](http://sjcode.de/-K3) steht nicht in der README. |

@@ -29,6 +29,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       DEMO_MODE: "true"
       DEMO_EXAMPLE_DIR: /examples/foerderband
+      # E2E-Lauf (ci.yml, compose-demo) hebt das Gesamtlimit an: 30 Seitenaufrufe je Minute reissen die 120 sonst
+      DEMO_RATE_LIMIT: ${DEMO_RATE_LIMIT:-120}
       CORS_ORIGINS: http://localhost:3100,http://127.0.0.1:3100
     ports:
       - "8010:8010"
