@@ -158,7 +158,7 @@ der Instandhaltung an der Maschine?
   `data/plan_cache/<sha256>-v<PLAN_READER_VERSION>.json`; bei geaenderten Regeln die Version erhoehen), vorab gerechnet in
   `ingest_document`. Der Signalgraph fuehrt je Kante die Herkunft (`via`: klemmenplan, awl, leitung, lage, modell), reine
   PDF-Quellen sind verfolgbar. `GET /api/signal-path?view=main` (`ingestion/signal_view.py`): Hauptweg in festen Spalten
-  feld … verbraucher, Pins an den Kanten, Abzweige je Knoten (`branches`); 404 mit `detail.reason` no_sources|unknown_tag.
+  feld … verbraucher (vorwaerts gewinnt ein Weg zu Motor/Ventil vor dem kuerzeren zur Meldeleuchte, Issue #121), Pins an den Kanten, Abzweige je Knoten (`branches`); 404 mit `detail.reason` no_sources|unknown_tag.
   Gate `eval/run_plan_graph.py` im Ingest-Job: Precision >= 0,95 gegen `wires` im Gold und gegen den Graphen aus den
   Tabellen, Recall nur berichtet.
 - Planleser per Modell (Issue #108): `PLAN_READER_MODEL` (leer = aus), `PLAN_READER_BASE_URL` (OpenAI-kompatibel, auch
