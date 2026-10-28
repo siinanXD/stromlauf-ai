@@ -213,11 +213,16 @@ jobs:
     name: Demo (docker compose)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # PRs bauen Code von Agenten und Fremden: der Schluessel geht nur an push auf master und workflow_dispatch (SIN-1177).
+    # Bei pull_request bleiben Health und Startseite als Demo-Pruefung, ohne Schluessel.
+    # HAS_KEY auf Jobebene, weil `if` eines Schritts dessen eigenes `env` nicht sieht.
+    env:
+      HAS_KEY: ${{ github.event_name != 'pull_request' && secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Demo starten
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ github.event_name != 'pull_request' && secrets.ANTHROPIC_API_KEY || '' }}
         run: docker compose --profile demo up --build -d --wait --wait-timeout 1500
       - name: Health und Startseite
         run: |
@@ -231,7 +236,6 @@ jobs:
       - name: Screenshot der Maschinenseite
         if: ${{ env.HAS_KEY == 'true' }}
         env:
-          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
           E2E_BASE_URL: http://localhost:3100
           E2E_API_URL: http://localhost:8010
           E2E_SCREENSHOT: ${{ github.workspace }}/docs/assets/maschinenseite.png
