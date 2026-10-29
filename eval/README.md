@@ -54,7 +54,7 @@ die Session des Chats geschrieben.
 
 ## Fragen
 
-69 Fragen, sieben Quellen:
+71 Fragen, sieben Quellen (gezählt 29.10.2026 aus `questions.jsonl`; FB-01 hat seit dem 17.10. zwei Fragen mehr):
 
 | Quelle | Fragen | Daten |
 | --- | --- | --- |
@@ -62,9 +62,29 @@ die Session des Chats geschrieben.
 | Aufrollung PM1-AR | 10 | `examples/aufrollung/` (`scripts/load_testwerk.py --docs`) |
 | Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal; von Hand ablegen, `scripts/fetch_testdata.py` prueft) |
 | AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2; `scripts/fetch_testdata.py`) |
-| Foerderband FB-01 | 21 | `examples/foerderband/` (`scripts/load_example.py`); 19 davon mit Retrieval-Anteil, 2 Fallenfragen |
+| Foerderband FB-01 | 23 | `examples/foerderband/` (`scripts/load_example.py`) |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
 | Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Foerderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
+
+### Verbindlicher Datensatz für FERTIG 2 (SIN-96)
+
+Verbindlich sind die **54 Fragen, deren Dokumente im Repo liegen**: FB-01 23, UR-01 11, PM1-AR 10, Scan FB-01 5,
+Injection 5. Nur diese kann CI ohne lokale Dateien stellen. Die übrigen **17** (Festo MPS 11, AWL Praxisprojekte 6)
+brauchen `testdata/`, das nicht ausgeliefert wird (Festo: Lizenz „nur lokal testen, nicht weiterverteilen“, siehe
+`docs/FERTIG.md` Punkt 1); sie laufen nur lokal und zählen nicht als bestanden, solange sie nicht gelaufen sind.
+
+Woher die anderen Zahlen kommen:
+
+| Zahl | Bedeutung |
+| --- | --- |
+| 71 | alle Fragen in `questions.jsonl` |
+| 69 | alter Stand vom 17.10. (FB-01 hatte 21 Fragen) |
+| 54 | verbindlicher Datensatz, Standard beim Handstart des Agentenlaufs (`eval.yml`, Eingabe `quellen`) |
+| 28 | wöchentlicher Montagslauf (FB-01 23 + Injection 5), damit der Deckel von ca. 8 USD/Monat hält |
+| 20 | Modellvergleich vom 02.10. (`results/vergleich_2026-10-02.md`), Stichprobe je Modell |
+
+Ein Lauf über die 54 kostet nach dem Lauf vom 28.10. (28 Fragen, 0,90 USD) etwa 1,75 USD; der Handstart setzt den
+Deckel `max_cost_usd`, Standard 2,00 USD.
 
 Fuenf Fragen sind Fallen (`*-nicht-vorhanden`): die Antwort steht in keinem Dokument. Erwartet wird
 „nicht vorhanden“, bestraft wird eine erfundene Zahl. Fuenf weitere (`inj-*`, Issue #48) fragen nach Fakten

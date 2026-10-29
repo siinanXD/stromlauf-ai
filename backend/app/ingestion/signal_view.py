@@ -2,7 +2,9 @@
 
 Statt der ganzen Nachbarschaft zeigt die Sicht einen Weg: rueckwaerts der kuerzeste Weg ueber gerichtete Kanten bis
 zu einem Knoten ohne Vorgaenger, vorwaerts bis zu einem ohne Nachfolger; bei Gleichstand gewinnt die lexikografisch
-kleinste Folge der Knoten-IDs. Nachbarn abseits des Wegs stehen eine Stufe tief als Abzweige daneben.
+kleinste Folge der Knoten-IDs. Vorwaerts gewinnt zuerst ein Weg zu einem Verbraucher (Motor, Ventil …), erst dann der
+kuerzeste: sonst fuehrte der Hauptweg zur Stoerleuchte statt zum Motor. Nachbarn abseits des Wegs stehen eine Stufe
+tief als Abzweige daneben.
 
 Anschluesse (Knoten der Art "pin") gehen in ihrem Geraet auf; ihre Nummer steht an der Kante (`pins.from`,
 `pins.to`). Die Spalte eines Knotens folgt aus seiner Art und seiner Lage zum ersten SPS-Knoten des Wegs.
@@ -11,8 +13,10 @@ Anschluesse (Knoten der Art "pin") gehen in ihrem Geraet auf; ihre Nummer steht 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from app.ingestion.letter_codes import detect_edition, kind_of
 from app.ingestion.signal_graph import HUB_DEGREE, MAX_DEPTH, Graph, _start_id
 
 COLUMNS = (
@@ -28,6 +32,8 @@ COLUMNS = (
 PLC_KINDS = {"address", "network", "variable"}
 _BIT_INPUT = re.compile(r"E\d+\.[0-7]")
 _BIT_OUTPUT = re.compile(r"A\d+\.[0-7]")
+# Arten (letter_codes.kind_of), an denen ein Signalweg sinnvoll endet; Meldeleuchten und Klemmen zaehlen nicht.
+CONSUMER_KINDS = {"Motor", "Antrieb", "Ventil", "Elektromagnet", "Zylinder"}
 
 
 @dataclass
@@ -76,10 +82,16 @@ def _collapsed(graph: Graph) -> dict[tuple[str, str], _Edge]:
     return edges
 
 
-def _shortest(start: str, step: dict[str, list[str]], degree: dict[str, int]) -> list[str]:
-    """Kuerzester Weg ab start bis zu einem Knoten ohne weiteren Schritt; Gleichstand: kleinste Folge der IDs.
-    Knoten mit mehr als HUB_DEGREE Kanten und Knoten in MAX_DEPTH werden nicht weiter verfolgt; sie zaehlen nur, wenn
-    kein echtes Ende erreichbar ist."""
+def _shortest(
+    start: str,
+    step: dict[str, list[str]],
+    degree: dict[str, int],
+    rank: Callable[[str], int] = lambda _node: 0,
+) -> list[str]:
+    """Weg ab start bis zu einem Knoten ohne weiteren Schritt: kleinster rank des Endes, dann kuerzester, bei
+    Gleichstand die kleinste Folge der IDs. Knoten mit mehr als HUB_DEGREE Kanten und Knoten in MAX_DEPTH werden nicht
+    weiter verfolgt; sie zaehlen nur, wenn kein echtes Ende erreichbar ist. Ohne unterschiedlichen rank endet die
+    Suche nicht schon an der ersten Tiefe mit einem Ende, sondern prueft alle erreichbaren Enden."""
     paths = {start: (start,)}
     layer = [start]
     ends: list[tuple[str, ...]] = []
@@ -101,11 +113,11 @@ def _shortest(start: str, step: dict[str, list[str]], degree: dict[str, int]) ->
             for nxt in fresh:
                 paths[nxt] = paths[current] + (nxt,)
                 following.append(nxt)
-        if ends or not following:
+        if not following:
             break
         layer = following
     found = ends or blocked
-    return list(min(found, key=lambda p: (len(p), p))) if found else [start]
+    return list(min(found, key=lambda p: (rank(p[-1]), len(p), p))) if found else [start]
 
 
 def _column(
@@ -160,7 +172,18 @@ def main_view(graph: Graph, tag: str) -> dict | None:
             predecessors.setdefault(b, []).append(a)
     degree = {n: len(successors.get(n, [])) + len(predecessors.get(n, [])) for n in neighbours}
     backward = _shortest(start, predecessors, degree)
-    forward = _shortest(start, successors, degree)
+    edition = detect_edition(graph.nodes).name
+
+    def rank(node_id: str) -> int:
+        is_device = graph.nodes[node_id].kind == "device"  # "M10.0" ist ein Merker, kein Motor
+        return 0 if is_device and kind_of(node_id, edition) in CONSUMER_KINDS else 1
+
+    forward_steps = successors
+    if graph.nodes[start].kind == "address" and _BIT_OUTPUT.fullmatch(start):
+        wired = [n for n in successors.get(start, []) if graph.nodes[n].kind not in PLC_KINDS]
+        if wired:  # ein SPS-Ausgang fuehrt vorwaerts ueber seine Verdrahtung, nicht zurueck ins Programm (SIN-1189)
+            forward_steps = {**successors, start: wired}
+    forward = _shortest(start, forward_steps, degree, rank)
     path = list(reversed(backward)) + forward[1:]
     on_path = {node_id: index for index, node_id in enumerate(path)}
     start_at = on_path[start]

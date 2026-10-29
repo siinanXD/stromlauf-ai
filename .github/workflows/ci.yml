@@ -223,6 +223,7 @@ jobs:
       - name: Demo starten
         env:
           ANTHROPIC_API_KEY: ${{ github.event_name != 'pull_request' && secrets.ANTHROPIC_API_KEY || '' }}
+          DEMO_RATE_LIMIT: 2000  # der Browser-Test unten ruft 30 Seiten je Minute auf, das Standardlimit (120) wuerde 429 liefern
         run: docker compose --profile demo up --build -d --wait --wait-timeout 1500
       - name: Health und Startseite
         run: |
@@ -233,6 +234,18 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      # FERTIG.md Punkt 4: 10 Fragen im Browser, 3 Laeufe hintereinander. Die Ansichten ohne Modell laufen immer; die
+      # bezahlten Chat-Fragen (ca. 1,40 USD je Durchlauf) nur auf master und nur, wenn das Backend einen Schluessel hat.
+      - name: Browser-Test (10 Fragen, 3 Laeufe)
+        env:
+          E2E_BASE_URL: http://localhost:3100
+          E2E_API_URL: http://localhost:8010
+          E2E_CHAT: ${{ github.ref == 'refs/heads/master' && '1' || '' }}
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/demo.spec.ts --project=desktop-1440 --workers=1 --repeat-each=3
       - name: Screenshot der Maschinenseite
         if: ${{ env.HAS_KEY == 'true' }}
         env:

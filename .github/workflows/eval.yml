@@ -18,6 +18,9 @@ on:
       vision_model:
         description: "Vision-Modell fuer die Schaltschrank-IoU, z. B. openai:gpt-5 (leer = Variable EVAL_VISION_MODEL)"
         default: ""
+      quellen:
+        description: "Quellen des Agentenlaufs (SIN-96, FERTIG 2); Standard beim Handstart: alle lieferbaren (Festo und AWL brauchen lokale testdata/)"
+        default: "Foerderband FB-01,Umroller UR-01,Aufrollung PM1-AR,Scan FB-01,Injection-Test"
 
 concurrency:
   group: eval-${{ github.ref }}
@@ -289,7 +292,7 @@ jobs:
           python scripts/load_folder.py examples/injection --name "Injection-Test" --api http://localhost:8010
       - name: Agentenlauf FB-01 und Injection-Fallen mit Kostendeckel
         if: steps.secret.outputs.skip != 'true'
-        run: python eval/run_eval.py --api http://localhost:8010 --only "Foerderband FB-01,Injection-Test" --min 0.8 --min-citations 0.9 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
+        run: python eval/run_eval.py --api http://localhost:8010 --only "${{ github.event.inputs.quellen || 'Foerderband FB-01,Injection-Test' }}" --min 0.8 --min-citations 0.9 --max-cost "${{ github.event.inputs.max_cost_usd || '2.00' }}"
       - name: Schaltschrank-IoU (ein Vision-Aufruf)
         if: steps.secret.outputs.skip != 'true'
         run: python eval/run_cabinet.py --api http://localhost:8010 --min-iou 0.5 --min-share 0.8

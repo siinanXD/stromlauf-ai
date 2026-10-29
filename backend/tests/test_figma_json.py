@@ -74,14 +74,19 @@ def test_stoerfall_antwort_fb01_offline(offline):
     assert data["meta"]["citations_valid"]["total"] == 2
     # Signalweg des ersten verfolgbaren Bauteils der Antwort, wie meta.signal_start
     path = _main_path(data["signal"])
-    assert data["signal"]["start"] == "-F2" and path[0] == "-F2" and path[-1] == "-H2"
+    assert (
+        data["signal"]["start"] == "-F2"
+        and path[0] == "-F2"
+        and path[-1] == "-M1"
+        and "-H2" not in path
+    )
 
 
 def test_signalweg_und_stoerfaelle_fb01_offline(offline):
     signal = offline("--vorlage", "signalweg", "--tag", "-F2")  # Wert mit Minus ohne "="
     assert figma.validate(signal) == []
     path = _main_path(signal["signal"])
-    assert path[0] == "-F2" and path[-1] == "-H2"
+    assert path[0] == "-F2" and path[-1] == "-M1" and "-H2" not in path
 
     incidents = offline("--vorlage", "stoerfaelle", "--meldung", MELDUNG)
     assert figma.validate(incidents) == [] and incidents["ort"] == "Halle 1 (Beispiel)"
