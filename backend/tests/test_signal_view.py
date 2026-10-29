@@ -194,3 +194,13 @@ def test_ur01_hauptweg_endet_am_motor_nicht_an_der_leuchte():
         ids = _ids(main_view(graph, tag))
         assert ids[0] == tag and ids[-1].startswith("-M"), ids
         assert "-H1" not in ids
+
+
+def test_sps_ausgang_fuehrt_ueber_seine_verdrahtung_zur_leuchte():
+    """Review SIN-1189: Vom Ausgang A4.3 fuehrte der Hauptweg zurueck ins Programm (NW1) bis zum Motor -M1,
+    obwohl A4.3 ueber -X3:12 die Stoerleuchte -H2 schaltet. Ein SPS-Ausgang geht vorwaerts ueber seine Verdrahtung."""
+    ids = _ids(main_view(fb01_graph(), "A4.3"))
+    assert ids[ids.index("A4.3"):] == ["A4.3", "-X3:12", "-H2"]
+    # Der Weg vom Taster und vom Ausgang A4.0 bleibt beim Motor.
+    assert _ids(main_view(fb01_graph(), "-S1"))[-1] == "-M1"
+    assert _ids(main_view(fb01_graph(), "A4.0"))[-4:] == ["-X3:9", "-K1", "-X4:U", "-M1"]

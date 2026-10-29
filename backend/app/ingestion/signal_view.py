@@ -178,7 +178,12 @@ def main_view(graph: Graph, tag: str) -> dict | None:
         is_device = graph.nodes[node_id].kind == "device"  # "M10.0" ist ein Merker, kein Motor
         return 0 if is_device and kind_of(node_id, edition) in CONSUMER_KINDS else 1
 
-    forward = _shortest(start, successors, degree, rank)
+    forward_steps = successors
+    if graph.nodes[start].kind == "address" and _BIT_OUTPUT.fullmatch(start):
+        wired = [n for n in successors.get(start, []) if graph.nodes[n].kind not in PLC_KINDS]
+        if wired:  # ein SPS-Ausgang fuehrt vorwaerts ueber seine Verdrahtung, nicht zurueck ins Programm (SIN-1189)
+            forward_steps = {**successors, start: wired}
+    forward = _shortest(start, forward_steps, degree, rank)
     path = list(reversed(backward)) + forward[1:]
     on_path = {node_id: index for index, node_id in enumerate(path)}
     start_at = on_path[start]
