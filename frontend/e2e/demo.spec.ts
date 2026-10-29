@@ -41,8 +41,8 @@ const FRAGEN: Frage[] = [
   { id: "fb01-q2-reparaturschalter", art: "bauteil", tag: "-Q2", zeigt: [/Reparaturschalter/, /\+AN1/, /\/3\.5/], quelle: "02_Stueckliste_FB-01.xlsx" },
   { id: "fb01-warum-a40", art: "warum", ausgang: "A4.0", zeigt: [/FB 10 NW 2/, /FB 10 NW 1/, /-X3:9/], quelle: /FB 10 NW \d/ },
   { id: "fb01-warum-a41", art: "warum", ausgang: "A4.1", zeigt: [/FB 10 NW 3/, /M20\.0/], quelle: /FB 10 NW \d/ },
-  // Der Hauptweg endet heute an -H2 statt bei -K1/A4.0 (Issue #121): geprueft wird nur, was die Ansicht belegt
-  { id: "fb01-signal-s1", art: "signal", tag: "-S1", zeigt: [/-X3:1/, /E0\.0/, /FB 10 NW 1/], quelle: /Blatt 4/ },
+  // Seit #194 (Issue #121, SIN-1189) fuehrt der Hauptweg vom Taster ueber A4.0 und -K1 zum Motor -M1, nicht zur Leuchte -H2.
+  { id: "fb01-signal-s1", art: "signal", tag: "-S1", zeigt: [/-X3:1/, /E0\.0/, /FB 10 NW 1/, /A4\.0/, /-K1/, /-M1/], quelle: /Blatt 4/ },
 ];
 
 const evals = new Map<string, Eval>(
