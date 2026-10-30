@@ -65,7 +65,7 @@ def _winkel(grad: float) -> list[float]:
 
 def test_kleiner_abstand_der_besten_zwei_bleibt_unzugeordnet():
     gruppen = {"A": [1.0, 0.0], "B": [0.0, 1.0]}
-    # cos 44 - cos 46 = 0,025, deutlich unter ABSTAND
+    # cos 44 - cos 46 = 0,025, unter ABSTAND
     assert ordne_zu(_winkel(44.0), gruppen, schwelle=0.0)[0] is None
 
 
@@ -84,7 +84,7 @@ def test_abstand_an_der_grenze():
 
 
 def test_standardabstand():
-    assert ABSTAND == 0.05
+    assert ABSTAND == 0.03
 
 
 def test_ohne_gruppen_bleibt_unzugeordnet():

@@ -87,9 +87,11 @@ class Settings(BaseSettings):
     ablauf_model: str = "ollama:qwen3.5:9b"
     # Ablauf-Zuordnung (app/ablauf/aehnlichkeit.py): Datei ohne Anlage kommt zur aehnlichsten Gruppe, wenn der
     # Cosinus mindestens die Schwelle erreicht und die zweitbeste Gruppe mindestens den Abstand darunter liegt.
-    # TODO: Schwelle an echten Ordnern messen (SIN-1131); 0,75 ist ein Startwert fuer bge-m3, kein Messwert.
+    # Gemessen (SIN-1214, bge-m3, Handbuch FB-01 gegen die Beispielanlagen ohne dieses Handbuch): FB-01 0,908,
+    # PM1-AR 0,872, UR-01 0,863. Die Anlagen stammen aus einer Vorlage, 0,05 haette den richtigen Treffer verworfen.
+    # TODO: Schwelle an Ordnern echter, verschiedener Anlagen messen; 0,75 ist ein Startwert, kein Messwert.
     ablauf_aehnlichkeit_schwelle: float = 0.75
-    ablauf_aehnlichkeit_abstand: float = 0.05
+    ablauf_aehnlichkeit_abstand: float = 0.03
 
     # Langfuse (optional, app/tracing.py): ohne Schluessel laufen Chat und Vision ohne Trace
     langfuse_public_key: str | None = None

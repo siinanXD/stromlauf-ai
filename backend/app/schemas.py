@@ -476,6 +476,28 @@ class GruppenVorschlag(BaseModel):
     ignoriert: list[str]
 
 
+class AehnlichkeitGruppe(BaseModel):
+    name: str = Field(max_length=200)
+    source_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class AehnlichkeitDatei(BaseModel):
+    pfad: str = Field(max_length=1000)
+    document_id: str = Field(max_length=32)
+
+
+class AehnlichkeitAnfrage(BaseModel):
+    gruppen: list[AehnlichkeitGruppe] = Field(max_length=200)
+    dateien: list[AehnlichkeitDatei] = Field(max_length=200)
+
+
+class AehnlichkeitVorschlag(BaseModel):
+    pfad: str
+    vorschlag: str | None
+    wert: float
+    herkunft: Literal["aehnlichkeit"] = "aehnlichkeit"
+
+
 class RunStep(BaseModel):
     key: str
     label: str
