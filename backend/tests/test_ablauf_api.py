@@ -350,3 +350,190 @@ def test_zu_viele_dateien_400(client, headers):
     r = client.post("/api/runs", files=files, headers=headers)
     assert r.status_code == 400 and "100" in r.json()["detail"]
     assert len(client.get("/api/sources", headers=headers).json()) == before
+
+
+def _vektor(**achsen: float) -> list[float]:
+    """Vektor in Embedding-Laenge, nur die genannten Achsen (`a0=1.0`) sind belegt."""
+    from app.config import get_settings
+
+    werte = [0.0] * get_settings().embedding_dim
+    for achse, wert in achsen.items():
+        werte[int(achse[1:])] = wert
+    return werte
+
+
+def _lege_an(workspace_id: str, chunks: list[list[float]]) -> tuple[str, str]:
+    """Quelle mit einem Dokument und je einem Chunk pro Vektor; Rueckgabe (source_id, document_id)."""
+    from app.db import session_scope
+    from app.models import Chunk, DocStatus, Document, KnowledgeSource
+    from app.tenancy import reset_workspace, set_workspace
+
+    token = set_workspace(workspace_id)
+    try:
+        with session_scope() as session:
+            source = KnowledgeSource(name="Synthetisch")
+            session.add(source)
+            session.flush()
+            document = Document(
+                source_id=source.id, filename="a.md", storage_path="a.md", status=DocStatus.READY
+            )
+            session.add(document)
+            session.flush()
+            for i, vektor in enumerate(chunks):
+                session.add(
+                    Chunk(
+                        document_id=document.id,
+                        source_id=source.id,
+                        content=f"Abschnitt {i}",
+                        embedding=vektor,
+                    )
+                )
+            return source.id, document.id
+    finally:
+        reset_workspace(token)
+
+
+def test_aehnlichkeit_vorschlag_ueber_und_unter_der_schwelle(client, headers, monkeypatch):
+    class KeinAufruf:
+        def __getattr__(self, name):
+            raise AssertionError(f"Embedding-Aufruf {name}: der Vorschlag darf nur Vektoren lesen")
+
+    monkeypatch.setattr("app.embeddings.embeddings", KeinAufruf())
+    monkeypatch.setattr("app.ingestion.pipeline.embeddings", KeinAufruf())
+    quelle_a, _ = _lege_an(WS, [_vektor(a0=1.0), _vektor(a0=1.0, a1=0.2)])
+    quelle_b, _ = _lege_an(WS, [_vektor(a2=1.0)])
+    _, nah = _lege_an(WS, [_vektor(a0=1.0, a3=0.1)])
+    _, fern = _lege_an(WS, [_vektor(a5=1.0)])
+    _, leer = _lege_an(WS, [])
+
+    body = {
+        "gruppen": [
+            {"name": "FB-01", "source_ids": [quelle_a]},
+            {"name": "UR-01", "source_ids": [quelle_b]},
+        ],
+        "dateien": [
+            {"pfad": "nah.md", "document_id": nah},
+            {"pfad": "fern.md", "document_id": fern},
+            {"pfad": "leer.md", "document_id": leer},
+        ],
+    }
+    r = client.post("/api/runs/aehnlichkeit", json=body, headers=headers)
+    assert r.status_code == 200, r.text
+    nah_r, fern_r, leer_r = r.json()
+    assert nah_r["pfad"] == "nah.md" and nah_r["vorschlag"] == "FB-01"
+    assert nah_r["herkunft"] == "aehnlichkeit" and nah_r["wert"] > 0.95
+    assert fern_r == {"pfad": "fern.md", "vorschlag": None, "wert": 0.0, "herkunft": "aehnlichkeit"}
+    assert leer_r["vorschlag"] is None and leer_r["wert"] == 0.0
+
+
+def test_aehnlichkeit_knapper_abstand_und_gruppe_ohne_chunks(client, headers):
+    quelle_a, _ = _lege_an(WS, [_vektor(a0=1.0)])
+    quelle_b, _ = _lege_an(WS, [_vektor(a0=1.0, a1=0.01)])  # fast gleiche Richtung wie A
+    ungelesen, _ = _lege_an(WS, [])
+    _, datei = _lege_an(WS, [_vektor(a0=1.0)])
+
+    def frage(gruppen):
+        r = client.post(
+            "/api/runs/aehnlichkeit",
+            json={"gruppen": gruppen, "dateien": [{"pfad": "x.md", "document_id": datei}]},
+            headers=headers,
+        )
+        assert r.status_code == 200, r.text
+        return r.json()[0]
+
+    knapp = frage([{"name": "A", "source_ids": [quelle_a]}, {"name": "B", "source_ids": [quelle_b]}])
+    assert knapp["vorschlag"] is None and knapp["wert"] > 0.99
+    # Eine noch nicht gelesene Gruppe nimmt nicht teil und stoert den Abstand nicht.
+    ohne = frage([{"name": "A", "source_ids": [quelle_a]}, {"name": "B", "source_ids": [ungelesen]}])
+    assert ohne["vorschlag"] == "A"
+
+
+def test_aehnlichkeit_fremder_workspace_404(client, headers, fremde_headers):
+    quelle, dokument = _lege_an(WS, [_vektor(a0=1.0)])
+    eigene = {
+        "gruppen": [{"name": "A", "source_ids": [quelle]}],
+        "dateien": [{"pfad": "x.md", "document_id": dokument}],
+    }
+    assert client.post("/api/runs/aehnlichkeit", json=eigene, headers=headers).status_code == 200
+    assert client.post("/api/runs/aehnlichkeit", json=eigene, headers=fremde_headers).status_code == 404
+    fremde_quelle, fremdes_dokument = _lege_an(WS_FREMD, [_vektor(a0=1.0)])
+    gemischt = {
+        "gruppen": [{"name": "A", "source_ids": [quelle]}],
+        "dateien": [{"pfad": "x.md", "document_id": fremdes_dokument}],
+    }
+    assert client.post("/api/runs/aehnlichkeit", json=gemischt, headers=headers).status_code == 404
+    gemischt["gruppen"][0]["source_ids"] = [fremde_quelle]
+    gemischt["dateien"][0]["document_id"] = dokument
+    assert client.post("/api/runs/aehnlichkeit", json=gemischt, headers=headers).status_code == 404
+
+
+def test_aehnlichkeit_gleiche_gruppennamen_400(client, headers):
+    quelle, dokument = _lege_an(WS, [_vektor(a0=1.0)])
+    gruppe = {"name": "A", "source_ids": [quelle]}
+    body = {"gruppen": [gruppe, gruppe], "dateien": [{"pfad": "x.md", "document_id": dokument}]}
+    assert client.post("/api/runs/aehnlichkeit", json=body, headers=headers).status_code == 400
+
+
+@pytest.mark.skipif(
+    not os.environ.get("STROMLAUF_MODELL_TESTS"),
+    reason="braucht das lokale Embedding-Modell bge-m3 (STROMLAUF_MODELL_TESTS=1, Job 'Ähnlichkeit' in eval.yml)",
+)
+def test_handbuch_ohne_kennung_geht_zu_fb01_nicht_ur01(client, headers, tmp_path):
+    """Echte Vektoren (bge-m3) der Beispielanlagen; Docling-freie Dateien, damit der Test ohne PDF-Modelle läuft."""
+    from app.db import session_scope
+    from app.ingestion.pipeline import ingest_document
+    from app.models import Document, KnowledgeSource
+    from app.tenancy import reset_workspace, set_workspace
+
+    beispiele = EXAMPLES.parent
+    token = set_workspace(WS)
+    try:
+
+        def lese(dateien: list[Path], name: str) -> tuple[str, list[str]]:
+            with session_scope() as session:
+                quelle = KnowledgeSource(name=name)
+                session.add(quelle)
+                session.flush()
+                ids = []
+                for datei in dateien:
+                    ziel = tmp_path / f"{len(list(tmp_path.iterdir()))}_{datei.name}"
+                    ziel.write_bytes(datei.read_bytes())
+                    dokument = Document(source_id=quelle.id, filename=datei.name, storage_path=str(ziel))
+                    session.add(dokument)
+                    session.flush()
+                    ids.append(dokument.id)
+                quelle_id = quelle.id
+            for dokument_id in ids:
+                ingest_document(dokument_id)
+            with session_scope() as session:
+                for dokument_id in ids:
+                    dokument = session.get(Document, dokument_id)
+                    assert dokument.status == "ready", dokument.error
+            return quelle_id, ids
+
+        def ohne_pdf(ordner: str, *, ohne_handbuch: bool) -> list[Path]:
+            endungen = {".csv", ".awl", ".sdf", ".xlsx", ".pdf"} | (set() if ohne_handbuch else {".md"})
+            return [
+                p
+                for p in sorted((beispiele / ordner).iterdir())
+                if p.suffix in endungen and p.name != "README.md"
+            ]
+
+        fb01, _ = lese(ohne_pdf("foerderband", ohne_handbuch=True), "FB-01")
+        ur01, _ = lese(ohne_pdf("umroller", ohne_handbuch=False), "UR-01")
+        pm1, _ = lese(ohne_pdf("aufrollung", ohne_handbuch=False), "PM1-AR")
+        _, (handbuch,) = lese([EXAMPLES / "06_Betriebsanleitung_FB-01.md"], "Handbuch")
+    finally:
+        reset_workspace(token)
+
+    body = {
+        "gruppen": [
+            {"name": "FB-01", "source_ids": [fb01]},
+            {"name": "UR-01", "source_ids": [ur01]},
+            {"name": "PM1-AR", "source_ids": [pm1]},
+        ],
+        "dateien": [{"pfad": "Betriebsanleitung.md", "document_id": handbuch}],
+    }
+    r = client.post("/api/runs/aehnlichkeit", json=body, headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["vorschlag"] == "FB-01", r.json()

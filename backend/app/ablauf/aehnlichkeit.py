@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 
 # Mindestabstand zwischen bester und zweitbester Gruppe. Die Einstellung heisst
 # `ABLAUF_AEHNLICHKEIT_ABSTAND` (config.py); der Aufrufer reicht sie durch.
-ABSTAND = 0.05
+ABSTAND = 0.03
 
 
 def _normiert(vektor: Sequence[float]) -> list[float]:
