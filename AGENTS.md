@@ -183,6 +183,12 @@ der Instandhaltung an der Maschine?
 - Signalweg-Ansicht (Issue #109): `components/signal/SignalView.tsx` mit `compact` im Antwortblock und `auto` (unter
   1024 px `SignalChain` ohne xyflow, sonst `SignalGraph` per `next/dynamic` mit Planseite darunter); Herkunft als
   Linienart; `PageViewer` zoomt und verschiebt mit `react-zoom-pan-pinch`.
+- Ordner-Upload, Aehnlichkeits-Vorschlag (SIN-1214, ohne Modell): `POST /api/runs/aehnlichkeit` (`api/ablauf.py`) nimmt
+  `gruppen` (`name`, `source_ids`) und `dateien` (`pfad`, `document_id`) und rechnet nur mit den gespeicherten Chunk-Vektoren
+  (`ablauf/aehnlichkeit.py`, kein Embedding-Aufruf). Antwort je Datei `{pfad, vorschlag, wert, herkunft: "aehnlichkeit"}`;
+  `vorschlag` ist null unter `ABLAUF_AEHNLICHKEIT_SCHWELLE`, bei weniger als `..._ABSTAND` zur zweitbesten Gruppe und fuer
+  Dateien ohne Chunks; Gruppen ohne gelesene Chunks nehmen nicht teil. Fremde oder unbekannte Quelle/Datei: 404. Der Test mit
+  echtem bge-m3 (`STROMLAUF_MODELL_TESTS=1`) laeuft im Job `aehnlichkeit` von `eval.yml`.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
   `CabinetEditor.highlightTags`;
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.

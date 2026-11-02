@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import ledger
+from app.ablauf.aehnlichkeit import mittelwert_vektor, ordne_zu
 from app.ablauf.gruppieren import gruppiere
 from app.ablauf.lauf import halle_sichern, starte_lauf
 from app.ablauf.schritte import beende, neue_schritte, starte
@@ -19,8 +20,10 @@ from app.api.sources import ALLOWED_SUFFIXES
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.pipeline import detect_doc_type
-from app.models import DocType, Document, KnowledgeSource, Run
+from app.models import Chunk, DocType, Document, KnowledgeSource, Run
 from app.schemas import (
+    AehnlichkeitAnfrage,
+    AehnlichkeitVorschlag,
     GruppenAnfrage,
     GruppenVorschlag,
     RunAnswer,
@@ -150,6 +153,64 @@ def create_run(
 def gruppen_vorschlag(body: GruppenAnfrage):
     """Ordnet abgelegte Dateien Anlagen zu (reine Abbildung, keine Dateien, keine Datenbank)."""
     return gruppiere([d.model_dump() for d in body.dateien])
+
+
+@router.post("/runs/aehnlichkeit", response_model=list[AehnlichkeitVorschlag])
+def aehnlichkeit_vorschlag(body: AehnlichkeitAnfrage, session: Session = Depends(get_session)):
+    """Schlaegt unzugeordneten, schon gelesenen Dateien die aehnlichste Gruppe vor.
+
+    Rechnet nur mit den gespeicherten Chunk-Vektoren (kein Embedding-Aufruf, keine Kosten). Ein
+    Vorschlag ist nie eine Zuordnung: unter der Schwelle oder bei knappem Abstand ist `vorschlag` null.
+    Gruppen ohne gelesene Chunks nehmen nicht teil; eine Datei ohne Chunks bekommt keinen Vorschlag.
+    """
+    namen = [g.name for g in body.gruppen]
+    if len(set(namen)) != len(namen):
+        raise HTTPException(400, "Gruppennamen müssen verschieden sein")
+    source_ids = {sid for g in body.gruppen for sid in g.source_ids}
+    gefunden = set(
+        session.scalars(select(KnowledgeSource.id).where(KnowledgeSource.id.in_(source_ids)))
+    )
+    if gefunden != source_ids:
+        raise HTTPException(404, "Quelle nicht gefunden")
+    document_ids = {d.document_id for d in body.dateien}
+    gefunden = set(session.scalars(select(Document.id).where(Document.id.in_(document_ids))))
+    if gefunden != document_ids:
+        raise HTTPException(404, "Datei nicht gefunden")
+
+    je_quelle: dict[str, list[list[float]]] = {}
+    je_datei: dict[str, list[list[float]]] = {}
+    for source_id, document_id, embedding in session.execute(
+        select(Chunk.source_id, Chunk.document_id, Chunk.embedding).where(
+            Chunk.source_id.in_(source_ids) | Chunk.document_id.in_(document_ids)
+        )
+    ):
+        vektor = list(embedding)
+        if source_id in source_ids:
+            je_quelle.setdefault(source_id, []).append(vektor)
+        if document_id in document_ids:
+            je_datei.setdefault(document_id, []).append(vektor)
+
+    gruppen = {
+        g.name: mittelwert_vektor([v for sid in g.source_ids for v in je_quelle.get(sid, [])])
+        for g in body.gruppen
+        if any(je_quelle.get(sid) for sid in g.source_ids)
+    }
+    settings = get_settings()
+    vorschlaege = []
+    for datei in body.dateien:
+        vektoren = je_datei.get(datei.document_id)
+        name, wert = (
+            ordne_zu(
+                mittelwert_vektor(vektoren),
+                gruppen,
+                settings.ablauf_aehnlichkeit_schwelle,
+                settings.ablauf_aehnlichkeit_abstand,
+            )
+            if vektoren
+            else (None, 0.0)
+        )
+        vorschlaege.append(AehnlichkeitVorschlag(pfad=datei.pfad, vorschlag=name, wert=wert))
+    return vorschlaege
 
 
 def _get_run(session: Session, run_id: str) -> Run:
