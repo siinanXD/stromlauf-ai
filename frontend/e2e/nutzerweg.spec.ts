@@ -17,6 +17,10 @@ const OUT = resolve(process.cwd(), process.env.NUTZERWEG_DIR ?? "../tmp/nutzerwe
 const MACHINE = /F(ö|oe)rderband FB-01/;
 const MELDUNG = "Störung Motorschutz Förderband";
 const CHAT = process.env.NUTZERWEG_CHAT === "1";
+const LIVE = Boolean(process.env.E2E_API_URL);
+
+// Nur gegen die laufende Demo (scripts/nutzerweg.mjs setzt E2E_API_URL); die Mock-CI hat kein Backend und ueberspringt sie.
+test.skip(!LIVE, "E2E_API_URL nicht gesetzt: Nutzerwege brauchen die laufende Demo (npm run test:nutzerweg)");
 
 test.beforeAll(() => mkdirSync(OUT, { recursive: true }));
 
