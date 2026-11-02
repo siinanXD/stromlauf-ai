@@ -25,6 +25,9 @@ backend/data/
 *.sqlite
 *.sqlite-*
 
+# Screencast-Rohdaten (scripts/screencast.sh)
+tmp/
+
 # Logs
 *.log
 
