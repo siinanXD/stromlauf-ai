@@ -96,6 +96,33 @@ test.describe("Demo: 10 Fragen zu FB-01", () => {
     for (const f of FRAGEN) expect(evals.get(f.id), `Eval-Frage ${f.id}`).toBeTruthy();
   });
 
+  // SIN-1462: Suchfeld und Beispielfragen werben nur mit Kennzeichen, die FB-01 wirklich hat
+  test("Suche: jede angebotene Beispielsuche und jede Beispielfrage hat einen Treffer", async ({ page }) => {
+    const found = async (q: string) =>
+      (await getJson<{ tag: string }[]>(`/api/tags/search?q=${encodeURIComponent(q)}`)).map((h) => h.tag);
+    await page.goto("/");
+    await page.keyboard.press("Control+k");
+    const input = page.getByPlaceholder(/FB 10/);
+    const offered = (await input.getAttribute("placeholder"))!.replace(/\s*…$/, "").split(", ");
+    expect(offered.length).toBeGreaterThanOrEqual(4);
+    for (const q of offered) expect(await found(q), `Treffer für Beispielsuche „${q}“`).not.toHaveLength(0);
+
+    await input.fill("FB 10");
+    await expect(page.getByRole("option", { name: /FB 10.*SPS-Baustein/ }).first()).toBeVisible();
+    await input.fill("Fördermotor");
+    await expect(page.getByRole("option", { name: /-M1/ }).first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Suche" })).toBeHidden();
+
+    const questions = page.getByTestId("beispielfrage");
+    await expect(questions.first()).toBeVisible();
+    for (const text of await questions.allTextContents()) {
+      const tag = text.match(/-[A-Z]+\d+(?::\w+)?|FB \d+/)?.[0];
+      expect(tag, `Kennzeichen in „${text}“`).toBeTruthy();
+      expect(await found(tag!), `Treffer für ${tag}`).toContain(tag);
+    }
+  });
+
   for (const frage of FRAGEN) {
     test(`${frage.id}: Ansicht zeigt Wert und Quelle`, async ({ page }) => {
       if (frage.art === "warum") {

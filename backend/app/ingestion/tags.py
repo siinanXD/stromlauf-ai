@@ -128,6 +128,35 @@ def search_prefixes(query: str) -> list[str]:
     return list(dict.fromkeys(c for c in candidates if re.search(r"[A-Z0-9]", c)))
 
 
+_UMLAUT_TO_ASCII = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"})
+_ASCII_TO_UMLAUT = (("ae", "ä"), ("oe", "ö"), ("ue", "ü"))
+
+
+def text_search_terms(query: str) -> list[str]:
+    """Suchbegriffe fuer Bezeichnungen wie "Foerdermotor": klein, Umlaut und ae/oe/ue gleichwertig.
+
+    Leer, wenn kein Wort mit mindestens drei Buchstaben dabei ist: "-K1" oder "E0.0" sind Kennzeichen und
+    duerfen nicht als Freitext in jedem Kontext treffen, der sie nur erwaehnt.
+    """
+    text = " ".join(query.lower().split())
+    if not re.search(r"[a-zäöüß]{3,}", text):
+        return []
+    ascii_text = text.translate(_UMLAUT_TO_ASCII)
+    umlaut_text = ascii_text
+    for plain, umlaut in _ASCII_TO_UMLAUT:
+        umlaut_text = umlaut_text.replace(plain, umlaut)
+    return list(dict.fromkeys((text, ascii_text, umlaut_text)))
+
+
+_BLOCK_QUERY_RE = re.compile(r"(?:OB|FB|FC|DB|UDT)\d{0,5}")
+
+
+def block_search_prefix(query: str) -> str | None:
+    """Praefix eines SPS-Bausteins ohne Leerzeichen, gross ("fb 10" -> "FB10"); None, wenn die Eingabe keiner ist."""
+    compact = re.sub(r"\s+", "", query.upper())
+    return compact if _BLOCK_QUERY_RE.fullmatch(compact) else None
+
+
 _TABLE_ROW_MAX = 600  # Zeichen; laengere "Zeilen" sind keine Tabellenzeilen mehr, sondern Fliesstext mit Strichen
 
 
