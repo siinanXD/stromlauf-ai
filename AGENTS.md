@@ -259,6 +259,15 @@ der Instandhaltung an der Maschine?
 - Git-Remote `origin` = github.com/siinanXD/stromlauf-ai (oeffentlich, MIT-Lizenz in `LICENSE`; Testdaten mit
   Fremdlizenz bleiben unter `testdata/` ausserhalb des Repos).
 
+## Nutzerweg
+
+`npm run test:nutzerweg` (in `frontend`, `LIVE_URL=http://localhost:3100`) spielt FB-01 in der laufenden Compose-Demo wie ein
+Mensch durch (`e2e/nutzerweg.spec.ts`, Wrapper `scripts/nutzerweg.mjs`): Maschine oeffnen, Stoerfall melden, Fundstelle und
+Planseite, Signalweg. Je Weg gruen/rot mit Screenshot und Laufzeit (`ergebnis.md`); ohne erreichbares Frontend/Backend
+oder vor dem Lesen von FB-01 Exit 2 „nicht pruefbar“. Kein Modellaufruf (`POST /api/chat` wird abgefangen, `NUTZERWEG_CHAT=1`
+laesst ihn durch und kostet). **Sichtbare Aenderungen erweitern den Weg im selben PR**; Zuordnung Weg -> Figma-Frame in
+`docs/product/nutzerweg.md`. Rote Wege werden eigene kleine Issues, nicht umgangen.
+
 ## Build & Test
 
 ```bash
