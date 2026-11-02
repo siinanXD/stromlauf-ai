@@ -39,6 +39,14 @@ describe("filterMachines", () => {
     expect(filterMachines(list, "L2 Verarbeitung").map((m) => m.id)).toEqual(["b"]);
     expect(filterMachines(list, "L2 Grundstoff")).toEqual([]);
   });
+
+  it("findet Umlaut und Umschrift gleichermaßen", () => {
+    expect(filterMachines(list, "kuechenrolle").map((m) => m.id)).toEqual(["b"]);
+    expect(filterMachines(list, "Küchenrolle").map((m) => m.id)).toEqual(["b"]);
+    const foerderband = [machine({ id: "f", name: "Förderband FB-01" })];
+    expect(filterMachines(foerderband, "foerderband")).toHaveLength(1);
+    expect(filterMachines(foerderband, "FÖRDERBAND")).toHaveLength(1);
+  });
 });
 
 describe("summarizeMachines", () => {

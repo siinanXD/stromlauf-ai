@@ -1,13 +1,15 @@
 import { MACHINE_TYPE_LABELS, type MachineListItem } from "./api";
 
+/** Klein, Umlaut = ae/oe/ue und ß = ss: "Foerderband" findet "Förderband" und umgekehrt. */
+export const fold = (text: string) =>
+  text.toLowerCase().replaceAll("ä", "ae").replaceAll("ö", "oe").replaceAll("ü", "ue").replaceAll("ß", "ss");
+
 /** Volltextfilter der Maschinenübersicht: Name, Linie, Halle, Typ, Wissensquelle; Wörter UND-verknüpft. */
 export function filterMachines(machines: MachineListItem[], query: string): MachineListItem[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = fold(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return machines;
   return machines.filter((m) => {
-    const haystack = [m.name, m.line, m.hall_name, MACHINE_TYPE_LABELS[m.machine_type] ?? m.machine_type, m.source_name ?? ""]
-      .join(" ")
-      .toLowerCase();
+    const haystack = fold([m.name, m.line, m.hall_name, MACHINE_TYPE_LABELS[m.machine_type] ?? m.machine_type, m.source_name ?? ""].join(" "));
     return words.every((word) => haystack.includes(word));
   });
 }
