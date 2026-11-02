@@ -82,8 +82,8 @@
  },
  {
   "tag": "-K1",
-  "kind": "Schuetz",
-  "label": "Schuetz vorw.",
+  "kind": "Schütz",
+  "label": "Schütz vorw.",
   "x": 0.08125,
   "y": 0.5441666666666667,
   "w": 0.05625,
@@ -91,8 +91,8 @@
  },
  {
   "tag": "-K2",
-  "kind": "Schuetz",
-  "label": "Schuetz rueckw.",
+  "kind": "Schütz",
+  "label": "Schütz rückw.",
   "x": 0.15625,
   "y": 0.5441666666666667,
   "w": 0.05625,

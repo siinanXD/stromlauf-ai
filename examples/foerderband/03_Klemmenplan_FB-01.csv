@@ -7,13 +7,13 @@ Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
 -X3;-X3:6;-A1.1:6 (E0.5);-B2:4 (BK);Lichtschranke Auslauf;/5.3
 -X3;-X3:7;-X2:1 (+24V);-B1:1 (BN), -B2:1 (BN);+24 V Sensoren;/5.3
 -X3;-X3:8;-X2:2 (0V);-B1:3 (BU), -B2:3 (BU);0 V Sensoren;/5.4
--X3;-X3:9;-A1.2:1 (A4.0);-K1:A1;Schuetz vorwaerts;/6.3
--X3;-X3:10;-A1.2:2 (A4.1);-K2:A1;Schuetz rueckwaerts;/6.3
--X3;-X3:11;-A1.2:3 (A4.2);-H1:X1, -P1:1;Meldeleuchte Betrieb, Betriebsstundenzaehler;/6.3
--X3;-X3:12;-A1.2:4 (A4.3);-H2:X1;Meldeleuchte Stoerung;/6.3
--X3;-X3:13;-X2:2 (0V);-K1:A2, -K2:A2;0 V Schuetzspulen;/6.6
--X3;-X3:14;-X2:2 (0V);-H1:X2, -H2:X2, -H3:X2, -P1:2;0 V Meldeleuchten, Zaehler;/6.6
--X3;-X3:15;-K3:32;-H3:X1;Not-Halt betaetigt (Meldekontakt 31/32);/4.8
+-X3;-X3:9;-A1.2:1 (A4.0);-K1:A1;Schütz vorwärts;/6.3
+-X3;-X3:10;-A1.2:2 (A4.1);-K2:A1;Schütz rückwärts;/6.3
+-X3;-X3:11;-A1.2:3 (A4.2);-H1:X1, -P1:1;Meldeleuchte Betrieb, Betriebsstundenzähler;/6.3
+-X3;-X3:12;-A1.2:4 (A4.3);-H2:X1;Meldeleuchte Störung;/6.3
+-X3;-X3:13;-X2:2 (0V);-K1:A2, -K2:A2;0 V Schützspulen;/6.6
+-X3;-X3:14;-X2:2 (0V);-H1:X2, -H2:X2, -H3:X2, -P1:2;0 V Meldeleuchten, Zähler;/6.6
+-X3;-X3:15;-K3:32;-H3:X1;Not-Halt betätigt (Meldekontakt 31/32);/4.8
 -X4;-X4:U;-K1:2 / -K2:6;-M1:U1;Motor Phase U;/3.5
 -X4;-X4:V;-K1:4 / -K2:4;-M1:V1;Motor Phase V;/3.5
 -X4;-X4:W;-K1:6 / -K2:2;-M1:W1;Motor Phase W;/3.6
@@ -26,7 +26,7 @@ Klemmleiste;Klemme;Ziel intern;Ziel extern;Funktion;Blatt
 -X2;-X2:1;-T1:+;-X3:7;+24 V Sensoren;/2.5
 -X2;-X2:2;-T1:-;-X3:8, -X3:13, -X3:14;0 V;/2.5
 -X2;-X2:3;-T1:+;-S3:11, -S3:21;+24 V Not-Halt-Kreis;/2.6
--X2;-X2:3a;-K3:14;-K1:A1 / -K2:A1 (ueber -A1.2);+24 V freigegeben;/4.4
+-X2;-X2:3a;-K3:14;-K1:A1 / -K2:A1 (über -A1.2);+24 V freigegeben;/4.4
 -X2;-X2:4;-T1:-;-K3:A2;0 V Not-Halt-Kreis;/2.6
 -X2;-X2:5;-T1:+;-A1:L+;+24 V SPS;/2.7
 -X2;-X2:6;-T1:-;-A1:M;0 V SPS;/2.7

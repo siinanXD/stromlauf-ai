@@ -3,7 +3,7 @@
  * Lighthouse-Accessibility-Gate fuer die Maschinenansicht (docs/product/contract.md Abschnitt 5: Score >= 90).
  *
  * Aufruf:
- *   node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010 [--machine "Foerderband FB-01"]
+ *   node frontend/scripts/lighthouse-a11y.mjs --base http://localhost:3100 --api http://localhost:8010 [--machine "Förderband FB-01"]
  *   node frontend/scripts/lighthouse-a11y.mjs --url "http://localhost:3100/werk/maschine/<id>?tab=chat"
  *   Optionen: --min 0.9  --out eval/results  --desktop (sonst Mobil-Emulation wie bei Lighthouse ueblich)
  *             --performance: misst zusaetzlich die Kategorie Performance (mobil, Ziel >= 90 laut Spec der
@@ -25,7 +25,7 @@ import { fileURLToPath } from "node:url";
 const LIGHTHOUSE = "lighthouse@13.5.0";
 
 function parseArgs(argv) {
-  const options = { base: "http://localhost:3100", api: "http://localhost:8010", machine: "Foerderband FB-01", min: 0.9, out: "eval/results", desktop: false, url: "", performance: false };
+  const options = { base: "http://localhost:3100", api: "http://localhost:8010", machine: "Förderband FB-01", min: 0.9, out: "eval/results", desktop: false, url: "", performance: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => argv[(i += 1)];

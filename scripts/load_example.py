@@ -1,4 +1,4 @@
-"""Laedt die Beispielanlage "Foerderband FB-01" in ein laufendes Stromlauf-AI-Backend.
+"""Laedt die Beispielanlage "Förderband FB-01" in ein laufendes Stromlauf-AI-Backend.
 
 Aufruf:  python scripts/load_example.py [--api http://localhost:8010] [--vision] [--refresh]
 
@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE_DIR = ROOT / "examples" / "foerderband"
-SOURCE_NAME = "Foerderband FB-01"
+SOURCE_NAME = "Förderband FB-01"
 SOURCE_DESCRIPTION = "Beispielanlage: Stromlaufplan, Stueckliste, Klemmenplan, AWL, Symboltabelle, Anleitung"
 FILES = [
     ("01_Stromlaufplan_FB-01.pdf", "schematic"),
@@ -84,7 +84,7 @@ def wait_for(client: httpx.Client, document_ids: list[str], timeout_s: int = 180
 
 
 HALL_NAME = "Halle 1 (Beispiel)"
-MACHINE_NAME = "Foerderband FB-01"
+MACHINE_NAME = "Förderband FB-01"
 FAULTS = [
     {"code": "E-F2", "symptom": "-H2 leuchtet, Band steht, Start ohne Wirkung", "cause": "Motorschutz -F2 ausgeloest (E0.2 = 0)",
      "fix": "-F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren.",

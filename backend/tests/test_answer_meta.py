@@ -102,7 +102,7 @@ def test_fb01_antwort_mit_k1_traegt_die_drei_felder(fb01_graph):
     )
     assert tags == ["-K1"]
     # FB-01 nennt -A1 (2019 nicht zulaessig): aeltere Lesart, K ist das Schuetz wie im Maschinenmodell
-    assert part_kinds(tags, by_source) == {"-K1": "Schuetz/Relais"}
+    assert part_kinds(tags, by_source) == {"-K1": "Schütz/Relais"}
     assert signal_start(tags, ["fb01"]) == "-K1"
     spots = [plan_spot(row) for row in first_plan_rows(tags, _rows("-K1"))]
     assert spots == [

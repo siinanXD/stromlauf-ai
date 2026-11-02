@@ -28,7 +28,7 @@ def load_questions(path: Path, only: str | None = None) -> list[dict]:
     if problems:
         raise ValueError("questions.jsonl fehlerhaft:\n  " + "\n  ".join(problems))
     if only:
-        # mehrere Filter mit Komma: --only "Foerderband FB-01,Injection-Test"
+        # mehrere Filter mit Komma: --only "Förderband FB-01,Injection-Test"
         needles = [n.strip().lower() for n in only.split(",") if n.strip()]
         rows = [
             r for r in rows

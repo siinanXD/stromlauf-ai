@@ -13,7 +13,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const API = process.env.E2E_API_URL?.replace(/\/$/, "");
 const OUT = resolve(process.cwd(), process.env.SCREENCAST_DIR ?? "../tmp/screencast");
-const MACHINE = "Foerderband FB-01";
+const MACHINE = "Förderband FB-01";
 const PAUSE = 3_000;
 
 async function warte(page: Page, ms = PAUSE) {

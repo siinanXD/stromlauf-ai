@@ -79,4 +79,9 @@ test("Maschinenliste am Handy: Karten mit Dokumentation, Fehler und Kennzahl", a
   await expect(page.locator("table")).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   await shot(page, "mobile-390-maschinen");
+
+  await page.getByTestId("rail-toggle").click();
+  await expect(page.getByTestId("rail-drawer")).toBeVisible();
+  await expect(page.getByTestId("rail-drawer").locator("nav")).toHaveCSS("background-color", "rgb(18, 21, 27)");
+  await shot(page, "mobile-390-seitenleiste");
 });

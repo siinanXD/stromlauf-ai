@@ -80,7 +80,7 @@ def test_lesart_2019(tag, kind):
 
 
 def test_aeltere_lesart_bleibt_wie_bisher():
-    assert kind_of("-K1", ALT) == kind_of("-K1") == "Schuetz/Relais"
+    assert kind_of("-K1", ALT) == kind_of("-K1") == "Schütz/Relais"
     assert (kind_of("-Q1", ALT), kind_of("-H1", ALT), kind_of("-U1", ALT)) == ("Schalter", "Meldung", "Umrichter")
     assert kind_of("-QF1", ALT) == "Schutz" and kind_of("9EV1", ALT) == "Ventil"
 
@@ -104,7 +104,7 @@ def test_teil_des_modells_haengt_nicht_an_einer_bekannten_art():
         ("Schutz", "schützt"),
         ("Schalter", "schützt"),
         ("Sicherung", "schützt"),
-        ("Schuetz/Relais", "schaltet"),
+        ("Schütz/Relais", "schaltet"),
         ("Schütz/Schalter", "schaltet"),
         ("Schütz/Leistungsschalter", "schaltet"),
         ("Baugruppe", "steuert"),

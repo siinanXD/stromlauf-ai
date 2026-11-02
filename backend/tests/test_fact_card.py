@@ -18,7 +18,7 @@ BOM = hit("bom", "| Sicherheitsschaltgeraet Kat. 3 / PL d | 1 | +ST1 | /4.3 | | 
           "1420 1/min | Drehstrommotor 1,5 kW, IE3 | 1 | +FE1 | /3.8 |")
 TERMINAL_U = hit("terminal_plan", "0 V Meldeleuchten | /6.6 | | -X4 | -X4:U | -K1:2 / -K2:6 | -M1:U1 | Motor Phase U | /3.8 | | -X4 | -X")
 TERMINAL_V = hit("terminal_plan", "| -X4 | -X4:V | -K1:4 / -K2:4 | -M1:V1 | Motor Phase V | /3.8 | | -X4 | -X4:W")
-SCHEMATIC = hit("schematic", "## Foerderband FB-01 =FB1+ST1 Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)", page=3,
+SCHEMATIC = hit("schematic", "## Förderband FB-01 =FB1+ST1 Hauptstromkreis Foerdermotor -M1 (Wendeschuetz)", page=3,
                 filename="01_Stromlaufplan.pdf")
 SYMBOLS = hit("plc_symbols", "| Band_vor | A 4.0 | BOOL | Schuetz -K1 Foerdermotor vorwaerts | | Band_rueck | A 4.1 |")
 

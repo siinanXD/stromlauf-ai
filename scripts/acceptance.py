@@ -1,6 +1,6 @@
 """Abnahme-Nachweise fuer die Demo-Maschine (docs/product/contract.md Abschnitt 5) einsammeln, ohne Modellaufruf.
 
-Aufruf:  python scripts/acceptance.py [--api http://localhost:8010] [--machine "Foerderband FB-01"] [--load]
+Aufruf:  python scripts/acceptance.py [--api http://localhost:8010] [--machine "Förderband FB-01"] [--load]
                                      [--out eval/results] [--strict] [--health-timeout 600]
                                      [--min-zones 5] [--min-parts 20] [--max-ingest-min 15] [--tolerance 0.5]
 
@@ -35,7 +35,7 @@ except ImportError:  # pragma: no cover
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DEFAULT_OUT = ROOT / "eval" / "results"
-DEFAULT_MACHINE = "Foerderband FB-01"
+DEFAULT_MACHINE = "Förderband FB-01"
 UNKNOWN_ZONE = "?"  # Sammelzone "Ohne Einbauort" zaehlt nicht als Baugruppe
 # Zweck im Kostenbuch -> Schaetzposten (cents je Einheit) und Menge, auf die er sich bezieht
 ESTIMATE_ROWS = (

@@ -1,10 +1,10 @@
 """JSON fuer die Figma-Vorlagen aus echten Stromlauf-AI-Daten (Plugin "Stromlauf Vorlagen fuellen").
 
 Aufruf:
-  python scripts/figma_json.py --vorlage stoerfall-antwort --maschine "Foerderband FB-01"
+  python scripts/figma_json.py --vorlage stoerfall-antwort --maschine "Förderband FB-01"
       --conversation <chat-id> --out antwort.json
   python scripts/figma_json.py --offline examples/foerderband --vorlage signalweg
-      --maschine "Foerderband FB-01" --tag -F2 --out signalweg.json
+      --maschine "Förderband FB-01" --tag -F2 --out signalweg.json
 
 Vorlagen (Schemas unter design/figma/schemas/). Neu sind nur die Felder der obersten Ebene, alles darunter hat
 die Form der API-Typen aus frontend/src/lib/api.ts:

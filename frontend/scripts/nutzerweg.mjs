@@ -11,7 +11,7 @@ import { resolve } from "node:path";
 const live = process.env.LIVE_URL?.replace(/\/$/, "");
 const api = (process.env.LIVE_API_URL ?? "http://localhost:8010").replace(/\/$/, "");
 const out = resolve(process.cwd(), process.env.NUTZERWEG_DIR ?? "../tmp/nutzerweg");
-const MACHINE = "Foerderband FB-01";
+const MACHINE = "Förderband FB-01";
 const READY_TIMEOUT_MS = 8 * 60_000;
 
 function nichtPruefbar(grund) {

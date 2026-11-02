@@ -1,7 +1,7 @@
 {
   "vorlage": "stoerfall-antwort",
   "version": 1,
-  "maschine": "Foerderband FB-01",
+  "maschine": "Förderband FB-01",
   "frage": "Störung Motorschutz Förderband",
   "zeit": "09:41",
   "fault_hits": {

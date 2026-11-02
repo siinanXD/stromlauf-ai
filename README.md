@@ -259,7 +259,7 @@ Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), son
 - `CHAT_MODEL` und `VISION_MODEL` sind die Standards für Chat bzw. Seitenanalyse und Schaltschrank
   (`app/llm.py`, `make_chat_model`).
 - Je Anfrage: `POST /api/chat` nimmt `model` entgegen. `python eval/run_eval.py --model openai:gpt-5-mini
-  --only "Foerderband FB-01" --max-cost 1.00` fährt denselben Fragensatz mit einem anderen Modell; Kosten je
+  --only "Förderband FB-01" --max-cost 1.00` fährt denselben Fragensatz mit einem anderen Modell; Kosten je
   Antwort kommen aus `app/pricing.py` (beide Provider).
 - Embeddings: `EMBEDDING_PROVIDER=openai` nutzt `text-embedding-3-small` mit `dimensions = EMBEDDING_DIM`. Ein
   Wechsel des Embedders heißt: alle Dokumente neu verarbeiten, sonst passen die Vektoren nicht zusammen.

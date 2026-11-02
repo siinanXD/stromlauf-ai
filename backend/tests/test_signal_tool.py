@@ -22,7 +22,7 @@ def _steps(text: str) -> list[str]:
 
 
 def test_hauptweg_in_reihenfolge_mit_spalten_und_orten():
-    text = format_signal_path(main_view(fb01_graph(), "-K1"), "Foerderband FB-01", FILES)
+    text = format_signal_path(main_view(fb01_graph(), "-K1"), "Förderband FB-01", FILES)
     steps = _steps(text)
     assert [s.split(" | ")[1] for s in steps] == [
         "M20.0",
@@ -37,7 +37,7 @@ def test_hauptweg_in_reihenfolge_mit_spalten_und_orten():
     assert steps[4].startswith("5. Schaltgerät") and "gesucht" in steps[4] and "/3.4" in steps[4]
     assert steps[6].startswith("7. Verbraucher")
     assert (
-        "Foerderband FB-01" in text
+        "Förderband FB-01" in text
         and "01_Stromlaufplan_FB-01.pdf" in text
         and "04_SPS_Programm_FB-01.awl" in text
     )
@@ -92,7 +92,7 @@ def test_werkzeug_sucht_in_den_quellen_des_chats(monkeypatch):
 
     class Session:
         def execute(self, statement):
-            return SimpleNamespace(all=lambda: [("s1", "Foerderband FB-01"), ("s2", "Umroller")])
+            return SimpleNamespace(all=lambda: [("s1", "Förderband FB-01"), ("s2", "Umroller")])
 
     class Scope:
         def __enter__(self):
@@ -113,7 +113,7 @@ def test_werkzeug_sucht_in_den_quellen_des_chats(monkeypatch):
     }
     monkeypatch.setattr(tools, "_source_documents", lambda session, source_id: documents)
     text, refs = tools.signal_path.func("-k1", {"configurable": {"source_ids": ["s1", "s2"]}})
-    assert calls == ["s1", "s2"] and "Foerderband FB-01" in text and "-K1" in text
+    assert calls == ["s1", "s2"] and "Förderband FB-01" in text and "-K1" in text
     # Jede genannte Datei ist Fundstelle, sonst verwirft die Belegpruefung [[03_Klemmenplan_FB-01.csv|-X3:9]]
     assert sorted(r["filename"] for r in refs) == sorted(FILES.values())
 
@@ -159,7 +159,7 @@ def test_sps_warum_belege_bestehen_den_zitat_check():
         DocIndex(
             filename=AWL,
             is_pdf=False,
-            sections=tuple(f"FB 10 - Foerderband FB-01 Steuerung / NW {n} Netzwerk" for n in range(1, 8)),
+            sections=tuple(f"FB 10 - Förderband FB-01 Steuerung / NW {n} Netzwerk" for n in range(1, 8)),
         ),
         DocIndex(filename=KLEMMENPLAN, is_pdf=False, tags=frozenset({f"-X3:{n}" for n in range(1, 10)})),
     ]
@@ -172,7 +172,7 @@ def test_sps_warum_werkzeug(monkeypatch):
 
     class Session:
         def execute(self, _statement):
-            return SimpleNamespace(all=lambda: [("s1", "Foerderband FB-01"), ("s2", "Leer")])
+            return SimpleNamespace(all=lambda: [("s1", "Förderband FB-01"), ("s2", "Leer")])
 
     class Scope:
         def __enter__(self):
@@ -193,7 +193,7 @@ def test_sps_warum_werkzeug(monkeypatch):
     }
     monkeypatch.setattr(tools, "_source_documents", lambda session, source_id: documents)
     text, refs = tools.sps_warum.func("K1_Vorwaerts", {"configurable": {}})
-    assert "Quelle: Foerderband FB-01" in text and "Ausgang A4.0" in text
+    assert "Quelle: Förderband FB-01" in text and "Ausgang A4.0" in text
     assert AWL in {r["filename"] for r in refs}
     text, refs = tools.sps_warum.func("Q9.9", {"configurable": {}})
     assert "Kein SPS-Programm schreibt Q9.9" in text and refs == []

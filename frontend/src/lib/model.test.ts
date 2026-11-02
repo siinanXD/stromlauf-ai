@@ -14,7 +14,7 @@ const MAP: MachineMap = {
       code: "+ST1",
       name: "Schaltschrank",
       parts: [
-        { tag: "-K1", label: "Schütz", kind: "Schuetz/Relais", source: "bom", verb: "schaltet" },
+        { tag: "-K1", label: "Schütz", kind: "Schütz/Relais", source: "bom", verb: "schaltet" },
         { tag: "-F2", label: "", kind: "Schutz", source: "bom", verb: "schützt" },
       ],
     },

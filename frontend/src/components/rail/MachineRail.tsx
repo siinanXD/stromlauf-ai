@@ -152,9 +152,9 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
                   aria-current={active ? "page" : undefined}
                   title={`${m.name} · ${status.label}`}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-[10px]",
-                    full ? "min-h-11 px-2.5 py-2" : "justify-center",
-                    full && (active ? "bg-rail-surface" : "hover:bg-rail-surface"),
+                    "flex items-center gap-2.5 rounded-[10px] border",
+                    full ? "min-h-11 px-2.5 py-2" : "justify-center border-transparent",
+                    full && (active ? "border-rail-line bg-rail-surface" : "border-transparent hover:bg-rail-surface"),
                   )}
                 >
                   <span

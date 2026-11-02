@@ -13,7 +13,7 @@ BG, PLATE, RAIL, DEV, TEXT = (232, 234, 237), (205, 208, 212), (150, 152, 156), 
 ROWS = [
     [("-Q1", "Hauptschalter 25 A", "Hauptschalter", 4), ("-F1", "LS B6", "LS-Schalter", 2), ("-F2", "MSS 2,5-4 A", "Motorschutzschalter", 3), ("-F3", "LS B4 DC", "LS-Schalter", 2), ("-T1", "Netzteil 24 V / 5 A", "Netzteil", 5)],
     [("-A1", "SPS CPU", "SPS", 6), ("-A1.1", "DI 16", "SPS", 3), ("-A1.2", "DO 16", "SPS", 3), ("-K3", "Sicherheitsrelais", "Sicherheitsrelais", 3)],
-    [("-K1", "Schuetz vorw.", "Schuetz", 3), ("-K2", "Schuetz rueckw.", "Schuetz", 3)],
+    [("-K1", "Schütz vorw.", "Schütz", 3), ("-K2", "Schütz rückw.", "Schütz", 3)],
     [("-X1", "Netz", "Klemmleiste", 5), ("-X2", "24 V", "Klemmleiste", 6), ("-X3", "Feld", "Klemmleiste", 14), ("-X4", "Motor", "Klemmleiste", 4)],
 ]
 MODULE = 26  # px je 17,5-mm-Modul
@@ -32,7 +32,7 @@ def build(out_png: Path, out_json: Path):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
     d.rectangle([60, 60, W - 60, H - 60], fill=PLATE, outline=(120, 122, 126), width=4)
-    d.text((80, 75), "Schaltschrank +ST1  Foerderband FB-01  Aufbauplan (Beispielanlage, frei erfunden)", fill=TEXT, font=font(26))
+    d.text((80, 75), "Schaltschrank +ST1  Förderband FB-01  Aufbauplan (Beispielanlage, frei erfunden)", fill=TEXT, font=font(26))
     hotspots = []
     y = 170
     for row in ROWS:

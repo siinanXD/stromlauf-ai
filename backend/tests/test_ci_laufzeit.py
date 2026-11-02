@@ -11,7 +11,7 @@ EVAL_YML = ROOT / ".github" / "workflows" / "eval.yml"
 TORCH_INSTALLS = (".github/workflows/ci.yml", ".github/workflows/eval.yml", "backend/Dockerfile")
 # Quellen des Retrieval-Gates; FB-01 laedt scripts/acceptance.py --load, die anderen scripts/load_folder.py --name
 GATE_SOURCES = {
-    "Foerderband FB-01",
+    "Förderband FB-01",
     "Injection-Test",
     "Scan FB-01",
     "Umroller UR-01",
@@ -33,7 +33,7 @@ def _loaded_sources(steps: list[dict], group: str) -> set[str]:
         run = step.get("run", "")
         loaded |= set(re.findall(r'--name "([^"]+)"', run))
         if "scripts/acceptance.py" in run and "--load" in run:
-            loaded.add("Foerderband FB-01")
+            loaded.add("Förderband FB-01")
     return loaded
 
 

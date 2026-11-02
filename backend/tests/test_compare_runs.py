@@ -21,7 +21,7 @@ def _run(
         rows.append(
             {
                 "id": f"q{i}",
-                "source": "Foerderband FB-01",
+                "source": "Förderband FB-01",
                 "question": f"Frage {i}?",
                 "answer": "…",
                 "sources": [],

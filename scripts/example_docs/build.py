@@ -1,4 +1,4 @@
-"""Erzeugt den Beispielsatz Foerderband FB-01: python scripts/example_docs/build.py examples/foerderband"""
+"""Erzeugt den Beispielsatz Förderband FB-01: python scripts/example_docs/build.py examples/foerderband"""
 
 import subprocess
 import sys

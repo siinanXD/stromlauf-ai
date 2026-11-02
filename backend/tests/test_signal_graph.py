@@ -40,7 +40,7 @@ def test_start_button_path_reaches_motor_in_signal_order():
 
 def test_path_contains_labels_and_refs_from_documents():
     nodes = {n["id"]: n for n in signal_path(fb01_graph(), "-S1")["nodes"]}
-    assert nodes["-K1"]["label"] == "Schuetz Foerdermotor vorwaerts"
+    assert nodes["-K1"]["label"] == "Schütz Fördermotor vorwärts"
     assert nodes["-K1"]["ref"] == "/3.4"
     assert nodes["-X3:1"]["ref"] == "/5.3"
     assert any(n["kind"] == "network" and n["ref"].startswith("FB 10 NW") for n in nodes.values())
