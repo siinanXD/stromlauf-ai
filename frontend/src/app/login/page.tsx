@@ -35,7 +35,7 @@ export default function LoginPage() {
         <div className="mb-5 flex items-center gap-3">
           <span className="grid size-9 place-items-center bg-primary font-mono text-lg font-semibold text-primary-foreground">S</span>
           <div>
-            <h1 className="text-base font-semibold">Stromlauf AI</h1>
+            <h1 className="text-page-title">Stromlauf AI</h1>
             <p className="text-xs text-muted-foreground">Anmeldung per Link, kein Passwort</p>
           </div>
         </div>

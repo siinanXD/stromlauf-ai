@@ -13,6 +13,7 @@ import { levelOf, parentView, STOERFAELLE, viewFromParams, viewToQuery, type Auf
 import { MachineCostChip } from "@/components/machine/MachineCostChip";
 import { MACHINE_TYPE_LABELS, plant, type AnswerMeta, type MachineDetail, type MachineMap } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { plural } from "@/lib/format";
 
 // Der Aufbau (Tabs mit Tabellen und Editoren) laedt erst, wenn er geoeffnet wird
 const AufbauArea = dynamic(() => import("./AufbauArea").then((m) => m.AufbauArea), {
@@ -170,15 +171,15 @@ export default function MachinePage() {
                   {[machine.hall_name || "Halle", MACHINE_TYPE_LABELS[machine.machine_type]].join(" · ")}
                   <span className="hidden xl:inline">
                     {" · "}
-                    {machine.source_name ?? "keine Doku verknüpft"} · {machine.document_count} Dokumente
+                    {machine.source_name ?? "keine Doku verknüpft"} · {plural(machine.document_count, "Dokument", "Dokumente")}
                   </span>
                 </p>
-                <h1 className="truncate text-large-title md:text-title-2">{machine.name}</h1>
+                <h1 className="truncate text-page-title">{machine.name}</h1>
               </>
             ) : (
               <>
                 <span className="block h-[18px] w-32 animate-pulse rounded-xs bg-bg-fill" aria-hidden />
-                <h1 className="text-large-title md:text-title-2">
+                <h1 className="text-page-title">
                   <span className="mt-1 inline-block h-8 w-56 animate-pulse rounded-sm bg-bg-fill align-middle md:h-6 md:w-48" aria-hidden />
                   <span className="sr-only">{failed ? "Maschine" : "Lade Maschine …"}</span>
                 </h1>

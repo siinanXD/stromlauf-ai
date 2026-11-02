@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { PageTarget } from "@/components/PageViewer";
 import { Button } from "@/components/ui/button";
 import { api, DOC_TYPE_LABELS, plant, type KnowledgeSource, type MachineDetail, type SourceDocument } from "@/lib/api";
+import { plural } from "@/lib/format";
 
 type MachineUpdate = Parameters<typeof plant.updateMachine>[1];
 
@@ -117,7 +118,7 @@ export function DocumentsTab({
                     className="text-xs text-primary hover:underline"
                     onClick={() => onOpenPage({ documentId: doc.id, filename: doc.filename, page: 1, pageCount: doc.page_count })}
                   >
-                    {doc.page_count} Seiten ansehen
+                    {plural(doc.page_count, "Seite", "Seiten")} ansehen
                   </button>
                 ) : (
                   <span className="text-xs text-muted-foreground">{doc.status}</span>

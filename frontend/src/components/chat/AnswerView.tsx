@@ -17,7 +17,7 @@ import type { PageTarget } from "@/components/PageViewer";
 import { citationCheckFor, citationLabel, citationsValidLabel, deviceTagOf, parseCitations, refOf, splitSections, type Citation } from "@/lib/answer";
 import type { ChatMessage, SourceRef, ToolCall } from "@/lib/api";
 import type { DetailRef } from "@/lib/detail";
-import { costText } from "@/lib/format";
+import { costText, plural } from "@/lib/format";
 
 import { AnswerError } from "./chatError";
 import { CitationChip } from "./CitationChip";
@@ -195,7 +195,7 @@ export function AnswerView({
       <details className="group text-footnote text-muted-foreground">
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 hover:text-foreground">
           <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
-          {message.tool_calls.length} Schritte · {message.sources.length} Fundstellen durchsucht
+          {plural(message.tool_calls.length, "Schritt", "Schritte")} · {plural(message.sources.length, "Fundstelle", "Fundstellen")} durchsucht
         </summary>
         <ul className="mt-1.5 space-y-0.5 pl-5">
           {message.tool_calls.map((call, index) => (

@@ -107,7 +107,7 @@ export default function Home() {
             banner={banner}
             emptyState={
               <>
-                <h1 className="text-2xl font-semibold tracking-tight">Wonach suchst du?</h1>
+                <h1 className="text-title-1 font-semibold">Wonach suchst du?</h1>
                 <p className="mt-2 text-muted-foreground">
                   Ich verfolge Betriebsmittel, Klemmen und SPS-Adressen über Stromlaufplan, Stückliste, Klemmenplan, AWL-Programm und Handbücher hinweg.
                   Fragen zu einer Maschine stellst du besser auf ihrer Seite (links in der Liste): dort ist nur ihre Doku im Scope und das Modell zeigt die Bauteile.

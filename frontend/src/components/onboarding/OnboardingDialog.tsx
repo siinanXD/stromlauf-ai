@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { api, DOC_TYPE_LABELS, MACHINE_TYPE_LABELS, onboarding, plant, type Hall, type KnowledgeSource, type MachineType, type OnboardingProposal } from "@/lib/api";
+import { plural } from "@/lib/format";
 
 const TYPES = Object.keys(MACHINE_TYPE_LABELS) as MachineType[];
 
@@ -112,7 +113,7 @@ export function OnboardingDialog({ onCreated }: { onCreated: () => void }) {
               <option value="">Quelle wählen …</option>
               {sources.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.document_count} Dokumente)
+                  {s.name} ({plural(s.document_count, "Dokument", "Dokumente")})
                 </option>
               ))}
             </select>
@@ -158,7 +159,7 @@ export function OnboardingDialog({ onCreated }: { onCreated: () => void }) {
               </div>
 
               <p className="font-mono text-xs text-muted-foreground">
-                {proposal.devices} Betriebsmittel · {proposal.documents.length} Dokumente (
+                {proposal.devices} Betriebsmittel · {plural(proposal.documents.length, "Dokument", "Dokumente")} (
                 {[...new Set(proposal.documents.map((d) => DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type))].join(", ")})
               </p>
 

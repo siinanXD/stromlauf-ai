@@ -67,7 +67,7 @@ export function IncidentHeader({
         <span aria-hidden>Störfälle</span>
       </button>
       <div className="min-w-0 flex-1 text-center lg:text-left">
-        <h2 className="truncate text-headline lg:line-clamp-2 lg:text-title-3 lg:whitespace-normal">{incident.title}</h2>
+        <h2 className="truncate text-page-title lg:line-clamp-2 lg:whitespace-normal">{incident.title}</h2>
         <p className="flex items-center justify-center gap-1 text-caption-1 text-muted-foreground lg:justify-start lg:text-footnote" data-testid="incident-status">
           <StateIcon incident={incident} size="sm" />
           <span className={incident.failed ? "text-danger" : undefined}>{stateLabel(incident, false)}</span>

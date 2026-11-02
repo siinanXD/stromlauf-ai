@@ -8,6 +8,7 @@ import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { MACHINE_TYPE_LABELS, plant, type MachineListItem } from "@/lib/api";
 import { docsLabel, filterMachines, summarizeMachines } from "@/lib/machines";
 import { cn } from "@/lib/utils";
+import { plural } from "@/lib/format";
 
 const TH = "px-3 py-2 text-left font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 const TD = "px-3 py-2 align-top";
@@ -37,10 +38,10 @@ export default function MachinesPage() {
     <AppShell breadcrumb={[{ label: "Maschinen" }]}>
       <div className="flex h-full flex-col">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-2">
-          <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Maschinen</h1>
+          <h1 className="text-page-title">Maschinen</h1>
           {machines && (
             <span className="text-sm text-muted-foreground">
-              {summary.total} Maschinen · {summary.withoutDocs} ohne Doku · {summary.faults} Fehlereinträge
+              {plural(summary.total, "Maschine", "Maschinen")} · {summary.withoutDocs} ohne Doku · {plural(summary.faults, "Fehlereintrag", "Fehlereinträge")}
             </span>
           )}
           <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
@@ -64,7 +65,36 @@ export default function MachinesPage() {
             </p>
           )}
           {machines && machines.length > 0 && (
-            <table className="w-full min-w-[760px] border-collapse text-sm">
+            <ul className="space-y-3 p-4 md:hidden" data-testid="machine-cards">
+              {shown.map((m) => (
+                <li key={m.id} className="rounded-lg bg-card p-4 shadow-card">
+                  <Link href={`/werk/maschine/${m.id}`} className="block min-h-11 text-headline text-primary">
+                    {m.name}
+                  </Link>
+                  <p className="text-footnote text-muted-foreground">
+                    {[MACHINE_TYPE_LABELS[m.machine_type] ?? m.machine_type, m.line, m.hall_name].filter(Boolean).join(" · ")}
+                  </p>
+                  <dl className="mt-3 grid grid-cols-3 gap-x-3 text-footnote">
+                    <div>
+                      <dt className="text-caption-1 text-muted-foreground">Dokumentation</dt>
+                      <dd className={m.ready_document_count === 0 ? "text-muted-foreground" : undefined}>{docsLabel(m)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption-1 text-muted-foreground">Fehler</dt>
+                      <dd className="tabular-nums">{m.fault_count}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-caption-1 text-muted-foreground">Kennzahl</dt>
+                      <dd className="font-mono break-words">{m.key_figure || "–"}</dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+              {shown.length === 0 && <li className="p-6 text-center text-muted-foreground">Keine Maschine passt zu „{query}“.</li>}
+            </ul>
+          )}
+          {machines && machines.length > 0 && (
+            <table className="hidden w-full min-w-[760px] border-collapse text-sm md:table">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-line">
                   <th className={TH}>Maschine</th>
