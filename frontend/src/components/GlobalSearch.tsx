@@ -13,9 +13,17 @@ const TYPE_LABELS: Record<string, string> = {
   terminal: "Klemme",
   plc_address: "SPS-Adresse",
   plc_symbol: "Symbol",
+  plc_block: "SPS-Baustein",
 };
 
-/** Strg+K: BMK, Klemmen und SPS-Adressen ueber alle Maschinen finden und direkt hinspringen. */
+/** Bausteine gibt es nur im Tab SPS; alles andere sind Kennzeichen, die die Maschinenseite hervorhebt. */
+function machineHref(machineId: string, hit: TagSearchHit): string {
+  return hit.tag_type === "plc_block" ? `/werk/maschine/${machineId}?bereich=aufbau&tab=sps` : `/werk/maschine/${machineId}?tag=${encodeURIComponent(hit.tag)}`;
+}
+
+const countLabel = (hit: TagSearchHit) => (hit.tag_type === "plc_block" ? (hit.occurrences ? `${hit.occurrences} Netzwerke` : "") : `${hit.occurrences}×`);
+
+/** Strg+K: BMK, Klemmen, SPS-Adressen, Bausteine und Bauteilnamen ueber alle Maschinen finden und direkt hinspringen. */
 export function GlobalSearch() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -78,26 +86,26 @@ export function GlobalSearch() {
       open={open}
       onOpenChange={setOpen}
       title="Suche"
-      description="Betriebsmittel, Klemmen und SPS-Adressen finden"
+      description="Betriebsmittel, Klemmen, SPS-Adressen, Bausteine und Bauteilnamen finden"
       className="rounded-none!"
     >
       <Command shouldFilter={false}>
       {/* Treffer kommen gefiltert vom Backend, cmdk soll nicht erneut filtern */}
-      <CommandInput value={query} onValueChange={setQuery} placeholder="-K12, X1:5, E0.0 …" className="font-mono" />
+      <CommandInput value={query} onValueChange={setQuery} placeholder="-K1, X3:5, E0.0, FB 10, Motor …" className="font-mono" />
       <CommandList>
         {query.trim() && !loading && <CommandEmpty>Keine Treffer für „{query.trim()}“.</CommandEmpty>}
-        {!query.trim() && <div className="px-3 py-6 text-center text-sm text-muted-foreground">BMK, Klemme oder SPS-Adresse eingeben.</div>}
+        {!query.trim() && <div className="px-3 py-6 text-center text-sm text-muted-foreground">BMK, Klemme, SPS-Adresse, Baustein oder Bauteilname eingeben.</div>}
         {[...machines.entries()].map(([machineId, entry]) => (
           <CommandGroup key={machineId} heading={entry.name}>
             {entry.hits.map((hit) => (
               <CommandItem
                 key={`${machineId}-${hit.tag}`}
                 value={`${machineId} ${hit.tag}`}
-                onSelect={() => go(`/werk/maschine/${machineId}?tag=${encodeURIComponent(hit.tag)}`)}
+                onSelect={() => go(machineHref(machineId, hit))}
               >
                 <span className="font-mono text-primary">{hit.tag}</span>
                 <span className="text-xs text-muted-foreground">{TYPE_LABELS[hit.tag_type] ?? hit.tag_type}</span>
-                <span className="ml-auto text-xs text-muted-foreground">{hit.occurrences}×</span>
+                <span className="ml-auto text-xs text-muted-foreground">{countLabel(hit)}</span>
               </CommandItem>
             ))}
           </CommandGroup>

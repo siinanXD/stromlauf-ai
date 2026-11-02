@@ -9,7 +9,7 @@ from typing import TypeVar
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app import ledger
@@ -17,12 +17,18 @@ from app.api.machine_map import machine_map
 from app.config import get_settings
 from app.db import get_session
 from app.ingestion.cabinet_vision import detect_components, image_size, read_nameplate
-from app.ingestion.tags import normalize_tag, search_prefixes
+from app.ingestion.tags import (
+    block_search_prefix,
+    normalize_tag,
+    search_prefixes,
+    text_search_terms,
+)
 from app.llm import MissingKeyError
 from app.logsafe import log_failure
 from app.models import (
     CabinetHotspot,
     CabinetImage,
+    Chunk,
     Conversation,
     DocStatus,
     Document,
@@ -723,36 +729,88 @@ def cabinet_check(machine_id: str, session: Session = Depends(get_session)) -> d
 # --- Globale Suche nach Kennzeichen ---------------------------------------------------------
 
 
-@router.get("/tags/search", response_model=list[TagSearchHit])
-def search_tags(q: str = "", session: Session = Depends(get_session)):
-    prefixes = search_prefixes(q)
+SEARCH_LIMIT = 30
+# Bezeichnungen stehen am Bauteil, nicht am Geraeteanschluss, und in Tabellenzeilen: dort ist der Kontext die eigene Zeile
+# des Kennzeichens. In Fliesstext und der Symboltabelle ist er ein Fenster von 80 Zeichen und trifft jedes Nachbarteil.
+TEXT_SEARCH_TYPES = ("device", "terminal", "plc_address")
+TEXT_SEARCH_DOCS = ("bom", "terminal_plan")
+
+
+def _like(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+
+
+def _tag_rows(session: Session, query: str) -> list[tuple[str, str, int]]:
+    """Kennzeichen nach Praefix, danach Bauteile, in deren Bezeichnung (Kontext der Fundstelle) der Begriff steht."""
+    prefixes = search_prefixes(query)
     if not prefixes:
         return []
-    escaped = [p.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_") + "%" for p in prefixes]
-    rows = session.execute(
-        select(TagOccurrence.tag, TagOccurrence.tag_type, func.count())
-        .where(or_(*(TagOccurrence.tag.like(pattern, escape="\\") for pattern in escaped)))
-        .group_by(TagOccurrence.tag, TagOccurrence.tag_type)
-        .order_by(func.length(TagOccurrence.tag), TagOccurrence.tag)
-        .limit(30)
-    ).all()
-    if not rows:
+    by_tag = or_(*(TagOccurrence.tag.like(_like(p) + "%", escape="\\") for p in prefixes))
+    terms = text_search_terms(query)
+    condition = by_tag
+    if terms:
+        by_text = and_(
+            TagOccurrence.tag_type.in_(TEXT_SEARCH_TYPES),
+            TagOccurrence.document_id.in_(select(Document.id).where(Document.doc_type.in_(TEXT_SEARCH_DOCS))),
+            or_(*(func.lower(TagOccurrence.context).like("%" + _like(t) + "%", escape="\\") for t in terms)),
+        )
+        condition = or_(by_tag, by_text)
+    return [
+        (tag, str(tag_type), count)
+        for tag, tag_type, count in session.execute(
+            select(TagOccurrence.tag, TagOccurrence.tag_type, func.count())
+            .where(condition)
+            .group_by(TagOccurrence.tag, TagOccurrence.tag_type)
+            .order_by(case((by_tag, 0), else_=1), func.length(TagOccurrence.tag), TagOccurrence.tag)
+            .limit(SEARCH_LIMIT)
+        )
+    ]
+
+
+def _block_rows(session: Session, query: str) -> list[tuple[str, int, set[str]]]:
+    """SPS-Bausteine ("FB 10") aus den Chunks der AWL-Quellen: Name, Anzahl Netzwerke, Quellen."""
+    prefix = block_search_prefix(query)
+    if prefix is None:
+        return []
+    blocks: dict[str, tuple[int, set[str]]] = {}
+    for source_id, kind, section in session.execute(
+        select(Chunk.source_id, Chunk.kind, Chunk.section).where(
+            Chunk.kind.in_(("awl_block", "awl_network")),
+            func.replace(func.upper(Chunk.section), " ", "").like(_like(prefix) + "%", escape="\\"),
+        )
+    ):
+        name = section.split(" / ")[0].split(" - ")[0].strip()  # "FB 10 - Titel / NW 2 Motor" -> "FB 10"
+        networks, sources = blocks.get(name, (0, set()))
+        blocks[name] = (networks + (kind == "awl_network"), sources | {source_id})
+    return [(name, networks, sources) for name, (networks, sources) in sorted(blocks.items())]
+
+
+@router.get("/tags/search", response_model=list[TagSearchHit])
+def search_tags(q: str = "", session: Session = Depends(get_session)):
+    rows = _tag_rows(session, q)
+    blocks = _block_rows(session, q)
+    if not rows and not blocks:
         return []
     tags = [r[0] for r in rows]
     sources: dict[str, set[str]] = {}
-    for tag, source_id in session.execute(
-        select(TagOccurrence.tag, TagOccurrence.source_id).where(TagOccurrence.tag.in_(tags)).distinct()
-    ):
-        sources.setdefault(tag, set()).add(source_id)
+    if tags:
+        for tag, source_id in session.execute(
+            select(TagOccurrence.tag, TagOccurrence.source_id).where(TagOccurrence.tag.in_(tags)).distinct()
+        ):
+            sources.setdefault(tag, set()).add(source_id)
     machines_by_source: dict[str, list[TagSearchMachine]] = {}
     for machine in session.scalars(select(Machine).where(Machine.source_id.is_not(None)).order_by(Machine.name)):
         machines_by_source.setdefault(machine.source_id, []).append(TagSearchMachine(id=machine.id, name=machine.name))
-    return [
-        TagSearchHit(
-            tag=tag,
-            tag_type=str(tag_type),
-            occurrences=count,
-            machines=[m for s in sorted(sources.get(tag, ())) for m in machines_by_source.get(s, [])],
-        )
+
+    def machines_of(source_ids) -> list[TagSearchMachine]:
+        return [m for s in sorted(source_ids) for m in machines_by_source.get(s, [])]
+
+    hits = [
+        TagSearchHit(tag=tag, tag_type=tag_type, occurrences=count, machines=machines_of(sources.get(tag, ())))
         for tag, tag_type, count in rows
     ]
+    hits += [
+        TagSearchHit(tag=name, tag_type="plc_block", occurrences=networks, machines=machines_of(block_sources))
+        for name, networks, block_sources in blocks
+    ]
+    return hits[:SEARCH_LIMIT]

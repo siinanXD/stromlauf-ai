@@ -111,7 +111,7 @@ export function SteckbriefKarte({ profile }: { profile: SourceProfile }) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Kennzeichen filtern: -K12, -X3:, E0."
+          placeholder="Kennzeichen filtern: -K1, -X3:, E0."
           aria-label="Kennzeichen filtern"
           className="h-8 w-64 border border-border bg-background px-2 text-sm"
         />

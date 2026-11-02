@@ -8,13 +8,7 @@ import { ChatPanel, ExampleQuestions } from "@/components/chat/ChatPanel";
 import { PageViewer, type PageTarget } from "@/components/PageViewer";
 import { Sidebar } from "@/components/Sidebar";
 import { api, API_URL, type Conversation, type Health, type KnowledgeSource } from "@/lib/api";
-
-const EXAMPLES = [
-  "Wo ist Schütz -K12 verbaut und was schaltet es?",
-  "Welcher SPS-Eingang hängt an Klemme -X1:5 und in welchem Netzwerk wird er verwendet?",
-  "Erkläre mir FB 10 Netzwerk für Netzwerk.",
-  "Motor -M1 läuft nicht an: welche Bedingungen müssen erfüllt sein?",
-];
+import { exampleQuestions } from "@/lib/examples";
 
 /** Werksweiter Chat: Wissensquellen frei waehlbar. Der Chat je Maschine sitzt auf der Maschinenseite (Tab Chat). */
 export default function Home() {
@@ -27,6 +21,7 @@ export default function Home() {
   const [initialInput, setInitialInput] = useState("");
   const [pageTarget, setPageTarget] = useState<PageTarget | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [examples, setExamples] = useState<string[]>([]);
 
   const loadSources = useCallback(() => api.listSources().then(setSources).catch(() => {}), []);
   const loadConversations = useCallback(() => api.listConversations().then(setConversations).catch(() => {}), []);
@@ -38,6 +33,7 @@ export default function Home() {
         setHealth(result);
         loadSources();
         loadConversations();
+        exampleQuestions().then(setExamples);
         // Von aussen: /?source=<id>&q=<Frage> waehlt die Wissensquelle vor und fuellt die Frage ein
         const params = new URLSearchParams(window.location.search);
         const preset = params.get("source");
@@ -116,7 +112,7 @@ export default function Home() {
                   Ich verfolge Betriebsmittel, Klemmen und SPS-Adressen über Stromlaufplan, Stückliste, Klemmenplan, AWL-Programm und Handbücher hinweg.
                   Fragen zu einer Maschine stellst du besser auf ihrer Seite (links in der Liste): dort ist nur ihre Doku im Scope und das Modell zeigt die Bauteile.
                 </p>
-                <ExampleQuestions examples={EXAMPLES} onPick={setInitialInput} />
+                <ExampleQuestions examples={examples} onPick={setInitialInput} />
               </>
             }
           />

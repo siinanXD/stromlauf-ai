@@ -132,7 +132,7 @@ export function AppShell({ breadcrumb, children }: { breadcrumb: Crumb[]; childr
             className="mx-auto hidden h-9 w-full max-w-md items-center gap-2 rounded-md bg-bg-fill px-3 text-left text-subhead text-muted-foreground hover:text-foreground md:flex"
           >
             <Search className="size-4" />
-            <span className="flex-1 truncate">Suchen: -K12, X1:5, E0.0 …</span>
+            <span className="flex-1 truncate">Suchen: -K1, X3:5, E0.0, FB 10 …</span>
             <kbd className="rounded-xs bg-card px-1.5 font-mono text-caption-2 shadow-card">Strg K</kbd>
           </button>
 

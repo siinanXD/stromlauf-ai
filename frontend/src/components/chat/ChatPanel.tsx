@@ -373,7 +373,7 @@ export function ExampleQuestions({ examples, onPick }: { examples: string[]; onP
   return (
     <div className="mt-6 grid gap-2 sm:grid-cols-2">
       {examples.map((example) => (
-        <button key={example} onClick={() => onPick(example)} className="min-h-11 rounded-lg bg-card p-3 text-left text-subhead shadow-card hover:bg-bg-fill">
+        <button key={example} data-testid="beispielfrage" onClick={() => onPick(example)} className="min-h-11 rounded-lg bg-card p-3 text-left text-subhead shadow-card hover:bg-bg-fill">
           {example}
         </button>
       ))}

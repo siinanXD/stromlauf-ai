@@ -245,6 +245,12 @@ der Instandhaltung an der Maschine?
   Verweis. `document_pieces` haengt sie als Block "Anschluesse am Schaltzeichen" an Stromlaufplan-Seiten (nicht an
   Stuecklistenseiten). `make_gold.py` schreibt die am Symbol gezeichneten Anschluesse mit; das Ingest-Gate prueft
   `device_pin` mit 0,90 (gemessen Precision 1,00, Recall 0,94 bis 1,00). Blatt-Stil (`9K1`, QElectroTech) noch nicht.
+- Globale Suche (SIN-1462, `GET /api/tags/search`, `api/plant.py`): Kennzeichen nach Praefix, dazu SPS-Bausteine (`FB 10`, Typ
+  `plc_block`, aus den Chunks `awl_block`/`awl_network`, `occurrences` = Netzwerke) und Bauteilnamen (`Foerdermotor`; Umlaut = ae/oe/ue,
+  `tags.text_search_terms`, nur Woerter ab drei Buchstaben). Freitext sucht nur im Kontext von Stuecklisten- und Klemmenplanzeilen:
+  in Fliesstext und Symboltabelle ist der Kontext ein Fenster und trifft jedes Nachbarteil. Beispielfragen im Chat
+  (`frontend/src/lib/examples.ts`) und Suchhinweise nennen nur Kennzeichen, die der Index hat; Pruefung `e2e/demo.spec.ts`
+  (Suche) und `tests/test_search_db.py`.
 - PostgreSQL + pgvector im Docker-Container auf Port **5433**.
 - LangGraph-Checkpointer: SQLite in `backend/data/checkpoints.sqlite`.
 - Erster Upload lädt `BAAI/bge-m3` (ca. 2 GB) und Docling-Modelle von Hugging Face.

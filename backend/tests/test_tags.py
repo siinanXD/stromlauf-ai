@@ -1,12 +1,14 @@
 import pytest
 
 from app.ingestion.tags import (
+    block_search_prefix,
     detect_folio_style,
     detect_spaced_terminals,
     extract_tags,
     normalize_tag,
     pin_kind,
     search_prefixes,
+    text_search_terms,
 )
 from app.models import TagType
 
@@ -327,3 +329,22 @@ def test_tabellenzeile_wird_bereinigt_leere_und_verdoppelte_zellen():
     row = "| 6 | 6 | Emergency Stop Circuit | Emergency Stop Circuit | 6KE1 | 6KE1 | | | Emergency Contactor | Schneider Electric |"
     (tag,) = [t for t in extract_tags(row, folio_style=True) if t.tag == "6KE1"]
     assert tag.context == "| 6 | Emergency Stop Circuit | 6KE1 | Emergency Contactor | Schneider Electric |"
+
+
+def test_text_search_terms_gleicht_umlaute_aus():
+    assert text_search_terms("Fördermotor") == ["fördermotor", "foerdermotor"]
+    assert text_search_terms("Foerdermotor") == ["foerdermotor", "fördermotor"]
+    assert text_search_terms("  Schütz  -K1 ")[1] == "schuetz -k1"
+
+
+@pytest.mark.parametrize("query", ["-K1", "-K12", "E0.0", "FB 10", "-X1:5", "  ", "a1"])
+def test_text_search_terms_leer_bei_kennzeichen(query):
+    assert text_search_terms(query) == []
+
+
+@pytest.mark.parametrize(
+    ("query", "prefix"),
+    [("FB 10", "FB10"), ("fb10", "FB10"), ("OB", "OB"), ("db 1", "DB1"), ("FB 107", "FB107"), ("-K1", None), ("Foerdermotor", None), ("FB 10 NW 2", None)],
+)
+def test_block_search_prefix(query, prefix):
+    assert block_search_prefix(query) == prefix
