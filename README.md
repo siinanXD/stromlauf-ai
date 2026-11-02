@@ -103,6 +103,14 @@ lädt dafür `BAAI/bge-m3` (ca. 2 GB) und dauert entsprechend. Danach: Oberfläc
 <http://localhost:8010/api/health>. Ohne `--profile demo` startet wie bisher nur die Datenbank. Aufräumen:
 `docker compose --profile demo down -v`.
 
+## Screencast
+
+<!-- Entwurf (SIN-1432): nach dem Einchecken von docs/assets/stromlauf-demo.mp4 einkommentieren -->
+<!-- <video src="docs/assets/stromlauf-demo.mp4" controls muted width="720"></video> -->
+
+Eine Minute Demo: Maschinenübersicht, Bauteil, „Warum kommt A4.0 nicht?“, Signalweg. Link: *Platzhalter `sjcode.de/-K3`
+(entscheidet Sinan)*. Aufnahme und Schnitt laufen automatisch, siehe [`docs/product/demo.md`](docs/product/demo.md).
+
 ## Start
 
 ```bash
