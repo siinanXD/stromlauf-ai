@@ -1,6 +1,7 @@
 # PR-Gate (SIN-207, ausgerollt mit SIN-208): prüft den PR-Titel, setzt das
 # Risiko-Label automatisch und schaltet Auto-Merge ein.
 #
+#   Ohne Urteil `belegt` der Belegprüfung für den Commit (SIN-1481) nie Auto-Merge.
 #   risk:low / risk:medium → Auto-Merge (Squash), sobald alle Pflicht-Checks grün sind
 #   risk:high              → Check `merge-gate` bleibt rot, bis Sinan das Label
 #                            `freigegeben` setzt.
@@ -18,19 +19,46 @@ name: pr-gate
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write
 
 # Kein cancel-in-progress: Ein abgebrochener Lauf darf keine Entscheidung verschlucken.
 concurrency:
-  group: pr-gate-${{ github.event.pull_request.number }}
+  group: pr-gate-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
+  # SIN-1481: Steht das Urteil der Belegprüfung am PR, bewertet der letzte pr-gate-Lauf des Commits frisch.
+  # issue_comment läuft mit der Fassung vom Standard-Branch; nur Kommentare des Repo-Owners zählen.
+  beleg-anstoss:
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '<!-- belegpruefung:') && github.event.comment.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Letzten pr-gate-Lauf des Commits neu starten
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: context.issue.number });
+            if (pr.state !== "open" || pr.draft) { core.info("PR geschlossen oder Draft: nichts zu tun."); return; }
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner, repo, workflow_id: "pr-gate.yml", event: "pull_request", head_sha: pr.head.sha, per_page: 20,
+            });
+            const latest = data.workflow_runs.sort((a, b) => b.run_number - a.run_number || b.run_attempt - a.run_attempt)[0];
+            if (!latest) { core.info("Kein pr-gate-Lauf zu diesem Commit."); return; }
+            if (latest.status !== "completed") { core.info("pr-gate läuft noch und bewertet frisch."); return; }
+            await github.rest.actions.reRunWorkflow({ owner, repo, run_id: latest.id });
+            core.info(`pr-gate-Lauf ${latest.id} neu gestartet (PR #${pr.number}).`);
+
   pr-title:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -55,6 +83,7 @@ jobs:
           echo "PR-Titel ok."
 
   merge-gate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -215,7 +244,16 @@ jobs:
                 note = note || "Die Freigabe galt für einen älteren Stand. Bitte `freigegeben` neu setzen.";
               }
             }
-            const allowAutoMerge = !pr.draft && !labels.includes(NO_AUTOMERGE)
+            // SIN-1481: Auto-Merge nur mit dem Urteil `belegt` der Belegprüfung für genau diesen Commit, vom Repo-Owner.
+            // Das jüngste Urteil zählt; der Check bleibt grün, von Hand mergen kann Sinan weiterhin.
+            // Nur die erste Zeile: Der Prüfauftrag enthält beide Marker, ein zitierter `belegt` darf nicht zählen.
+            const ersteZeile = (c) => (c.body ?? "").split(/\r?\n/)[0].trim();
+            const urteile = comments
+              .filter((c) => c.user?.login === owner && ersteZeile(c).startsWith(`<!-- belegpruefung:${pr.head.sha}:`))
+              .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+            const belegt = urteile.length > 0 && ersteZeile(urteile[0]) === `<!-- belegpruefung:${pr.head.sha}:belegt -->`;
+            core.info(`Belegprüfung ${pr.head.sha.slice(0, 7)}: ${belegt ? "belegt" : urteile.length ? "beanstandet" : "fehlt"}`);
+            const allowAutoMerge = !pr.draft && belegt && !labels.includes(NO_AUTOMERGE)
               && (risk !== "risk:high" || approved);
 
             // Hinweis-Kommentar nur bei risk:high (ein Kommentar, wird aktualisiert).

@@ -3,7 +3,7 @@
 # Es läuft nur für Nutzer mit Schreibrechten (Standard der Action).
 # Kein github_token: die Action nutzt die Claude-GitHub-App, damit CI auf Claudes Commits läuft.
 # Bei Aufträgen aus einem Issue öffnet Claude den PR selbst (gh pr create mit dem App-Token).
-# Danach entscheidet pr-gate: risk:low/medium mergt automatisch, risk:high wartet auf `freigegeben`.
+# Danach entscheidet pr-gate: risk:low/medium mergt automatisch mit Urteil `belegt` der Belegprüfung, risk:high wartet auf `freigegeben`.
 # Vor dem Push prüft Claude selbst (SIN-215): venv unter /tmp/venv, pip, pytest, ruff, npm ci,
 # npm run … Kein Docker, kein Playwright, keine Datenbank. Workflow-Dateien kann Claude nicht
 # pushen (Token ohne workflows-Recht), Änderungen an .github/ laufen über die lokale Sitzung.
