@@ -644,4 +644,4 @@ Ein Secret-Scan mit gitleaks läuft in der CI über die gesamte Historie.
 
 ## Pull Requests
 
-Jeder PR wird automatisch geprüft (CI, `pr-title`, `merge-gate`). PRs mit `risk:low` oder `risk:medium` mergen von selbst, sobald alle Checks grün sind. `risk:high` wartet auf das Label `freigegeben`. Details: `AGENTS.md`, Abschnitt „Pull Requests und Merge“.
+Jeder PR wird automatisch geprüft (CI, `pr-title`, `merge-gate`). PRs mit `risk:low` oder `risk:medium` mergen von selbst, sobald alle Checks grün sind und die Belegprüfung für den Commit das Urteil `belegt` geschrieben hat. `risk:high` wartet auf das Label `freigegeben`. Details: `AGENTS.md`, Abschnitt „Pull Requests und Merge“.

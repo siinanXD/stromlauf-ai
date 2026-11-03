@@ -246,10 +246,12 @@ jobs:
             }
             // SIN-1481: Auto-Merge nur mit dem Urteil `belegt` der Belegprüfung für genau diesen Commit, vom Repo-Owner.
             // Das jüngste Urteil zählt; der Check bleibt grün, von Hand mergen kann Sinan weiterhin.
+            // Nur die erste Zeile: Der Prüfauftrag enthält beide Marker, ein zitierter `belegt` darf nicht zählen.
+            const ersteZeile = (c) => (c.body ?? "").split(/\r?\n/)[0].trim();
             const urteile = comments
-              .filter((c) => c.user?.login === owner && c.body?.includes(`<!-- belegpruefung:${pr.head.sha}:`))
+              .filter((c) => c.user?.login === owner && ersteZeile(c).startsWith(`<!-- belegpruefung:${pr.head.sha}:`))
               .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-            const belegt = urteile[0]?.body.includes(`<!-- belegpruefung:${pr.head.sha}:belegt -->`) ?? false;
+            const belegt = urteile.length > 0 && ersteZeile(urteile[0]) === `<!-- belegpruefung:${pr.head.sha}:belegt -->`;
             core.info(`Belegprüfung ${pr.head.sha.slice(0, 7)}: ${belegt ? "belegt" : urteile.length ? "beanstandet" : "fehlt"}`);
             const allowAutoMerge = !pr.draft && belegt && !labels.includes(NO_AUTOMERGE)
               && (risk !== "risk:high" || approved);
