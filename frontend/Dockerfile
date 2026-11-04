@@ -21,5 +21,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.ts ./
+# next.config.ts importiert apiUrl (SIN-1522); ohne die Datei scheitert `next start` beim Laden der Config
+COPY --from=build /app/src/lib/apiUrl.ts ./src/lib/apiUrl.ts
 EXPOSE 3100
 CMD ["npm", "run", "start"]
