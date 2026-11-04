@@ -26,7 +26,7 @@ WRITE_ALLOWED = ("/api/chat", "/api/answers/validate-citations", "/api/auth/")
 CHAT_PATH = "/api/chat"
 WINDOW_S = 60.0
 
-SOURCE_NAME = "Foerderband FB-01"
+SOURCE_NAME = "Förderband FB-01"
 HALL_NAME = "Halle 1 (Beispiel)"
 EXAMPLE_FILES = [
     ("01_Stromlaufplan_FB-01.pdf", "schematic"),
@@ -38,20 +38,20 @@ EXAMPLE_FILES = [
 ]
 FAULTS = [
     {"code": "E-F2", "symptom": "-H2 leuchtet, Band steht, Start ohne Wirkung",
-     "cause": "Motorschutz -F2 ausgeloest (E0.2 = 0)",
-     "fix": "-F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren.",
+     "cause": "Motorschutz -F2 ausgelöst (E0.2 = 0)",
+     "fix": "-F2 prüfen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkühlen einschalten, mit -S1 quittieren.",
      "doc_ref": "Betriebsanleitung Kap. 6, Stromlaufplan Blatt 3", "tags": ["-F2", "-M1", "-H2"]},
     {"code": "E-BLOCK", "symptom": "-H2 leuchtet nach ca. 20 s Betrieb",
      "cause": "Blockade: Teil am Einlauf -B1, aber nicht am Auslauf -B2 (Timer T5)",
-     "fix": "Band auf Verklemmung pruefen, -B2 reinigen und ausrichten (Klemme -X3:6, E0.5).",
+     "fix": "Band auf Verklemmung prüfen, -B2 reinigen und ausrichten (Klemme -X3:6, E0.5).",
      "doc_ref": "FB10 Netzwerk 5, Betriebsanleitung Kap. 6", "tags": ["-B1", "-B2", "-X3"]},
     {"code": "E-NH", "symptom": "Start ohne Wirkung, -H1 und -H2 aus",
      "cause": "Not-Halt nicht entriegelt, -K3 ohne Freigabe (E0.3 = 0)",
-     "fix": "-S3 entriegeln, 24 V an -X3:4 pruefen, beide Kanaele -S3 11/12 und 21/22 pruefen.",
+     "fix": "-S3 entriegeln, 24 V an -X3:4 prüfen, beide Kanäle -S3 11/12 und 21/22 prüfen.",
      "doc_ref": "Stromlaufplan Blatt 4", "tags": ["-S3", "-K3", "-X3"]},
     {"code": "E-PH", "symptom": "-K1 zieht an, Motor brummt, dreht nicht",
      "cause": "Phase fehlt am Motorabgang",
-     "fix": "Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und -M1:U1/V1/W1.",
+     "fix": "Spannung an -X4:U/V/W prüfen, Motorleitung -W4 und -M1:U1/V1/W1.",
      "doc_ref": "Stromlaufplan Blatt 3", "tags": ["-X4", "-M1", "-K1"]},
 ]
 
@@ -114,7 +114,7 @@ async def demo_middleware(request: Request, call_next):
         )
     if write_blocked(method, path):
         return JSONResponse(
-            {"detail": "In der Demo sind Aenderungen und Uploads gesperrt.", "code": "demo_readonly"},
+            {"detail": "In der Demo sind Änderungen und Uploads gesperrt.", "code": "demo_readonly"},
             status_code=403,
         )
     return await call_next(request)
@@ -146,7 +146,7 @@ def seed_example(example_dir: Path | None = None) -> bool:
                 return False
             source = KnowledgeSource(
                 name=SOURCE_NAME,
-                description="Beispielanlage: Stromlaufplan, Stueckliste, Klemmenplan, AWL, Symboltabelle, Anleitung",
+                description="Beispielanlage: Stromlaufplan, Stückliste, Klemmenplan, AWL, Symboltabelle, Anleitung",
             )
             session.add(source)
             session.flush()
@@ -164,7 +164,7 @@ def seed_example(example_dir: Path | None = None) -> bool:
                     )
                 )
                 document_ids.append(document_id)
-            hall = Hall(name=HALL_NAME, description="Beispielhalle aus examples/foerderband")
+            hall = Hall(name=HALL_NAME, description="Beispielhalle der Beispielanlage Förderband FB-01")
             session.add(hall)
             session.flush()
             machine = Machine(
@@ -172,7 +172,7 @@ def seed_example(example_dir: Path | None = None) -> bool:
                 name=SOURCE_NAME,
                 machine_type="conveyor",
                 source_id=source.id,
-                description="Werkstuecktransport Einlauf -> Auslauf, Wendeschuetz -K1/-K2, SPS -A1",
+                description="Werkstücktransport Einlauf -> Auslauf, Wendeschütz -K1/-K2, SPS -A1",
             )
             session.add(machine)
             session.flush()

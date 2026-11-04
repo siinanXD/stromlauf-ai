@@ -154,7 +154,7 @@ export default function AblaufPage() {
     <AppShell breadcrumb={[{ label: "Ablauf" }]}>
       <div className="flex h-full flex-col overflow-y-auto">
         <div className="space-y-3 border-b border-border p-4 md:px-6">
-          <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Ablauf</h1>
+          <h1 className="text-page-title">Ablauf</h1>
           <p className="text-subhead text-muted-foreground">Stromlaufplan, Stückliste, AWL oder Handbuch hier ablegen. Alles Weitere passiert von selbst.</p>
           {gruppierung ? (
             <GruppenVorschlag gruppierung={gruppierung} onChange={setGruppierung} onStart={startAlle} onAbbrechen={() => ablegen([])} disabled={running} />

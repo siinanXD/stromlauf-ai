@@ -26,7 +26,7 @@ export default function SourceProfilePage() {
     <AppShell breadcrumb={[{ label: "Chat", href: "/" }, { label: "Wissensquelle" }, { label: name }]}>
       <div className="flex h-full flex-col">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-2">
-          <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Steckbrief {name}</h1>
+          <h1 className="text-page-title">Steckbrief {name}</h1>
           {profile && (
             <span className="text-sm text-muted-foreground">
               {profile.summary.devices} Betriebsmittel · {profile.summary.terminals} Klemmen · {profile.summary.plc_addresses} SPS-Adressen ·{" "}

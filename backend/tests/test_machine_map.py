@@ -91,11 +91,11 @@ def test_beispielmaschine_fb01_behaelt_ihre_arten():
     result = build_map([], index_hits=hits).as_dict()
     kinds = {p["tag"]: p["kind"] for z in result["zones"] for p in z["parts"]}
     assert result["letter_codes"]["edition"] == "alt"
-    assert (kinds["-K1"], kinds["-Q1"], kinds["-H1"]) == ("Schuetz/Relais", "Schalter", "Meldung")
+    assert (kinds["-K1"], kinds["-Q1"], kinds["-H1"]) == ("Schütz/Relais", "Schalter", "Meldung")
 
 
 def test_art_aus_kennbuchstabe():
-    assert kind_of("-K12") == "Schuetz/Relais"
+    assert kind_of("-K12") == "Schütz/Relais"
     assert kind_of("+ST1-F3") == "Schutz"
     assert kind_of("-X1") == "Klemme"
     assert kind_of("Q") == "Schalter"
@@ -147,7 +147,7 @@ def test_stuecklistenzeile_ohne_ort_gibt_bezeichnung_und_blatt_zone():
     (zone,) = result["zones"]
     assert zone["code"] == "Blatt 6"
     assert zone["parts"] == [{"tag": "6KE1", "label": "Emergency Contactor Emergency Contactor 1 Schneider Electric",
-                              "kind": "Schuetz/Relais", "source": "bom", "verb": "schaltet"}]
+                              "kind": "Schütz/Relais", "source": "bom", "verb": "schaltet"}]
 
 
 def test_einbauort_schlaegt_blatt_zone():
@@ -167,9 +167,9 @@ def test_blatt_zone_heisst_nach_dem_schriftfeld_nicht_nach_der_seite():
 
 
 def test_kind_of_kennt_folio_stil_und_zweibuchstabige_kennbuchstaben():
-    assert kind_of("9K1") == kind_of("-K1") == "Schuetz/Relais"
+    assert kind_of("9K1") == kind_of("-K1") == "Schütz/Relais"
     assert kind_of("4Q1") == kind_of("-Q1") == "Schalter"
-    assert kind_of("9QF1") == kind_of("-QF1") == "Schutz" and kind_of("-KM1") == "Schuetz/Relais"
+    assert kind_of("9QF1") == kind_of("-QF1") == "Schutz" and kind_of("-KM1") == "Schütz/Relais"
     assert kind_of("9EV1") == "Ventil" and kind_of("24V1") == "" and kind_of("-E1") == "Heizung/Leuchte"
 
 

@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  */
 const API = process.env.E2E_API_URL;
 const TARGET = process.env.E2E_SCREENSHOT;
-const MACHINE = process.env.E2E_MACHINE ?? "Foerderband FB-01";
+const MACHINE = process.env.E2E_MACHINE ?? "Förderband FB-01";
 
 test.describe("Screenshot Maschinenseite", () => {
   test.skip(!API || !TARGET, "E2E_API_URL oder E2E_SCREENSHOT nicht gesetzt");

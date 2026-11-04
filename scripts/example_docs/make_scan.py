@@ -64,7 +64,7 @@ def image_pdf(images: list[Image.Image]) -> bytes:
         append_images=images[1:],
         resolution=DPI,
         quality=QUALITY,
-        title="Stromlaufplan Foerderband FB-01 (Scan)",
+        title="Stromlaufplan Förderband FB-01 (Scan)",
         creationDate=None,
         modDate=None,
     )

@@ -98,9 +98,9 @@ def world(client):
             ):
                 session.add(TagOccurrence(document_id=bom.id, source_id=source.id, tag=tag, tag_type="device", context=context))
             for section, kind in (
-                ("FB 10 - Foerderband FB-01", "awl_block"),
-                ("FB 10 - Foerderband FB-01 / NW 1 Freigabe", "awl_network"),
-                ("FB 10 - Foerderband FB-01 / NW 2 Motor", "awl_network"),
+                ("FB 10 - Förderband FB-01", "awl_block"),
+                ("FB 10 - Förderband FB-01 / NW 1 Freigabe", "awl_network"),
+                ("FB 10 - Förderband FB-01 / NW 2 Motor", "awl_network"),
                 ("OB 1", "awl_block"),
                 ("OB 1 / NW 1 Aufruf", "awl_network"),
             ):

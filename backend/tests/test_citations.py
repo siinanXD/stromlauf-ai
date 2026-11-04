@@ -17,8 +17,8 @@ AWL = DocIndex(
     filename="04_SPS_Programm_FB-01.awl",
     is_pdf=False,
     sections=(
-        "FB 10 - Foerderband FB-01 Steuerung",
-        "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz",
+        "FB 10 - Förderband FB-01 Steuerung",
+        "FB 10 - Förderband FB-01 Steuerung / NW 4 Stoerung Motorschutz",
     ),
 )
 MANUAL = DocIndex(filename="06_Betriebsanleitung_FB-01.md", is_pdf=False)
@@ -234,8 +234,8 @@ def test_baustein_und_netzwerk_werden_strukturiert_verglichen():
         is_pdf=False,
         tags=frozenset({"-K1"}),
         sections=(
-            "FB 10 - Foerderband FB-01 Steuerung / NW 1 Selbsthaltung",
-            "FB 10 - Foerderband FB-01 Steuerung / NW 4 Stoerung Motorschutz",
+            "FB 10 - Förderband FB-01 Steuerung / NW 1 Selbsthaltung",
+            "FB 10 - Förderband FB-01 Steuerung / NW 4 Stoerung Motorschutz",
             "OB 1 - Main / NW 1 Aufruf",
         ),
     )

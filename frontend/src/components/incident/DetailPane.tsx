@@ -158,7 +158,7 @@ function PaneFrame({
             <ChevronLeft className="size-6" aria-hidden />
             <span aria-hidden>Zurück</span>
           </button>
-          <h2 className="min-w-0 flex-1 truncate px-1 text-center text-headline lg:text-left">{title}</h2>
+          <h2 className="min-w-0 flex-1 truncate px-1 text-center text-page-title lg:text-left">{title}</h2>
           <button type="button" onClick={onClose} className="hidden min-h-11 shrink-0 rounded-md px-2 text-body text-primary hover:bg-bg-fill lg:block" aria-label="Detail schließen">
             <span aria-hidden>Schließen</span>
           </button>

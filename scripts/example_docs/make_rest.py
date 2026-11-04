@@ -26,8 +26,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 def stueckliste():
     wb = Workbook()
     ws = wb.active
-    ws.title = "Stueckliste"
-    ws.append(["Stueckliste Foerderband FB-01", "", "", "", "", ""])
+    ws.title = "Stückliste"
+    ws.append(["Stückliste Förderband FB-01", "", "", "", "", ""])
     ws.append([f"Anlage {PLANT}: {LOCATIONS_TEXT}. Beispielanlage, frei erfunden, ohne Herstellerbezug.", "", "", "", "", ""])
     ws.append([])
     head = ["BMK", "Bezeichnung", "Typ / Kenndaten", "Menge", "Einbauort", "Blatt"]
@@ -61,7 +61,7 @@ def klemmenplan():
         w.writerow(["-X2", "-X2:1", "-T1:+", "-X3:7", "+24 V Sensoren", "/2.5"])
         w.writerow(["-X2", "-X2:2", "-T1:-", "-X3:8, -X3:13, -X3:14", "0 V", "/2.5"])
         w.writerow(["-X2", "-X2:3", "-T1:+", "-S3:11, -S3:21", "+24 V Not-Halt-Kreis", "/2.6"])
-        w.writerow(["-X2", "-X2:3a", "-K3:14", "-K1:A1 / -K2:A1 (ueber -A1.2)", "+24 V freigegeben", "/4.4"])
+        w.writerow(["-X2", "-X2:3a", "-K3:14", "-K1:A1 / -K2:A1 (über -A1.2)", "+24 V freigegeben", "/4.4"])
         w.writerow(["-X2", "-X2:4", "-T1:-", "-K3:A2", "0 V Not-Halt-Kreis", "/2.6"])
         w.writerow(["-X2", "-X2:5", "-T1:+", "-A1:L+", "+24 V SPS", "/2.7"])
         w.writerow(["-X2", "-X2:6", "-T1:-", "-A1:M", "0 V SPS", "/2.7"])
@@ -69,9 +69,9 @@ def klemmenplan():
 
 def awl():
     text = '''FUNCTION_BLOCK FB 10
-TITLE =Foerderband FB-01 Steuerung
-//Ansteuerung Foerdermotor -M1 ueber Wendeschuetze -K1 / -K2,
-//Stoerungsauswertung, Stueckzaehlung. Anlage =FB1, Schaltschrank +ST1.
+TITLE =Förderband FB-01 Steuerung
+//Ansteuerung Fördermotor -M1 über Wendeschütze -K1 / -K2,
+//Störungsauswertung, Stückzählung. Anlage =FB1, Schaltschrank +ST1.
 AUTHOR : Beispiel
 FAMILY : FB01
 NAME : Foerder
@@ -79,16 +79,16 @@ VERSION : 1.0
 
 VAR_INPUT
   Start : BOOL ;	//Taster -S1 Start (E0.0)
-  Stop : BOOL ;	//Taster -S2 Stop, Oeffner (E0.1)
+  Stop : BOOL ;	//Taster -S2 Stop, Öffner (E0.1)
   MSS_OK : BOOL ;	//Motorschutz -F2 Hilfskontakt (E0.2)
   NotHalt_OK : BOOL ;	//Sicherheitsrelais -K3 Freigabe (E0.3)
   LS_Einlauf : BOOL ;	//Lichtschranke -B1 (E0.4)
   LS_Auslauf : BOOL ;	//Lichtschranke -B2 (E0.5)
-  Richtung_Rueck : BOOL ;	//1 = Rueckwaertsbetrieb (Wartung)
+  Richtung_Rueck : BOOL ;	//1 = Rückwärtsbetrieb (Wartung)
 END_VAR
 VAR_OUTPUT
-  Vorwaerts : BOOL ;	//Schuetz -K1 (A4.0)
-  Rueckwaerts : BOOL ;	//Schuetz -K2 (A4.1)
+  Vorwaerts : BOOL ;	//Schütz -K1 (A4.0)
+  Rueckwaerts : BOOL ;	//Schütz -K2 (A4.1)
   Betrieb : BOOL ;	//Meldeleuchte -H1 (A4.2)
   Stoerung : BOOL ;	//Meldeleuchte -H2 (A4.3)
 END_VAR
@@ -97,13 +97,13 @@ VAR
   Flanke_Start : BOOL ;	//Flankenmerker Start
   Flanke_Auslauf : BOOL ;	//Flankenmerker Lichtschranke Auslauf
   Stueckzahl : INT ;	//Teile seit Quittierung
-  Timer_Blockade : S5TIME ;	//Ueberwachung Einlauf -> Auslauf
+  Timer_Blockade : S5TIME ;	//Überwachung Einlauf -> Auslauf
 END_VAR
 BEGIN
 NETWORK
 TITLE =Selbsthaltung Betrieb
-//Start setzt die Freigabe, Stop (Oeffner), Motorschutz oder Not-Halt setzen zurueck.
-//Wiederanlaufsperre: nach Not-Halt ist ein neuer Start noetig.
+//Start setzt die Freigabe, Stop (Öffner), Motorschutz oder Not-Halt setzen zurück.
+//Wiederanlaufsperre: nach Not-Halt ist ein neuer Start nötig.
       U(    ;
       O     #Start;
       O     #Freigabe;
@@ -114,22 +114,22 @@ TITLE =Selbsthaltung Betrieb
       UN    #Stoerung;
       =     #Freigabe;
 NETWORK
-TITLE =Schuetz vorwaerts -K1
-//Verriegelung gegen -K2: vorwaerts nur, wenn rueckwaerts nicht angesteuert.
+TITLE =Schütz vorwärts -K1
+//Verriegelung gegen -K2: vorwärts nur, wenn rückwärts nicht angesteuert.
       U     #Freigabe;
       UN    #Richtung_Rueck;
       UN    #Rueckwaerts;
       =     #Vorwaerts;
 NETWORK
-TITLE =Schuetz rueckwaerts -K2
+TITLE =Schütz rückwärts -K2
 //Verriegelung gegen -K1.
       U     #Freigabe;
       U     #Richtung_Rueck;
       UN    #Vorwaerts;
       =     #Rueckwaerts;
 NETWORK
-TITLE =Stoerung Motorschutz
-//Motorschutz -F2 ausgeloest: Sammelstoerung setzen. Quittierung mit Start bei stehendem Band.
+TITLE =Störung Motorschutz
+//Motorschutz -F2 ausgelöst: Sammelstörung setzen. Quittierung mit Start bei stehendem Band.
       UN    #MSS_OK;
       S     #Stoerung;
       U     #Start;
@@ -137,7 +137,7 @@ TITLE =Stoerung Motorschutz
       U     #MSS_OK;
       R     #Stoerung;
 NETWORK
-TITLE =Stoerung Blockade Band
+TITLE =Störung Blockade Band
 //Teil am Einlauf erkannt, aber innerhalb von 20 s nicht am Auslauf: Blockade.
       U     #LS_Einlauf;
       U     #Vorwaerts;
@@ -152,8 +152,8 @@ TITLE =Meldeleuchte Betrieb -H1
       U     #Freigabe;
       =     #Betrieb;
 NETWORK
-TITLE =Stueckzaehlung
-//Steigende Flanke Lichtschranke Auslauf -B2 zaehlt ein Teil.
+TITLE =Stückzählung
+//Steigende Flanke Lichtschranke Auslauf -B2 zählt ein Teil.
       U     #LS_Auslauf;
       FP    #Flanke_Auslauf;
       SPBN  ende;
@@ -166,7 +166,7 @@ ende: NOP   0;
 END_FUNCTION_BLOCK
 
 DATA_BLOCK DB 10
-TITLE =Instanz Foerderband FB-01
+TITLE =Instanz Förderband FB-01
 VERSION : 1.0
  FB 10
 BEGIN
@@ -190,8 +190,8 @@ VAR_TEMP
 END_VAR
 BEGIN
 NETWORK
-TITLE =Aufruf Foerderband FB-01
-//Eingaenge -A1.1 (EB0), Ausgaenge -A1.2 (AB4)
+TITLE =Aufruf Förderband FB-01
+//Eingänge -A1.1 (EB0), Ausgänge -A1.2 (AB4)
       CALL  FB    10 , DB    10
        Start                    :=E      0.0
        Stop                     :=E      0.1
@@ -206,8 +206,8 @@ TITLE =Aufruf Foerderband FB-01
        Stoerung                 :=A      4.3
       NOP   0;
 NETWORK
-TITLE =Sammelstoerung Merker
-//Stoerung fuer Visualisierung spiegeln
+TITLE =Sammelstörung Merker
+//Störung für Visualisierung spiegeln
       U     A      4.3;
       =     M     10.0;
 END_ORGANIZATION_BLOCK
@@ -224,10 +224,10 @@ def symbole():
     for addr, sym, comment in MERKER:
         a = addr.replace("MW", "MW ", 1) if addr.startswith("MW") else addr.replace("M", "M ", 1)
         rows.append((sym, a, "INT" if addr.startswith("MW") else "BOOL", comment))
-    rows.append(("Richtung_Rueck", "M 20.0", "BOOL", "Rueckwaertsbetrieb Wartung (Bedienpanel)"))
-    rows.append(("T_Blockade", "T 5", "TIMER", "Ueberwachung Einlauf -> Auslauf 20 s"))
-    rows.append(("FB_Foerder", "FB 10", "FB 10", "Foerderband FB-01 Steuerung"))
-    rows.append(("DB_Foerder", "DB 10", "FB 10", "Instanz Foerderband FB-01"))
+    rows.append(("Richtung_Rueck", "M 20.0", "BOOL", "Rückwärtsbetrieb Wartung (Bedienpanel)"))
+    rows.append(("T_Blockade", "T 5", "TIMER", "Überwachung Einlauf -> Auslauf 20 s"))
+    rows.append(("FB_Foerder", "FB 10", "FB 10", "Förderband FB-01 Steuerung"))
+    rows.append(("DB_Foerder", "DB 10", "FB 10", "Instanz Förderband FB-01"))
     rows.append(("Zyklus", "OB 1", "OB 1", "Main Program Sweep (Cycle)"))
     with (OUT / "05_Symboltabelle_FB-01.sdf").open("w", newline="", encoding="latin-1") as f:
         w = csv.writer(f, quoting=csv.QUOTE_ALL)
@@ -238,76 +238,76 @@ def symbole():
 def anleitung():
     inputs = "\n".join(f"| {a} | {s} | {c} | {d} | {t} |" for a, s, c, d, t in INPUTS)
     outputs = "\n".join(f"| {a} | {s} | {c} | {d} | {t} |" for a, s, c, d, t in OUTPUTS)
-    text = f"""# Betriebsanleitung Foerderband FB-01
+    text = f"""# Betriebsanleitung Förderband FB-01
 
-Anlage {PLANT}: {LOCATIONS_TEXT}. Beispielanlage fuer Stromlauf AI,
-frei erfunden. Zugehoerige Dokumente: Stromlaufplan FB-01-E-001 (7 Blaetter), Stueckliste FB-01,
+Anlage {PLANT}: {LOCATIONS_TEXT}. Beispielanlage für Stromlauf AI,
+frei erfunden. Zugehörige Dokumente: Stromlaufplan FB-01-E-001 (7 Blätter), Stückliste FB-01,
 Klemmenplan FB-01, SPS-Programm FB-01 (AWL, FB10/DB10/OB1), Symboltabelle FB-01.
 
-## 1. Bestimmungsgemaesse Verwendung
+## 1. Bestimmungsgemäße Verwendung
 
-Das Foerderband FB-01 transportiert Werkstuecke bis 25 kg vom Einlauf (+SE1) zum Auslauf (+SA1). Der
-Foerdermotor -M1 (1,5 kW, 400 V, 3,5 A) am Antrieb +AN1 laeuft im Normalbetrieb vorwaerts. Rueckwaertsbetrieb
-ist nur fuer Wartungsarbeiten vorgesehen (Merker M20.0 ueber Bedienpanel). Der Reparaturschalter -Q2 am
-Antrieb trennt den Motor allpolig fuer Arbeiten am Band.
+Das Förderband FB-01 transportiert Werkstücke bis 25 kg vom Einlauf (+SE1) zum Auslauf (+SA1). Der
+Fördermotor -M1 (1,5 kW, 400 V, 3,5 A) am Antrieb +AN1 läuft im Normalbetrieb vorwärts. Rückwärtsbetrieb
+ist nur für Wartungsarbeiten vorgesehen (Merker M20.0 über Bedienpanel). Der Reparaturschalter -Q2 am
+Antrieb trennt den Motor allpolig für Arbeiten am Band.
 
 ## 2. Bedienelemente am Bedienpult (+BP1)
 
 | Element | BMK | Funktion |
 | --- | --- | --- |
-| Taster gruen | -S1 | Start, setzt die Freigabe (E0.0) |
-| Taster rot | -S2 | Stop, Oeffner (E0.1) |
-| Pilztaster rot | -S3 | Not-Halt, rastend, 2 Oeffner auf Sicherheitsrelais -K3 |
-| Leuchte gruen | -H1 | Betrieb (A4.2) |
-| Leuchte rot | -H2 | Stoerung (A4.3) |
-| Leuchte gelb | -H3 | Not-Halt betaetigt, Meldekontakt -K3 31/32 (Blatt /4.8), ohne SPS |
-| Zaehlwerk | -P1 | Betriebsstundenzaehler, laeuft parallel zu -H1 (Blatt /6.6) |
+| Taster grün | -S1 | Start, setzt die Freigabe (E0.0) |
+| Taster rot | -S2 | Stop, Öffner (E0.1) |
+| Pilztaster rot | -S3 | Not-Halt, rastend, 2 Öffner auf Sicherheitsrelais -K3 |
+| Leuchte grün | -H1 | Betrieb (A4.2) |
+| Leuchte rot | -H2 | Störung (A4.3) |
+| Leuchte gelb | -H3 | Not-Halt betätigt, Meldekontakt -K3 31/32 (Blatt /4.8), ohne SPS |
+| Zählwerk | -P1 | Betriebsstundenzähler, läuft parallel zu -H1 (Blatt /6.6) |
 
 ## 3. Einschalten
 
 1. Hauptschalter -Q1 im Schaltschrank +ST1 einschalten (Blatt /2.2). Reparaturschalter -Q2 am Antrieb +AN1
    muss eingeschaltet sein (Blatt /3.5).
 2. Netzteil -T1 liefert 24 V DC an -X2 (Blatt /2.5); -F3 sichert den Steuerkreis zum Bedienpult (Blatt /2.6).
-   SPS -A1 laeuft hoch.
+   SPS -A1 läuft hoch.
 3. Not-Halt -S3 entriegeln. Sicherheitsrelais -K3 zieht an, Freigabekontakt 13/14 versorgt
-   die Schuetzspulen, Kontakt 23/24 meldet E0.3 = 1 an die SPS (Blatt /4.4), -H3 erlischt.
-4. Start -S1 druecken. FB10 Netzwerk 1 setzt die Freigabe, -K1 zieht an (A4.0), -H1 leuchtet, -P1 zaehlt.
+   die Schützspulen, Kontakt 23/24 meldet E0.3 = 1 an die SPS (Blatt /4.4), -H3 erlischt.
+4. Start -S1 drücken. FB10 Netzwerk 1 setzt die Freigabe, -K1 zieht an (A4.0), -H1 leuchtet, -P1 zählt.
 
 ## 4. Ausschalten
 
-Stop -S2 druecken. Die Freigabe faellt ab, -K1 faellt ab, das Band steht. Bei Gefahr
-Not-Halt -S3 druecken: -K3 faellt ab und trennt die Schuetzspulen hardwareseitig,
-unabhaengig von der SPS.
+Stop -S2 drücken. Die Freigabe fällt ab, -K1 fällt ab, das Band steht. Bei Gefahr
+Not-Halt -S3 drücken: -K3 fällt ab und trennt die Schützspulen hardwareseitig,
+unabhängig von der SPS.
 
 ## 5. SPS-Belegung
 
 Eingabebaugruppe -A1.1 (Blatt /5), Ausgabebaugruppe -A1.2 (Blatt /6):
 
-| Adresse | Symbol | Bedeutung | Geraet | Klemme |
+| Adresse | Symbol | Bedeutung | Gerät | Klemme |
 | --- | --- | --- | --- | --- |
 {inputs}
 {outputs}
 
-## 6. Stoerungen und Fehlersuche
+## 6. Störungen und Fehlersuche
 
-| Symptom | Moegliche Ursache | Pruefung |
+| Symptom | Mögliche Ursache | Prüfung |
 | --- | --- | --- |
-| -H2 leuchtet, Band steht, Start ohne Wirkung | Motorschutz -F2 ausgeloest (E0.2 = 0) | -F2 am Schaltschrank pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A, Einstellung 3,6 A). Nach Abkuehlen -F2 einschalten, mit Start -S1 quittieren (FB10 Netzwerk 4). |
-| -H2 leuchtet nach ca. 20 s Betrieb | Blockade: Teil am Einlauf -B1 erkannt, aber nicht am Auslauf -B2 (Timer T5, FB10 Netzwerk 5) | Band auf Verklemmung pruefen. Lichtschranke -B2 auf Verschmutzung und Ausrichtung pruefen (Klemme -X3:6, E0.5). |
-| Start ohne Wirkung, -H1 aus, -H2 aus, -H3 leuchtet | Not-Halt nicht entriegelt oder -K3 ohne Freigabe (E0.3 = 0) | -S3 entriegeln. An -X3:4 muessen 24 V anliegen. Beide Kanaele -S3 11/12 und 21/22 pruefen (Blatt /4.2). |
-| -K1 zieht an, -H1 leuchtet, Motor steht ohne Brummen | Reparaturschalter -Q2 am Antrieb ausgeschaltet | Stellung -Q2 pruefen (Blatt /3.5); nur einschalten, wenn niemand am Band arbeitet. |
-| Start ohne Wirkung, E0.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) | Leitung -W1 Ader zu -S2:11/12 pruefen, Klemme -X3:2. |
-| Band laeuft, Stueckzahl MW100 zaehlt nicht | Lichtschranke -B1/-B2 defekt oder Versorgung fehlt | 24 V an -X3:7, 0 V an -X3:8 pruefen. Schaltausgang BK an -X3:5 bzw. -X3:6 (E0.4, E0.5) beobachten. |
-| -K1 zieht an, Motor brummt, dreht nicht | Phase fehlt am Motorabgang | Spannung an -X4:U/V/W pruefen, Motorleitung -W4 und Klemmen -M1:U1/V1/W1 (Blatt /3.5). |
-| Band laeuft in falscher Richtung | -K2 statt -K1 angesteuert (M20.0 gesetzt) oder Phasenfolge vertauscht | M20.0 zuruecksetzen. Bei Erstinbetriebnahme Phasenfolge an -X1 pruefen. |
+| -H2 leuchtet, Band steht, Start ohne Wirkung | Motorschutz -F2 ausgelöst (E0.2 = 0) | -F2 am Schaltschrank prüfen, Motorstrom -M1 messen (Nennstrom 3,5 A, Einstellung 3,6 A). Nach Abkühlen -F2 einschalten, mit Start -S1 quittieren (FB10 Netzwerk 4). |
+| -H2 leuchtet nach ca. 20 s Betrieb | Blockade: Teil am Einlauf -B1 erkannt, aber nicht am Auslauf -B2 (Timer T5, FB10 Netzwerk 5) | Band auf Verklemmung prüfen. Lichtschranke -B2 auf Verschmutzung und Ausrichtung prüfen (Klemme -X3:6, E0.5). |
+| Start ohne Wirkung, -H1 aus, -H2 aus, -H3 leuchtet | Not-Halt nicht entriegelt oder -K3 ohne Freigabe (E0.3 = 0) | -S3 entriegeln. An -X3:4 müssen 24 V anliegen. Beide Kanäle -S3 11/12 und 21/22 prüfen (Blatt /4.2). |
+| -K1 zieht an, -H1 leuchtet, Motor steht ohne Brummen | Reparaturschalter -Q2 am Antrieb ausgeschaltet | Stellung -Q2 prüfen (Blatt /3.5); nur einschalten, wenn niemand am Band arbeitet. |
+| Start ohne Wirkung, E0.3 = 1 | Stop-Kreis unterbrochen (E0.1 = 0) | Leitung -W1 Ader zu -S2:11/12 prüfen, Klemme -X3:2. |
+| Band läuft, Stückzahl MW100 zählt nicht | Lichtschranke -B1/-B2 defekt oder Versorgung fehlt | 24 V an -X3:7, 0 V an -X3:8 prüfen. Schaltausgang BK an -X3:5 bzw. -X3:6 (E0.4, E0.5) beobachten. |
+| -K1 zieht an, Motor brummt, dreht nicht | Phase fehlt am Motorabgang | Spannung an -X4:U/V/W prüfen, Motorleitung -W4 und Klemmen -M1:U1/V1/W1 (Blatt /3.5). |
+| Band läuft in falscher Richtung | -K2 statt -K1 angesteuert (M20.0 gesetzt) oder Phasenfolge vertauscht | M20.0 zurücksetzen. Bei Erstinbetriebnahme Phasenfolge an -X1 prüfen. |
 
 ## 7. Wartung
 
-- Vor jeder Arbeit am Band: Reparaturschalter -Q2 am Antrieb +AN1 ausschalten und abschliessen.
-- Monatlich: Lichtschranken -B1 (+SE1) und -B2 (+SA1) reinigen, Reflektoren pruefen.
-- Halbjaehrlich: Not-Halt-Funktion pruefen (-S3 betaetigen, -K3 muss abfallen, -K1/-K2 stromlos).
-- Jaehrlich: Motorstrom -M1 messen und mit Einstellung -F2 vergleichen, Klemmen -X4 nachziehen,
-  Pruefung der elektrischen Anlage nach DGUV Vorschrift 3.
+- Vor jeder Arbeit am Band: Reparaturschalter -Q2 am Antrieb +AN1 ausschalten und abschließen.
+- Monatlich: Lichtschranken -B1 (+SE1) und -B2 (+SA1) reinigen, Reflektoren prüfen.
+- Halbjährlich: Not-Halt-Funktion prüfen (-S3 betätigen, -K3 muss abfallen, -K1/-K2 stromlos).
+- Jährlich: Motorstrom -M1 messen und mit Einstellung -F2 vergleichen, Klemmen -X4 nachziehen,
+  Prüfung der elektrischen Anlage nach DGUV Vorschrift 3.
 """
     (OUT / "06_Betriebsanleitung_FB-01.md").write_text(text, encoding="utf-8")
 

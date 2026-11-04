@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { api, type Conversation, type KnowledgeSource } from "@/lib/api";
+import { plural } from "@/lib/format";
 import type { PageTarget } from "@/components/PageViewer";
 import { SourcePanel } from "@/components/SourcePanel";
 
@@ -127,7 +128,7 @@ export function Sidebar({
             <p className="px-4 pt-1 text-xs text-muted-foreground">
               {selectedSourceIds.length === 0
                 ? "Keine Auswahl: der Chat durchsucht alle Quellen."
-                : `Chat durchsucht ${selectedSourceIds.length} von ${sources.length} Quellen.`}
+                : `Chat durchsucht ${selectedSourceIds.length} von ${plural(sources.length, "Quelle", "Quellen")}.`}
             </p>
           )}
         </section>

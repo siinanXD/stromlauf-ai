@@ -327,7 +327,7 @@ def test_verlauf_in_stuecken_mit_index_und_meta(client, world, monkeypatch):
 
     answer = client.get(url, params={"limit": 1}, headers=headers).json()[0]
     assert answer["meta"]["referenced_tags"] == ["-K1"]
-    assert answer["meta"]["part_kinds"] == {"-K1": "Schuetz/Relais"}
+    assert answer["meta"]["part_kinds"] == {"-K1": "Schütz/Relais"}
     assert [spot["page"] for spot in answer["meta"]["plan_spots"]] == [3]
 
     for bad in ({"limit": 0}, {"limit": 201}, {"before": -1}):
@@ -408,7 +408,7 @@ def test_meta_einer_fb01_antwort_mit_k1(world):
 
     with_tag = meta("Prüfe -K1 im Hauptstromkreis.")
     assert with_tag["referenced_tags"] == ["-K1"]
-    assert with_tag["part_kinds"] == {"-K1": "Schuetz/Relais"}
+    assert with_tag["part_kinds"] == {"-K1": "Schütz/Relais"}
     assert with_tag["signal_start"] == "-K1"
     assert with_tag["plan_spots"] == [
         {

@@ -42,6 +42,15 @@
   --color-ok-soft: #34c75924;
   --color-ok-strong: #17722f;
 
+  /* Seitenleiste (Figma "Desktop 1440", Frame "Rail"): bleibt in Hell und Dunkel dunkel. Text #e5e7eb auf #12151b
+     und #8b93a1 auf #12151b/#1c2029 liegen ueber 4,5:1. */
+  --color-rail: #12151b;
+  --color-rail-surface: #1c2029;
+  --color-rail-line: #2a2f39;
+  --color-rail-foreground: #e5e7eb;
+  --color-rail-muted: #8b93a1;
+  --color-brand: #f59e0b;
+
   /* Collection "Layout" */
   --space-2: 2px;
   --space-4: 4px;
@@ -108,6 +117,14 @@
   --text-caption-2--line-height: 13px;
   --text-caption-2--letter-spacing: -0.004em;
   --text-caption-2--font-weight: 500;
+  /* Seitenleiste und Seitentitel (Figma: Menue 14/18, Marke 13/16, Seitentitel 18/24 semibold) */
+  --text-menu: 14px;
+  --text-menu--line-height: 18px;
+  --text-menu-sm: 13px;
+  --text-menu-sm--line-height: 16px;
+  --text-page-title: 18px;
+  --text-page-title--line-height: 24px;
+  --text-page-title--font-weight: 600;
   --text-tag: 15px;
   --text-tag--line-height: 20px;
   --text-tag-sm: 13px;

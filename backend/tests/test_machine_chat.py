@@ -6,7 +6,7 @@ from app.api.chat import _thread_config
 from app.werk.faults import fault_matches
 
 ROWS = [
-    {"machine": "Foerderband FB-01", "hall": "Halle 1", "code": "F03", "symptom": "Band steht, -H2 leuchtet",
+    {"machine": "Förderband FB-01", "hall": "Halle 1", "code": "F03", "symptom": "Band steht, -H2 leuchtet",
      "cause": "Motorschutz -F2 ausgeloest", "fix": "-F2 pruefen, Motorstrom messen", "doc_ref": "Blatt /3.2", "tags": ["-F2", "-M1"]},
     {"machine": "L1-UR Umroller", "hall": "Verarbeitung", "code": "E12", "symptom": "Bahnriss",
      "cause": "Ultraschallsensor -B1 verschmutzt", "fix": "-B1 reinigen", "doc_ref": "", "tags": ["-B1"]},
@@ -29,9 +29,9 @@ def test_format_faults_is_plant_wide_and_marks_machine():
 
 
 INCIDENTS = [
-    {"machine": "Foerderband FB-01", "title": "Band bleibt stehen", "finding": "Klemme -X3:9 locker, nachgezogen",
+    {"machine": "Förderband FB-01", "title": "Band bleibt stehen", "finding": "Klemme -X3:9 locker, nachgezogen",
      "date": "2026-09-30"},
-    {"machine": "Foerderband FB-01", "title": "Lampe flackert", "finding": "", "date": "2026-09-29"},
+    {"machine": "Förderband FB-01", "title": "Lampe flackert", "finding": "", "date": "2026-09-29"},
 ]
 
 
@@ -66,9 +66,9 @@ def test_search_faults_is_registered_tool():
 def test_system_prompt_adds_machine_context_only_with_machine():
     assert system_prompt_for(None) == SYSTEM_PROMPT
     assert system_prompt_for({"source_ids": ["s1"]}) == SYSTEM_PROMPT
-    text = system_prompt_for({"machine": {"id": "m1", "name": "Foerderband FB-01", "hall": "Halle 1"}})
+    text = system_prompt_for({"machine": {"id": "m1", "name": "Förderband FB-01", "hall": "Halle 1"}})
     assert text.startswith(SYSTEM_PROMPT)
-    assert "Maschine Foerderband FB-01 in Halle 1" in text and "search_faults" in text
+    assert "Maschine Förderband FB-01 in Halle 1" in text and "search_faults" in text
 
 
 def test_thread_config_carries_machine():

@@ -1,7 +1,7 @@
 """IoU-Eval der Schaltschrank-Erkennung: POST /api/cabinets/{id}/detect gegen die gelabelten Boxen.
 
 Aufruf:  python eval/run_cabinet.py [--api http://localhost:8010] [--labels examples/foerderband/07_Schaltschrank_Hotspots_FB-01.json]
-                                    [--machine "Foerderband FB-01"] [--min-iou 0.5] [--min-share 0.8]
+                                    [--machine "Förderband FB-01"] [--min-iou 0.5] [--min-share 0.8]
 
 Kostet einen Vision-Aufruf (Claude). Laedt das Schaltschrankbild der Maschine, laesst erkennen und misst je
 gelabeltem Bauteil die beste Ueberdeckung (IoU) mit einem erkannten Rahmen gleichen Kennzeichens; ohne
@@ -81,7 +81,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--api", default="http://localhost:8010")
     parser.add_argument("--labels", type=Path, default=DEFAULT_LABELS)
-    parser.add_argument("--machine", default="Foerderband FB-01")
+    parser.add_argument("--machine", default="Förderband FB-01")
     parser.add_argument("--min-iou", type=float, default=0.5)
     parser.add_argument("--min-share", type=float, default=0.8)
     args = parser.parse_args()

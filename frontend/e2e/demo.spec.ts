@@ -19,7 +19,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const API = process.env.E2E_API_URL?.replace(/\/$/, "");
-const MACHINE = process.env.E2E_MACHINE ?? "Foerderband FB-01";
+const MACHINE = process.env.E2E_MACHINE ?? "Förderband FB-01";
 const CHAT = process.env.E2E_CHAT === "1";
 /** DEMO_CHAT_RATE_LIMIT ist 10 je Minute und IP: Chat-Fragen im Abstand von mindestens 7 s starten. */
 const CHAT_GAP_MS = 7_000;

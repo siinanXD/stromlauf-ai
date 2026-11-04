@@ -43,8 +43,8 @@ export function SignalWorkbench({
   const sheet = selected ? sheetText(selected.ref) : null;
 
   return (
-    <div className="@container flex min-h-[640px] flex-1 flex-col gap-3 pb-6">
-      <div className="min-h-[300px] flex-[3]">
+    <div className="@container flex min-h-[740px] flex-1 flex-col gap-3 pb-6">
+      <div className="min-h-[400px] flex-[3]">
         <SignalGraph data={data} selected={selectedId} onSelect={(node) => setSelectedId(node.id)} />
       </div>
       {selected && (

@@ -25,7 +25,7 @@ from app.models import (
     Machine,
     TagOccurrence,
 )
-from app.retrieval import hybrid_chunk_ids
+from app.retrieval import hybrid_chunk_ids, query_variants
 from app.werk.faults import FaultQuery
 
 
@@ -171,11 +171,11 @@ def find_tag(tag: str, config: RunnableConfig) -> tuple[str, list[dict]]:
 def keyword_search(text: str, config: RunnableConfig) -> tuple[str, list[dict]]:
     """Woertliche Textsuche (ohne Beruecksichtigung von Gross-/Kleinschreibung), z.B. fuer
     Artikelnummern, Typbezeichnungen (3RT2016-1BB41), Kabelnamen (-W12) oder Symbolnamen
-    aus dem SPS-Programm."""
+    aus dem SPS-Programm. Umlaut und ae/oe/ue zaehlen gleich."""
     statement = (
         select(Chunk, Document)
         .join(Document, Chunk.document_id == Document.id)
-        .where(Chunk.content.ilike(f"%{text}%"))
+        .where(or_(*(Chunk.content.ilike(f"%{variant}%") for variant in query_variants(text))))
         .order_by(Document.filename, Chunk.page)
         .limit(15)
     )

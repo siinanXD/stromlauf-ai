@@ -333,10 +333,10 @@ def test_rescore_reports_expected_invalid_markers_that_were_not_flagged():
 
 def test_load_questions_only_accepts_several_needles():
     rows = evallib.load_questions(
-        ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01,Injection-Test"
+        ROOT / "eval" / "questions.jsonl", only="Förderband FB-01,Injection-Test"
     )
     sources = {r["source"] for r in rows}
-    assert sources == {"Foerderband FB-01", "Injection-Test"}
+    assert sources == {"Förderband FB-01", "Injection-Test"}
     assert (
         evallib.load_questions(ROOT / "eval" / "questions.jsonl", only=" festo , ,umroller")
         and True
@@ -446,7 +446,7 @@ def test_fb01_golden_set_has_twenty_questions_with_expected_parts():
     rows = [
         r
         for r in evallib.load_questions(ROOT / "eval" / "questions.jsonl")
-        if r["source"] == "Foerderband FB-01"
+        if r["source"] == "Förderband FB-01"
     ]
     assert len(rows) >= 20
     for row in rows:
@@ -467,7 +467,7 @@ def test_api_checker_resolves_the_source_and_posts_answer_with_its_sources():
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/sources":
-            return httpx.Response(200, json=[{"id": "s1", "name": "Foerderband FB-01"}])
+            return httpx.Response(200, json=[{"id": "s1", "name": "Förderband FB-01"}])
         seen["path"], seen["body"] = request.url.path, json.loads(request.content)
         return httpx.Response(
             200,
@@ -477,7 +477,7 @@ def test_api_checker_resolves_the_source_and_posts_answer_with_its_sources():
     check = rescore.api_checker("http://test", transport=httpx.MockTransport(handler))
     result = check(
         {
-            "source": "Foerderband FB-01",
+            "source": "Förderband FB-01",
             "answer": "a [[a.pdf|S. 3]]",
             "sources": [{"filename": "a.pdf", "page": 3, "document_id": "d"}],
         }
@@ -650,8 +650,8 @@ def test_questions_cover_testdoku():
 
 
 def test_scan_fragen_pruefen_den_voll_scan_und_bleiben_aus_dem_fb01_filter():
-    """Issue #66: Die Quelle heisst nicht "Foerderband FB-01 (Scan)", weil --only per Teiltext filtert und der
-    woechentliche Agentenlauf (--only "Foerderband FB-01,...") die Fragen sonst ohne geladene Quelle stellen wuerde."""
+    """Issue #66: Die Quelle heisst nicht "Förderband FB-01 (Scan)", weil --only per Teiltext filtert und der
+    woechentliche Agentenlauf (--only "Förderband FB-01,...") die Fragen sonst ohne geladene Quelle stellen wuerde."""
     rows = [
         r
         for r in evallib.load_questions(ROOT / "eval" / "questions.jsonl")
@@ -662,10 +662,10 @@ def test_scan_fragen_pruefen_den_voll_scan_und_bleiben_aus_dem_fb01_filter():
         r["retrieval"] and r["expect_sources"] == ["01_Stromlaufplan_FB-01_scan.pdf"] for r in rows
     )
     assert not evallib.load_questions(
-        ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01,Injection-Test"
+        ROOT / "eval" / "questions.jsonl", only="Förderband FB-01,Injection-Test"
     )[-1]["id"].startswith("fb01-scan-")
-    fb01 = evallib.load_questions(ROOT / "eval" / "questions.jsonl", only="Foerderband FB-01")
-    assert {r["source"] for r in fb01} == {"Foerderband FB-01"}
+    fb01 = evallib.load_questions(ROOT / "eval" / "questions.jsonl", only="Förderband FB-01")
+    assert {r["source"] for r in fb01} == {"Förderband FB-01"}
 
 
 # --- Fix pass nach Review ------------------------------------------------------------------------

@@ -19,7 +19,7 @@ import {
   type NodeProps,
   type NodeTypes,
 } from "@xyflow/react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { SignalMainData, SignalMainNode } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,9 @@ const ROW_H = 140;
 const NODE_W = 158;
 const NODE_H = 116;
 const HEADER_Y = -26;
+/** Kleinster Text in Knoten und Kopf ist caption-1 (12 px); die Grafik startet nie unter Zoom 1, also nie unter 12 px. */
+export const START_ZOOM = 1;
+const FRAME_PAD = 24;
 
 type SignalNodeData = { node: SignalMainNode; start: boolean; selected: boolean };
 type HeaderNodeData = { label: string };
@@ -88,7 +91,7 @@ function SignalNodeView({ data }: NodeProps<SignalFlowNode>) {
       <span className="line-clamp-2 text-footnote text-muted-foreground">{node.label || KIND_LABELS[node.kind]}</span>
       {sheet && <span className="truncate text-caption-1 text-primary">{sheet}</span>}
       {!start && node.branches > 0 && (
-        <span className="w-fit rounded-full bg-bg-fill px-2 py-0.5 text-caption-2 text-muted-foreground">
+        <span className="w-fit rounded-full bg-bg-fill px-2 py-0.5 text-caption-1 text-muted-foreground">
           +{node.branches} {node.branches === 1 ? "Abzweig" : "Abzweige"}
         </span>
       )}
@@ -97,7 +100,7 @@ function SignalNodeView({ data }: NodeProps<SignalFlowNode>) {
 }
 
 function HeaderNodeView({ data }: NodeProps<HeaderFlowNode>) {
-  return <div className="w-full text-caption-2 text-muted-foreground uppercase">{data.label}</div>;
+  return <div className="w-full text-caption-1 text-muted-foreground uppercase">{data.label}</div>;
 }
 
 /** Anschlussnummer am Kantenende, neben dem Griff und nach aussen versetzt. */
@@ -228,11 +231,12 @@ export function SignalGraph({
   onSelect: (node: SignalMainNode) => void;
 }) {
   const [proven, setProven] = useState(false);
+  const frame = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => (proven ? onlyProven(data) : data), [data, proven]);
   const flow = useMemo(() => flowElements(data, shown, selected), [data, shown, selected]);
 
   return (
-    <div className="relative size-full bg-background">
+    <div ref={frame} className="relative size-full bg-background">
       <ReactFlow
         key={data.start}
         nodes={flow.nodes}
@@ -244,8 +248,16 @@ export function SignalGraph({
         }}
         nodesConnectable={false}
         nodesDraggable={false}
-        fitView
-        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
+        onInit={async (flow) => {
+          // Passt der ganze Weg lesbar ins Bild, wird er ganz gezeigt. Sonst Zoom 1, eine Spalte vor dem Start am linken
+          // Rand und der Start in der Hoehe mittig; Zoomen und Verschieben gehen weiter.
+          await flow.fitView({ padding: 0.1, maxZoom: 1, duration: 0 });
+          const start = flow.getNode(data.start);
+          const box = frame.current;
+          if (flow.getZoom() >= START_ZOOM || !start || !box) return;
+          const left = Math.max(0, start.position.x - COL_W) - FRAME_PAD;
+          await flow.setViewport({ x: -left, y: box.clientHeight / 2 - (start.position.y + NODE_H / 2), zoom: START_ZOOM }, { duration: 0 });
+        }}
         minZoom={0.2}
         proOptions={{ hideAttribution: true }}
       >

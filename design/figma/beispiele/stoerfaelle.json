@@ -1,7 +1,7 @@
 {
   "vorlage": "stoerfaelle",
   "version": 1,
-  "maschine": "Foerderband FB-01",
+  "maschine": "Förderband FB-01",
   "ort": "Halle 1 (Beispiel)",
   "conversations": [
     {

@@ -65,7 +65,7 @@ const map = {
   part_count: 4,
   connectors: [{ source: "+ST1", target: "+FE1", label: "-W3" }],
   zones: [
-    { id: "+ST1", code: "+ST1", name: "Schaltschrank", parts: [{ tag: "-K1", label: "Hauptschütz", kind: "Schuetz/Relais", source: "bom" }, { tag: "-F2", label: "Motorschutz", kind: "Schutz", source: "bom" }] },
+    { id: "+ST1", code: "+ST1", name: "Schaltschrank", parts: [{ tag: "-K1", label: "Hauptschütz", kind: "Schütz/Relais", source: "bom" }, { tag: "-F2", label: "Motorschutz", kind: "Schutz", source: "bom" }] },
     { id: "+FE1", code: "+FE1", name: "Feld", parts: [{ tag: "-M1", label: "Getriebemotor", kind: "Motor", source: "bom" }] },
     { id: "?", code: "?", name: "Ohne Einbauort", parts: [{ tag: "-B7", label: "", kind: "Sensor", source: "index" }] },
   ],

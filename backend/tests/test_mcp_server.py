@@ -27,10 +27,10 @@ MACHINES = [
     _row("m1", "L1-UR Umroller Toilettenpapier", "main", "L1 Toilettenpapier", "h1", "Verarbeitung"),
     _row("m2", "L1-PAL Palettierer", "robot", "L1 Toilettenpapier", "h1", "Verarbeitung"),
     _row("m3", "L2-PAL Palettierer", "robot", "L2 Küchenrolle", "h1", "Verarbeitung"),
-    _row("fb", "Foerderband FB-01", "conveyor", "", "h2", "Halle 1 (Beispiel)"),
+    _row("fb", "Förderband FB-01", "conveyor", "", "h2", "Halle 1 (Beispiel)"),
 ]
-MACHINE = {"id": "fb", "hall_id": "h2", "name": "Foerderband FB-01", "machine_type": "conveyor", "description": "",
-           "source_id": "src1", "source_name": "Foerderband FB-01", "document_count": 6, "fault_count": 1,
+MACHINE = {"id": "fb", "hall_id": "h2", "name": "Förderband FB-01", "machine_type": "conveyor", "description": "",
+           "source_id": "src1", "source_name": "Förderband FB-01", "document_count": 6, "fault_count": 1,
            "cabinet_count": 0, "line": "", "key_figure": "", "hall_name": "Halle 1 (Beispiel)",
            "faults": [{"id": "x", "machine_id": "fb", "code": "F01", "symptom": "Band steht", "cause": "-F2 ausgelöst",
                        "fix": "-F2 prüfen", "doc_ref": "Blatt 3", "tags": ["-F2"]}], "cabinets": []}
@@ -105,7 +105,7 @@ def test_signal_path_uses_the_source_of_the_machine(server, backend):
 
 
 def test_search_documents_is_scoped_to_the_machine(server, backend):
-    tool(server, "search_documents")(query="Not-Halt", machine="Foerderband")
+    tool(server, "search_documents")(query="Not-Halt", machine="Förderband")
     params = backend.requests[-1].url.params
     assert params["mode"] == "semantic" and params["source_id"] == "src1"
     tool(server, "search_documents")(query="3RT2016", exact=True)
@@ -144,8 +144,8 @@ def test_backend_errors_are_passed_as_text(server):
 
 
 def test_ids_only_match_exactly_never_by_prefix():
-    items = [{"id": "1a2b3c", "name": "Foerderband FB-01"}, {"id": "9f8e7d", "name": "L1-UR Umroller"}]
-    assert resolve(items, "1a2b3c", "Maschine")["name"] == "Foerderband FB-01"
+    items = [{"id": "1a2b3c", "name": "Förderband FB-01"}, {"id": "9f8e7d", "name": "L1-UR Umroller"}]
+    assert resolve(items, "1a2b3c", "Maschine")["name"] == "Förderband FB-01"
     with pytest.raises(ToolError, match="nicht gefunden"):
         resolve(items, "1a2", "Maschine")  # Anfang einer ID, kommt in keinem Namen vor
 

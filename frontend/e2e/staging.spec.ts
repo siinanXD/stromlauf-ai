@@ -13,7 +13,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const API = process.env.E2E_API_URL?.replace(/\/$/, "");
-const MACHINE = process.env.E2E_MACHINE ?? "Foerderband FB-01";
+const MACHINE = process.env.E2E_MACHINE ?? "Förderband FB-01";
 const EMAIL = process.env.E2E_EMAIL ?? "";
 const ASK = process.env.E2E_ASK === "1";
 

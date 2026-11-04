@@ -93,8 +93,8 @@ def test_wait_healthy_zaehlt_verbindungsfehler_als_noch_nicht_da():
 
 
 def test_find_machine_exakt_dann_enthalten():
-    machines = [{"id": "a", "name": "Foerderband FB-01"}, {"id": "b", "name": "Presse P-02"}]
-    assert acceptance.find_machine(machines, "Foerderband FB-01")["id"] == "a"
+    machines = [{"id": "a", "name": "Förderband FB-01"}, {"id": "b", "name": "Presse P-02"}]
+    assert acceptance.find_machine(machines, "Förderband FB-01")["id"] == "a"
     assert acceptance.find_machine(machines, "fb-01")["id"] == "a"
     assert acceptance.find_machine(machines, "Umroller") is None
 
@@ -147,7 +147,7 @@ def test_compare_estimate_ohne_kostenbuch_eintraege():
 
 def _evidence(**overrides) -> dict:
     base = {
-        "machine": {"id": MACHINE_ID, "name": "Foerderband FB-01"},
+        "machine": {"id": MACHINE_ID, "name": "Förderband FB-01"},
         "cold_start_s": 3.2,
         "ingest_s": None,
         "documents": {"count": 6, "ready": 6, "pages": 12},
@@ -197,7 +197,7 @@ def test_render_markdown_zeigt_stand_je_pruefung():
     assert "3 Baugruppen" in text and "FEHLT" in text
     assert "25 Teile" in text and "ok" in text
     assert "n/a" in text
-    assert "Foerderband FB-01" in text
+    assert "Förderband FB-01" in text
 
 
 def _mock_api(request: httpx.Request) -> httpx.Response:
@@ -207,10 +207,10 @@ def _mock_api(request: httpx.Request) -> httpx.Response:
     if path == "/api/health":
         return httpx.Response(200, json={"status": "ok"})
     if path == "/api/machines":
-        return httpx.Response(200, json=[{"id": MACHINE_ID, "name": "Foerderband FB-01", "source_id": SOURCE_ID},
+        return httpx.Response(200, json=[{"id": MACHINE_ID, "name": "Förderband FB-01", "source_id": SOURCE_ID},
                                          {"id": "m-2", "name": "Presse", "source_id": None}])
     if path == f"/api/machines/{MACHINE_ID}":
-        return httpx.Response(200, json={"id": MACHINE_ID, "name": "Foerderband FB-01", "source_id": SOURCE_ID,
+        return httpx.Response(200, json={"id": MACHINE_ID, "name": "Förderband FB-01", "source_id": SOURCE_ID,
                                          "cabinets": [{"id": "c1", "hotspots": [{"id": f"h{i}"} for i in range(14)]}]})
     if path == f"/api/sources/{SOURCE_ID}/documents":
         return httpx.Response(200, json=[{"id": "d1", "filename": "01_Stromlaufplan_FB-01.pdf", "status": "ready", "page_count": 12},
@@ -229,7 +229,7 @@ def _mock_api(request: httpx.Request) -> httpx.Response:
 
 def test_collect_sammelt_alle_nachweise_ohne_schreibzugriff(tmp_path: Path):
     with httpx.Client(transport=httpx.MockTransport(_mock_api), base_url="http://api") as client:
-        evidence = acceptance.collect(client, machine_name="Foerderband FB-01", load=False, health_timeout_s=5)
+        evidence = acceptance.collect(client, machine_name="Förderband FB-01", load=False, health_timeout_s=5)
     assert evidence["machine"]["id"] == MACHINE_ID
     assert evidence["documents"] == {"count": 2, "ready": 2, "pages": 12}
     assert evidence["hotspots"] == 14

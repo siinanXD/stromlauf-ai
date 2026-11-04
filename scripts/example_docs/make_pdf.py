@@ -24,7 +24,7 @@ COL_W = (W - 2 * MARGIN) / COLS
 
 
 def col_x(col: float) -> float:
-    """x-Koordinate der Spaltenmitte (Spalte 1..8, auch 2.5 moeglich)."""
+    """x-Koordinate der Spaltenmitte (Spalte 1..8, auch 2.5 möglich)."""
     return MARGIN + (col - 0.5) * COL_W
 
 
@@ -49,10 +49,10 @@ class Sheet:
         # Schriftfeld
         c.line(MARGIN, FRAME_BOTTOM, W - MARGIN, FRAME_BOTTOM)
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(MARGIN + 6, FRAME_BOTTOM - 16, f"Foerderband FB-01  {PLANT}{LOC_CABINET}")
+        c.drawString(MARGIN + 6, FRAME_BOTTOM - 16, f"Förderband FB-01  {PLANT}{LOC_CABINET}")
         c.setFont("Helvetica", 9)
         c.drawString(MARGIN + 6, FRAME_BOTTOM - 30, self.title)
-        c.drawString(MARGIN + 6, FRAME_BOTTOM - 44, "Beispielanlage fuer Stromlauf AI. Frei erfunden, keine reale Anlage.")
+        c.drawString(MARGIN + 6, FRAME_BOTTOM - 44, "Beispielanlage für Stromlauf AI. Frei erfunden, keine reale Anlage.")
         c.drawRightString(W - MARGIN - 6, FRAME_BOTTOM - 16, f"Blatt {self.page} / {len(PAGES)}")
         c.drawRightString(W - MARGIN - 6, FRAME_BOTTOM - 30, "Stand: 2026-09  Rev. A")
         c.drawRightString(W - MARGIN - 6, FRAME_BOTTOM - 44, "Zeichnungs-Nr. FB-01-E-001")
@@ -89,7 +89,7 @@ class Sheet:
             self.text(x + w / 2 + 3, y - 8, extra, 7)
 
     def contact(self, x, y, bmk, pins, kind="NO"):
-        """Schaltkontakt senkrecht: Schliesser (NO) oder Oeffner (NC)."""
+        """Schaltkontakt senkrecht: Schließer (NO) oder Öffner (NC)."""
         self.wire(x, y + 18, x, y + 6)
         self.wire(x, y - 18, x, y - 6)
         if kind == "NO":
@@ -118,9 +118,9 @@ class Sheet:
 
 
 def page_1(s: Sheet):
-    s.text(W / 2, H - 120, "Stromlaufplan Foerderband FB-01", 20, bold=True, align="c")
+    s.text(W / 2, H - 120, "Stromlaufplan Förderband FB-01", 20, bold=True, align="c")
     s.text(W / 2, H - 145, f"Anlage {PLANT}: {LOCATIONS_TEXT}", 11, align="c")
-    s.text(W / 2, H - 165, "Beispielanlage fuer Stromlauf AI: frei erfunden, ohne Herstellerbezug, frei verwendbar.", 9, align="c")
+    s.text(W / 2, H - 165, "Beispielanlage für Stromlauf AI: frei erfunden, ohne Herstellerbezug, frei verwendbar.", 9, align="c")
     y = H - 210
     s.text(MARGIN + 40, y, "Inhaltsverzeichnis", 11, bold=True)
     y -= 18
@@ -132,14 +132,14 @@ def page_1(s: Sheet):
     s.text(MARGIN + 40, y, "Funktionsbeschreibung", 11, bold=True)
     y -= 16
     lines = [
-        "Das Foerderband FB-01 transportiert Werkstuecke vom Einlauf (Lichtschranke -B1) zum Auslauf (Lichtschranke -B2).",
-        "Der Foerdermotor -M1 (1,5 kW) wird ueber die Wendeschuetze -K1 (vorwaerts) und -K2 (rueckwaerts) geschaltet.",
-        "Die Steuerung uebernimmt die SPS -A1 mit der Eingabebaugruppe -A1.1 (E0.0 bis E0.5) und der Ausgabebaugruppe -A1.2 (A4.0 bis A4.3).",
-        "Der Not-Halt -S3 wirkt zweikanalig auf das Sicherheitsrelais -K3, dessen Freigabekontakt die Schuetzspulen -K1/-K2 versorgt",
-        "und ueber E0.3 an die SPS gemeldet wird. Motorschutz -F2 meldet ueber Hilfskontakt 13/14 an E0.2.",
-        "Der Reparaturschalter -Q2 am Antrieb +AN1 trennt den Motor fuer Wartungsarbeiten. Am Bedienpult +BP1 zeigt -H3 einen betaetigten",
-        "Not-Halt (Meldekontakt -K3 31/32), -P1 zaehlt die Betriebsstunden parallel zu -H1. -F3 sichert den 24-V-Steuerkreis zum Bedienpult.",
-        "Zugehoerige Dokumente: Stueckliste FB-01, Klemmenplan FB-01, SPS-Programm FB-01 (AWL), Betriebsanleitung FB-01.",
+        "Das Förderband FB-01 transportiert Werkstücke vom Einlauf (Lichtschranke -B1) zum Auslauf (Lichtschranke -B2).",
+        "Der Fördermotor -M1 (1,5 kW) wird über die Wendeschütze -K1 (vorwärts) und -K2 (rückwärts) geschaltet.",
+        "Die Steuerung übernimmt die SPS -A1 mit der Eingabebaugruppe -A1.1 (E0.0 bis E0.5) und der Ausgabebaugruppe -A1.2 (A4.0 bis A4.3).",
+        "Der Not-Halt -S3 wirkt zweikanalig auf das Sicherheitsrelais -K3, dessen Freigabekontakt die Schützspulen -K1/-K2 versorgt",
+        "und über E0.3 an die SPS gemeldet wird. Motorschutz -F2 meldet über Hilfskontakt 13/14 an E0.2.",
+        "Der Reparaturschalter -Q2 am Antrieb +AN1 trennt den Motor für Wartungsarbeiten. Am Bedienpult +BP1 zeigt -H3 einen betätigten",
+        "Not-Halt (Meldekontakt -K3 31/32), -P1 zählt die Betriebsstunden parallel zu -H1. -F3 sichert den 24-V-Steuerkreis zum Bedienpult.",
+        "Zugehörige Dokumente: Stückliste FB-01, Klemmenplan FB-01, SPS-Programm FB-01 (AWL), Betriebsanleitung FB-01.",
     ]
     for line in lines:
         s.text(MARGIN + 40, y, line, 9)
@@ -193,7 +193,7 @@ def page_2(s: Sheet):
     s.terminal(col_x(6), y0, "-X2:4  0 V")
     s.terminal(col_x(7), y24, "-X2:5  +24 V -> /5.1 SPS")
     s.terminal(col_x(7), y0, "-X2:6  0 V -> /5.1 SPS")
-    s.text(col_x(4) - 40, y0 - 22, "Steuerspannung 24 V DC. Absicherung sekundaer im Netzteil -T1 (elektronisch).", 8)
+    s.text(col_x(4) - 40, y0 - 22, "Steuerspannung 24 V DC. Absicherung sekundär im Netzteil -T1 (elektronisch).", 8)
 
 
 def page_3(s: Sheet):
@@ -211,11 +211,11 @@ def page_3(s: Sheet):
     # Wendeschuetz K1 / K2
     yK = H - 260
     xk1, xk2 = col_x(4), col_x(6)
-    for x, bmk, lbl in ((xk1, "-K1", "vorwaerts  /6.4"), (xk2, "-K2", "rueckwaerts  /6.5")):
+    for x, bmk, lbl in ((xk1, "-K1", "vorwärts  /6.4"), (xk2, "-K2", "rückwärts  /6.5")):
         for dx in (-8, 0, 8):
             s.wire(x + dx, yK + 40, x + dx, yK + 22)
             s.wire(x + dx, yK - 22, x + dx, yK - 40)
-        s.device(x, yK, bmk, f"Schuetz {lbl}", w=40, h=44, extra="1/2 3/4 5/6")
+        s.device(x, yK, bmk, f"Schütz {lbl}", w=40, h=44, extra="1/2 3/4 5/6")
     s.wire(xf - 8, yF - 22, xf - 8, yK + 40)
     s.wire(xf - 8, yK + 40, xk2 + 8, yK + 40)
     s.wire(xf, yF - 22, xf, yK + 46)
@@ -238,16 +238,16 @@ def page_3(s: Sheet):
     yQ = H - 372
     for dx in (-12, 0, 12):
         s.wire(xm + dx, yX - 4, xm + dx, yQ + 14)
-    s.device(xm, yQ, "-Q2", "Reparaturschalter 3-polig, abschliessbar", w=40, h=28, extra="Ort +AN1, 1/2 3/4 5/6")
+    s.device(xm, yQ, "-Q2", "Reparaturschalter 3-polig, abschließbar", w=40, h=28, extra="Ort +AN1, 1/2 3/4 5/6")
     yM = H - 420
     for dx in (-12, 0, 12):
         s.wire(xm + dx, yQ - 14, xm + dx, yM + 22)
     s.c.circle(xm, yM, 22)
     s.text(xm, yM - 4, "M", 11, bold=True, align="c")
     s.text(xm, yM - 14, "3~", 8, align="c")
-    s.text(xm + 28, yM + 4, "-M1  Foerdermotor 1,5 kW  400 V  3,5 A  1420 1/min", 8, bold=True)
+    s.text(xm + 28, yM + 4, "-M1  Fördermotor 1,5 kW  400 V  3,5 A  1420 1/min", 8, bold=True)
     s.text(xm + 28, yM - 8, "Anschluss U1 V1 W1 PE, Schaltung Stern, Ort +AN1", 7)
-    s.text(col_x(1) - 30, H - 470, "Hinweis: Motorschutz -F2 loest bei Ueberlast aus, Hilfskontakt 13/14 oeffnet, SPS meldet Stoerung -H2 (siehe Betriebsanleitung Kap. 6).", 8)
+    s.text(col_x(1) - 30, H - 470, "Hinweis: Motorschutz -F2 löst bei Überlast aus, Hilfskontakt 13/14 öffnet, SPS meldet Störung -H2 (siehe Betriebsanleitung Kap. 6).", 8)
 
 
 def page_4(s: Sheet):
@@ -261,7 +261,7 @@ def page_4(s: Sheet):
     for x, pins in ((x1, ("11", "12")), (x2, ("21", "22"))):
         s.wire(x, y24, x, yS + 18)
         s.contact(x, yS, "-S3" if x == x1 else "", pins, kind="NC")
-    s.text(col_x(2) - 40, yS - 30, "-S3 Not-Halt, 2 Oeffner, Ort +BP1 Bedienpult", 7)
+    s.text(col_x(2) - 40, yS - 30, "-S3 Not-Halt, 2 Öffner, Ort +BP1 Bedienpult", 7)
     yK3 = H - 260
     s.device(col_x(2), yK3, "-K3", "Sicherheitsrelais 2-kanalig", w=70, h=50, extra="S11 S12 S21 S22 / 13-14 23-24")
     s.wire(x1, yS - 18, x1, yK3 + 25)
@@ -274,7 +274,7 @@ def page_4(s: Sheet):
     s.wire(xr, y24, xr, yR + 18)
     s.contact(xr, yR, "-K3", ("13", "14"), kind="NO")
     s.wire(xr, yR - 18, xr, yR - 60)
-    s.text(xr + 5, yR - 40, "Freigabe Schuetzspulen /6.4", 6)
+    s.text(xr + 5, yR - 40, "Freigabe Schützspulen /6.4", 6)
     s.terminal(xr, yR - 66, "")
     s.text(xr, yR - 80, "-X2:3a", 7, bold=True, align="c")
     s.text(xr, yR - 90, "+24 V freigegeben", 6, align="c")
@@ -295,8 +295,8 @@ def page_4(s: Sheet):
     s.wire(xh, yR - 70, xh, yR - 111)
     s.c.circle(xh, yR - 120, 9)
     s.text(xh - 12, yR - 122, "-H3", 8, bold=True, align="r")
-    s.text(xh - 12, yR - 132, "Not-Halt betaetigt (gelb)", 6, align="r")
-    s.text(xh - 12, yR - 141, "0 V ueber -X3:14", 6, align="r")
+    s.text(xh - 12, yR - 132, "Not-Halt betätigt (gelb)", 6, align="r")
+    s.text(xh - 12, yR - 141, "0 V über -X3:14", 6, align="r")
     s.wire(xh, yR - 129, xh, y0)
     # Taster S1 S2 an SPS
     xs1, xs2 = col_x(6), col_x(7)
@@ -313,10 +313,10 @@ def page_4(s: Sheet):
     s.terminal(xs2, yT - 66, "")
     s.text(xs2, yT - 80, "-X3:2", 7, bold=True, align="c")
     s.text(xs2, yT - 90, "E0.1 Stop /5.4", 6, align="c")
-    s.text(col_x(4) - 30, H - 300, "Taster, Leuchten -H1/-H2/-H3, Zaehler -P1 und Not-Halt: Bedienpult +BP1.", 8)
+    s.text(col_x(4) - 30, H - 300, "Taster, Leuchten -H1/-H2/-H3, Zähler -P1 und Not-Halt: Bedienpult +BP1.", 8)
     s.text(col_x(4) - 30, H - 314, "Leitung -W1 12x0,75 mm2 zur Klemmleiste -X3 im Schaltschrank +ST1.", 8)
     s.text(col_x(4) - 30, H - 328, "Sicherheitsfunktion: Not-Halt Kat. 3 / PL d.", 8)
-    s.text(col_x(4) - 30, H - 342, "Ruecksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10).", 8)
+    s.text(col_x(4) - 30, H - 342, "Rücksetzen nur durch Entriegeln von -S3 und Start -S1 (Wiederanlaufsperre im Programm FB10).", 8)
 
 
 def page_5(s: Sheet):
@@ -339,11 +339,11 @@ def page_5(s: Sheet):
     s.text(xcard - 25, yo - 2, "E0.6 .. E1.7", 8)
     s.text(xcard + 50, yo - 2, "Reserve", 7)
     s.text(col_x(3) - 10, H - 460, "-X3:7 (+24 V) und -X3:8 (0 V) versorgen die Lichtschranken -B1/-B2 (BN/BU) am Einlauf +SE1 / Auslauf +SA1, Schaltausgang BK auf -X3:5 bzw. -X3:6.", 8)
-    s.text(col_x(3) - 10, H - 474, "Programm: OB1 ruft FB10 \"Foerderband\" mit Instanz DB10. Symbole siehe Symboltabelle FB-01.", 8)
+    s.text(col_x(3) - 10, H - 474, "Programm: OB1 ruft FB10 \"Förderband\" mit Instanz DB10. Symbole siehe Symboltabelle FB-01.", 8)
 
 
 def page_6(s: Sheet):
-    s.text(col_x(1) - 30, H - 80, "SPS -A1, Digitalausgabe -A1.2, 16 x DC 24 V / 0,5 A, Adressbereich AB4 (A4.0 bis A5.7). Spulenversorgung ueber -K3 Freigabe (/4.4).", 8)
+    s.text(col_x(1) - 30, H - 80, "SPS -A1, Digitalausgabe -A1.2, 16 x DC 24 V / 0,5 A, Adressbereich AB4 (A4.0 bis A5.7). Spulenversorgung über -K3 Freigabe (/4.4).", 8)
     xcard = col_x(2)
     s.c.rect(xcard - 45, H - 400, 90, 280)
     s.text(xcard, H - 135, "-A1.2", 10, bold=True, align="c")
@@ -358,12 +358,12 @@ def page_6(s: Sheet):
         if dev.startswith("-K"):
             s.coil(col_x(5), y, dev)
             s.wire(col_x(5) - 20, y, col_x(5), y)
-            s.text(col_x(5) + 30, y + 8, "Spule A1/A2, 0 V ueber -X3:13", 7)
+            s.text(col_x(5) + 30, y + 8, "Spule A1/A2, 0 V über -X3:13", 7)
         else:
             s.c.circle(col_x(5), y, 9)
             s.wire(col_x(5) - 20, y, col_x(5) - 9, y)
             s.text(col_x(5) + 12, y - 2, dev, 8, bold=True)
-            s.text(col_x(5) + 30, y + 8, "X1/X2, 0 V ueber -X3:14", 7)
+            s.text(col_x(5) + 30, y + 8, "X1/X2, 0 V über -X3:14", 7)
         s.text(col_x(6) + 10, y - 2, f"{sym}: {comment}", 7)
         if dev == "-H1":  # Betriebsstundenzaehler -P1 haengt parallel zur Betriebsleuchte
             yp = y - 24
@@ -371,16 +371,16 @@ def page_6(s: Sheet):
             s.wire(col_x(5) - 20, yp, col_x(6) - 9, yp)
             s.c.circle(col_x(6), yp, 9)
             s.text(col_x(6) + 12, yp - 2, "-P1", 8, bold=True)
-            s.text(col_x(6) + 12, yp + 8, "Betriebsstundenzaehler parallel zu -H1, 0 V ueber -X3:14", 6)
+            s.text(col_x(6) + 12, yp + 8, "Betriebsstundenzähler parallel zu -H1, 0 V über -X3:14", 6)
     yo = H - 180 - 4 * 45
     s.text(xcard - 25, yo - 2, "A4.4 .. A5.7", 8)
     s.text(xcard + 50, yo - 2, "Reserve", 7)
-    s.text(col_x(3) - 10, H - 430, "Verriegelung: -K1 und -K2 duerfen nie gleichzeitig anziehen. Software-Verriegelung in FB10 Netzwerk 2 und 3,", 8)
-    s.text(col_x(3) - 10, H - 444, "zusaetzlich Hilfskontakt 21/22 des jeweils anderen Schuetzes in Reihe zur Spule (nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10).", 8)
+    s.text(col_x(3) - 10, H - 430, "Verriegelung: -K1 und -K2 dürfen nie gleichzeitig anziehen. Software-Verriegelung in FB10 Netzwerk 2 und 3,", 8)
+    s.text(col_x(3) - 10, H - 444, "zusätzlich Hilfskontakt 21/22 des jeweils anderen Schützes in Reihe zur Spule (nicht dargestellt, siehe Klemmenplan -X3:9/-X3:10).", 8)
 
 
 def page_7(s: Sheet):
-    s.text(col_x(1) - 30, H - 80, "Klemmenplan -X3 (Feldgeraete) und -X4 (Motorabgang), Schaltschrank +ST1", 10, bold=True)
+    s.text(col_x(1) - 30, H - 80, "Klemmenplan -X3 (Feldgeräte) und -X4 (Motorabgang), Schaltschrank +ST1", 10, bold=True)
     cols = [col_x(1) - 30, col_x(1) + 40, col_x(3) - 20, col_x(5) - 30, col_x(7) - 30]
     heads = ["Klemme", "intern", "extern (Feld)", "Funktion", "Blatt"]
     y = H - 105
@@ -395,13 +395,13 @@ def page_7(s: Sheet):
 
 
 def build(out, canvas_factory=canvas.Canvas, sheet_factory=Sheet):
-    """Zeichnet alle Blaetter nach out (Pfad oder Datei-Objekt).
+    """Zeichnet alle Blätter nach out (Pfad oder Datei-Objekt).
 
-    make_gold.py uebergibt eine protokollierende Zeichenflaeche und ein protokollierendes Blatt,
+    make_gold.py übergibt eine protokollierende Zeichenflaeche und ein protokollierendes Blatt,
     um die Ground Truth des Ingest-Benchmarks beim Zeichnen mitzuschreiben.
     """
     c = canvas_factory(str(out) if isinstance(out, Path) else out, pagesize=landscape(A4))
-    c.setTitle("Stromlaufplan Foerderband FB-01")
+    c.setTitle("Stromlaufplan Förderband FB-01")
     c.setAuthor("Stromlauf AI Beispielanlage")
     builders = [page_1, page_2, page_3, page_4, page_5, page_6, page_7]
     for (page, title), fn in zip(PAGES, builders, strict=True):

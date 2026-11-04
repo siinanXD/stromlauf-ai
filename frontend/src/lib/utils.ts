@@ -1,7 +1,7 @@
 import { createCn } from "cn/config";
 
 /** Textstile aus globals.css (Figma "iOS/…" und "Tag/…"): Schriftgroessen, keine Textfarben. */
-export const TEXT_STYLES = ["large-title", "title-1", "title-2", "title-3", "headline", "body", "callout", "subhead", "footnote", "caption-1", "caption-2", "tag", "tag-sm"];
+export const TEXT_STYLES = ["large-title", "title-1", "title-2", "title-3", "headline", "body", "callout", "subhead", "footnote", "caption-1", "caption-2", "tag", "tag-sm", "menu", "menu-sm", "page-title"];
 
 /**
  * clsx + Konfliktaufloesung wie tailwind-merge, ergaenzt um die eigenen Theme-Namen: sonst hielte cn "text-footnote"

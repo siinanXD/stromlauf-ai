@@ -243,7 +243,7 @@ export function SignalViewBody({
           </button>
         )}
         <div className={cn("min-w-0 flex-1 lg:min-w-60 lg:text-left", onClose ? "text-center" : "px-3 lg:px-0")}>
-          <h2 className="truncate text-headline lg:text-title-2">
+          <h2 className="truncate text-page-title">
             Signalweg <span className="font-mono">{tag}</span>
           </h2>
           {(summary || back) && (

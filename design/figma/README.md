@@ -32,15 +32,15 @@ einer eingebauten Prüfung). Kein Weg fragt ein Modell: der Antworttext kommt au
 `http://localhost:8010`; Schlüssel aus `STROMLAUF_API_KEY`):
 
 ```bash
-backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfall-antwort --maschine "Foerderband FB-01" --conversation <Chat-ID> --out antwort.json
-backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfaelle --maschine "Foerderband FB-01" --out stoerfaelle.json
+backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfall-antwort --maschine "Förderband FB-01" --conversation <Chat-ID> --out antwort.json
+backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfaelle --maschine "Förderband FB-01" --out stoerfaelle.json
 ```
 
 **Offline** (ohne Backend und Datenbank): liest einen Beispielordner wie einen Upload und ruft die Funktionen des
 Backends direkt auf. Die erste PDF braucht wegen Docling etwa 15 s.
 
 ```bash
-backend/.venv/Scripts/python scripts/figma_json.py --offline examples/foerderband --vorlage signalweg --maschine "Foerderband FB-01" --tag -F2 --out signalweg.json
+backend/.venv/Scripts/python scripts/figma_json.py --offline examples/foerderband --vorlage signalweg --maschine "Förderband FB-01" --tag -F2 --out signalweg.json
 ```
 
 Offline gibt es keine Datenbank-IDs (sie heißen `offline-…`), keine Treffer an anderen Maschinen und keine
@@ -54,7 +54,7 @@ Belegen aus seinem `doc_ref`.
 
 ```bash
 A="E-F2: Motorschutz -F2 ausgeloest (E0.2 = 0) [[01_Stromlaufplan_FB-01.pdf|Blatt 3]]. -F2 pruefen, Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren [[06_Betriebsanleitung_FB-01.md|Kap. 6]]."
-O=(--offline examples/foerderband --maschine "Foerderband FB-01" --zeit 2026-10-01T09:41:00+02:00)
+O=(--offline examples/foerderband --maschine "Förderband FB-01" --zeit 2026-10-01T09:41:00+02:00)
 backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfall-antwort "${O[@]}" --meldung "Störung Motorschutz Förderband" --antwort "$A" --out design/figma/beispiele/stoerfall-antwort.json
 backend/.venv/Scripts/python scripts/figma_json.py --vorlage signalweg "${O[@]}" --tag -F2 --out design/figma/beispiele/signalweg.json
 backend/.venv/Scripts/python scripts/figma_json.py --vorlage stoerfaelle "${O[@]}" --meldung "Störung Motorschutz Förderband" --out design/figma/beispiele/stoerfaelle.json

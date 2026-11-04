@@ -23,7 +23,7 @@ ANTWORT = (
     "Motorstrom -M1 messen (Nennstrom 3,5 A). Nach Abkuehlen einschalten, mit -S1 quittieren "
     "[[06_Betriebsanleitung_FB-01.md|Kap. 6]]."
 )
-OFFLINE = ["--offline", "examples/foerderband", "--maschine", "Foerderband FB-01"]
+OFFLINE = ["--offline", "examples/foerderband", "--maschine", "Förderband FB-01"]
 
 
 def _ohne_docling(path: Path) -> list[ParsedPage]:

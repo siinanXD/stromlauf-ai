@@ -10,8 +10,8 @@ def test_fault_table_of_the_manual_becomes_fault_entries():
     assert len(faults) == 8  # sieben Zeilen plus Reparaturschalter -Q2
     first = faults[0]
     assert first["symptom"].startswith("-H2 leuchtet, Band steht")
-    assert first["cause"].startswith("Motorschutz -F2 ausgeloest")
-    assert first["fix"].startswith("-F2 am Schaltschrank pruefen")
+    assert first["cause"].startswith("Motorschutz -F2 ausgelöst")
+    assert first["fix"].startswith("-F2 am Schaltschrank prüfen")
     assert first["doc_ref"] == "Betriebsanleitung Kap. 6"
     assert "-F2" in first["tags"] and "-M1" in first["tags"]
 
@@ -28,7 +28,7 @@ def test_heading_without_number_is_used_as_reference():
 
 
 def test_guess_machine_from_bom_title():
-    assert guess_machine(["Stueckliste Foerderband FB-01", "Foerderband FB-01"]) == ("Foerderband FB-01", "conveyor")
+    assert guess_machine(["Stueckliste Förderband FB-01", "Förderband FB-01"]) == ("Förderband FB-01", "conveyor")
     assert guess_machine(["Roboterzelle R3"]) == ("Roboterzelle R3", "robot")
     assert guess_machine(["Anlage 7"]) == ("Anlage 7", "other")
 

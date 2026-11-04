@@ -8,8 +8,9 @@ score(id) = sum(1 / (K + rang)) ueber alle Ranglisten, in denen id vorkommt.
 
 from collections.abc import Iterable, Sequence
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import ColumnElement, Select, func, select
 
+from app.ingestion.tags import text_search_terms
 from app.models import Chunk, Document
 
 TEXT_SEARCH_CONFIG = "german"
@@ -41,17 +42,35 @@ def vector_statement(
     vector: Sequence[float], source_ids: Iterable[str], doc_types: Iterable[str] | None, limit: int
 ) -> Select:
     return (
-        _base(source_ids, doc_types)
-        .order_by(Chunk.embedding.cosine_distance(vector))
-        .limit(limit)
+        _base(source_ids, doc_types).order_by(Chunk.embedding.cosine_distance(vector)).limit(limit)
     )
+
+
+def query_variants(query: str) -> list[str]:
+    """Die Anfrage so, wie sie kam, plus Umlaut- und ae/oe/ue-Schreibweise (soweit sie sich unterscheiden).
+
+    Der deutsche Stemmer macht aus "Foerderband" `foerderband`, aus "Förderband" aber `forderband`: ohne beide
+    Schreibweisen findet die Suche nur Dokumente, die so geschrieben sind wie die Frage."""
+    own = " ".join(query.lower().split())
+    return [query, *(term for term in text_search_terms(query) if term != own)]
+
+
+def fulltext_query(query: str) -> ColumnElement:
+    """tsquery aus allen Schreibweisen der Anfrage, ODER-verknuepft."""
+    queries = [
+        func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, variant) for variant in query_variants(query)
+    ]
+    combined = queries[0]
+    for other in queries[1:]:
+        combined = combined.op("||")(other)
+    return combined
 
 
 def fulltext_statement(
     query: str, source_ids: Iterable[str], doc_types: Iterable[str] | None, limit: int
 ) -> Select:
     """websearch_to_tsquery vertraegt beliebige Eingaben (Anfuehrungszeichen, OR, -wort)."""
-    tsquery = func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, query)
+    tsquery = fulltext_query(query)
     return (
         _base(source_ids, doc_types)
         .where(Chunk.tsv.op("@@")(tsquery))

@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutList, MessageSquare, Moon, Plus, Search, Sun, Workflow } from "lucide-react";
+import { Cpu, LayoutList, MessageSquare, Moon, Plus, Search, Sun, User, Workflow, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -34,8 +34,9 @@ export function applyTheme(theme: "light" | "dark") {
 }
 
 /**
- * Linke Rail (Figma "Desktop / Start"): Marke, Suche, Maschinenliste mit Status, "Maschine hinzufügen",
- * unten Nutzer und Monatskosten. `mode="icons"` ist die 72-px-Variante.
+ * Linke Rail (Figma "Desktop / Start", Frame "Rail": dunkel #12151b, 280 px): Marke, Suche, Maschinenliste mit
+ * Status, "Maschine hinzufügen", unten Nutzer und Monatskosten. `mode="icons"` ist die 72-px-Variante. Die Rail bleibt
+ * in Hell und Dunkel dunkel (Tokens `rail-*`); die Umschaltung betrifft nur den Inhalt.
  */
 export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: AuthMe | null; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -76,36 +77,39 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
       href={href}
       onClick={onNavigate}
       title={label}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex min-h-11 items-center gap-2.5 rounded-md px-2.5 text-subhead hover:bg-muted hover:text-foreground",
-        active ? "bg-primary-soft font-semibold text-primary" : "text-muted-foreground",
+        "flex min-h-11 items-center gap-2.5 rounded-[10px] border px-3 text-menu font-medium hover:bg-rail-surface hover:text-rail-foreground",
+        active ? "border-rail-line bg-rail-surface text-rail-foreground" : "border-transparent text-rail-muted",
         !full && "mx-auto size-11 justify-center px-0",
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon className={cn("size-4 shrink-0", active && "text-brand")} />
       {full && <span>{label}</span>}
     </Link>
   );
+  const initials = (me?.email ?? "").slice(0, 2).toUpperCase();
 
   return (
     <nav
       aria-label="Maschinen und Bereiche"
-      className={cn("flex h-full flex-col border-r-[0.5px] border-border bg-card text-muted-foreground", full ? "w-[280px]" : "w-[72px]")}
+      className={cn("flex h-full flex-col gap-1.5 bg-rail py-4 text-rail-muted", full ? "w-[280px] px-3" : "w-[72px] items-center px-2")}
     >
-      <div className={cn("flex items-center gap-2.5 px-3 pt-5 pb-2", !full && "flex-col justify-center gap-3.5 px-0")}>
-        <Link href="/" onClick={onNavigate} className="grid size-10 shrink-0 place-items-center rounded-md bg-primary text-headline text-primary-foreground" title="Stromlauf AI">
-          S
+      <div className={cn("flex items-center gap-2.5 px-2 py-1.5", !full && "flex-col gap-3.5 px-0")}>
+        <Link href="/" onClick={onNavigate} className="grid size-8 shrink-0 place-items-center rounded-sm bg-brand text-rail" title="Stromlauf AI">
+          <Zap className="size-4" aria-hidden />
+          <span className="sr-only">Stromlauf AI</span>
         </Link>
         {full && (
           <div className="min-w-0">
-            <div className="truncate text-subhead font-semibold text-foreground">Stromlauf AI</div>
-            <div className="truncate text-footnote">{me?.workspace.name ?? "Werk"}</div>
+            <div className="truncate text-menu-sm font-bold text-rail-foreground">Stromlauf AI</div>
+            <div className="truncate text-caption-1">{me?.workspace.name ?? "Werk"}</div>
           </div>
         )}
         <button
           type="button"
           onClick={toggleTheme}
-          className={cn("grid size-11 shrink-0 place-items-center rounded-full hover:bg-muted hover:text-foreground", full && "ml-auto")}
+          className={cn("grid size-11 shrink-0 place-items-center rounded-full hover:bg-rail-surface hover:text-rail-foreground", full && "ml-auto")}
           aria-label={theme === "dark" ? "Helles Design" : "Dunkles Design"}
           title="Design wechseln"
         >
@@ -114,29 +118,29 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
       </div>
 
       {full && (
-        <label className="mx-3 mb-2 flex h-11 items-center gap-2 rounded-md bg-bg-fill px-3 text-subhead">
+        <label className="flex min-h-11 items-center gap-2 rounded-[10px] border border-rail-line bg-rail-surface px-3 text-menu">
           <Search className="size-4 shrink-0" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Maschine suchen …"
             aria-label="Maschine suchen"
-            className="min-w-0 flex-1 bg-transparent text-foreground outline-none"
+            className="min-w-0 flex-1 bg-transparent text-rail-foreground outline-none placeholder:text-rail-muted"
           />
         </label>
       )}
 
-      <div className={cn("space-y-0.5 px-2", !full && "space-y-3.5 px-3")}>
+      <div className={cn("flex flex-col gap-1.5", !full && "gap-3.5")}>
         {navLink("/werk/maschinen", "Alle Maschinen", LayoutList, pathname === "/werk/maschinen")}
         {navLink("/", "Chat über alles", MessageSquare, pathname === "/")}
         {navLink("/ablauf", "Ablauf", Workflow, pathname === "/ablauf")}
       </div>
 
-      <div className="mt-1 min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:thin]" data-testid="machine-rail">
-        {full && <p className="px-2.5 pt-3 pb-1 text-footnote font-semibold uppercase">Maschinen</p>}
-        {machines === null && full && <p className="px-2.5 py-1 text-footnote">Lade …</p>}
-        {machines && machines.length === 0 && full && <p className="px-2.5 py-1 text-footnote">Noch keine Maschine. Unten „Maschine hinzufügen“.</p>}
-        <ul className={cn("space-y-0.5", !full && "mt-3.5 flex flex-col items-center gap-3.5 space-y-0")}>
+      <div className={cn("min-h-0 w-full flex-1 overflow-y-auto [scrollbar-width:thin]", !full && "flex flex-col items-center")} data-testid="machine-rail">
+        {full && <p className="px-3 pt-2 pb-2 text-caption-2 font-semibold uppercase">Maschinen · {machines?.length ?? 0}</p>}
+        {machines === null && full && <p className="px-3 py-1 text-footnote">Lade …</p>}
+        {machines && machines.length === 0 && full && <p className="px-3 py-1 text-footnote">Noch keine Maschine. Unten „Maschine hinzufügen“.</p>}
+        <ul className={cn("flex flex-col gap-1.5", !full && "mt-3.5 items-center gap-3.5")}>
           {shown.map((m) => {
             const status = machineStatus(m);
             const active = m.id === activeId;
@@ -148,60 +152,70 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
                   aria-current={active ? "page" : undefined}
                   title={`${m.name} · ${status.label}`}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md",
-                    full ? "min-h-11 px-2.5 py-1.5" : "justify-center",
-                    full && (active ? "bg-primary-soft" : "hover:bg-muted"),
+                    "flex items-center gap-2.5 rounded-[10px] border",
+                    full ? "min-h-11 px-2.5 py-2" : "justify-center border-transparent",
+                    full && (active ? "border-rail-line bg-rail-surface" : "border-transparent hover:bg-rail-surface"),
                   )}
                 >
-                  {full ? (
+                  <span
+                    className={cn(
+                      "grid shrink-0 place-items-center rounded-sm bg-rail-surface",
+                      full ? "size-[34px]" : "size-11",
+                      active ? "text-brand" : "text-rail-muted",
+                    )}
+                  >
+                    <Cpu className="size-4" aria-hidden />
+                    {!full && <span className="sr-only">{m.name}</span>}
+                  </span>
+                  {full && (
                     <>
                       <span className="min-w-0 flex-1">
-                        <span className={cn("block truncate text-subhead", active ? "font-semibold text-primary" : "text-foreground")}>{m.name}</span>
-                        <span className="block truncate text-footnote text-muted-foreground">
+                        <span className="block truncate text-menu font-medium text-rail-foreground">{m.name}</span>
+                        <span className="block truncate text-caption-1">
                           {m.line || m.hall_name || "—"} · {m.document_count} Dok.
                         </span>
                       </span>
                       <span
-                        className={cn("size-2 shrink-0 rounded-full", status.tone === "ok" ? "bg-ok" : status.tone === "busy" ? "animate-pulse bg-primary" : "bg-warn")}
+                        className={cn("size-2 shrink-0 rounded-full", status.tone === "ok" ? "bg-ok" : status.tone === "busy" ? "animate-pulse bg-accent" : "bg-look")}
                         aria-label={status.label}
                         role="img"
                       />
                     </>
-                  ) : (
-                    <span
-                      className={cn(
-                        "grid size-11 place-items-center rounded-md text-footnote font-semibold",
-                        active ? "bg-primary-soft text-primary" : "bg-bg-fill text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {m.name.slice(0, 2).toUpperCase()}
-                    </span>
                   )}
                 </Link>
               </li>
             );
           })}
         </ul>
-        <Link
-          href="/werk/maschinen"
-          onClick={onNavigate}
-          className={cn("mt-1 flex min-h-11 items-center gap-2.5 rounded-md px-2.5 text-subhead text-primary hover:bg-muted", !full && "mx-auto mt-3.5 size-11 justify-center px-0")}
-          title="Maschine hinzufügen"
-        >
-          <Plus className="size-5 shrink-0" />
-          {full && <span>Maschine hinzufügen</span>}
-        </Link>
       </div>
 
+      <Link
+        href="/werk/maschinen"
+        onClick={onNavigate}
+        className={cn(
+          "flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-rail-line bg-rail-surface px-3.5 text-menu font-medium text-rail-foreground hover:border-rail-muted",
+          !full && "size-11 px-0",
+        )}
+        title="Maschine hinzufügen"
+      >
+        <Plus className="size-4 shrink-0" />
+        {full && <span>Maschine hinzufügen</span>}
+      </Link>
+
       {full && (
-        <div className="border-t-[0.5px] border-border px-3 py-2.5 text-footnote">
-          <div className="truncate text-foreground">{me?.email ?? (me?.via === "api_key" ? "Dienstzugang" : "Lokal, ohne Anmeldung")}</div>
-          {budget && (
-            <div className={cn(budget.exceeded && "text-warn")} data-testid="rail-month-cost">
-              KI diesen Monat {costText(budget.month_cents)}
-              {budget.cap_cents !== null && ` von ${costText(budget.cap_cents)}`}
-            </div>
-          )}
+        <div className="flex items-center gap-2.5 px-2.5 py-2">
+          <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-accent-strong text-caption-1 font-semibold text-white">
+            {initials || <User className="size-4" aria-hidden />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-menu-sm font-medium text-rail-foreground">{me?.email ?? (me?.via === "api_key" ? "Dienstzugang" : "Lokal, ohne Anmeldung")}</div>
+            {budget && (
+              <div className={cn("truncate text-caption-2", budget.exceeded && "text-look")} data-testid="rail-month-cost">
+                KI diesen Monat {costText(budget.month_cents)}
+                {budget.cap_cents !== null && ` von ${costText(budget.cap_cents)}`}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

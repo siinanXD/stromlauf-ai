@@ -3,6 +3,9 @@
 export const num = (value: number, digits = 0) =>
   value.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
+/** Einzahl oder Mehrzahl mit Zahl: plural(1, "Maschine", "Maschinen") = "1 Maschine". */
+export const plural = (count: number, one: string, many: string) => `${num(count)} ${count === 1 ? one : many}`;
+
 export const eur = (value: number) => `${num(value, 2)} €`;
 
 /** KI-Kosten aus dem Kostenbuch (Cent, Listenpreise 1:1 in Euro): "≈ 0,02 €", unter einem Zehntelcent "< 0,01 €". */

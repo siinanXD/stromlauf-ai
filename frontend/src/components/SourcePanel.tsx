@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, costs, DOC_TYPE_LABELS, type CostEstimate, type DocType, type DocTypeDetection, type SourceDocument } from "@/lib/api";
-import { costText } from "@/lib/format";
+import { costText, plural } from "@/lib/format";
 import type { PageTarget } from "@/components/PageViewer";
 
 /** Datei mit erkanntem Typ, wartet auf Bestätigung im Panel. */
@@ -268,7 +268,7 @@ export function SourcePanel({
             {estimate && (
               <li className="text-xs text-muted-foreground" data-testid="upload-estimate">
                 Geschätzte KI-Kosten: <span className="font-medium text-foreground">{costText(estimate.total_cents)}</span> für{" "}
-                {pendingPages} Seiten ({vision ? "Seitenanalyse" : "ohne Seitenanalyse"}
+                {plural(pendingPages, "Seite", "Seiten")} ({vision ? "Seitenanalyse" : "ohne Seitenanalyse"}
                 {estimate.basis["vision.page"] === "measured" ? ", aus gemessenen Werten" : ", Listenpreise"}).
               </li>
             )}

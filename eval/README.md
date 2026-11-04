@@ -38,7 +38,7 @@ die Session des Chats geschrieben.
   Abschnitte kommen aus dem Embedding-Cache (`EMBEDDING_CACHE_DIR`, `actions/cache` je Gruppe); Docling, OCR,
   Chunking, Kennzeichen, DB und Suche laufen weiter jedes Mal, Anfragen werden live eingebettet. Aendern sich
   `backend/app/embeddings.py`, `pyproject.toml` oder `MODELLCACHE_VERSION`, beginnt der Cache leer.
-- **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Foerderband FB-01,Injection-Test" --min 0.8
+- **Woechentlich** (montags 03:17 UTC, auch manuell): `run_eval.py --only "Förderband FB-01,Injection-Test" --min 0.8
   --min-citations 0.9 --max-cost 2.00` (stoppt, sobald die Summe der `usage.cost_usd` den Deckel erreicht) und
   `run_cabinet.py --min-iou 0.5 --min-share 0.8` (ein Vision-Aufruf gegen die 15 gelabelten Boxen des
   FB-01-Aufbauplans). Braucht `ANTHROPIC_API_KEY` als Secret (Environment `eval`), optional `LANGFUSE_*`; ohne
@@ -62,9 +62,9 @@ die Session des Chats geschrieben.
 | Aufrollung PM1-AR | 10 | `examples/aufrollung/` (`scripts/load_testwerk.py --docs`) |
 | Festo MPS | 11 | `testdata/festo/` (lokal, Festo Didactic InfoPortal; von Hand ablegen, `scripts/fetch_testdata.py` prueft) |
 | AWL Praxisprojekte | 6 | `testdata/awl/bnt_modell.awl` (aus awlsim, GPLv2; `scripts/fetch_testdata.py`) |
-| Foerderband FB-01 | 23 | `examples/foerderband/` (`scripts/load_example.py`) |
+| Förderband FB-01 | 23 | `examples/foerderband/` (`scripts/load_example.py`) |
 | Injection-Test | 5 | `examples/injection/` (`scripts/load_folder.py examples/injection --name "Injection-Test"`) |
-| Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Foerderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
+| Scan FB-01 | 5 | nur der Voll-Scan aus `examples/scan/` (`scripts/load_folder.py examples/scan --pattern "*_scan.pdf" --name "Scan FB-01"`), gelesen per OCR im Upload (Issue #66). Der Name enthaelt bewusst nicht „Förderband FB-01“: `--only` filtert per Teiltext, der Agentenlauf wuerde die Fragen sonst ohne geladene Quelle stellen |
 
 ### Verbindlicher Datensatz für FERTIG 2 (SIN-96)
 
@@ -91,7 +91,7 @@ Fuenf Fragen sind Fallen (`*-nicht-vorhanden`): die Antwort steht in keinem Doku
 aus einem Handbuch mit eingebetteten Anweisungen an den Assistenten (`examples/injection/README.md`);
 `must_not_contain` enthaelt, was ein befolgender Assistent schreiben wuerde (`ZEBRAKUCHEN`, `5711`, ...).
 Diese Muster stehen nicht woertlich im Dokument, deshalb laufen die Fragen kostenlos im Retrieval-Gate mit
-(`--only "Foerderband FB-01,Injection-Test"`, Komma trennt mehrere Filter) und nachts im Agentenlauf.
+(`--only "Förderband FB-01,Injection-Test"`, Komma trennt mehrere Filter) und nachts im Agentenlauf.
 
 Je Zeile: `id`, `source`, `question`, `must_contain` (Regex, Gross/Klein egal, `|` trennt Alternativen),
 `must_not_contain` (Halluzinations-Fallen), `expect_sources` (Dateien, die zitiert sein muessen),
@@ -214,7 +214,7 @@ python eval/rescore.py eval/results/referenz_2026-09-26.json --out eval/results/
 python eval/run_eval.py --only festo --limit 3            # Agentenlauf, kostet Tokens
 python eval/run_eval.py --baseline eval/results/referenz_2026-09-26.json
 python eval/run_eval.py --resume eval/results/2026-09-27_10-12-33.json   # abgebrochenen Lauf fortsetzen
-python eval/run_eval.py --model openai:gpt-5-mini --only "Foerderband FB-01" --max-cost 1.00   # anderer Provider, gleiche Fragen
+python eval/run_eval.py --model openai:gpt-5-mini --only "Förderband FB-01" --max-cost 1.00   # anderer Provider, gleiche Fragen
 python eval/run_eval.py --model openai:gpt-5.4-mini@none --out eval/results/lauf_mini.json       # Aufwand hinter @, feste Ergebnisdatei (parallele Laeufe)
 python eval/run_eval.py --model ollama:qwen3.5:4b --only fb01                                  # lokales Modell ueber Ollama, kostenlos
 python eval/compare_runs.py eval/results/referenz_2026-09-28_claude-sonnet-5.json eval/results/referenz_2026-09-28_gpt-5-mini.json --out eval/results/vergleich_2026-09-28.md   # zwei Laeufe nebeneinander, ohne Kosten
