@@ -498,6 +498,16 @@ class AehnlichkeitVorschlag(BaseModel):
     herkunft: Literal["aehnlichkeit"] = "aehnlichkeit"
 
 
+class LesenDatei(BaseModel):
+    pfad: str
+    document_id: str
+
+
+class LesenOut(BaseModel):
+    source_id: str
+    dateien: list[LesenDatei]
+
+
 class RunStep(BaseModel):
     key: str
     label: str

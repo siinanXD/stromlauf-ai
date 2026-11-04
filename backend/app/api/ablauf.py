@@ -6,7 +6,16 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,13 +28,15 @@ from app.ablauf.zeiten import kennzahlen
 from app.api.sources import ALLOWED_SUFFIXES
 from app.config import get_settings
 from app.db import get_session
-from app.ingestion.pipeline import detect_doc_type
+from app.ingestion.pipeline import detect_doc_type, ingest_document
 from app.models import Chunk, DocType, Document, KnowledgeSource, Run
 from app.schemas import (
     AehnlichkeitAnfrage,
     AehnlichkeitVorschlag,
     GruppenAnfrage,
     GruppenVorschlag,
+    LesenDatei,
+    LesenOut,
     RunAnswer,
     RunListItem,
     RunOut,
@@ -86,13 +97,8 @@ def run_out(run: Run) -> RunOut:
     )
 
 
-@router.post("/runs", response_model=RunOut, status_code=201)
-def create_run(
-    request: Request,
-    files: list[UploadFile] = File(default=[]),
-    name: str = Form(""),
-    session: Session = Depends(get_session),
-):
+def _pruefe_uploads(session: Session, files: list[UploadFile]) -> None:
+    """Gemeinsame Pruefung von `POST /runs` und `POST /runs/lesen`; wirft vor jeder Schreiboperation."""
     if not files:
         raise HTTPException(400, "Mindestens eine Datei hochladen")
     if len(files) > MAX_DATEIEN:
@@ -106,12 +112,13 @@ def create_run(
             )
     ledger.check_budget(session)
 
-    now = datetime.now(UTC)
-    source = KnowledgeSource(name=(name.strip() or f"Lauf {now:%d.%m.%Y %H:%M}")[:200])
-    session.add(source)
-    session.flush()
+
+def _speichere_uploads(
+    session: Session, source: KnowledgeSource, files: list[UploadFile]
+) -> list[Document]:
+    """Legt je Upload Datei und `Document` an (noch nicht committet), in der Reihenfolge von `files`."""
     upload_dir = get_settings().upload_dir
-    types: list[str] = []
+    documents = []
     for file in files:
         filename = Path(file.filename or "upload").name
         suffix = Path(filename).suffix.lower()
@@ -119,17 +126,35 @@ def create_run(
         path = upload_dir / f"{document_id}{suffix}"
         with path.open("wb") as target:
             shutil.copyfileobj(file.file, target)
-        doc_type = detect_doc_type(filename, DocType.AUTO, path)
-        session.add(
-            Document(
-                id=document_id,
-                source_id=source.id,
-                filename=filename,
-                storage_path=str(path),
-                doc_type=doc_type,
-            )
+        document = Document(
+            id=document_id,
+            source_id=source.id,
+            filename=filename,
+            storage_path=str(path),
+            doc_type=detect_doc_type(filename, DocType.AUTO, path),
         )
-        types.append(DOC_TYPE_LABELS.get(doc_type, str(doc_type)))
+        session.add(document)
+        documents.append(document)
+    return documents
+
+
+@router.post("/runs", response_model=RunOut, status_code=201)
+def create_run(
+    request: Request,
+    files: list[UploadFile] = File(default=[]),
+    name: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    _pruefe_uploads(session, files)
+
+    now = datetime.now(UTC)
+    source = KnowledgeSource(name=(name.strip() or f"Lauf {now:%d.%m.%Y %H:%M}")[:200])
+    session.add(source)
+    session.flush()
+    types = [
+        DOC_TYPE_LABELS.get(d.doc_type, str(d.doc_type))
+        for d in _speichere_uploads(session, source, files)
+    ]
 
     anzahl = f"{len(files)} Datei" if len(files) == 1 else f"{len(files)} Dateien"
     steps = starte(neue_schritte(), "hochladen", now.isoformat(), "")
@@ -147,6 +172,35 @@ def create_run(
         daemon=True,
     ).start()
     return run_out(run)
+
+
+@router.post("/runs/lesen", response_model=LesenOut, status_code=201)
+def lese_dateien(
+    background: BackgroundTasks,
+    files: list[UploadFile] = File(default=[]),
+    pfade: list[str] = Form(default=[]),
+    session: Session = Depends(get_session),
+):
+    """Liest unzugeordnete Dateien einer Ordner-Ablage, ohne Lauf, Maschine und Modell.
+
+    Die Dateien liegen danach in einer eigenen Quelle „Vorschau …“; ihr Lesestand steht in
+    `GET /api/sources/{source_id}/documents`, aufgeraeumt wird mit `DELETE /api/sources/{source_id}`.
+    """
+    if len(pfade) != len(files):
+        raise HTTPException(400, "files und pfade müssen gleich viele Einträge haben")
+    _pruefe_uploads(session, files)
+
+    source = KnowledgeSource(name=f"Vorschau {datetime.now(UTC):%d.%m.%Y %H:%M:%S}")
+    session.add(source)
+    session.flush()
+    documents = _speichere_uploads(session, source, files)
+    session.commit()
+    for document in documents:
+        background.add_task(ingest_document, document.id)
+    return LesenOut(
+        source_id=source.id,
+        dateien=[LesenDatei(pfad=p, document_id=d.id) for p, d in zip(pfade, documents, strict=True)],
+    )
 
 
 @router.post("/runs/gruppen", response_model=GruppenVorschlag)
