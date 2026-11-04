@@ -474,6 +474,135 @@ def test_aehnlichkeit_gleiche_gruppennamen_400(client, headers):
     assert client.post("/api/runs/aehnlichkeit", json=body, headers=headers).status_code == 400
 
 
+def _lesen(client, headers, dateien: list[tuple[str, str, bytes]]):
+    """`POST /api/runs/lesen` mit (Pfad, Dateiname, Inhalt) je Datei."""
+    return client.post(
+        "/api/runs/lesen",
+        files=[("files", (name, inhalt)) for _, name, inhalt in dateien],
+        data={"pfade": [pfad for pfad, _, _ in dateien]},
+        headers=headers,
+    )
+
+
+def _ingest_attrappe(document_id: str) -> None:
+    """Statt bge-m3: `.md` wird gelesen (mit einem Chunk), alles andere scheitert."""
+    from app.db import session_scope
+    from app.models import Chunk, DocStatus, Document
+
+    with session_scope() as session:
+        dokument = session.get(Document, document_id)
+        if dokument.filename.endswith(".md"):
+            dokument.status = DocStatus.READY
+            session.add(
+                Chunk(
+                    document_id=document_id,
+                    source_id=dokument.source_id,
+                    content="Handbuch",
+                    embedding=_vektor(a0=1.0),
+                )
+            )
+        else:
+            dokument.status = DocStatus.FAILED
+            dokument.error = "kaputt"
+
+
+def test_lesen_liefert_ids_und_lesestand_ohne_lauf_und_maschine(client, headers, monkeypatch):
+    monkeypatch.setattr("app.api.ablauf.ingest_document", _ingest_attrappe)
+    laeufe = client.get("/api/runs", headers=headers).json()
+    maschinen = client.get("/api/machines", headers=headers).json()
+
+    r = _lesen(
+        client,
+        headers,
+        [("Ordner/Anleitung.md", "Anleitung.md", b"# Anleitung"), ("Ordner/x.csv", "x.csv", b"a;b")],
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert [d["pfad"] for d in body["dateien"]] == ["Ordner/Anleitung.md", "Ordner/x.csv"]
+
+    liste = client.get(f"/api/sources/{body['source_id']}/documents", headers=headers).json()
+    status = {d["id"]: d["status"] for d in liste}
+    assert status == {
+        body["dateien"][0]["document_id"]: "ready",
+        body["dateien"][1]["document_id"]: "failed",
+    }
+
+    assert client.get("/api/runs", headers=headers).json() == laeufe
+    assert client.get("/api/machines", headers=headers).json() == maschinen
+
+    gruppe, _ = _lege_an(WS, [_vektor(a0=1.0)])
+    vorschlag = client.post(
+        "/api/runs/aehnlichkeit",
+        json={
+            "gruppen": [{"name": "FB-01", "source_ids": [gruppe]}],
+            "dateien": [body["dateien"][0]],
+        },
+        headers=headers,
+    )
+    assert vorschlag.status_code == 200, vorschlag.text
+    assert vorschlag.json()[0]["vorschlag"] == "FB-01"
+
+
+def test_lesen_fremder_workspace_404_und_loeschen_raeumt_auf(
+    client, headers, fremde_headers, monkeypatch
+):
+    from sqlalchemy import select
+
+    from app.db import session_scope
+    from app.ingestion.ocr import stored_files
+    from app.models import Document
+
+    monkeypatch.setattr("app.api.ablauf.ingest_document", _ingest_attrappe)
+    quelle = _lesen(client, headers, [("a.md", "a.md", b"# A"), ("b.md", "b.md", b"# B")]).json()[
+        "source_id"
+    ]
+    with session_scope() as session:
+        pfade = [
+            f
+            for d in session.scalars(select(Document).where(Document.source_id == quelle))
+            for f in stored_files(Path(d.storage_path))
+        ]
+    assert any(p.exists() for p in pfade)
+
+    assert client.get(f"/api/sources/{quelle}/documents", headers=fremde_headers).status_code == 404
+    assert client.delete(f"/api/sources/{quelle}", headers=fremde_headers).status_code == 404
+    assert client.delete(f"/api/sources/{quelle}", headers=headers).status_code == 204
+    assert client.get(f"/api/sources/{quelle}/documents", headers=headers).status_code == 404
+    assert not any(p.exists() for p in pfade)
+    with session_scope() as session:
+        assert not session.scalars(select(Document.id).where(Document.source_id == quelle)).all()
+
+
+def test_lesen_prueft_wie_create_run(client, headers, monkeypatch):
+    monkeypatch.setattr("app.api.ablauf.ingest_document", _ingest_attrappe)
+    before = len(client.get("/api/sources", headers=headers).json())
+    assert client.post("/api/runs/lesen", files=[], data={}, headers=headers).status_code in {400, 422}
+    assert _lesen(client, headers, [("x.exe", "x.exe", b"nope")]).status_code == 415
+    viele = [(f"d{i}.md", f"d{i}.md", b"# x") for i in range(101)]
+    r = _lesen(client, headers, viele)
+    assert r.status_code == 400 and "100" in r.json()["detail"]
+    ungleich = client.post(
+        "/api/runs/lesen",
+        files=[("files", ("a.md", b"# A")), ("files", ("b.md", b"# B"))],
+        data={"pfade": ["a.md"]},
+        headers=headers,
+    )
+    assert ungleich.status_code == 400
+    assert len(client.get("/api/sources", headers=headers).json()) == before
+
+
+def test_lesen_stoppt_bei_ueberschrittenem_budget(client, headers, monkeypatch):
+    from fastapi import HTTPException
+
+    def gesperrt(session):
+        raise HTTPException(402, "Budget aufgebraucht")
+
+    monkeypatch.setattr("app.api.ablauf.ledger.check_budget", gesperrt)
+    before = len(client.get("/api/sources", headers=headers).json())
+    assert _lesen(client, headers, [("a.md", "a.md", b"# A")]).status_code == 402
+    assert len(client.get("/api/sources", headers=headers).json()) == before
+
+
 @pytest.mark.skipif(
     not os.environ.get("STROMLAUF_MODELL_TESTS"),
     reason="braucht das lokale Embedding-Modell bge-m3 (STROMLAUF_MODELL_TESTS=1, Job 'Ähnlichkeit' in eval.yml)",
@@ -537,3 +666,38 @@ def test_handbuch_ohne_kennung_geht_zu_fb01_nicht_ur01(client, headers, tmp_path
     r = client.post("/api/runs/aehnlichkeit", json=body, headers=headers)
     assert r.status_code == 200, r.text
     assert r.json()[0]["vorschlag"] == "FB-01", r.json()
+
+
+@pytest.mark.skipif(
+    not os.environ.get("STROMLAUF_MODELL_TESTS"),
+    reason="braucht das lokale Embedding-Modell bge-m3 (STROMLAUF_MODELL_TESTS=1, Job 'Ähnlichkeit' in eval.yml)",
+)
+def test_lesen_handbuch_aus_foerderband_passt_zu_aehnlichkeit(client, headers):
+    """Echtes Lesen über die Route: die Handbuch-ID bekommt einen Wert gegen die gelesene Anlage."""
+
+    def lese(dateien: list[Path]) -> dict:
+        r = _lesen(client, headers, [(p.name, p.name, p.read_bytes()) for p in dateien])
+        assert r.status_code == 201, r.text
+        body = r.json()
+        for datei in body["dateien"]:
+            deadline = time.time() + 600
+            while time.time() < deadline:
+                dokument = client.get(f"/api/documents/{datei['document_id']}", headers=headers).json()
+                if dokument["status"] in {"ready", "failed"}:
+                    break
+                time.sleep(2)
+            assert dokument["status"] == "ready", dokument
+        return body
+
+    anlage = lese(sorted(EXAMPLES.glob("0[2-5]_*")))  # ohne PDF (Docling) und ohne Handbuch
+    handbuch = lese([EXAMPLES / "06_Betriebsanleitung_FB-01.md"])
+    r = client.post(
+        "/api/runs/aehnlichkeit",
+        json={
+            "gruppen": [{"name": "FB-01", "source_ids": [anlage["source_id"]]}],
+            "dateien": handbuch["dateien"],
+        },
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["wert"] > 0, r.json()
