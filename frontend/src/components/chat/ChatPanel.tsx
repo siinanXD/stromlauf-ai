@@ -47,6 +47,7 @@ export function ChatPanel({
   emptyState,
   initialInput = "",
   banner,
+  disabled = false,
   placeholder = "Frage zur Anlage stellen … (Enter sendet, Shift+Enter neue Zeile)",
   onMeta,
   onOpenPart,
@@ -65,6 +66,8 @@ export function ChatPanel({
   emptyState: ReactNode;
   initialInput?: string;
   banner?: ReactNode;
+  /** Kein Server: Eingabe und Senden sind aus, statt beim Absenden zu scheitern. */
+  disabled?: boolean;
   placeholder?: string;
   /** Antwort-Vertrag am Ende des Streams: Maschinenseite markiert die Bauteile im Modell. */
   onMeta?: (meta: AnswerMeta) => void;
@@ -336,6 +339,7 @@ export function ChatPanel({
                   void send(input);
                 }
               }}
+              disabled={disabled}
               rows={Math.min(6, input.split("\n").length)}
               placeholder={placeholder}
               aria-label={placeholder}
@@ -354,7 +358,7 @@ export function ChatPanel({
             </button>
           ) : (
             <button
-              disabled={!input.trim()}
+              disabled={disabled || !input.trim()}
               className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:bg-bg-fill disabled:text-muted-foreground"
               aria-label="Senden"
               title="Senden (Enter)"

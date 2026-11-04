@@ -30,6 +30,14 @@ describe("describeChatError", () => {
   });
 });
 
+describe("Vorschau ohne Server", () => {
+  it("says there is no server yet instead of a network error", () => {
+    const { message } = describeChatError("Kein Backend konfiguriert", { answer: false });
+    expect(message).toMatch(/^Diese öffentliche Vorschau hat noch keinen Server/);
+    expect(message).not.toMatch(/ts\.net|localhost|Backend unter/);
+  });
+});
+
 describe("AnswerError", () => {
   it("shows the sentence in the error line and hides the developer text behind a closed Details toggle", () => {
     const html = renderToStaticMarkup(<AnswerError raw={MISSING_KEY} faultList />);

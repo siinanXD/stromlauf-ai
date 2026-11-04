@@ -42,7 +42,7 @@ export default function Home() {
         if (question) setInitialInput(question);
       })
       // Technische Angaben nur fuer "Details"; angezeigt wird ein Satz (ChatNotice)
-      .catch((err: Error) => setBackendError(`Backend unter ${API_URL} nicht erreichbar: ${err.message}`));
+      .catch((err: Error) => setBackendError(API_URL === "" ? err.message : `Backend unter ${API_URL} nicht erreichbar: ${err.message}`));
   }, [loadSources, loadConversations]);
 
   function selectConversation(conversation: Conversation) {
@@ -85,6 +85,7 @@ export default function Home() {
             onNewConversation={newConversation}
             onDeleteConversation={deleteConversation}
             onOpenPage={setPageTarget}
+            offline={backendError !== null}
           />
         </aside>
         {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />}
@@ -105,9 +106,14 @@ export default function Home() {
             activeReference={pageTarget?.reference ? `${pageTarget.documentId}${pageTarget.reference}` : null}
             initialInput={initialInput}
             banner={banner}
+            disabled={backendError !== null}
             emptyState={
               <>
                 <h1 className="text-2xl font-semibold tracking-tight">Wonach suchst du?</h1>
+                <p className="mt-2" data-testid="produkt-erklaerung">
+                  Stromlauf AI ist ein Chatbot für die Instandhaltung: Er beantwortet Fragen zur Elektrodokumentation einer Maschine und nennt zu jeder
+                  Antwort die Seite im Plan.
+                </p>
                 <p className="mt-2 text-muted-foreground">
                   Ich verfolge Betriebsmittel, Klemmen und SPS-Adressen über Stromlaufplan, Stückliste, Klemmenplan, AWL-Programm und Handbücher hinweg.
                   Fragen zu einer Maschine stellst du besser auf ihrer Seite (links in der Liste): dort ist nur ihre Doku im Scope und das Modell zeigt die Bauteile.
