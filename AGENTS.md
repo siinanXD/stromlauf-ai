@@ -222,6 +222,9 @@ der Instandhaltung an der Maschine?
   `Retry-After`; `DEMO_TRUST_PROXY` liest die IP aus `X-Forwarded-For`. `seed_example` legt beim Start im
   Hintergrund FB-01 (`examples/foerderband`, `DEMO_EXAMPLE_DIR`) an, nur ohne vorhandene Wissensquelle.
   Neue schreibende Routen, die der Chat braucht, in `WRITE_ALLOWED` eintragen. Tests `tests/test_demo.py`.
+  Oeffentlich vom eigenen PC (SIN-1573): `docker-compose.public.yml` als Override (Ports nur `127.0.0.1`, `ANTHROPIC_API_KEY`
+  leer, `DEMO_TRUST_PROXY=true`; `CORS_ORIGINS` aus der Umgebung); ohne Schluessel antwortet `/api/chat` mit 400 und dem
+  Schluesselsatz, das Frontend zeigt „KI-Zugang nicht eingerichtet“. Tests in `test_ci_laufzeit.py` (nutzt `docker compose config`).
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
   generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
 - Kennzeichen-Index: Schluessel immer in der Schreibweise von `tags.normalize_tag` (gross), denn `find_tag`,

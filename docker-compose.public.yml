@@ -1,0 +1,21 @@
+# Override fuer die oeffentliche Demo vom eigenen PC (SIN-1573): ein Tunnel erreicht das Backend ueber 127.0.0.1,
+# kein Port liegt auf dem Netzwerk, der Chat laeuft ohne Anthropic-Schluessel (kostet kein Guthaben).
+# Start: docker compose -f docker-compose.yml -f docker-compose.public.yml --profile demo up --build -d
+# CORS_ORIGINS (die Vercel-Adresse) kommt aus der Umgebung oder .env, siehe .env.example.
+services:
+  db:
+    ports: !override
+      - "127.0.0.1:5433:5432"
+  backend:
+    ports: !override
+      - "127.0.0.1:8010:8010"
+    environment:
+      ANTHROPIC_API_KEY: ""
+      DEMO_MODE: "true"
+      DEMO_TRUST_PROXY: "true"
+  frontend:
+    ports: !override
+      - "127.0.0.1:3100:3100"
+  langflow:
+    ports: !override
+      - "127.0.0.1:7860:7860"
