@@ -1,14 +1,14 @@
 # Machine Assistant v1 — Abnahme-Kandidat (Entwurf)
 
-Stand: wird mit jedem Merge fortgeschrieben; die Staging-Spalten füllen sich, sobald das Backend auf Railway
-läuft (Freigabe des Owners, kostenpflichtig). Bis dahin gilt: **Preview (Vercel) + CI-Evidenz**, kein Label.
+Stand: wird mit jedem Merge fortgeschrieben; die Staging-Spalten füllen sich, sobald die Demo vom eigenen PC
+erreichbar ist (`docs/product/demo-hosting.md`, kein Hosting-Geld). Bis dahin gilt: **Preview (Vercel) + CI-Evidenz**, kein Label.
 
 | Feld | Wert |
 | --- | --- |
 | Git-SHA (master) | _wird beim Setzen des Labels eingetragen_ |
 | PRs | #22 Spezifikation · #30 MB-0 · #31 MB-1 · #32 MB-2 · #33 MB-3 · #34 MB-4 · #35 MB-5 · MB-6 (dieser Stand) |
 | Vercel-Preview | `stromlauf-ai-git-<branch>-siinanxds-projects.vercel.app` (je PR im Vercel-Kommentar) |
-| Staging (Railway) | _ausstehend_ |
+| Staging (Demo vom eigenen PC) | _ausstehend_ |
 | Abnahme-Nachweise (CI) | Job „Retrieval-Gate FB-01“ in `eval.yml`: `scripts/acceptance.py --load` (Kaltstart, Ingestion-Dauer, Modell, Kostenbuch, Schätzung) und `frontend/scripts/lighthouse-a11y.mjs` (Gate ≥ 90) gegen den Produktions-Build; Artefakt `abnahme-nachweise-FB-01` je Lauf |
 | Langfuse-Läufe | Nightly per Hand am 2026-09-28: [Run 36432895886](https://github.com/siinanXD/stromlauf-ai/actions/runs/36432895886) mit `claude-sonnet-5`, Tag `eval:2026-09-28_14-07-12`, 9 von 9 Antworten mit Scores (fakten, quellen_ok, sauber) in Langfuse |
 | Gemessene Kosten | Anlegen FB-01: _ausstehend (Vision-Lauf auf Staging)_ · je Antwort: **0,054 $** mit `claude-sonnet-5` (9 Fragen, 0,49 $ gesamt, ≈ 20 k Eingabe-Tokens je Antwort durch Werkzeugaufrufe) bzw. **0,011 $** mit `openai:gpt-5-mini` (0,098 $ gesamt); Schätzung laut `cost-model.md` ≈ 0,02 $ lag dazwischen. Vergleich: `eval/results/vergleich_2026-09-28.md` |
@@ -39,27 +39,27 @@ Gemessen mit `eval/run_ingest.py` über dieselbe Lesekette wie der Upload, ohne 
 | Kennzeichen-Recall Scan mit OCR-Kern (Issue #65) | Recall device / terminal / plc_address: Voll-Scan **0,99** / **0,81** / **1,00**; Teil-Scan 1,00 / 0,99 / 1,00; Blatt 4 hochkant 1,00 / 1,00 / 1,00. Precision überall 1,00. 5,0 s je Seite auf der CPU, mittlere Konfidenz 0,98 | [`scan-ocr`](../../eval/results/ingest_fb01_scan-ocr_2026-09-30_12-32-57.json), [`teilscan-ocr`](../../eval/results/ingest_fb01_teilscan-ocr_2026-09-30_12-33-21.json), [`quer-ocr`](../../eval/results/ingest_fb01_quer-ocr_2026-09-30_12-33-50.json) | Unsichtbare Textebene per RapidOCR lokal (`app/ingestion/ocr.py`, `run_ingest.py --ocr`), seit #66 auch im Upload. Gold seit #76 mit 73 Klemmen; mit dem alten Gold lag der Voll-Scan bei 0,77. Ziel 0,85 für device und plc_address erreicht, für Klemmen verfehlt: Neben dem Klemmenkreis liest die OCR „O X1:2“ statt „-X1:2“ (Blatt 2, 5, 6). Eine Symbolregel brächte mit dem alten Gold nur 0,82 bei Precision 0,95 und ist nicht eingebaut |
 | Scan im Upload und im Gate (Issue #66) | Voll-Scan-Upload ohne Schalter `READY`: „12 Abschnitte, 187 Kennzeichen · 7 Seiten per OCR, Ø Konfidenz 0,98, 4,8 s/Seite“ (lokal, 50 s mit Docling und bge-m3). 5 Scan-Fragen: fakten **1,00**, quellen **1,00**. `/3.4` markiert auf dem Scan Spalte 4 (0,380 bis 0,497, im Text-PDF 0,383 bis 0,500) | CI-Artefakte `ingest-nachweise` (`ingest_fb01_scan-ocr_*`) und `abnahme-nachweise-FB-01` (`retrieval_*`) | Gates in `eval.yml`: Ingest-Gate Voll-Scan mit `--min 0.95`, für Klemmen `--min-for terminal=0.75` (gemessen 0,81, siehe Zeile darüber), und Quelle „Scan FB-01“ im Retrieval-Gate. OCR nur auf Seiten ohne Textebene (`OCR_MODE=auto`); die durchsuchbare Fassung ersetzt die Upload-Datei, das Original bleibt daneben. Lesart je Seite in `Chunk.meta` (`read`, `ocr_conf`) |
 
-## Teil 2: Ablauf nach Freigabe des Railway-Stagings
+## Teil 2: Ablauf gegen die Demo vom eigenen PC
 
 Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jeder ohne Modellaufruf, außer wo es steht:
 
-1. Railway-Service `backend` + Postgres/pgvector + Volume nach `README.md` („Deployment“). Für den E2E-Login auf Staging
+1. Backend, Datenbank und Tunnel nach `docs/product/demo-hosting.md` (`<adresse>` = Tunnel-Adresse). Für den E2E-Login auf Staging
    vorübergehend `AUTH_DEV_LINK=true` setzen (Link in der Antwort statt per Mail), danach wieder entfernen.
-2. `python scripts/acceptance.py --api https://<railway> --load --out eval/results` → Kaltstart, Ingestion-Dauer, Modell
+2. `python scripts/acceptance.py --api https://<adresse> --load --out eval/results` → Kaltstart, Ingestion-Dauer, Modell
    (Baugruppen, Teile, Fundstellen), Hotspots, Kostenbuch. Zugriff über `STROMLAUF_API_KEY` oder `STROMLAUF_TOKEN`.
-3. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api https://<railway> --vision --refresh`,
+3. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api https://<adresse> --vision --refresh`,
    dann `scripts/acceptance.py` ohne `--load` → Schätzung gegen Kostenbuch je Zweck (±50 %), Kosten „Anlegen FB-01“.
-4. Vercel: `NEXT_PUBLIC_API_URL` auf die Railway-Domain, Preview-URL notieren.
-5. `E2E_BASE_URL=https://<preview> E2E_API_URL=https://<railway> E2E_EMAIL=<adresse> npx playwright test e2e/staging.spec.ts --project=desktop-1440`
+4. Vercel: `NEXT_PUBLIC_API_URL` auf die Tunnel-Adresse, neu deployen (siehe `docs/product/demo-hosting.md`, „Vercel einstellen“), Production-Adresse notieren; Preview-Adressen lässt `CORS_ORIGINS` nicht zu.
+5. `E2E_BASE_URL=https://<preview> E2E_API_URL=https://<adresse> E2E_EMAIL=<adresse> npx playwright test e2e/staging.spec.ts --project=desktop-1440`
    (Login → Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto); mit `E2E_ASK=1` zusätzlich eine bezahlte Frage mit Markierung.
-   `node frontend/scripts/lighthouse-a11y.mjs --base https://<preview> --api https://<railway>` (offenes Backend oder API-Key;
+   `node frontend/scripts/lighthouse-a11y.mjs --base https://<preview> --api https://<adresse>` (offenes Backend oder API-Key;
    Variante mit Login steht als TODO im Skript).
 6. Secret `ANTHROPIC_API_KEY` im GitHub-Environment `eval` → Nightly-Lauf (Agenten-Eval, Schaltschrank-IoU) → Langfuse-Läufe
    verlinken. Werte oben eintragen, unabhängiges Review, Label `READY FOR HUMAN ACCEPTANCE`.
 
 ## Bekannte Grenzen (Stand dieses Entwurfs)
 
-- Railway-Staging, Kaltstart- und Kostenmessung (MB-1/MB-3-Abnahme) warten auf die Freigabe des Owners.
+- Kaltstart- und Kostenmessung (MB-1/MB-3-Abnahme) warten auf die laufende Demo vom eigenen PC (Handgriff: SIN-1575).
 - Kriterium 2 ist mit der erweiterten Beispielanlage rechnerisch erfüllt (5 Baugruppen, 22 Teile); der Wert auf einer
   laufenden Umgebung steht im CI-Artefakt und später auf Staging. Lokale Installationen laden die neuen Dokumente mit
   `python scripts/load_example.py --refresh` (Dokument-IDs ändern sich, alte Chat-Belege zeigen dann ins Leere).

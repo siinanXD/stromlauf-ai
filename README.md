@@ -268,22 +268,14 @@ Providers muss in der `.env` stehen (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), son
 - Nightly-Eval (`eval.yml`) per Hand starten mit `chat_model` und `vision_model` als Eingabe; die Schlüssel liegen
   als Repository-Secrets (`OPEN_API_KEY` wird als `OPENAI_API_KEY` durchgereicht).
 
-## Deployment (Railway)
+## Deployment (Demo vom eigenen PC)
 
-Backend als Container (`backend/Dockerfile`, Build-Kontext `backend/`), Datenbank Postgres mit pgvector,
-Frontend auf Vercel (Projekt `stromlauf-ai`, Root Directory `frontend`). Railway-Service:
-
-1. Service aus dem GitHub-Repo, **Root Directory `backend`** (dann greift `backend/railway.toml`:
-   Dockerfile-Build, Healthcheck `/api/health`).
-2. **Volume auf `/data`** (Uploads, Bilder, Plan-Cache, HF-Modellcache). Eine Instanz; fuer mehrere
-   Instanzen waere ein Bucket noetig (siehe `docs/product/architecture.md`).
-3. Datenbank-Service mit pgvector (Image `pgvector/pgvector:pg17` oder Railway-Postgres mit
-   `CREATE EXTENSION vector`), Variable `DATABASE_URL=postgresql+psycopg://...`.
-4. Variablen: `ANTHROPIC_API_KEY`, `API_KEY` (Zugriffsschutz), `CORS_ORIGINS=https://<vercel-domain>`,
-   `CHECKPOINTER=postgres`, `EMBEDDING_PROVIDER=voyage` + `VOYAGE_API_KEY` (oder `local`, dann
-   mindestens 3 GB RAM fuer bge-m3), optional `LANGFUSE_*`, `OCR_MODE` (Standard `auto`).
-5. Vercel: `NEXT_PUBLIC_API_URL=https://<railway-domain>`, `NEXT_PUBLIC_API_KEY=<API_KEY>`.
-6. Abnahme auf Staging: Ablauf und Skripte in `docs/product/ACCEPTANCE.md` (Abschnitt „Teil 2“).
+Die oeffentliche Demo laeuft ohne Hosting-Kosten: Backend, Datenbank und FB-01 per Docker Compose auf dem eigenen PC
+(`docker-compose.public.yml`, nur lesend durch `DEMO_MODE`), ein Tunnel macht Port 8010 erreichbar, das Frontend liegt
+auf Vercel (Projekt `stromlauf-ai`, Root Directory `frontend`) und kennt den Tunnel ueber `NEXT_PUBLIC_API_URL`.
+Start, Stopp, Tunnel, Variablen (welche ein Schluessel sind und nie nach Vercel gehoeren) und was bei ausgeschaltetem
+PC passiert: `docs/product/demo-hosting.md`. Die Abnahme gegen eine laufende Umgebung: `docs/product/ACCEPTANCE.md`
+(Abschnitt „Teil 2“).
 
 Beim Start laeuft `alembic upgrade head`; mit `CHECKPOINTER=postgres` legt der Agent seine
 Verlaufstabellen selbst an. `EMBEDDING_PROVIDER` wechseln heisst: alle Dokumente neu verarbeiten
