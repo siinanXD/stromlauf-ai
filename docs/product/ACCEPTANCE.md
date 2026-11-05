@@ -1,24 +1,24 @@
 # Machine Assistant v1 — Abnahme-Kandidat (Entwurf)
 
-Stand: wird mit jedem Merge fortgeschrieben; die Staging-Spalten füllen sich, sobald das Backend auf Railway
-läuft (Freigabe des Owners, kostenpflichtig). Bis dahin gilt: **Preview (Vercel) + CI-Evidenz**, kein Label.
+Stand: wird mit jedem Merge fortgeschrieben; die Staging-Spalten füllen sich, sobald die Demo vom eigenen PC
+erreichbar ist (`docs/product/demo-hosting.md`, kein Hosting-Geld). Bis dahin gilt: **Preview (Vercel) + CI-Evidenz**, kein Label.
 
 | Feld | Wert |
 | --- | --- |
 | Git-SHA (master) | _wird beim Setzen des Labels eingetragen_ |
 | PRs | #22 Spezifikation · #30 MB-0 · #31 MB-1 · #32 MB-2 · #33 MB-3 · #34 MB-4 · #35 MB-5 · MB-6 (dieser Stand) |
 | Vercel-Preview | `stromlauf-ai-git-<branch>-siinanxds-projects.vercel.app` (je PR im Vercel-Kommentar) |
-| Staging (Railway) | _ausstehend_ |
+| Staging (Demo vom eigenen PC) | _ausstehend_ |
 | Abnahme-Nachweise (CI) | Job „Retrieval-Gate FB-01“ in `eval.yml`: `scripts/acceptance.py --load` (Kaltstart, Ingestion-Dauer, Modell, Kostenbuch, Schätzung) und `frontend/scripts/lighthouse-a11y.mjs` (Gate ≥ 90) gegen den Produktions-Build; Artefakt `abnahme-nachweise-FB-01` je Lauf |
 | Langfuse-Läufe | Nightly per Hand am 2026-09-28: [Run 36432895886](https://github.com/siinanXD/stromlauf-ai/actions/runs/36432895886) mit `claude-sonnet-5`, Tag `eval:2026-09-28_14-07-12`, 9 von 9 Antworten mit Scores (fakten, quellen_ok, sauber) in Langfuse |
-| Gemessene Kosten | Anlegen FB-01: _ausstehend (Vision-Lauf auf Staging)_ · je Antwort: **0,054 $** mit `claude-sonnet-5` (9 Fragen, 0,49 $ gesamt, ≈ 20 k Eingabe-Tokens je Antwort durch Werkzeugaufrufe) bzw. **0,011 $** mit `openai:gpt-5-mini` (0,098 $ gesamt); Schätzung laut `cost-model.md` ≈ 0,02 $ lag dazwischen. Vergleich: `eval/results/vergleich_2026-09-28.md` |
+| Gemessene Kosten | Anlegen FB-01: _ausstehend (Vision-Lauf auf einer nicht öffentlichen Instanz)_ · je Antwort: **0,054 $** mit `claude-sonnet-5` (9 Fragen, 0,49 $ gesamt, ≈ 20 k Eingabe-Tokens je Antwort durch Werkzeugaufrufe) bzw. **0,011 $** mit `openai:gpt-5-mini` (0,098 $ gesamt); Schätzung laut `cost-model.md` ≈ 0,02 $ lag dazwischen. Vergleich: `eval/results/vergleich_2026-09-28.md` |
 
 ## Akzeptanzzeilen aus `contract.md` §5
 
 | # | Kriterium | Evidenz | Stand |
 | --- | --- | --- | --- |
-| 1 | Maschine anlegen, ≥ 3 Dokumente inkl. Stromlaufplan-PDF und Schaltschrankfoto; ≤ 300 Seiten in < 15 min; Kostenbuch zeigt die Kosten | `scripts/acceptance.py --load` lädt die 6 Dokumente + Aufbauplan wie `load_example.py`, misst Kaltstart und Ingestion-Dauer und liest `GET /api/machines/{id}/costs` (MB-3); im CI-Job „Retrieval-Gate“ (`eval.yml`), Ergebnis `acceptance_<zeit>.md` im Artefakt | CI: Dauer im Artefakt (FB-01 hat 7 PDF-Seiten, nicht 300); Kostenzeilen erst mit Provider-Lauf (Staging) |
-| 2 | Modell zeigt ≥ 5 Baugruppen und ≥ 20 Teile mit Kennzeichen, je ≥ 1 Zitat; Korrektur bleibt nach Re-Ingestion | `GET /api/machines/{id}/map` aus Stückliste + Index (MB-4), Fundstelle je Teil über `GET /api/machines/{id}/tags/{tag}` (`scripts/acceptance.py`); Hotspot-Korrektur `PATCH /api/hotspots` mit `origin=manual` (MB-5) | Beispielanlage seit 2026-09-28 mit fünf Einbauorten: +ST1 Schaltschrank (11 Teile), +BP1 Bedienpult (7), +AN1 Antrieb (2), +SE1 Einlauf (1), +SA1 Auslauf (1); **22 Teile**, dazu 4 Leitungen -W1…-W4 als Verbinder, keine Zone „ohne Einbauort“ (nach Fix #38). Deterministisch nachgerechnet in `test_example_consistency.py` (Stückliste → Kennzeichen-Index → Modell); Wert auf laufender Umgebung im CI-Artefakt `abnahme-nachweise`. Offen: Korrektur bleibt nach Re-Ingestion (auf Staging zeigen) |
+| 1 | Maschine anlegen, ≥ 3 Dokumente inkl. Stromlaufplan-PDF und Schaltschrankfoto; ≤ 300 Seiten in < 15 min; Kostenbuch zeigt die Kosten | `scripts/acceptance.py --load` lädt die 6 Dokumente + Aufbauplan wie `load_example.py`, misst Kaltstart und Ingestion-Dauer und liest `GET /api/machines/{id}/costs` (MB-3); im CI-Job „Retrieval-Gate“ (`eval.yml`), Ergebnis `acceptance_<zeit>.md` im Artefakt | CI: Dauer im Artefakt (FB-01 hat 7 PDF-Seiten, nicht 300); Kostenzeilen erst mit Provider-Lauf (nicht öffentliche Instanz, Teil 2 Schritt 6) |
+| 2 | Modell zeigt ≥ 5 Baugruppen und ≥ 20 Teile mit Kennzeichen, je ≥ 1 Zitat; Korrektur bleibt nach Re-Ingestion | `GET /api/machines/{id}/map` aus Stückliste + Index (MB-4), Fundstelle je Teil über `GET /api/machines/{id}/tags/{tag}` (`scripts/acceptance.py`); Hotspot-Korrektur `PATCH /api/hotspots` mit `origin=manual` (MB-5) | Beispielanlage seit 2026-09-28 mit fünf Einbauorten: +ST1 Schaltschrank (11 Teile), +BP1 Bedienpult (7), +AN1 Antrieb (2), +SE1 Einlauf (1), +SA1 Auslauf (1); **22 Teile**, dazu 4 Leitungen -W1…-W4 als Verbinder, keine Zone „ohne Einbauort“ (nach Fix #38). Deterministisch nachgerechnet in `test_example_consistency.py` (Stückliste → Kennzeichen-Index → Modell); Wert auf laufender Umgebung im CI-Artefakt `abnahme-nachweise`. Offen: Korrektur bleibt nach Re-Ingestion (schreibt, daher nur auf einer nicht öffentlichen Instanz zeigen) |
 | 3 | Golden-Set 20 Fragen: Groundedness ≥ 0,90, gültige Zitate ≥ 95 %, Referenzteil-Präzision ≥ 0,85 in CI | Retrieval-Gate (`run_retrieval.py --min 0.9 --min-sources 0.9`, FB-01) bei jedem PR; Nightly `run_eval.py --min 0.8 --max-cost` mit Langfuse-Scores | Retrieval-Gate erstmals grün: [Lauf 36360152510](https://github.com/siinanXD/stromlauf-ai/actions/runs/36360152510) (FB-01 mit bge-m3 in CI, Modellcache 3,2 GB). Agentenlauf `claude-sonnet-5` am 2026-09-28 ([Run 36432895886](https://github.com/siinanXD/stromlauf-ai/actions/runs/36432895886)): 9 Fragen, fakten_mittel 1,0, quellen_ok 1,0, sauber 1,0, werkzeug_ok 0,8, 8 voll bestanden, 18 s je Antwort; Referenz `eval/results/referenz_2026-09-28_claude-sonnet-5.json`. Vergleichslauf `openai:gpt-5-mini` ([Run 36434110789](https://github.com/siinanXD/stromlauf-ai/actions/runs/36434110789)): fakten_mittel 0,95, quellen_ok 1,0, sauber 1,0, werkzeug_ok 0,6, 6 voll bestanden, 43 s je Antwort, ein Fünftel der Kosten. Golden-Set seit Issue #49 (2026-09-29): **21 FB-01-Fragen** (19 mit Retrieval-Anteil, 2 Fallenfragen), jede mit `expect_sources` und `expect_tags`; das Retrieval-Gate deckt FB-01, UR-01, PM1-AR und die Injection-Fallen ab (43 Fragen, lokal fakten 1,0 · quellen 1,0 · sauber 1,0), der Agentenlauf läuft wöchentlich statt täglich. **Gültige Zitate (Issue #46, 2026-09-29):** `quellen_ok = 1,0` prüfte nur den Dateinamen; der deterministische Zitat-Resolver (`app/citations.py`, meta-Event `citation_checks`, `eval/rescore.py --api`) ergibt auf denselben Antworten als **Vorher-Wert `zitate_gueltig` 0,935** für `claude-sonnet-5`: 36 Belege, davon 31 prüfbar, 29 davon gültig; 2 ungültig (`[[02_Stueckliste_FB-01.xlsx|-X3:3]]` in fb01-f2-typ, `[[05_Symboltabelle_FB-01.sdf|-]]` in fb01-h2-20s), 5 nicht prüfbar (`Kap. n` der Betriebsanleitung, Markdown ohne Abschnitte; `zitate_geprueft` 0,861). `openai:gpt-5-mini`: **0,936** (47 Belege, alle prüfbar, 3 ungültig: `Deklaration`, `VAR_OUTPUT / Deklaration`, leerer Ort). Definition: Anteil gültiger unter den prüfbaren Belegen, über alle Antworten summiert (nicht je Antwort gemittelt); Läufe `eval/results/rescore_zitate_2026-09-29_*.json`. Der Beleg `[[02_Stueckliste_FB-01.xlsx|-X4]]` zu -A1 (fb01-nicht-vorhanden) zeigt auf eine existierende Klemmleisten-Zeile und bleibt gültig; ob er die Aussage stützt, erkennt erst der Richter (Stufe E). Gate: Retrieval-Job in `eval.yml` bewertet den Referenzlauf bei jedem PR nach (`--min-citations 0.9`, beide Fehlbelege müssen erkannt bleiben), Nightly `--min-citations 0.9`. Schwelle ≥ 0,95 noch nicht erreicht; Nachher-Wert kommt mit dem nächsten Agentenlauf. **Referenzteil-Präzision (Issue #49, Rescore derselben Referenzläufe):** `claude-sonnet-5` teile_recall **1,0**, teile_praezision **0,917** (44 von 48 genannten Bauteilen erwartet oder erlaubt; fremd: Hauptschalter -Q1 in drei Antworten, -Q2 in einer), p95 28,6 s, Fehlerrate 0; `openai:gpt-5-mini` teile_recall 0,846 (fehlend: -B2, -M1), teile_praezision 1,0, p95 68,1 s. Die `ok_tags` der neun Altfragen wurden gegen die Referenzantworten auf die jeweilige Funktionskette kalibriert (Schütze, Start-Taster, Meldeleuchte gelten als relevant, der Hauptschalter nicht); Schwelle ≥ 0,85 damit erreicht, Nachher-Wert mit dem nächsten Agentenlauf |
 | 4 | Referenzierte Teile werden im Modell markiert, Chips öffnen ein Sheet mit Datenblattseite | `meta`-Event + `SchemaMap` (MB-4), `PartSheet` (MB-5); Playwright `machine.spec.ts`, `part-sheet.spec.ts` (gemockte API); `staging.spec.ts` ohne Mocks gegen ein echtes Backend: Login → Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto, Frage nur mit `E2E_ASK=1` | CI: E2E-Job grün; `staging.spec.ts` lokal gegen das echte Backend grün am 2026-09-28 (390 px und 1440 px, ohne bezahlte Frage); Lauf gegen Preview + Staging offen |
 | 5 | 10 gelabelte Schaltschrankteile: IoU ≥ 0,5 in ≥ 80 % | `eval/run_cabinet.py` gegen `07_Schaltschrank_Hotspots_FB-01.json` (15 Labels, seit -F3 im Aufbauplan) | Nightly 2026-09-28 mit `claude-sonnet-5` (Vision): 15 von 15 Labels mit IoU ≥ 0,5, Anteil 1,0, IoU-Mittel 0,90, Kennzeichen 15/15 richtig gelesen; Referenz `eval/results/referenz_cabinet_2026-09-28_claude-sonnet-5.json`. Gegenprobe `openai:gpt-5-mini` als Vision-Modell: 0 von 15 (IoU-Mittel 0,09), Schwelle klar verfehlt → Vision bleibt bei Claude |
@@ -39,27 +39,52 @@ Gemessen mit `eval/run_ingest.py` über dieselbe Lesekette wie der Upload, ohne 
 | Kennzeichen-Recall Scan mit OCR-Kern (Issue #65) | Recall device / terminal / plc_address: Voll-Scan **0,99** / **0,81** / **1,00**; Teil-Scan 1,00 / 0,99 / 1,00; Blatt 4 hochkant 1,00 / 1,00 / 1,00. Precision überall 1,00. 5,0 s je Seite auf der CPU, mittlere Konfidenz 0,98 | [`scan-ocr`](../../eval/results/ingest_fb01_scan-ocr_2026-09-30_12-32-57.json), [`teilscan-ocr`](../../eval/results/ingest_fb01_teilscan-ocr_2026-09-30_12-33-21.json), [`quer-ocr`](../../eval/results/ingest_fb01_quer-ocr_2026-09-30_12-33-50.json) | Unsichtbare Textebene per RapidOCR lokal (`app/ingestion/ocr.py`, `run_ingest.py --ocr`), seit #66 auch im Upload. Gold seit #76 mit 73 Klemmen; mit dem alten Gold lag der Voll-Scan bei 0,77. Ziel 0,85 für device und plc_address erreicht, für Klemmen verfehlt: Neben dem Klemmenkreis liest die OCR „O X1:2“ statt „-X1:2“ (Blatt 2, 5, 6). Eine Symbolregel brächte mit dem alten Gold nur 0,82 bei Precision 0,95 und ist nicht eingebaut |
 | Scan im Upload und im Gate (Issue #66) | Voll-Scan-Upload ohne Schalter `READY`: „12 Abschnitte, 187 Kennzeichen · 7 Seiten per OCR, Ø Konfidenz 0,98, 4,8 s/Seite“ (lokal, 50 s mit Docling und bge-m3). 5 Scan-Fragen: fakten **1,00**, quellen **1,00**. `/3.4` markiert auf dem Scan Spalte 4 (0,380 bis 0,497, im Text-PDF 0,383 bis 0,500) | CI-Artefakte `ingest-nachweise` (`ingest_fb01_scan-ocr_*`) und `abnahme-nachweise-FB-01` (`retrieval_*`) | Gates in `eval.yml`: Ingest-Gate Voll-Scan mit `--min 0.95`, für Klemmen `--min-for terminal=0.75` (gemessen 0,81, siehe Zeile darüber), und Quelle „Scan FB-01“ im Retrieval-Gate. OCR nur auf Seiten ohne Textebene (`OCR_MODE=auto`); die durchsuchbare Fassung ersetzt die Upload-Datei, das Original bleibt daneben. Lesart je Seite in `Chunk.meta` (`read`, `ocr_conf`) |
 
-## Teil 2: Ablauf nach Freigabe des Railway-Stagings
+## Teil 2: Ablauf gegen die Demo vom eigenen PC
 
-Die Nachweise sind automatisiert; nach der Freigabe sind es sechs Schritte, jeder ohne Modellaufruf, außer wo es steht:
+Die öffentliche Demo (`docs/product/demo-hosting.md`) ist **nur lesend** (`DEMO_MODE=true`: Schreibaufrufe liefern 403),
+läuft ohne `ANTHROPIC_API_KEY` und ohne `JWT_SECRET`/`API_KEY` (die Compose-Dateien reichen sie nicht durch; das Backend
+meldet `mode=legacy`, es gibt keinen Login und keinen Magic-Link). `AUTH_DEV_LINK` und `E2E_EMAIL` braucht dort niemand.
+Gegen sie laufen deshalb nur lesende Schritte. Zwei Adressen, nicht verwechseln: `<tunnel-adresse>` = Backend hinter dem
+Tunnel, `<frontend>` = Production-Adresse auf Vercel (`https://stromlauf-ai.vercel.app`).
 
-1. Railway-Service `backend` + Postgres/pgvector + Volume nach `README.md` („Deployment“). Für den E2E-Login auf Staging
-   vorübergehend `AUTH_DEV_LINK=true` setzen (Link in der Antwort statt per Mail), danach wieder entfernen.
-2. `python scripts/acceptance.py --api https://<railway> --load --out eval/results` → Kaltstart, Ingestion-Dauer, Modell
-   (Baugruppen, Teile, Fundstellen), Hotspots, Kostenbuch. Zugriff über `STROMLAUF_API_KEY` oder `STROMLAUF_TOKEN`.
-3. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api https://<railway> --vision --refresh`,
+Gegen die öffentliche Demo (ohne Modellaufruf):
+
+1. Backend, Datenbank und Tunnel nach `docs/product/demo-hosting.md`; FB-01 legt das Backend beim Start selbst an.
+2. `python scripts/acceptance.py --api https://<tunnel-adresse> --out eval/results` (**ohne** `--load`) → Kaltstart,
+   Modell (Baugruppen, Teile, Fundstellen), Hotspots. Die Ingestion-Dauer entfällt („nicht gemessen“), das Kostenbuch der
+   Demo ist leer.
+3. Vercel: `NEXT_PUBLIC_API_URL` auf `https://<tunnel-adresse>`, neu deployen (siehe `docs/product/demo-hosting.md`,
+   „Vercel einstellen“). Preview-Adressen lässt `CORS_ORIGINS` nicht zu, alle Läufe unten gehen gegen `<frontend>`.
+4. `E2E_BASE_URL=https://<frontend> E2E_API_URL=https://<tunnel-adresse> npx playwright test e2e/staging.spec.ts --project=desktop-1440`
+   (in `frontend`; Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto, ohne Login) und
+   `node frontend/scripts/lighthouse-a11y.mjs --base https://<frontend> --api https://<tunnel-adresse>`.
+
+Nicht gegen die öffentliche Demo möglich, braucht eine zweite, nicht öffentliche Instanz. Das ist das Dev-Backend
+(`DEMO_MODE` ist dort standardmäßig aus, `ANTHROPIC_API_KEY` in `.env`), **nicht** `docker compose --profile demo`: Das Compose
+setzt `DEMO_MODE: "true"` fest, eine Umgebungsvariable `DEMO_MODE=false` ändert daran nichts, `--load` und `--vision`
+bekämen 403. Die öffentliche Demo belegt Port 8010, deshalb bekommt die zweite Instanz 8011; Tunnel und Vercel sind nicht nötig:
+
+```powershell
+docker compose up -d db          # nur die Datenbank (Dev-DB, Port 5433), nicht --profile demo
+cd backend; .venv\Scripts\uvicorn app.main:app --port 8011
+```
+
+Für Schritt 5 muss die Datenbank leer sein (sonst misst der Lauf kein Anlegen). Dafür eine eigene leere Datenbank über
+`DATABASE_URL` nehmen, die gemeinsame Dev-Datenbank wird dafür nicht geleert.
+
+5. Ingestion-Dauer: `python scripts/acceptance.py --api http://127.0.0.1:8011 --load --out eval/results` auf einem leeren System.
+6. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api http://127.0.0.1:8011 --vision --refresh`,
    dann `scripts/acceptance.py` ohne `--load` → Schätzung gegen Kostenbuch je Zweck (±50 %), Kosten „Anlegen FB-01“.
-4. Vercel: `NEXT_PUBLIC_API_URL` auf die Railway-Domain, Preview-URL notieren.
-5. `E2E_BASE_URL=https://<preview> E2E_API_URL=https://<railway> E2E_EMAIL=<adresse> npx playwright test e2e/staging.spec.ts --project=desktop-1440`
-   (Login → Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto); mit `E2E_ASK=1` zusätzlich eine bezahlte Frage mit Markierung.
-   `node frontend/scripts/lighthouse-a11y.mjs --base https://<preview> --api https://<railway>` (offenes Backend oder API-Key;
-   Variante mit Login steht als TODO im Skript).
-6. Secret `ANTHROPIC_API_KEY` im GitHub-Environment `eval` → Nightly-Lauf (Agenten-Eval, Schaltschrank-IoU) → Langfuse-Läufe
+   Mit `E2E_ASK=1` zusätzlich eine bezahlte Frage mit Markierung, aber gegen die zweite Instanz, nicht gegen die Demo:
+   Frontend mit `NEXT_PUBLIC_API_URL=http://127.0.0.1:8011 npm run dev` (Port 3100), dann Schritt 4 mit
+   `E2E_BASE_URL=http://localhost:3100 E2E_API_URL=http://127.0.0.1:8011 E2E_ASK=1`.
+7. Secret `ANTHROPIC_API_KEY` im GitHub-Environment `eval` → Nightly-Lauf (Agenten-Eval, Schaltschrank-IoU) → Langfuse-Läufe
    verlinken. Werte oben eintragen, unabhängiges Review, Label `READY FOR HUMAN ACCEPTANCE`.
 
 ## Bekannte Grenzen (Stand dieses Entwurfs)
 
-- Railway-Staging, Kaltstart- und Kostenmessung (MB-1/MB-3-Abnahme) warten auf die Freigabe des Owners.
+- Kaltstart wartet auf die laufende Demo vom eigenen PC (Handgriff: SIN-1575). Ingestion-Dauer und Kostenmessung
+  (MB-1/MB-3-Abnahme) brauchen eine nicht öffentliche Instanz (Teil 2, Schritt 5 und 6): Die Demo ist nur lesend und ohne Modell-Schlüssel.
 - Kriterium 2 ist mit der erweiterten Beispielanlage rechnerisch erfüllt (5 Baugruppen, 22 Teile); der Wert auf einer
   laufenden Umgebung steht im CI-Artefakt und später auf Staging. Lokale Installationen laden die neuen Dokumente mit
   `python scripts/load_example.py --refresh` (Dokument-IDs ändern sich, alte Chat-Belege zeigen dann ins Leere).
