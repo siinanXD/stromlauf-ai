@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app import demo
+from app.api import chat
 
 
 def _app() -> FastAPI:
@@ -116,3 +117,17 @@ def test_demo_modus_ist_standardmaessig_aus():
     from app.config import Settings
 
     assert Settings(_env_file=None).demo_mode is False
+
+
+def test_chat_ohne_schluessel_im_demo_modus_antwortet_mit_dem_fehlersatz_statt_500(settings, monkeypatch):
+    """Oeffentliche Demo ohne ANTHROPIC_API_KEY: der echte Chat-Router lehnt vor jedem Modellaufruf mit 400 ab."""
+    monkeypatch.setattr(
+        chat, "get_settings", lambda: SimpleNamespace(chat_model="claude-sonnet-5", anthropic_api_key="", openai_api_key=None)
+    )
+    app = FastAPI()
+    app.middleware("http")(demo.demo_middleware)
+    app.include_router(chat.router)
+    response = TestClient(app).post("/api/chat", json={"message": "Was macht -K1?"})
+    assert response.status_code == 400
+    # Dieser Text zeigt das Frontend als "Der KI-Zugang ist nicht eingerichtet." (chat/chatError.tsx)
+    assert "ANTHROPIC_API_KEY fehlt" in response.json()["detail"]

@@ -31,7 +31,10 @@ services:
       DEMO_EXAMPLE_DIR: /examples/foerderband
       # E2E-Lauf (ci.yml, compose-demo) hebt das Gesamtlimit an: 30 Seitenaufrufe je Minute reissen die 120 sonst
       DEMO_RATE_LIMIT: ${DEMO_RATE_LIMIT:-120}
-      CORS_ORIGINS: http://localhost:3100,http://127.0.0.1:3100
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3100,http://127.0.0.1:3100}
+      # Oeffentlicher Betrieb: docker-compose.public.yml (README/Anleitung SIN-1574)
+      DEMO_TRUST_PROXY: ${DEMO_TRUST_PROXY:-false}
+      DEMO_CHAT_RATE_LIMIT: ${DEMO_CHAT_RATE_LIMIT:-10}
     ports:
       - "8010:8010"
     volumes:

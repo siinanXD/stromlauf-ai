@@ -1,7 +1,10 @@
 """CI-Laufzeit: CPU-Torch in jedem Job, Docker-Abhaengigkeiten vor dem Code, Eval-Gates parallel (Messung
 2026-09-30)."""
 
+import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -106,3 +109,55 @@ def test_ingest_gate_laeuft_ohne_datenbank_neben_dem_retrieval_gate():
     runs = "\n".join(step.get("run", "") for step in ingest["steps"])
     assert runs.count("eval/run_ingest.py") == 4  # FB-01, UR-01, PM1-AR, Voll-Scan mit OCR
     assert "eval/run_ingest.py" not in str(jobs["retrieval"])
+
+
+COMPOSE_VARIABLEN = ("ANTHROPIC_API_KEY", "CORS_ORIGINS", "DEMO_TRUST_PROXY", "DEMO_CHAT_RATE_LIMIT")
+
+
+def _compose(tmp_path: Path, *files: str, **umgebung: str) -> dict:
+    """`docker compose config` ohne die .env und ohne die Shell-Variablen des Entwicklers; nur `umgebung` gilt."""
+    env = {k: v for k, v in os.environ.items() if k not in COMPOSE_VARIABLEN} | umgebung
+    leer = tmp_path / "leer.env"
+    leer.write_text("", encoding="utf-8")
+    args = ["docker", "compose", "--env-file", str(leer)]
+    for file in files:
+        args += ["-f", str(ROOT / file)]
+    args += ["--profile", "demo", "--profile", "langflow", "config", "--format", "json"]
+    done = subprocess.run(args, capture_output=True, text=True, check=True, env=env)
+    return json.loads(done.stdout)["services"]
+
+
+def test_compose_demo_ohne_variablen_behaelt_die_bisherigen_werte(tmp_path):
+    env = _compose(tmp_path, "docker-compose.yml")["backend"]["environment"]
+    assert env["CORS_ORIGINS"] == "http://localhost:3100,http://127.0.0.1:3100"
+    assert env["DEMO_TRUST_PROXY"] == "false"
+    assert env["DEMO_CHAT_RATE_LIMIT"] == "10"
+
+
+def test_compose_demo_nimmt_cors_und_limits_aus_variablen(tmp_path):
+    services = _compose(
+        tmp_path,
+        "docker-compose.yml",
+        CORS_ORIGINS="https://demo.example.app",
+        DEMO_CHAT_RATE_LIMIT="3",
+        DEMO_TRUST_PROXY="true",
+    )
+    env = services["backend"]["environment"]
+    assert env["CORS_ORIGINS"] == "https://demo.example.app"
+    assert env["DEMO_CHAT_RATE_LIMIT"] == "3"
+    assert env["DEMO_TRUST_PROXY"] == "true"
+
+
+def test_compose_public_veroeffentlicht_nichts_im_netz_und_ohne_anthropic_schluessel(tmp_path):
+    # Ein Schluessel in der Umgebung des Starters darf nicht in den Container gelangen
+    services = _compose(
+        tmp_path, "docker-compose.yml", "docker-compose.public.yml", ANTHROPIC_API_KEY="sk-ant-test-nicht-echt"
+    )
+    for name in ("db", "backend", "frontend", "langflow"):
+        assert services[name]["ports"], f"{name} hat keinen Port mehr"
+        for port in services[name]["ports"]:
+            assert port.get("host_ip") == "127.0.0.1", f"{name} veroeffentlicht {port} im Netz"
+    env = services["backend"]["environment"]
+    assert env["ANTHROPIC_API_KEY"] == ""
+    assert env["DEMO_MODE"] == "true"
+    assert env["DEMO_TRUST_PROXY"] == "true"
