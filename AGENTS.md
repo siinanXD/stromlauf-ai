@@ -35,6 +35,10 @@ der Instandhaltung an der Maschine?
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`
   nachgeladen). Kein Modell, kein Raten: fehlt die Kopfzeile, steht nur das Ortskennzeichen da.
+- Korrekturen am Maschinenmodell (SIN-1216): Tabelle `map_overrides` (Maschine + Kennzeichen in `tags.normalize_tag`-Schreibweise,
+  `zone_code`, `label`, `hidden`; Alembic `0008`), `PATCH/DELETE /api/machines/{id}/map/parts/{tag}` in `api/machine_map.py`
+  (404 bei unbekanntem Teil und fremdem Workspace, im Demo-Modus gesperrt). `build_map(..., corrections=)` wendet sie nach dem
+  Aufbau an; sie haengen nicht am Index und ueberleben deshalb "Neu verarbeiten". Teile, die der Index nicht mehr kennt, bleiben wirkungslos.
 - Modell ohne Stuecklisten-Datei (Issue #39): `api/machine_map.py::split_rows` trennt Stuecklistenzeilen von
   Plan-Fundstellen, `ingestion/machine_map.py::build_map` nimmt Teile aus dem Kennzeichen-Index und bildet Zonen aus
   dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Die Blattnummer liest
