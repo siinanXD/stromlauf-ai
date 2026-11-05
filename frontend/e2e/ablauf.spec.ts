@@ -209,3 +209,100 @@ test("Lose Dateien bilden eine Anlage; Verschieben nur per Knopf, Fokus bleibt a
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
 });
+
+/** Ordner mit einer erkannten Anlage (FB-01) und zwei losen Dateien; die Vorschau-Routen sind gemockt und protokollieren ihre Aufrufe. */
+async function mockVorschlag(page: Page, opts: { aehnlichkeit: "ok" | "fehler" }) {
+  await mockAblauf(page);
+  const A = "01_Stromlaufplan_FB-01.pdf";
+  const B = "01_Stromlaufplan_UR-01.pdf";
+  const C = "03_Klemmenplan_FB-01.csv";
+  const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  const log: string[] = [];
+  const geloescht: string[] = [];
+  let lesestand = 0;
+  await page.route("**/api/runs/gruppen", (route) =>
+    json(route, { gruppen: [{ name: "FB-01", quelle: "kennung", dateien: [A] }], unzugeordnet: [B, C], ignoriert: [] }),
+  );
+  await page.route("**/api/runs/lesen", (route) => {
+    const lose = (route.request().postData() ?? "").includes(B);
+    log.push(lose ? "lesen:lose" : "lesen:FB-01");
+    return json(
+      route,
+      lose
+        ? { source_id: "q-lose", dateien: [{ pfad: B, document_id: "d-b" }, { pfad: C, document_id: "d-c" }] }
+        : { source_id: "q-fb01", dateien: [{ pfad: A, document_id: "d-a" }] },
+      201,
+    );
+  });
+  await page.route("**/api/sources/q-*/documents", (route) => {
+    log.push("lesestand");
+    // beim ersten Abfragen ist noch nichts gelesen
+    lesestand += 1;
+    return json(route, [{ id: "d", source_id: "q", filename: "x", doc_type: "auto", status: lesestand <= 2 ? "processing" : "ready", progress: "", error: null, page_count: 1, vision_enrichment: false }]);
+  });
+  await page.route("**/api/runs/aehnlichkeit", (route) => {
+    log.push("aehnlichkeit");
+    if (opts.aehnlichkeit === "fehler") return json(route, { detail: "Gruppennamen müssen verschieden sein" }, 400);
+    return json(route, [
+      { pfad: B, vorschlag: "FB-01", wert: 0.83, herkunft: "aehnlichkeit" },
+      { pfad: C, vorschlag: null, wert: 0.41, herkunft: "aehnlichkeit" },
+    ]);
+  });
+  await page.route("**/api/sources/q-*", (route) => {
+    if (route.request().method() !== "DELETE") return route.fallback();
+    geloescht.push(route.request().url().split("/").pop()!);
+    return route.fulfill({ status: 204 });
+  });
+  return { A, B, C, log, geloescht };
+}
+
+test("Ähnlichkeit: Vorschlag erst nach dem Lesen, Übernehmen verschiebt, Start räumt die Vorschau auf", async ({ page }) => {
+  test.setTimeout(60_000);
+  const { A, B, C, log, geloescht } = await mockVorschlag(page, { aehnlichkeit: "ok" });
+  await page.goto("/ablauf");
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', [`../examples/foerderband/${A}`, `../examples/umroller/${B}`, `../examples/foerderband/${C}`]);
+  await expect(page.getByText("Ähnlichkeit 0,83")).toBeVisible({ timeout: 15_000 });
+  // alles wurde gelesen, bevor die Ähnlichkeit gefragt wurde; je Anlage und für die Losen eine Vorschau-Quelle
+  expect(log.filter((l) => l.startsWith("lesen")).sort()).toEqual(["lesen:FB-01", "lesen:lose"]);
+  expect(log.filter((l) => l === "aehnlichkeit")).toHaveLength(1);
+  expect(log.slice(0, log.indexOf("aehnlichkeit")).filter((l) => l === "lesestand").length).toBeGreaterThanOrEqual(3);
+  // ohne Klick ändert sich nichts; die zweite Datei (vorschlag null) hat nur die Auswahl
+  await expect(page.getByLabel("Unzugeordnete Dateien").getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: `${C} nach FB-01 übernehmen` })).toHaveCount(0);
+  await expect(page.getByLabel(`${C} verschieben nach`)).toBeVisible();
+  expect(geloescht).toEqual([]);
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
+  await page.screenshot({ path: `test-results/ablauf-vorschlag-${test.info().project.name}.png`, fullPage: true });
+
+  await page.getByRole("button", { name: `${B} nach FB-01 übernehmen` }).click();
+  await expect(page.getByLabel("Unzugeordnete Dateien").getByRole("listitem")).toHaveCount(1);
+  await expect(page.getByLabel("Dateien von Anlage 1").getByText(B)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Alle starten" })).toBeDisabled();
+
+  await page.getByLabel(`${C} verschieben nach`).selectOption({ label: "FB-01" });
+  await page.getByRole("button", { name: `${C} jetzt verschieben` }).click();
+  await page.getByRole("button", { name: "Alle starten" }).click();
+  await expect(page.getByTestId("lauf-run-1")).toBeVisible();
+  expect(geloescht.sort()).toEqual(["q-fb01", "q-lose"]);
+});
+
+test("Ähnlichkeit: Verwerfen räumt die Vorschau auf", async ({ page }) => {
+  const { A, B, C, geloescht } = await mockVorschlag(page, { aehnlichkeit: "ok" });
+  await page.goto("/ablauf");
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', [`../examples/foerderband/${A}`, `../examples/umroller/${B}`, `../examples/foerderband/${C}`]);
+  await expect(page.getByText("Ähnlichkeit 0,83")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Verwerfen" }).click();
+  await expect.poll(() => [...geloescht].sort()).toEqual(["q-fb01", "q-lose"]);
+});
+
+test("Ähnlichkeit: Fehler der Route lässt wie bisher per Auswahl zuordnen", async ({ page }) => {
+  const { A, B, C } = await mockVorschlag(page, { aehnlichkeit: "fehler" });
+  await page.goto("/ablauf");
+  await page.setInputFiles('[data-testid="ablauf-dateien"]', [`../examples/foerderband/${A}`, `../examples/umroller/${B}`, `../examples/foerderband/${C}`]);
+  await expect(page.getByText("Kein Vorschlag möglich: Gruppennamen müssen verschieden sein")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Übernehmen" })).toHaveCount(0);
+  await page.getByLabel(`${B} verschieben nach`).selectOption({ label: "FB-01" });
+  await page.getByRole("button", { name: `${B} jetzt verschieben` }).click();
+  await expect(page.getByLabel("Unzugeordnete Dateien").getByRole("listitem")).toHaveCount(1);
+});
