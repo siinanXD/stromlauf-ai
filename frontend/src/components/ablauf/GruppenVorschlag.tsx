@@ -3,18 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MAX_JE_ANLAGE, startHindernis, verschiebe, type Gruppierung } from "@/components/ablauf/ordner";
+import { formatWert, type Vorschlaege } from "@/components/ablauf/vorschlag";
 
 const QUELLE = { ordner: "Ordner", kennung: "Kennung", mensch: "Mensch" } as const;
 
-/** Erkannte Anlagen prüfen: Namen ändern, Dateien verschieben, Unzugeordnetes zuordnen, dann alle starten. */
+/** Erkannte Anlagen prüfen: Namen ändern, Dateien verschieben, Unzugeordnetes zuordnen (ein Ähnlichkeits-Vorschlag erst nach „Übernehmen“), dann alle starten. */
 export function GruppenVorschlag({
   gruppierung,
+  vorschlaege = {},
+  vorschlagHinweis = null,
   onChange,
   onStart,
   onAbbrechen,
   disabled = false,
 }: {
   gruppierung: Gruppierung;
+  vorschlaege?: Vorschlaege;
+  /** Stand der Ähnlichkeitsprüfung („wird geprüft …“ oder warum es keinen Vorschlag gibt). */
+  vorschlagHinweis?: string | null;
   onChange: (g: Gruppierung) => void;
   onStart: () => void;
   onAbbrechen: () => void;
@@ -31,23 +37,30 @@ export function GruppenVorschlag({
     fokus.current = null;
   }, [gruppierung]);
 
-  const zeile = (pfad: string, eigene: string | null) => (
-    <Zeile
-      key={pfad}
-      pfad={pfad}
-      ziele={gruppen.filter((g) => g.id !== eigene)}
-      mitOhne={eigene !== null}
-      disabled={disabled}
-      selectRef={(el) => {
-        if (el) selects.current.set(pfad, el);
-        else selects.current.delete(pfad);
-      }}
-      onVerschiebe={(ziel) => {
-        fokus.current = pfad;
-        onChange(verschiebe(gruppierung, pfad, ziel));
-      }}
-    />
-  );
+  const verschiebeNach = (pfad: string, ziel: string) => {
+    fokus.current = pfad;
+    onChange(verschiebe(gruppierung, pfad, ziel));
+  };
+
+  const zeile = (pfad: string, eigene: string | null) => {
+    const v = eigene === null ? vorschlaege[pfad] : undefined;
+    const vorgeschlagen = v && gruppen.find((g) => g.id === v.gruppeId);
+    return (
+      <Zeile
+        key={pfad}
+        pfad={pfad}
+        vorschlag={v && vorgeschlagen ? { name: vorgeschlagen.name || "(ohne Namen)", wert: v.wert, onUebernehmen: () => verschiebeNach(pfad, v.gruppeId) } : undefined}
+        ziele={gruppen.filter((g) => g.id !== eigene)}
+        mitOhne={eigene !== null}
+        disabled={disabled}
+        selectRef={(el) => {
+          if (el) selects.current.set(pfad, el);
+          else selects.current.delete(pfad);
+        }}
+        onVerschiebe={(ziel) => verschiebeNach(pfad, ziel)}
+      />
+    );
+  };
 
   return (
     <section aria-label="Erkannte Anlagen" className="space-y-3">
@@ -82,6 +95,11 @@ export function GruppenVorschlag({
           <div className="border-b border-border p-2">
             <h3 className="text-subhead font-semibold">Unzugeordnet</h3>
             <p className="text-footnote text-muted-foreground">Bitte zuordnen</p>
+            {vorschlagHinweis && (
+              <p role="status" className="text-footnote text-muted-foreground">
+                {vorschlagHinweis}
+              </p>
+            )}
           </div>
           <ul className="divide-y divide-border" aria-label="Unzugeordnete Dateien">
             {unzugeordnet.map((d) => zeile(d.pfad, null))}
@@ -116,6 +134,7 @@ export function GruppenVorschlag({
 /** Eine Datei mit Zielauswahl; verschoben wird erst per Knopf, die Auswahl allein ändert nichts (WCAG 3.2.2). */
 function Zeile({
   pfad,
+  vorschlag,
   ziele,
   mitOhne,
   disabled,
@@ -123,6 +142,7 @@ function Zeile({
   onVerschiebe,
 }: {
   pfad: string;
+  vorschlag?: { name: string; wert: number; onUebernehmen: () => void };
   ziele: Gruppierung["gruppen"];
   mitOhne: boolean;
   disabled: boolean;
@@ -135,6 +155,22 @@ function Zeile({
       <span className="min-w-0 flex-1 truncate font-mono text-footnote" title={pfad}>
         {pfad}
       </span>
+      {vorschlag && (
+        <div className="order-last flex w-full flex-wrap items-center gap-2">
+          <span className="min-w-0 flex-1 text-footnote text-muted-foreground">
+            Vorschlag: {vorschlag.name} · Ähnlichkeit {formatWert(vorschlag.wert)}
+          </span>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={vorschlag.onUebernehmen}
+            aria-label={`${pfad} nach ${vorschlag.name} übernehmen`}
+            className="min-h-11 shrink-0 rounded-md border border-border bg-card px-3 text-footnote font-medium hover:bg-muted disabled:opacity-50"
+          >
+            Übernehmen
+          </button>
+        </div>
+      )}
       <select
         ref={selectRef}
         value={ziel}

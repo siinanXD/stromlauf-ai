@@ -189,6 +189,10 @@ der Instandhaltung an der Maschine?
   `vorschlag` ist null unter `ABLAUF_AEHNLICHKEIT_SCHWELLE`, bei weniger als `..._ABSTAND` zur zweitbesten Gruppe und fuer
   Dateien ohne Chunks; Gruppen ohne gelesene Chunks nehmen nicht teil. Fremde oder unbekannte Quelle/Datei: 404. Der Test mit
   echtem bge-m3 (`STROMLAUF_MODELL_TESTS=1`) laeuft im Job `aehnlichkeit` von `eval.yml`.
+  Frontend (SIN-1215): `/ablauf` liest bei Unzugeordnetem die Dateien je Anlage und die losen ueber `POST /api/runs/lesen`
+  (`components/ablauf/vorschlag.ts::ermittleVorschlaege`), wartet auf `GET /api/sources/{id}/documents` und fragt erst dann
+  `aehnlichkeit`; `GruppenVorschlag` zeigt „Ähnlichkeit 0,83“ mit „Übernehmen“ (verschiebt nur per Klick), alle Vorschau-Quellen
+  raeumt `page.tsx::raeumeAuf` per `DELETE /api/sources/{id}` bei Start, Verwerfen, neuer Ablage und Verlassen der Seite.
 - Fehler-Markierung: Fehlerliste „Zeigen“ -> `activeFault` auf der Maschinenseite, `FaultBanner.tsx`, Tags an
   `CabinetEditor.highlightTags`;
   Treffer per `lib/faults.ts` (`faultHits`). Rot nur fuer Fehler, wie im Design festgelegt.

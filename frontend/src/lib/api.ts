@@ -999,6 +999,20 @@ export interface GruppenVorschlag {
   ignoriert: string[];
 }
 
+/** Antwort von POST /api/runs/lesen: eine Vorschau-Quelle, je Datei die Dokument-ID. */
+export interface LesenAntwort {
+  source_id: string;
+  dateien: { pfad: string; document_id: string }[];
+}
+
+/** Antwort von POST /api/runs/aehnlichkeit je Datei; `vorschlag` ist der Gruppenname oder null. */
+export interface AehnlichkeitAntwort {
+  pfad: string;
+  vorschlag: string | null;
+  wert: number;
+  herkunft: "aehnlichkeit";
+}
+
 export interface Zeiten {
   laeufe: number;
   schritte: Record<string, ZeitenKennzahl>;
@@ -1021,6 +1035,21 @@ export const ablauf = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dateien }),
+    }),
+  /** Liest Dateien in eine eigene Vorschau-Quelle, ohne Lauf und Maschine; aufräumen mit `api.deleteSource`. */
+  lesen: (dateien: { file: File; pfad: string }[]) => {
+    const form = new FormData();
+    dateien.forEach((d) => {
+      form.append("files", d.file);
+      form.append("pfade", d.pfad);
+    });
+    return request<LesenAntwort>("/api/runs/lesen", { method: "POST", body: form });
+  },
+  aehnlichkeit: (gruppen: { name: string; source_ids: string[] }[], dateien: { pfad: string; document_id: string }[]) =>
+    request<AehnlichkeitAntwort[]>("/api/runs/aehnlichkeit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gruppen, dateien }),
     }),
 };
 

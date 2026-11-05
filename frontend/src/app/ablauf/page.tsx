@@ -10,6 +10,7 @@ import { GruppenVorschlag } from "@/components/ablauf/GruppenVorschlag";
 import { haengt, zuPollen } from "@/components/ablauf/knoten";
 import { ohneGestartete, pruefeLimits, wendeAn, type Abgelegt, type Gruppierung } from "@/components/ablauf/ordner";
 import { SchrittPanel } from "@/components/ablauf/SchrittPanel";
+import { ermittleVorschlaege, loescheQuellen, type Vorschlaege } from "@/components/ablauf/vorschlag";
 import { Zeiten } from "@/components/ablauf/ZeitenTabelle";
 import { ablauf, type Run, type Zeiten as ZeitenDaten } from "@/lib/api";
 
@@ -23,6 +24,8 @@ export default function AblaufPage() {
   const [abgelegt, setAbgelegt] = useState<Abgelegt[]>([]);
   const [gruppierung, setGruppierung] = useState<Gruppierung | null>(null);
   const [pruefe, setPruefe] = useState(false);
+  const [vorschlaege, setVorschlaege] = useState<Vorschlaege>({});
+  const [vorschlagHinweis, setVorschlagHinweis] = useState<string | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [selected, setSelected] = useState<{ runId: string; key: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,8 @@ export default function AblaufPage() {
   const ersterLauf = useRef<HTMLElement>(null);
   const hatteVorschlag = useRef(false);
   const runsRef = useRef<Run[]>([]);
+  // Vorschau-Quellen des Ähnlichkeits-Vorschlags; `nr` zählt Aufräumen, damit späte Antworten alter Anfragen nichts mehr setzen.
+  const vorschau = useRef({ nr: 0, quellen: [] as string[] });
   useEffect(() => {
     runsRef.current = runs;
   }, [runs]);
@@ -56,7 +61,33 @@ export default function AblaufPage() {
     return () => clearInterval(timer);
   }, [pollt]);
 
+  /** Löscht alle Vorschau-Quellen; was danach noch gelesen wird, löscht `starteVorschlag` selbst. */
+  const raeumeAuf = useCallback(() => {
+    vorschau.current.nr++;
+    loescheQuellen(vorschau.current.quellen.splice(0));
+  }, []);
+  useEffect(() => raeumeAuf, [raeumeAuf]);
+
+  /** Ähnlichkeit erst nach dem Lesen aller Vorschau-Dateien; ein Fehler lässt die Seite wie bisher nachfragen. */
+  function starteVorschlag(g: Gruppierung) {
+    if (g.unzugeordnet.length === 0) return;
+    const v = vorschau.current;
+    const mein = v.nr;
+    const aktuell = () => mein === v.nr;
+    setVorschlagHinweis("Ähnlichkeit wird geprüft …");
+    ermittleVorschlaege(g, { merke: (id) => (aktuell() ? v.quellen.push(id) : loescheQuellen([id])), abgebrochen: () => !aktuell() })
+      .then((r) => {
+        if (!aktuell()) return;
+        setVorschlaege(r);
+        setVorschlagHinweis(null);
+      })
+      .catch((err) => aktuell() && setVorschlagHinweis(`Kein Vorschlag möglich: ${(err as Error).message}`));
+  }
+
   function ablegen(liste: Abgelegt[]) {
+    raeumeAuf();
+    setVorschlaege({});
+    setVorschlagHinweis(null);
     const nr = ++anfrage.current;
     setAbgelegt(liste);
     setGruppierung(null);
@@ -71,7 +102,12 @@ export default function AblaufPage() {
     setPruefe(true);
     ablauf
       .gruppen(liste.map((a) => ({ name: a.file.name, pfad: a.pfad })))
-      .then((vorschlag) => nr === anfrage.current && setGruppierung(wendeAn(vorschlag, liste)))
+      .then((vorschlag) => {
+        if (nr !== anfrage.current) return;
+        const g = wendeAn(vorschlag, liste);
+        setGruppierung(g);
+        starteVorschlag(g);
+      })
       .catch((err) => nr === anfrage.current && setError((err as Error).message))
       .finally(() => nr === anfrage.current && setPruefe(false));
   }
@@ -98,6 +134,9 @@ export default function AblaufPage() {
   /** Gruppen nacheinander starten; erst nach Erfolg verlässt eine Gruppe den Vorschlag, bei einem Fehler bleibt der Rest stehen. */
   async function startAlle() {
     if (!gruppierung) return;
+    raeumeAuf();
+    setVorschlaege({});
+    setVorschlagHinweis(null);
     setError(null);
     setStarting(true);
     try {
@@ -157,7 +196,7 @@ export default function AblaufPage() {
           <h1 className="font-mono text-lg font-semibold uppercase tracking-[0.04em]">Ablauf</h1>
           <p className="text-subhead text-muted-foreground">Stromlaufplan, Stückliste, AWL oder Handbuch hier ablegen. Alles Weitere passiert von selbst.</p>
           {gruppierung ? (
-            <GruppenVorschlag gruppierung={gruppierung} onChange={setGruppierung} onStart={startAlle} onAbbrechen={() => ablegen([])} disabled={running} />
+            <GruppenVorschlag gruppierung={gruppierung} vorschlaege={vorschlaege} vorschlagHinweis={vorschlagHinweis} onChange={setGruppierung} onStart={startAlle} onAbbrechen={() => ablegen([])} disabled={running} />
           ) : (
             <>
               <div ref={zone} tabIndex={-1} className="outline-none">
