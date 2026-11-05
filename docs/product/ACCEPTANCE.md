@@ -59,13 +59,25 @@ Gegen die öffentliche Demo (ohne Modellaufruf):
    (in `frontend`; Maschine → Modell → Bauteil-Sheet → Schaltschrankfoto, ohne Login) und
    `node frontend/scripts/lighthouse-a11y.mjs --base https://<frontend> --api https://<tunnel-adresse>`.
 
-Nicht gegen die öffentliche Demo möglich, braucht eine zweite, nicht öffentliche Instanz (lokal mit `docker compose
---profile demo`, `DEMO_MODE=false`, `ANTHROPIC_API_KEY` gesetzt; Tunnel und Vercel sind dafür nicht nötig):
+Nicht gegen die öffentliche Demo möglich, braucht eine zweite, nicht öffentliche Instanz. Das ist das Dev-Backend
+(`DEMO_MODE` ist dort standardmäßig aus, `ANTHROPIC_API_KEY` in `.env`), **nicht** `docker compose --profile demo`: Das Compose
+setzt `DEMO_MODE: "true"` fest, eine Umgebungsvariable `DEMO_MODE=false` ändert daran nichts, `--load` und `--vision`
+bekämen 403. Die öffentliche Demo belegt Port 8010, deshalb bekommt die zweite Instanz 8011; Tunnel und Vercel sind nicht nötig:
 
-5. Ingestion-Dauer: `python scripts/acceptance.py --api http://127.0.0.1:8010 --load --out eval/results` auf einem leeren System.
-6. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api http://127.0.0.1:8010 --vision --refresh`,
+```powershell
+docker compose up -d db          # nur die Datenbank (Dev-DB, Port 5433), nicht --profile demo
+cd backend; .venv\Scripts\uvicorn app.main:app --port 8011
+```
+
+Für Schritt 5 muss die Datenbank leer sein (sonst misst der Lauf kein Anlegen). Dafür eine eigene leere Datenbank über
+`DATABASE_URL` nehmen, die gemeinsame Dev-Datenbank wird dafür nicht geleert.
+
+5. Ingestion-Dauer: `python scripts/acceptance.py --api http://127.0.0.1:8011 --load --out eval/results` auf einem leeren System.
+6. Kosten (Entscheidung des Owners, kostet Tokens): `python scripts/load_example.py --api http://127.0.0.1:8011 --vision --refresh`,
    dann `scripts/acceptance.py` ohne `--load` → Schätzung gegen Kostenbuch je Zweck (±50 %), Kosten „Anlegen FB-01“.
-   Mit `E2E_ASK=1` im Lauf aus Schritt 4 zusätzlich eine bezahlte Frage mit Markierung.
+   Mit `E2E_ASK=1` zusätzlich eine bezahlte Frage mit Markierung, aber gegen die zweite Instanz, nicht gegen die Demo:
+   Frontend mit `NEXT_PUBLIC_API_URL=http://127.0.0.1:8011 npm run dev` (Port 3100), dann Schritt 4 mit
+   `E2E_BASE_URL=http://localhost:3100 E2E_API_URL=http://127.0.0.1:8011 E2E_ASK=1`.
 7. Secret `ANTHROPIC_API_KEY` im GitHub-Environment `eval` → Nightly-Lauf (Agenten-Eval, Schaltschrank-IoU) → Langfuse-Läufe
    verlinken. Werte oben eintragen, unabhängiges Review, Label `READY FOR HUMAN ACCEPTANCE`.
 
