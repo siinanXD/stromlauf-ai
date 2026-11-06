@@ -7,10 +7,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CitationChip } from "@/components/chat/CitationChip";
 import { PartChip } from "@/components/chat/PartChip";
 import type { PageTarget } from "@/components/PageViewer";
+import { PartCorrection } from "@/components/part/PartCorrection";
 import { Dialog, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { factCard, plant, signalPath, type Cabinet, type FactCardData, type Hotspot, type MachineDetail, type MachineMap, type SignalPathData, type TagLookup } from "@/lib/api";
 import { sameTag } from "@/lib/faults";
-import { zoneOf, zoneTitle } from "@/lib/model";
+import { correctionOf, zoneOf, zoneTitle } from "@/lib/model";
 import { relatedParts } from "@/lib/parts";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,8 @@ export function usePartData(tag: string, machine: MachineDetail, map: MachineMap
   const zone = zoneOf(map, tag);
   const mapParts = map?.zones.flatMap((z) => z.parts) ?? [];
   const part = mapParts.find((p) => sameTag(p.tag, tag)) ?? null;
-  const title = card?.title || part?.label || lookup?.bom_line?.split("|").map((c) => c.trim()).filter(Boolean)[1] || "";
+  // eigene Bezeichnung (Korrektur von Hand) vor der Bezeichnung aus der Doku
+  const title = correctionOf(map, tag)?.label || card?.title || part?.label || lookup?.bom_line?.split("|").map((c) => c.trim()).filter(Boolean)[1] || "";
   const hits = lookup?.hits ?? [];
   const datasheet = hits.find((h) => DATASHEET_TYPES.has(h.doc_type) && h.page && h.filename.toLowerCase().endsWith(".pdf")) ?? null;
   const photos: { cabinet: Cabinet; hotspot: Hotspot }[] = machine.cabinets.flatMap((c) => c.hotspots.filter((h) => sameTag(h.tag, tag)).map((h) => ({ cabinet: c, hotspot: h })));
@@ -235,19 +237,22 @@ export function PartFooter({ tag, data, actions }: { tag: string; data: PartData
 /**
  * Bauteil-Datenblatt (ux-spec §3.3): rechter Drawer ab 768 px, Bottom Sheet am Handy. Radix Dialog liefert
  * Fokus-Falle, Esc und Fokus-Rueckgabe; ein Wisch nach unten am Griff schliesst das Sheet. Im Bereich Stoerfaelle
- * steht derselbe Inhalt in der Detailspalte (PartBody, PartFooter).
+ * steht derselbe Inhalt in der Detailspalte (PartBody, PartFooter). Mit `onCorrected` (nur im Aufbau) laesst sich
+ * das Teil im Modell korrigieren (PartCorrection).
  */
 export function PartSheet({
   tag,
   machine,
   map,
   onClose,
+  onCorrected,
   ...actions
 }: {
   tag: string | null;
   machine: MachineDetail;
   map: MachineMap | null | undefined;
   onClose: () => void;
+  onCorrected?: () => void;
 } & PartActions) {
   const swipeStart = useRef<number | null>(null);
   const data = usePartData(tag ?? "", machine, map);
@@ -297,6 +302,12 @@ export function PartSheet({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             <PartBody tag={tag} data={data} actions={actions} />
+            {onCorrected && (
+              <div className="mt-5 border-t-[0.5px] border-border pt-4">
+                {/* key: nach Speichern oder Zuruecknehmen beginnt das Feld beim neuen Stand */}
+                <PartCorrection key={`${tag}|${data.part?.label ?? ""}`} machineId={machine.id} tag={tag} map={map} label={data.part?.label ?? ""} onChanged={onCorrected} onHidden={onClose} />
+              </div>
+            )}
           </div>
 
           <footer className="flex flex-wrap gap-2 border-t-[0.5px] border-border px-4 py-3">

@@ -119,3 +119,17 @@ test("5-signalweg-quelle: Planseite zum Signalweg oeffnet gross, Stromlaufplan B
   await expect(viewer).toBeVisible();
   await expect(viewer.getByRole("img", { name: "01_Stromlaufplan_FB-01.pdf, Seite 3" })).toBeVisible();
 });
+
+test("6-modell-korrektur: Bauteil -K1 im Modell, Korrektur ist in der Demo gesperrt und das Modell bleibt gleich", async ({ page }) => {
+  // Die Compose-Demo laeuft mit DEMO_MODE=true: Korrekturen (SIN-1217) antworten 403, die Oberflaeche sagt das statt kaputt
+  await openMachine(page);
+  await page.getByTestId("area-aufbau").click();
+  const k1 = page.locator('li[data-zone="+ST1"] button.part-chip[data-tag="-K1"]');
+  await k1.click();
+  const correction = page.getByTestId("part-sheet").getByTestId("part-correction");
+  await expect(correction.getByLabel("Zone")).toHaveValue("+ST1");
+  await correction.getByRole("button", { name: "Ausblenden" }).click();
+  await expect(page.getByTestId("part-correction-readonly")).toHaveText("Korrekturen sind in der Demo gesperrt.");
+  await page.keyboard.press("Escape");
+  await expect(k1).toBeVisible();
+});

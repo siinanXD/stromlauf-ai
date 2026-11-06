@@ -300,7 +300,19 @@ export interface MachineMap {
   part_count: number;
   /** Lesart der Kennbuchstaben der Quelle mit Begruendung (Issue #99) */
   letter_codes: { edition: "alt" | "2019" | "offen"; reason: string };
+  /** Korrekturen von Hand (SIN-1216); fehlt bei aelteren Servern */
+  corrections?: MapCorrection[];
 }
+
+/** null = nicht korrigiert; ausgeblendete Teile fehlen in den Zonen und stehen nur hier. */
+export interface MapCorrection {
+  tag: string;
+  zone_code: string | null;
+  label: string | null;
+  hidden: boolean;
+}
+
+export type MapPartPatch = Partial<Pick<MapCorrection, "zone_code" | "label" | "hidden">>;
 
 export interface Health {
   status: string;
@@ -326,7 +338,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(errorDetail(body, response));
+    // status am Fehler: 403 im Demo-Modus blendet Bedienelemente aus statt sie kaputt zu zeigen
+    throw Object.assign(new Error(errorDetail(body, response)), { status: response.status });
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
@@ -652,6 +665,9 @@ export const plant = {
     request<Machine>(`/api/halls/${hallId}/machines`, json(body)),
   getMachine: (id: string) => request<MachineDetail>(`/api/machines/${id}`),
   machineMap: (id: string) => request<MachineMap>(`/api/machines/${id}/map`),
+  correctPart: (id: string, tag: string, body: MapPartPatch) =>
+    request<MapCorrection>(`/api/machines/${id}/map/parts/${encodeURIComponent(tag)}`, json(body, "PATCH")),
+  resetPart: (id: string, tag: string) => request<void>(`/api/machines/${id}/map/parts/${encodeURIComponent(tag)}`, { method: "DELETE" }),
   updateMachine: (
     id: string,
     body: Partial<Pick<Machine, "name" | "machine_type" | "description" | "source_id" | "order_index" | "line">> & { clear_source?: boolean },
