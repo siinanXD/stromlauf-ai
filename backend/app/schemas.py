@@ -293,10 +293,18 @@ class CabinetOut(BaseModel):
     id: str
     machine_id: str
     title: str
+    location_code: str | None = None
     width: int
     height: int
     created_at: datetime
     hotspots: list[HotspotOut] = []
+
+
+class CabinetUpdate(BaseModel):
+    """Titel oder Einbauort eines Schranks; location_code null nimmt die Zuordnung zurueck."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    location_code: str | None = Field(default=None, max_length=120)
 
 
 class MachineListItem(BaseModel):
