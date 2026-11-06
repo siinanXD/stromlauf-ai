@@ -28,6 +28,15 @@ class Part:
 
 
 @dataclass
+class Correction:
+    """Menschliche Korrektur an einem Teil (Tabelle map_overrides); None = nicht korrigiert."""
+
+    zone_code: str | None = None
+    label: str | None = None
+    hidden: bool = False
+
+
+@dataclass
 class Zone:
     id: str
     code: str
@@ -92,6 +101,7 @@ def build_map(
     known_tags: set[str] | None = None,
     legend: str = "",
     index_hits: list[tuple[str, int | None, str, int | None]] | None = None,
+    corrections: dict[str, Correction] | None = None,
 ) -> MachineMap:
     """bom_rows: (Kennzeichen, Zeilenkontext) aus der Stueckliste (Datei oder Stuecklistenseite einer PDF);
     index_hits: (Kennzeichen, Seite, Blatttitel, Blatt aus dem Schriftfeld oder None) aus dem Kennzeichen-Index der
@@ -99,7 +109,10 @@ def build_map(
 
     Zonen entstehen zuerst aus Einbauorten (+ST1), sonst aus dem Blatt des Stromlaufplans, auf dem das Teil
     zuerst vorkommt (Issue #39); Teile ohne beides landen in "Ohne Einbauort". Die Blatt-Zone traegt die Nummer aus
-    dem Schriftfeld; ohne gelesene Nummer heisst sie nach der Seite (Issue #67)."""
+    dem Schriftfeld; ohne gelesene Nummer heisst sie nach der Seite (Issue #67).
+
+    corrections (Kennzeichen -> Korrektur, SIN-1216) gelten nach dem Aufbau: ausblenden, umbenennen, in die Zone mit
+    diesem Code verschieben (sie entsteht, wenn es sie noch nicht gibt). Unbekannte Kennzeichen bleiben wirkungslos."""
     names = location_names(legend)
     # Lesart der Kennbuchstaben aus allen Kennzeichen der Quelle (Issue #99)
     edition = detect_edition(
@@ -169,6 +182,21 @@ def build_map(
         if tag not in placed and is_part(tag, edition.name):
             zone("?").parts.append(part(tag, "", "index"))
             placed[tag] = "?"
+
+    for tag, correction in (corrections or {}).items():
+        if tag not in placed:
+            continue
+        current = zones[placed[tag]]
+        found = next(p for p in current.parts if p.tag == tag)
+        if correction.hidden:
+            current.parts.remove(found)
+            continue
+        if correction.label is not None:
+            found.label = correction.label
+        if correction.zone_code is not None and correction.zone_code not in (current.id, current.code):
+            current.parts.remove(found)
+            target = next((z for z in zones.values() if correction.zone_code in (z.id, z.code)), None)
+            (target or zone(correction.zone_code)).parts.append(found)
 
     for zone_id, z in zones.items():
         if zone_id == "?":

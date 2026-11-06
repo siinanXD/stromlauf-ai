@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -410,3 +411,21 @@ class MachineNote(WorkspaceScoped, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
 
     machine: Mapped[Machine] = relationship(back_populates="notes")
+
+
+class MapOverride(WorkspaceScoped, Base):
+    """Menschliche Korrektur an einem Teil des Maschinenmodells (api/machine_map.py).
+
+    Haengt an Maschine und Kennzeichen, nicht an Dokument oder Index: "Neu verarbeiten" ersetzt den Index, die
+    Korrektur bleibt. None heisst "nicht korrigiert", hidden blendet das Teil aus.
+    """
+
+    __tablename__ = "map_overrides"
+    __table_args__ = (UniqueConstraint("machine_id", "tag"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    machine_id: Mapped[str] = mapped_column(ForeignKey("machines.id", ondelete="CASCADE"), index=True)
+    tag: Mapped[str] = mapped_column(String(120))  # tags.normalize_tag
+    zone_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    hidden: Mapped[bool] = mapped_column(default=False, server_default="false")

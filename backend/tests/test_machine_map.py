@@ -194,3 +194,34 @@ def test_bezeichnung_steht_hinter_dem_kennzeichen_auch_in_stuecklistenseiten_der
     hits = [("6KE1", 6, "Emergency Stop Circuit", 6), ("4Q1", 4, "Mains Power Supply", 4), ("8F1", 8, "VX Gate Control Circuit", 8)]
     labels = {p["tag"]: p["label"] for z in build_map(rows, index_hits=hits, legend=LEGEND).as_dict()["zones"] for p in z["parts"]}
     assert labels == {"6KE1": "Emergency Contactor", "4Q1": "80A", "-K1": "Schuetz Hauptantrieb", "8F1": ""}
+
+
+def _parts(result: dict) -> dict[str, tuple[str, str]]:
+    return {p["tag"]: (z["code"], p["label"]) for z in result["zones"] for p in z["parts"]}
+
+
+def test_korrekturen_blenden_aus_benennen_um_und_verschieben():
+    from app.ingestion.machine_map import Correction
+
+    corrections = {
+        "-F2": Correction(hidden=True),
+        "-K1": Correction(label="Hauptschütz", zone_code="+FE1"),
+        "-M1": Correction(zone_code="+NEU1"),
+        "-B7": Correction(zone_code="+ST1"),
+        "-X99": Correction(hidden=True),  # unbekanntes Teil: wirkungslos
+    }
+    result = build_map(BOM, legend=LEGEND, corrections=corrections).as_dict()
+    assert _parts(result) == {
+        "-K1": ("+FE1", "Hauptschütz"),
+        "-M1": ("+NEU1", "Getriebemotor 0,75 kW"),
+        "-B7": ("+ST1", "Lichtschranke Einlauf"),
+    }
+    # +NEU1 entsteht durch das Verschieben, die leere Zone "?" (ohne -B7) entfällt
+    assert [z["code"] for z in result["zones"]] == ["+FE1", "+NEU1", "+ST1"]
+
+
+def test_ohne_korrekturen_bleibt_das_modell_gleich():
+    from app.ingestion.machine_map import Correction
+
+    assert build_map(BOM, legend=LEGEND, corrections={}).as_dict() == build_map(BOM, legend=LEGEND).as_dict()
+    assert build_map(BOM, legend=LEGEND, corrections={"-K1": Correction()}).as_dict() == build_map(BOM, legend=LEGEND).as_dict()

@@ -91,3 +91,74 @@ test("Lightbox: Rahmen per Tastatur verschieben und speichern, bleibt nach Reloa
   expect(left).toBe("22%");
   await expect(page.getByTestId("cabinet-lightbox").getByRole("list", { name: "Markierte Bauteile" })).toContainText("manuell");
 });
+
+test("Teil im Modell umbenennen, verschieben, ausblenden und zurücknehmen; Korrektur bleibt nach Reload (SIN-1217)", async ({ page }) => {
+  await page.goto(`/werk/maschine/${MACHINE_ID}?bereich=aufbau`);
+  const zones = page.getByRole("list", { name: "Zonen der Maschine" });
+  await zones.locator('button.part-chip[data-tag="-K1"]').click();
+  const correction = page.getByTestId("part-sheet").getByTestId("part-correction");
+  // hinter dem offenen Dialog ist die Zonenliste aria-hidden: dort per CSS statt per Rolle pruefen
+  const chipIn = (zone: string, tag: string) => page.locator(`li[data-zone="${zone}"] button.part-chip[data-tag="${tag}"]`);
+
+  // axe vor dem ersten Toast: ein verblassender, gestapelter Toast faellt sonst durch den Kontrast
+  await expect(correction).toBeVisible();
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
+  // umbenennen (Tastatur: Feld leeren, tippen, Enter) und in die Zone +FE1 verschieben
+  const name = correction.getByLabel("Bezeichnung");
+  await name.fill("Schütz Bandantrieb");
+  await name.press("Enter");
+  await expect(correction).toContainText("von Hand geändert");
+  await expect(page.getByTestId("part-sheet").getByRole("heading", { name: "Schütz Bandantrieb" })).toBeVisible();
+  await correction.getByLabel("Zone").selectOption("+FE1");
+  await expect(chipIn("+FE1", "-K1")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // Reload: die Korrektur liegt am Server
+  await page.reload();
+  const k1 = zones.locator('li[data-zone="+FE1"] button.part-chip[data-tag="-K1"]');
+  await expect(k1).toContainText("Schütz Bandantrieb");
+
+  // ausblenden: Sheet schliesst, Fokus landet auf "Ausgeblendete zeigen"
+  await zones.locator('button.part-chip[data-tag="-F2"]').click();
+  await page.getByTestId("part-sheet").getByRole("button", { name: "Ausblenden" }).click();
+  await expect(page.getByTestId("part-sheet")).toBeHidden();
+  await expect(zones.locator('button.part-chip[data-tag="-F2"]')).toHaveCount(0);
+  const toggle = page.getByRole("button", { name: "Ausgeblendete zeigen (1)" });
+  await expect(toggle).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "-F2 wieder einblenden" }).click();
+  await expect(zones.locator('li[data-zone="+ST1"] button.part-chip[data-tag="-F2"]')).toBeVisible();
+
+  // zurücknehmen: -K1 wieder in +ST1 mit der Bezeichnung aus der Doku
+  await k1.click();
+  await page.getByTestId("part-sheet").getByRole("button", { name: "Korrektur zurücknehmen" }).click();
+  await expect(chipIn("+ST1", "-K1")).toContainText("Hauptschütz");
+  await page.reload();
+  await expect(zones.locator('li[data-zone="+ST1"] button.part-chip[data-tag="-K1"]')).toBeVisible();
+});
+
+test("Demo-Modus: 403 blendet die Korrektur aus statt sie kaputt zu zeigen (SIN-1217)", async ({ page }) => {
+  await page.unrouteAll();
+  await mockApi(page, { demo: true });
+  await page.goto(`/werk/maschine/${MACHINE_ID}?bereich=aufbau`);
+  await page.getByRole("list", { name: "Zonen der Maschine" }).locator('button.part-chip[data-tag="-K1"]').click();
+  const sheet = page.getByTestId("part-sheet");
+  await sheet.getByRole("button", { name: "Ausblenden" }).click();
+  await expect(sheet.getByTestId("part-correction-readonly")).toHaveText("Korrekturen sind in der Demo gesperrt.");
+  await expect(sheet.getByRole("button", { name: "Ausblenden" })).toHaveCount(0);
+  await expect(sheet).toBeVisible();
+});
+
+test("Alle Teile ausgeblendet: das Schema bietet sie weiter zum Einblenden an (SIN-1217)", async ({ page }) => {
+  await page.goto(`/werk/maschine/${MACHINE_ID}?bereich=aufbau`);
+  for (const tag of ["-K1", "-F2", "-M1", "-B7"]) {
+    await page.locator(`button.part-chip[data-tag="${tag}"]`).first().click();
+    await page.getByTestId("part-sheet").getByRole("button", { name: "Ausblenden" }).click();
+    await expect(page.getByTestId("part-sheet")).toBeHidden();
+  }
+  await expect(page.locator("button.part-chip")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ausgeblendete zeigen (4)" }).click();
+  await page.getByRole("button", { name: "-M1 wieder einblenden" }).click();
+  await expect(page.locator('li[data-zone="+FE1"] button.part-chip[data-tag="-M1"]')).toBeVisible();
+});
