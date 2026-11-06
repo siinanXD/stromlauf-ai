@@ -60,7 +60,8 @@ export function SchemaMap({
   }, [hidden.length]);
 
   if (map === undefined) return <p className="p-3 text-sm text-muted-foreground">Lade Modell …</p>;
-  if (!map || map.zones.length === 0) {
+  // alles ausgeblendet ist kein leeres Modell: der Kopf mit "Ausgeblendete zeigen" bleibt stehen
+  if (!map || (map.zones.length === 0 && hidden.length === 0)) {
     return (
       <p className="p-3 text-sm text-muted-foreground" data-testid="schema-empty">
         Noch kein Modell: keine Kennzeichen in der Doku, keine Stückliste. Dokumente hochladen, dann entstehen hier die Zonen der Maschine.

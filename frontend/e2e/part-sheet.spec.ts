@@ -149,3 +149,16 @@ test("Demo-Modus: 403 blendet die Korrektur aus statt sie kaputt zu zeigen (SIN-
   await expect(sheet.getByRole("button", { name: "Ausblenden" })).toHaveCount(0);
   await expect(sheet).toBeVisible();
 });
+
+test("Alle Teile ausgeblendet: das Schema bietet sie weiter zum Einblenden an (SIN-1217)", async ({ page }) => {
+  await page.goto(`/werk/maschine/${MACHINE_ID}?bereich=aufbau`);
+  for (const tag of ["-K1", "-F2", "-M1", "-B7"]) {
+    await page.locator(`button.part-chip[data-tag="${tag}"]`).first().click();
+    await page.getByTestId("part-sheet").getByRole("button", { name: "Ausblenden" }).click();
+    await expect(page.getByTestId("part-sheet")).toBeHidden();
+  }
+  await expect(page.locator("button.part-chip")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ausgeblendete zeigen (4)" }).click();
+  await page.getByRole("button", { name: "-M1 wieder einblenden" }).click();
+  await expect(page.locator('li[data-zone="+FE1"] button.part-chip[data-tag="-M1"]')).toBeVisible();
+});
