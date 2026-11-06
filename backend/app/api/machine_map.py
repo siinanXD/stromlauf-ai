@@ -143,7 +143,7 @@ def machine_map_data(session: Session, machine: Machine) -> dict:
     """Modell einer Maschine; auch fuer den Ablauf (app/ablauf/lauf.py)."""
     machine_id = machine.id
     if not machine.source_id:
-        return {"machine_id": machine_id, **build_map([]).as_dict(), "source_id": None}
+        return {"machine_id": machine_id, **build_map([]).as_dict(), "source_id": None, "corrections": []}
 
     rows = session.execute(
         select(
@@ -169,12 +169,14 @@ def machine_map_data(session: Session, machine: Machine) -> dict:
                 select(Chunk.content).where(Chunk.document_id.in_(bom_ids), Chunk.content.contains("Anlage", autoescape=True)).limit(3)
             )
         )
-    corrections = {
-        row.tag: Correction(row.zone_code, row.label, row.hidden)
-        for row in session.scalars(select(MapOverride).where(MapOverride.machine_id == machine_id))
-    }
+    overrides = session.scalars(
+        select(MapOverride).where(MapOverride.machine_id == machine_id).order_by(MapOverride.tag)
+    ).all()
+    corrections = {row.tag: Correction(row.zone_code, row.label, row.hidden) for row in overrides}
     return {
         "machine_id": machine_id,
         "source_id": machine.source_id,
         **build_map(bom_rows, known, legend, index_hits, corrections).as_dict(),
+        # Die Oberfläche braucht die Korrekturen selbst: ausgeblendete Teile fehlen in den Zonen (SIN-1217)
+        "corrections": [_out(machine_id, row.tag, row).model_dump(exclude={"machine_id"}) for row in overrides],
     }

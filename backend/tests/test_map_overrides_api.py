@@ -160,6 +160,12 @@ def test_korrigieren_und_zuruecknehmen(client, headers, maschine):
     # kleingeschrieben und ohne Minus landet auf demselben Schlüssel; ausblenden
     client.patch(f"/api/machines/{machine_id}/map/parts/f2", json={"hidden": True}, headers=headers)
     assert "-F2" not in _teile(client, headers, machine_id)
+    # die Karte nennt die Korrekturen, damit ausgeblendete Teile erreichbar bleiben (SIN-1217)
+    karte = client.get(f"/api/machines/{machine_id}/map", headers=headers).json()
+    assert karte["corrections"] == [
+        {"tag": "-F2", "zone_code": None, "label": None, "hidden": True},
+        {"tag": "-K1", "zone_code": None, "label": "Hauptschütz", "hidden": False},
+    ]
 
     assert client.delete(f"/api/machines/{machine_id}/map/parts/-K1", headers=headers).status_code == 204
     assert client.delete(f"/api/machines/{machine_id}/map/parts/-K1", headers=headers).status_code == 204

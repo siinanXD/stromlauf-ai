@@ -71,6 +71,29 @@ const map = {
   ],
 };
 
+type MockCorrection = { tag: string; zone_code: string | null; label: string | null; hidden: boolean };
+
+/** Wie build_map im Backend (SIN-1216): ausblenden, umbenennen, in die Zone mit diesem Code verschieben. */
+function correctedMap(corrections: MockCorrection[]) {
+  const zones = map.zones.map((z) => ({ ...z, parts: z.parts.map((p) => ({ ...p })) }));
+  for (const c of corrections) {
+    const from = zones.find((z) => z.parts.some((p) => p.tag === c.tag));
+    if (!from) continue;
+    const part = from.parts.find((p) => p.tag === c.tag)!;
+    if (c.hidden) {
+      from.parts = from.parts.filter((p) => p !== part);
+      continue;
+    }
+    if (c.label !== null) part.label = c.label;
+    const to = c.zone_code && zones.find((z) => z.code === c.zone_code);
+    if (to && to !== from) {
+      from.parts = from.parts.filter((p) => p !== part);
+      to.parts.push(part);
+    }
+  }
+  return { ...map, zones: zones.filter((z) => z.parts.length > 0), corrections };
+}
+
 function sse(events: [string, unknown][]): string {
   return events.map(([event, data]) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join("");
 }
@@ -197,7 +220,12 @@ const AWL_WHY = {
  * withHistory: conv-1 gibt es schon (Verlauf, Reload). Ohne legt erst der Chat-Stream conv-1 an, wie der Server.
  * Der Zustand gilt je Seite, PATCH aendert outcome und finding.
  */
-export async function mockApi(page: Page, { withHistory = true, chatFailures = 0 }: { withHistory?: boolean; chatFailures?: number } = {}) {
+export async function mockApi(
+  page: Page,
+  { withHistory = true, chatFailures = 0, demo = false }: { withHistory?: boolean; chatFailures?: number; demo?: boolean } = {},
+) {
+  // Korrekturen am Modell leben ueber Reloads hinweg, solange der Test laeuft; demo = 403 wie DEMO_MODE
+  let corrections: MockCorrection[] = [];
   const conversations: MockConversation[] = withHistory ? [{ ...CONVERSATION_1 }] : [];
   // chatFailures: so oft antwortet POST /api/chat mit 400 wie ohne Modell-Schluessel, bevor er gelingt
   let failuresLeft = chatFailures;
@@ -232,7 +260,20 @@ export async function mockApi(page: Page, { withHistory = true, chatFailures = 0
       }
       return json(route, { detail: "nicht gefunden" }, 404);
     }
-    if (path === `/api/machines/${MACHINE_ID}/map`) return json(route, map);
+    if (path === `/api/machines/${MACHINE_ID}/map`) return json(route, correctedMap(corrections));
+    if (path.startsWith(`/api/machines/${MACHINE_ID}/map/parts/`)) {
+      if (demo) return json(route, { detail: "In der Demo sind Aenderungen und Uploads gesperrt.", code: "demo_readonly" }, 403);
+      const tag = decodeURIComponent(path.split("/").pop()!);
+      const rest = corrections.filter((c) => c.tag !== tag);
+      if (method === "DELETE") {
+        corrections = rest;
+        return route.fulfill({ status: 204 });
+      }
+      const old = corrections.find((c) => c.tag === tag) ?? { tag, zone_code: null, label: null, hidden: false };
+      const next = { ...old, ...(route.request().postDataJSON() as Partial<MockCorrection>) };
+      corrections = next.zone_code === null && next.label === null && !next.hidden ? rest : [...rest, next];
+      return json(route, { machine_id: MACHINE_ID, ...next });
+    }
     if (path === `/api/machines/${MACHINE_ID}/costs`)
       return json(route, { machine_id: MACHINE_ID, month: { cents: 117, calls: 12, by_purpose: { chat: { cents: 17, calls: 11 }, "vision.cabinet": { cents: 100, calls: 1 } } }, total: { cents: 117, calls: 12, by_purpose: {} }, workspace: { month_cents: 187.5, month_calls: 42, cap_cents: null, exceeded: false } });
     if (path === "/api/sources") return json(route, [{ id: SOURCE_ID, name: "FB-01 Doku", description: "", document_count: 3, created_at: "2026-09-01T00:00:00Z" }]);

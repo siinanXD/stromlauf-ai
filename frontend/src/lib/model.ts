@@ -1,6 +1,6 @@
 /** Maschinenmodell "Schema": Datenabbildung fuer die Markierung aus dem meta-Event (ohne React). */
 
-import type { MachineMap, MapZone } from "@/lib/api";
+import type { MachineMap, MapCorrection, MapZone } from "@/lib/api";
 import { sameTag } from "./faults";
 
 export interface Highlight {
@@ -50,4 +50,14 @@ export function orderZones(zones: MapZone[], tags: string[]): MapZone[] {
 export function zoneTitle(zone: Pick<MapZone, "code" | "name">): string {
   if (zone.code === "?" || zone.code === "anlage") return zone.name;
   return zone.name ? `${zone.code} · ${zone.name}` : zone.code;
+}
+
+/** Korrektur von Hand an einem Teil (SIN-1216) oder null. */
+export function correctionOf(map: Pick<MachineMap, "corrections"> | null | undefined, tag: string): MapCorrection | null {
+  return map?.corrections?.find((c) => sameTag(c.tag, tag)) ?? null;
+}
+
+/** Ausgeblendete Teile: sie fehlen in den Zonen, nur die Korrekturen nennen sie. */
+export function hiddenTags(map: Pick<MachineMap, "corrections"> | null | undefined): string[] {
+  return (map?.corrections ?? []).filter((c) => c.hidden).map((c) => c.tag);
 }

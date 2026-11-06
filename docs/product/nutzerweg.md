@@ -30,6 +30,7 @@ Figma: `wtxajO1YC5HvtQG7CI44BC`, Seite „Screens · Desktop“ (Vorlagen und Be
 | 3 `quelle-der-antwort` | Fehlereintrag nennt „Stromlaufplan Blatt 3“; Bauteil -F2, Befundkarte `/3.2`, Planseite des Stromlaufplans öffnet | `Desktop · Störfall mit Detail` (Detail -F2: Befundkarte, Planseite-Karte) |
 | 4 `signalweg-oeffnen` | „Signalweg öffnen“ → Hauptweg -F2 bis -M1 über -X3:3, E0.2, FB 10 NW 1, A4.0, -X3:9, -K1, -X4:U | `Desktop · Signalweg Vollbild` |
 | 5 `signalweg-quelle` | Planseite-Karte „Seite 3“, „Groß öffnen“ zeigt `01_Stromlaufplan_FB-01.pdf`, Seite 3 | `Desktop · Signalweg Vollbild` (Auswahl, Planseite-Karte) |
+| 6 `modell-korrektur` | Aufbau → -K1 in Zone +ST1, Datenblatt mit „Im Modell korrigieren“; in der Demo (`DEMO_MODE`) meldet „Ausblenden“ „Korrekturen sind in der Demo gesperrt.“, -K1 bleibt im Modell (SIN-1217) | kein Frame (bestehende Bausteine, kein neues Aussehen) |
 
 Screenshots des Laufs vom 2026-11-02 neben den Frames: `docs/assets/nutzerweg/` (`figma-*.png` = Vorlage, `1-…` bis `5-…` = Lauf).
 

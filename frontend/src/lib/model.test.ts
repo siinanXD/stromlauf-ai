@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MachineMap } from "./api";
-import { highlightFor, isReferenced, orderZones, zoneOf, zoneTitle } from "./model";
+import { correctionOf, hiddenTags, highlightFor, isReferenced, orderZones, zoneOf, zoneTitle } from "./model";
 
 const MAP: MachineMap = {
   machine_id: "m1",
@@ -25,6 +25,22 @@ const MAP: MachineMap = {
 };
 
 describe("model", () => {
+  it("liest Korrekturen je Teil und die ausgeblendeten Teile, Schreibweise egal", () => {
+    const map = {
+      ...MAP,
+      corrections: [
+        { tag: "-F2", zone_code: null, label: null, hidden: true },
+        { tag: "-K1", zone_code: "+FE1", label: "Hauptschütz", hidden: false },
+      ],
+    };
+    expect(correctionOf(map, "k1")?.label).toBe("Hauptschütz");
+    expect(correctionOf(map, "-M1")).toBeNull();
+    expect(hiddenTags(map)).toEqual(["-F2"]);
+    // aeltere Server ohne Feld: nichts korrigiert
+    expect(correctionOf(MAP, "-K1")).toBeNull();
+    expect(hiddenTags(MAP)).toEqual([]);
+  });
+
   it("markiert Zonen und Bauteile aus dem meta-Event, Schreibweise egal", () => {
     const h = highlightFor(MAP, ["k1", "-M1", "-Q9"]);
     expect(h.zoneIds).toEqual(["+ST1", "+FE1"]);

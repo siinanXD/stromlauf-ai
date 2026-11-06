@@ -85,6 +85,18 @@ export function AufbauArea({
    * Bauteil aus Modell oder Fehlerliste oeffnen: Datenblatt-Sheet und Markierung, der Tab bleibt (wer im Modell
    * blaettert, bleibt dort; Foto und Signalweg sind im Sheet einen Tipp entfernt).
    */
+  const restorePart = useCallback(
+    (tag: string) =>
+      void plant
+        .correctPart(id, tag, { hidden: false })
+        .then(() => {
+          toast.success(`${tag} wieder im Modell.`);
+          onMapChanged();
+        })
+        .catch((error: { status?: number }) => toast.error(error.status === 403 ? "Korrekturen sind in der Demo gesperrt." : "Einblenden hat nicht geklappt. Erneut versuchen.")),
+    [id, onMapChanged],
+  );
+
   const openPart = useCallback((tag: string) => {
     setSelectedTag(tag);
     setSignalTag(tag);
@@ -184,7 +196,7 @@ export function AufbauArea({
       <div className="scroll-contain min-h-0 flex-1 overflow-hidden">
         {current === "schema" && (
           <div className="h-full overflow-auto">
-            <SchemaMap map={map} referencedTags={highlightTags} selectedTag={selectedTag} onOpenPart={openPart} />
+            <SchemaMap map={map} referencedTags={highlightTags} selectedTag={selectedTag} onOpenPart={openPart} onRestore={restorePart} />
           </div>
         )}
         {current === "schaltschrank" && (
@@ -298,6 +310,7 @@ export function AufbauArea({
           machine={machine}
           map={map}
           onClose={() => setSheetTag(null)}
+          onCorrected={onMapChanged}
           onOpenPage={(target) => {
             setSheetTag(null);
             setPageTarget(target);
