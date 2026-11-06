@@ -42,6 +42,9 @@ der Instandhaltung an der Maschine?
   Oberflaeche (SIN-1217): `GET …/map` liefert `corrections` (auch ausgeblendete Teile), `part/PartCorrection.tsx` im Datenblatt
   des Aufbaus (Bezeichnung, Zone, Ausblenden, Zuruecknehmen), `SchemaMap` mit `onRestore` zeigt „Ausgeblendete zeigen“. 403 im
   Demo-Modus blendet die Bedienelemente aus (`Error.status` aus `lib/api.ts::request`). Nutzerweg 6 `modell-korrektur`.
+  Einbauort am Schaltschrank (SIN-1220): `CabinetImage.location_code` (+ST1, Alembic `0009`), Formularfeld beim Anlegen,
+  `PATCH /api/cabinets/{id}` (title, location_code; null nimmt zurueck). `answer_meta.hotspot_evidence` liefert `zone` je Foto
+  und laesst Schraenke mit anderem Einbauort als dem des Teils im Modell weg; Fotos ohne Code gelten fuer alle Teile.
 - Modell ohne Stuecklisten-Datei (Issue #39): `api/machine_map.py::split_rows` trennt Stuecklistenzeilen von
   Plan-Fundstellen, `ingestion/machine_map.py::build_map` nimmt Teile aus dem Kennzeichen-Index und bildet Zonen aus
   dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Die Blattnummer liest

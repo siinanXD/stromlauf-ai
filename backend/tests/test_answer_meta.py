@@ -31,16 +31,33 @@ def test_seitenbelege_nur_pdf_seiten_begrenzt():
 def test_hotspots_der_maschine_zu_den_bauteilen():
     hotspot = SimpleNamespace(id="h1", tag="-K1", label="Hauptschütz", x=0.1, y=0.2, w=0.05, h=0.08, confirmed=True)
     other = SimpleNamespace(id="h2", tag="-M1", label="", x=0, y=0, w=0.1, h=0.1, confirmed=False)
-    cabinet = SimpleNamespace(id="c1", title="Schaltschrank", hotspots=[hotspot, other])
+    cabinet = SimpleNamespace(id="c1", title="Schaltschrank", location_code=None, hotspots=[hotspot, other])
     machine = SimpleNamespace(cabinets=[cabinet])
     evidence = hotspot_evidence(machine, ["-k1"])
     assert evidence == [
         {
-            "kind": "cabinet", "cabinet_id": "c1", "cabinet_title": "Schaltschrank", "hotspot_id": "h1", "tag": "-K1",
+            "kind": "cabinet", "cabinet_id": "c1", "cabinet_title": "Schaltschrank", "zone": None, "hotspot_id": "h1", "tag": "-K1",
             "label": "Hauptschütz", "box": {"x": 0.1, "y": 0.2, "w": 0.05, "h": 0.08}, "confirmed": True,
         }
     ]
     assert hotspot_evidence(None, ["-K1"]) == [] and hotspot_evidence(machine, []) == []
+
+
+def test_schrank_mit_einbauort_zaehlt_nur_fuer_teile_dieser_zone():
+    """SIN-1220: zwei Schraenke zeigen -K1; das Modell setzt -K1 nach +ST1, also zaehlt nur dieser Schrank."""
+
+    def spot(i):
+        return SimpleNamespace(id=f"h{i}", tag="-K1", label="", x=0, y=0, w=0.1, h=0.1, confirmed=True)
+
+    st1 = SimpleNamespace(id="c1", title="Hauptschrank", location_code="+ST1", hotspots=[spot(1)])
+    st2 = SimpleNamespace(id="c2", title="Nebenschrank", location_code="+ST2", hotspots=[spot(2)])
+    alt = SimpleNamespace(id="c3", title="Altes Foto", location_code=None, hotspots=[spot(3)])
+    machine = SimpleNamespace(cabinets=[st1, st2, alt])
+
+    found = hotspot_evidence(machine, ["-K1"], {"-k1": "+ST1"})
+    assert [(e["cabinet_id"], e["zone"]) for e in found] == [("c1", "+ST1"), ("c3", None)]
+    # Einbauort unbekannt: jeder Schrank darf das Teil zeigen
+    assert [e["cabinet_id"] for e in hotspot_evidence(machine, ["-K1"])] == ["c1", "c2", "c3"]
 
 
 # --- Stoerfall-Arbeitsflaeche (Spur B3): part_kinds, signal_start, plan_spots gegen FB-01, ohne Datenbank ----------
