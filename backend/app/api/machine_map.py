@@ -8,15 +8,17 @@ Die Blattnummer einer Zone liest die Blatt-Map aus dem Schriftfeld, nicht aus de
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_session
-from app.ingestion.machine_map import build_map
+from app.ingestion.machine_map import Correction, build_map
 from app.ingestion.page_titles import is_parts_list
 from app.ingestion.pdf_layout import sheet_map
-from app.models import Chunk, Document, Machine, TagOccurrence, TagType
+from app.ingestion.tags import normalize_tag
+from app.models import Chunk, Document, Machine, MapOverride, TagOccurrence, TagType
+from app.schemas import MapPartOut, MapPartPatch
 from app.tenancy import same_workspace
 
 router = APIRouter(prefix="/api", tags=["machine-map"])
@@ -66,10 +68,75 @@ def split_rows(rows: list[Row], sheet_of: SheetOf) -> tuple[list[tuple[str, str]
 
 @router.get("/machines/{machine_id}/map")
 def machine_map(machine_id: str, session: Session = Depends(get_session)) -> dict:
+    return machine_map_data(session, _machine(session, machine_id))
+
+
+def _machine(session: Session, machine_id: str) -> Machine:
     machine = session.get(Machine, machine_id)
     if machine is None or not same_workspace(machine):
         raise HTTPException(404, "Maschine nicht gefunden")
-    return machine_map_data(session, machine)
+    return machine
+
+
+def _out(machine_id: str, tag: str, row: MapOverride | None) -> MapPartOut:
+    return MapPartOut(
+        machine_id=machine_id,
+        tag=tag,
+        zone_code=row.zone_code if row else None,
+        label=row.label if row else None,
+        hidden=row.hidden if row else False,
+    )
+
+
+def _override(session: Session, machine: Machine, tag: str) -> MapOverride | None:
+    return session.scalar(select(MapOverride).where(MapOverride.machine_id == machine.id, MapOverride.tag == tag))
+
+
+@router.patch("/machines/{machine_id}/map/parts/{tag:path}")
+def correct_part(
+    machine_id: str, tag: str, body: MapPartPatch, session: Session = Depends(get_session)
+) -> MapPartOut:
+    """Zone, Bezeichnung oder Sichtbarkeit eines Teils korrigieren. Nur genannte Felder ändern sich, null nimmt
+    die Korrektur dieses Felds zurück; ist nichts mehr korrigiert, verschwindet die Zeile."""
+    machine = _machine(session, machine_id)
+    key = normalize_tag(tag)
+    known = session.scalar(
+        select(TagOccurrence.id)
+        .where(
+            TagOccurrence.source_id == machine.source_id,
+            TagOccurrence.tag == key,
+            TagOccurrence.tag_type == TagType.DEVICE,
+        )
+        .limit(1)
+    )
+    if known is None:
+        raise HTTPException(404, "Teil nicht gefunden")
+    row = _override(session, machine, key)
+    created = row is None
+    if row is None:
+        row = MapOverride(machine_id=machine.id, tag=key)
+    for field in body.model_fields_set:
+        setattr(row, field, getattr(body, field))
+    if row.zone_code is None and row.label is None and not row.hidden:
+        if not created:
+            session.delete(row)
+        session.commit()
+        return _out(machine.id, key, None)
+    if created:
+        session.add(row)
+    session.commit()
+    return _out(machine.id, key, row)
+
+
+@router.delete("/machines/{machine_id}/map/parts/{tag:path}", status_code=204)
+def reset_part(machine_id: str, tag: str, session: Session = Depends(get_session)) -> Response:
+    """Nimmt alle Korrekturen an einem Teil zurück; ohne Korrektur passiert nichts."""
+    machine = _machine(session, machine_id)
+    row = _override(session, machine, normalize_tag(tag))
+    if row is not None:
+        session.delete(row)
+        session.commit()
+    return Response(status_code=204)
 
 
 def machine_map_data(session: Session, machine: Machine) -> dict:
@@ -102,8 +169,12 @@ def machine_map_data(session: Session, machine: Machine) -> dict:
                 select(Chunk.content).where(Chunk.document_id.in_(bom_ids), Chunk.content.contains("Anlage", autoescape=True)).limit(3)
             )
         )
+    corrections = {
+        row.tag: Correction(row.zone_code, row.label, row.hidden)
+        for row in session.scalars(select(MapOverride).where(MapOverride.machine_id == machine_id))
+    }
     return {
         "machine_id": machine_id,
         "source_id": machine.source_id,
-        **build_map(bom_rows, known, legend, index_hits).as_dict(),
+        **build_map(bom_rows, known, legend, index_hits, corrections).as_dict(),
     }
