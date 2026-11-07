@@ -17,6 +17,7 @@ export function Sidebar({
   onNewConversation,
   onDeleteConversation,
   onOpenPage,
+  offline = false,
 }: {
   sources: KnowledgeSource[];
   selectedSourceIds: string[];
@@ -28,6 +29,8 @@ export function Sidebar({
   onNewConversation: () => void;
   onDeleteConversation: (conversation: Conversation) => void;
   onOpenPage: (target: PageTarget) => void;
+  /** Kein Server: Anlegen ist aus, statt beim Absenden zu scheitern. */
+  offline?: boolean;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -63,7 +66,8 @@ export function Sidebar({
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wissensquellen</h2>
             <button
               onClick={() => setCreating(!creating)}
-              className="rounded-md px-1.5 text-lg leading-none text-muted-foreground hover:bg-secondary hover:text-foreground"
+              disabled={offline}
+              className="rounded-md px-1.5 text-lg leading-none text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
               aria-label="Wissensquelle anlegen"
             >
               +
@@ -86,7 +90,9 @@ export function Sidebar({
 
           {sources.length === 0 && !creating && (
             <p className="px-4 pb-2 text-sm text-muted-foreground">
-              Lege mit + eine Wissensquelle an und lade Pläne, Stücklisten, AWL-Quellen oder Handbücher hoch.
+              {offline
+                ? "Wissensquellen sind ohne Server nicht ladbar."
+                : "Lege mit + eine Wissensquelle an und lade Pläne, Stücklisten, AWL-Quellen oder Handbücher hoch."}
             </p>
           )}
 

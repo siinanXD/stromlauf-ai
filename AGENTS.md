@@ -218,6 +218,10 @@ der Instandhaltung an der Maschine?
   Preise beider Provider in `app/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
   Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
   dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
+- Oeffentliche Vorschau (SIN-1522): Im Vercel-Build (`VERCEL` gesetzt) bleibt `NEXT_PUBLIC_API_URL` nur bei oeffentlicher Adresse
+  (`frontend/src/lib/apiUrl.ts`, `next.config.ts`); Tailnet-, Loopback- und private Adressen werden zu "" und stehen nie im Bundle.
+  Leere Adresse = kein Backend: `request()` wirft `NO_BACKEND` ohne Netzaufruf, Rail, Maschinenuebersicht und Startseite zeigen
+  einen Fehler statt Leerzustand und blenden Knoepfe aus, die scheitern muessten. Test `e2e/offline.spec.ts`, Weg 6 des Nutzerwegs.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Demo-Modus (SIN-975): `DEMO_MODE=true` (`app/demo.py`, Middleware aeusserste Schicht in `main.py`): schreibende
