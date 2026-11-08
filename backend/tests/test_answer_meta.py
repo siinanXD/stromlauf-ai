@@ -60,6 +60,18 @@ def test_schrank_mit_einbauort_zaehlt_nur_fuer_teile_dieser_zone():
     assert [e["cabinet_id"] for e in hotspot_evidence(machine, ["-K1"])] == ["c1", "c2", "c3"]
 
 
+def test_einbauort_vergleicht_ohne_gross_klein_und_leerzeichen():
+    """SIN-1220: "+st1" am Foto (von Hand getippt) und "+ST1" im Modell sind derselbe Ort; der Schrank darf nicht
+    wegfallen, der falsche Schrank bleibt draussen. Die Stueckliste darf den Ort auch klein schreiben."""
+    spot = SimpleNamespace(id="h1", tag="-K1", label="", x=0, y=0, w=0.1, h=0.1, confirmed=True)
+    klein = SimpleNamespace(id="c1", title="Hauptschrank", location_code="+st1", hotspots=[spot])
+    andere = SimpleNamespace(id="c2", title="Pult", location_code="+ BP1", hotspots=[spot])
+    machine = SimpleNamespace(cabinets=[klein, andere])
+
+    assert [e["cabinet_id"] for e in hotspot_evidence(machine, ["-K1"], {"-K1": "+ST1"})] == ["c1"]
+    assert [e["cabinet_id"] for e in hotspot_evidence(machine, ["-K1"], {"-K1": "+bp1"})] == ["c2"]
+
+
 # --- Stoerfall-Arbeitsflaeche (Spur B3): part_kinds, signal_start, plan_spots gegen FB-01, ohne Datenbank ----------
 
 FB01 = Path(__file__).resolve().parents[2] / "examples" / "foerderband"

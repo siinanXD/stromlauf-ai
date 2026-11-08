@@ -82,20 +82,25 @@ def page_evidence(citations: list[dict]) -> list[dict]:
     return out
 
 
+def _place(code: str) -> str:
+    """Vergleichsform eines Einbauorts: "+st1" am Foto und "+ST1" im Modell sind derselbe Ort (SIN-1220)."""
+    return "".join(code.split()).upper()
+
+
 def hotspot_evidence(machine: Machine | None, tags: list[str], zones: dict[str, str] | None = None) -> list[dict]:
     """Schrankfotos mit den Teilen der Antwort. zones: Kennzeichen -> Einbauort aus dem Maschinenmodell; ein Schrank
     mit location_code zaehlt fuer ein Teil nur, wenn dessen Einbauort unbekannt ist oder passt (SIN-1220)."""
     if machine is None or not tags:
         return []
     wanted = {t.upper() for t in tags}
-    zones = {tag.upper(): code for tag, code in (zones or {}).items()}
+    zones = {tag.upper(): _place(code) for tag, code in (zones or {}).items()}
     out: list[dict] = []
     for cabinet in machine.cabinets:
         for hotspot in cabinet.hotspots:
             if not hotspot.tag or hotspot.tag.upper() not in wanted:
                 continue
             zone = zones.get(hotspot.tag.upper())
-            if cabinet.location_code and zone and zone != cabinet.location_code:
+            if cabinet.location_code and zone and zone != _place(cabinet.location_code):
                 continue
             out.append(
                 {
