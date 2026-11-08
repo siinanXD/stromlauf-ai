@@ -16,6 +16,8 @@ BOM_ZEILEN = "Kennzeichen,Bezeichnung,Ort\n-K1,Schütz Hauptantrieb,+ST1\n-F2,Mo
 
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
+    # Umgebung beim Abbau zurueckgeben, sonst erben spaetere Tests Secret und DATA_DIR dieses Moduls
+    saved = {key: os.environ.get(key) for key in ("DATA_DIR", "JWT_SECRET")}
     os.environ["JWT_SECRET"] = SECRET
     os.environ["DATA_DIR"] = str(tmp_path_factory.mktemp("data"))
     from app.config import get_settings
@@ -25,9 +27,16 @@ def client(tmp_path_factory):
 
     from app.main import app
 
-    with TestClient(app) as client:
-        yield client
-    get_settings.cache_clear()
+    try:
+        with TestClient(app) as client:
+            yield client
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        get_settings.cache_clear()
 
 
 def _wipe(workspace_id: str) -> None:
