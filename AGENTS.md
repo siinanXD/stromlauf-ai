@@ -238,6 +238,8 @@ der Instandhaltung an der Maschine?
   Schluesselsatz, das Frontend zeigt „KI-Zugang nicht eingerichtet“. Tests in `test_ci_laufzeit.py` (nutzt `docker compose config`).
 - Suche `search_knowledge` ist hybrid (`app/retrieval.py`): Vektor + Postgres-Volltext (`chunks.tsv`,
   generierte Spalte, Konfiguration `german`), Fusion per RRF. `keyword_search` bleibt woertlich (ILIKE).
+  Zum Messen (SIN-1232) nimmt `GET /api/search` `fusion=hybrid|vector|fulltext` (Standard hybrid, nur `mode=semantic`;
+  kein Werkzeugargument, der Chat sucht immer hybrid); `eval/run_retrieval.py --fusion` weist dazu Recall@10 aus.
 - Kennzeichen-Index: Schluessel immer in der Schreibweise von `tags.normalize_tag` (gross), denn `find_tag`,
   `/api/tags/search`, `/api/facts` und die Hotspot-Suche vergleichen case-sensitiv (`==`, `LIKE`). Die Etage einer
   Mehrstockklemme `-X2:3a` steht als `-X2:3A` im Index, der Kontext behaelt die Schreibweise des Dokuments.

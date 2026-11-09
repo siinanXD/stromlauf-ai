@@ -115,6 +115,11 @@ Gleiche Antwort ergibt immer gleiche Punktzahl (`evallib.py`):
 - `quellen_ok`: Anteil der Fragen, bei denen alle erwarteten Dokumente zitiert wurden (bei `signal`
   gibt es keine Dateinamen, dort gilt es als erfuellt). Prueft nur den Dateinamen, nicht
   den Ort im Dokument.
+- `recall_at_10` (nur `run_retrieval.py`): Anteil der `expect_sources`-Dateien unter den ersten 10 Treffern der
+  hybriden Suche, gemittelt ueber die `semantic`-Fragen mit `expect_sources` (`recall_at_10_fragen`). Eigene Anfrage
+  mit `k=10`; `fakten_mittel` und `quellen_ok` bleiben bei `k=8`. `--fusion vector|fulltext|hybrid` (Standard
+  `hybrid`, im Ergebnis als `fusion`) laesst die Suche nur eine der beiden Ranglisten nutzen, um den Beitrag von
+  Vektor und Volltext zu messen (`GET /api/search?fusion=`).
 - `zitate_gueltig`: Anteil der **pruefbaren** Belege `[[Datei|Ort]]` ueber alle bewerteten Antworten, die der
   Zitat-Resolver des Backends bestaetigt (`app/citations.py`, meta-Event `citation_checks`): Datei in den
   Fundstellen der Werkzeugaufrufe UND Ort in dieser Datei (`S. n`/`Seite n`, `/Blatt.Spalte`, `/Blatt`,
@@ -208,6 +213,7 @@ python eval/run_ingest.py --gold eval/ingest_gold/fb01.json --min 0.95   # Leseg
 python eval/run_retrieval.py                              # alle Fragen mit retrieval, Sekunden
 python eval/run_retrieval.py --only ur01 --min 0.9        # Filter; Exit-Code 1 unter dem Fakten-Mittel
 python eval/run_retrieval.py --baseline eval/results/referenz_retrieval_2026-09-27.json
+python eval/run_retrieval.py --fusion vector             # nur Vektor-Rangliste (auch fulltext, Standard hybrid)
 
 python eval/rescore.py eval/results/referenz_2026-09-26.json --out eval/results/neu.json
 
