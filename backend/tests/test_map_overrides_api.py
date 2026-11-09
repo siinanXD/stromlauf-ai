@@ -234,35 +234,63 @@ def test_korrektur_ueberlebt_neu_verarbeiten(client, headers, maschine, monkeypa
     assert _teile(client, headers, machine_id) == {"-K1": ("+BP1", "Hauptschütz")}
 
 
-def test_ausgeblendetes_teil_behaelt_einbauort_fuer_schrankbelege(client, headers, maschine, tmp_path):
-    """Review zu SIN-1220: -K1 sitzt in +ST1. Ausblenden im Modell darf den Schrank +ST2 nicht als Beleg zulassen."""
+def _schraenke_st1_st2(machine_id: str, tmp_path) -> None:
+    """Zwei Schränke mit Einbauort, beide zeigen -K1; braucht den gesetzten Workspace."""
     from PIL import Image
 
+    from app.db import session_scope
+    from app.models import CabinetHotspot, CabinetImage
+
+    bild = tmp_path / "schrank.png"
+    Image.new("RGB", (40, 30), "white").save(bild)
+    with session_scope() as session:
+        for code in ("+ST1", "+ST2"):
+            schrank = CabinetImage(machine_id=machine_id, title=f"Schrank {code}", location_code=code, image_path=str(bild), width=40, height=30)
+            session.add(schrank)
+            session.flush()
+            session.add(CabinetHotspot(cabinet_id=schrank.id, tag="-K1", label="", x=0.1, y=0.1, w=0.1, h=0.1))
+
+
+def _beleg_zonen(machine_id: str) -> list[str | None]:
     from app.api.answer_meta import build_meta
     from app.db import session_scope
-    from app.models import CabinetHotspot, CabinetImage, Machine
+    from app.models import Machine
+
+    with session_scope() as session:
+        quelle = session.get(Machine, machine_id).source_id
+        meta = build_meta(session, answer="Prüfe -K1.", citations=[], source_ids=[quelle], machine_id=machine_id)
+    return [e["zone"] for e in meta["evidence"] if e["kind"] == "cabinet"]
+
+
+def test_ausgeblendetes_teil_behaelt_einbauort_fuer_schrankbelege(client, headers, maschine, tmp_path):
+    """Review zu SIN-1220: -K1 sitzt in +ST1. Ausblenden im Modell darf den Schrank +ST2 nicht als Beleg zulassen."""
     from app.tenancy import reset_workspace, set_workspace
 
     machine_id, _ = maschine
-    bild = tmp_path / "schrank.png"
-    Image.new("RGB", (40, 30), "white").save(bild)
     token = set_workspace(WS)
     try:
-        with session_scope() as session:
-            for code in ("+ST1", "+ST2"):
-                schrank = CabinetImage(machine_id=machine_id, title=f"Schrank {code}", location_code=code, image_path=str(bild), width=40, height=30)
-                session.add(schrank)
-                session.flush()
-                session.add(CabinetHotspot(cabinet_id=schrank.id, tag="-K1", label="", x=0.1, y=0.1, w=0.1, h=0.1))
-
-        def zonen() -> list[str | None]:
-            with session_scope() as session:
-                quelle = session.get(Machine, machine_id).source_id
-                meta = build_meta(session, answer="Prüfe -K1.", citations=[], source_ids=[quelle], machine_id=machine_id)
-            return [e["zone"] for e in meta["evidence"] if e["kind"] == "cabinet"]
-
-        assert zonen() == ["+ST1"]
+        _schraenke_st1_st2(machine_id, tmp_path)
+        assert _beleg_zonen(machine_id) == ["+ST1"]
         assert client.patch(f"/api/machines/{machine_id}/map/parts/-K1", json={"hidden": True}, headers=headers).status_code == 200
-        assert zonen() == ["+ST1"]
+        assert _beleg_zonen(machine_id) == ["+ST1"]
+    finally:
+        reset_workspace(token)
+
+
+@pytest.mark.parametrize(("eingabe", "schrank"), [(" +ST1 ", "+ST1"), (" +ST2 ", "+ST2")])
+def test_korrigierter_einbauort_mit_leerzeichen_laesst_keinen_fremden_schrank_zu(client, headers, maschine, tmp_path, eingabe, schrank):
+    """Review zu SIN-1220: die Korrektur bleibt wie getippt stehen, zählt aber als Einbauort, auch ausgeblendet."""
+    from app.tenancy import reset_workspace, set_workspace
+
+    machine_id, _ = maschine
+    adresse = f"/api/machines/{machine_id}/map/parts/-K1"
+    token = set_workspace(WS)
+    try:
+        _schraenke_st1_st2(machine_id, tmp_path)
+        assert client.patch(adresse, json={"zone_code": eingabe}, headers=headers).status_code == 200
+        assert _teile(client, headers, machine_id)["-K1"][0] == eingabe
+        assert _beleg_zonen(machine_id) == [schrank]
+        assert client.patch(adresse, json={"hidden": True}, headers=headers).status_code == 200
+        assert _beleg_zonen(machine_id) == [schrank]
     finally:
         reset_workspace(token)

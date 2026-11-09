@@ -72,6 +72,45 @@ def test_einbauort_vergleicht_ohne_gross_klein_und_leerzeichen():
     assert [e["cabinet_id"] for e in hotspot_evidence(machine, ["-K1"], {"-K1": "+bp1"})] == ["c2"]
 
 
+def test_korrigierter_einbauort_mit_leerzeichen_laesst_keinen_fremden_schrank_zu(monkeypatch):
+    """Review zu SIN-1220: das Modell behaelt die Korrektur " +st2 " wie getippt. Sie zaehlt trotzdem als Einbauort;
+    eine Blatt-Zone sagt weiter nichts ueber den Ort aus, -M1 bleibt in beiden Schraenken."""
+    from app.api import answer_meta
+
+    def cabinet(key, code):
+        spots = [
+            SimpleNamespace(id=f"{key}{tag}", tag=tag, label="", x=0, y=0, w=0.1, h=0.1, confirmed=True)
+            for tag in ("-K1", "-M1")
+        ]
+        return SimpleNamespace(id=key, title=key, location_code=code, hotspots=spots)
+
+    machine = SimpleNamespace(cabinets=[cabinet("c1", "+ST1"), cabinet("c2", "+ST2")])
+
+    def model(_session, _machine, *, keep_hidden=False):
+        assert keep_hidden
+        return {"zones": [{"code": " +st2 ", "parts": [{"tag": "-K1"}]}, {"code": "Blatt 4", "parts": [{"tag": "-M1"}]}]}
+
+    monkeypatch.setattr(answer_meta, "machine_map_data", model)
+    monkeypatch.setattr(answer_meta, "device_tags_by_source", lambda session, ids: {"s": {"-K1", "-M1"}})
+    monkeypatch.setattr(answer_meta, "check_answer", lambda session, answer, ids, citations: ([], True))
+    monkeypatch.setattr(answer_meta, "plan_rows", lambda session, tags, ids: [])
+    monkeypatch.setattr(answer_meta, "signal_start", lambda tags, ids: None)
+
+    meta = answer_meta.build_meta(
+        SimpleNamespace(get=lambda _model, _key: machine),
+        answer="Prüfe -K1 und -M1.",
+        citations=[],
+        source_ids=["s"],
+        machine_id="m1",
+    )
+
+    assert [(e["cabinet_id"], e["tag"], e["zone"]) for e in meta["evidence"]] == [
+        ("c1", "-M1", "+ST1"),
+        ("c2", "-K1", "+ST2"),
+        ("c2", "-M1", "+ST2"),
+    ]
+
+
 # --- Stoerfall-Arbeitsflaeche (Spur B3): part_kinds, signal_start, plan_spots gegen FB-01, ohne Datenbank ----------
 
 FB01 = Path(__file__).resolve().parents[2] / "examples" / "foerderband"
