@@ -293,10 +293,18 @@ class CabinetOut(BaseModel):
     id: str
     machine_id: str
     title: str
+    location_code: str | None = None
     width: int
     height: int
     created_at: datetime
     hotspots: list[HotspotOut] = []
+
+
+class CabinetUpdate(BaseModel):
+    """Titel oder Einbauort eines Schranks; location_code null nimmt die Zuordnung zurueck."""
+
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    location_code: str | None = Field(default=None, max_length=120)
 
 
 class MachineListItem(BaseModel):
@@ -611,3 +619,19 @@ class ZeitenOut(BaseModel):
     schritte: dict[str, ZeitenKennzahl]
     gesamt: ZeitenKennzahl
     fragen: ZeitenKennzahl
+
+
+class MapPartPatch(BaseModel):
+    """Korrektur an einem Teil des Maschinenmodells; ein Feld mit null nimmt nur diese Korrektur zurück."""
+
+    zone_code: str | None = Field(default=None, min_length=1, max_length=120)
+    label: str | None = Field(default=None, max_length=200)
+    hidden: bool = False
+
+
+class MapPartOut(BaseModel):
+    machine_id: str
+    tag: str
+    zone_code: str | None
+    label: str | None
+    hidden: bool

@@ -26,6 +26,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.machine_map import machine_map_data
 from app.api.signal import graph_for_source
 from app.citations import check_answer
 from app.db import session_scope
@@ -81,28 +82,41 @@ def page_evidence(citations: list[dict]) -> list[dict]:
     return out
 
 
-def hotspot_evidence(machine: Machine | None, tags: list[str]) -> list[dict]:
+def _place(code: str) -> str:
+    """Vergleichsform eines Einbauorts: "+st1" am Foto und "+ST1" im Modell sind derselbe Ort (SIN-1220)."""
+    return "".join(code.split()).upper()
+
+
+def hotspot_evidence(machine: Machine | None, tags: list[str], zones: dict[str, str] | None = None) -> list[dict]:
+    """Schrankfotos mit den Teilen der Antwort. zones: Kennzeichen -> Einbauort aus dem Maschinenmodell; ein Schrank
+    mit location_code zaehlt fuer ein Teil nur, wenn dessen Einbauort unbekannt ist oder passt (SIN-1220)."""
     if machine is None or not tags:
         return []
     wanted = {t.upper() for t in tags}
+    zones = {tag.upper(): _place(code) for tag, code in (zones or {}).items()}
     out: list[dict] = []
     for cabinet in machine.cabinets:
         for hotspot in cabinet.hotspots:
-            if hotspot.tag and hotspot.tag.upper() in wanted:
-                out.append(
-                    {
-                        "kind": "cabinet",
-                        "cabinet_id": cabinet.id,
-                        "cabinet_title": cabinet.title,
-                        "hotspot_id": hotspot.id,
-                        "tag": hotspot.tag,
-                        "label": hotspot.label,
-                        "box": {"x": hotspot.x, "y": hotspot.y, "w": hotspot.w, "h": hotspot.h},
-                        "confirmed": hotspot.confirmed,
-                    }
-                )
-                if len(out) >= MAX_HOTSPOT_EVIDENCE:
-                    return out
+            if not hotspot.tag or hotspot.tag.upper() not in wanted:
+                continue
+            zone = zones.get(hotspot.tag.upper())
+            if cabinet.location_code and zone and zone != _place(cabinet.location_code):
+                continue
+            out.append(
+                {
+                    "kind": "cabinet",
+                    "cabinet_id": cabinet.id,
+                    "cabinet_title": cabinet.title,
+                    "zone": cabinet.location_code,
+                    "hotspot_id": hotspot.id,
+                    "tag": hotspot.tag,
+                    "label": hotspot.label,
+                    "box": {"x": hotspot.x, "y": hotspot.y, "w": hotspot.w, "h": hotspot.h},
+                    "confirmed": hotspot.confirmed,
+                }
+            )
+            if len(out) >= MAX_HOTSPOT_EVIDENCE:
+                return out
     return out
 
 
@@ -284,12 +298,18 @@ def build_meta(
     by_source = device_tags_by_source(session, source_ids)
     tags = tags_in_answer(answer, set().union(*by_source.values()))
     machine = session.get(Machine, machine_id) if machine_id else None
+    # Einbauorte nur rechnen, wenn ein Schrank einen hat: das Modell liest Stueckliste und Blatt-Map (SIN-1220)
+    zones = (
+        {part["tag"]: zone["code"] for zone in machine_map_data(session, machine, keep_hidden=True)["zones"] if _place(zone["code"]).startswith("+") for part in zone["parts"]}
+        if machine and any(c.location_code for c in machine.cabinets)
+        else None
+    )
     checks, valid = check_answer(session, answer, source_ids, citations)
     spots = first_plan_rows(tags, plan_rows(session, tags, source_ids))
     return {
         "referenced_tags": tags,
         "citations": citations,
-        "evidence": [*hotspot_evidence(machine, tags), *page_evidence(citations)],
+        "evidence": [*hotspot_evidence(machine, tags, zones), *page_evidence(citations)],
         "citation_checks": checks,
         "citations_valid": valid,
         "part_kinds": part_kinds(tags, by_source),

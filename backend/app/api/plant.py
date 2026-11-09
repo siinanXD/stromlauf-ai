@@ -42,6 +42,7 @@ from app.models import (
 )
 from app.schemas import (
     CabinetOut,
+    CabinetUpdate,
     ExperienceHit,
     FaultHits,
     FaultIn,
@@ -469,12 +470,20 @@ def upload_cabinet(
     machine_id: str,
     file: UploadFile = File(...),
     title: str = Form("Schaltschrank"),
+    location_code: str = Form("", max_length=120),
     session: Session = Depends(get_session),
 ):
     machine = _get(session, Machine, machine_id, "Maschine")
     target = _store_image(file)
     width, height = image_size(target)
-    cabinet = CabinetImage(machine_id=machine.id, title=title.strip() or "Schaltschrank", image_path=str(target), width=width, height=height)
+    cabinet = CabinetImage(
+        machine_id=machine.id,
+        title=title.strip() or "Schaltschrank",
+        location_code=location_code.strip() or None,
+        image_path=str(target),
+        width=width,
+        height=height,
+    )
     session.add(cabinet)
     session.commit()
     session.refresh(cabinet)
@@ -484,6 +493,18 @@ def upload_cabinet(
 @router.get("/cabinets/{cabinet_id}", response_model=CabinetOut)
 def get_cabinet(cabinet_id: str, session: Session = Depends(get_session)):
     return CabinetOut.model_validate(_get(session, CabinetImage, cabinet_id, "Schaltschrankbild"))
+
+
+@router.patch("/cabinets/{cabinet_id}", response_model=CabinetOut)
+def update_cabinet(cabinet_id: str, body: CabinetUpdate, session: Session = Depends(get_session)):
+    cabinet = _get(session, CabinetImage, cabinet_id, "Schaltschrankbild")
+    data = body.model_dump(exclude_unset=True)
+    if "title" in data and data["title"] is not None:
+        cabinet.title = data["title"].strip() or cabinet.title
+    if "location_code" in data:
+        cabinet.location_code = (data["location_code"] or "").strip() or None
+    session.commit()
+    return CabinetOut.model_validate(cabinet)
 
 
 @router.get("/cabinets/{cabinet_id}/image")
