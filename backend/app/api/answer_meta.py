@@ -3,7 +3,8 @@ ohne weiteren Modellaufruf (docs/product/ux-spec.md §3.2, Issue #27).
 
 - referenced_tags: Betriebsmittel aus dem Antworttext, die im Kennzeichen-Index der Quelle vorkommen
 - citations: die Fundstellen der Werkzeugaufrufe (dedupliziert)
-- evidence: Seiten der Zitate (fuer Belegbilder) und Hotspots in Schaltschrankfotos der Maschine
+- evidence: Seiten der Zitate (fuer Belegbilder; `box` = Spaltenausschnitt, wenn die Antwort `/Blatt.Spalte` dieser
+  Seite belegt) und Hotspots in Schaltschrankfotos der Maschine
 - citation_checks / citations_valid: jeder Beleg [[Datei|Ort]] der Antwort, gegen Fundstellen und Index
   geprueft (app/citations.py, Issue #46)
 
@@ -32,7 +33,7 @@ from app.citations import check_answer
 from app.db import session_scope
 from app.ingestion.letter_codes import OFFEN, detect_edition, kind_of
 from app.ingestion.page_titles import is_parts_list
-from app.ingestion.pdf_layout import sheet_map
+from app.ingestion.pdf_layout import page_columns, parse_ref, sheet_map, sheet_page
 from app.ingestion.signal_graph import signal_path
 from app.ingestion.tag_columns import tag_columns
 from app.ingestion.tags import extract_tags
@@ -80,6 +81,37 @@ def page_evidence(citations: list[dict]) -> list[dict]:
         if len(out) >= MAX_PAGE_EVIDENCE:
             break
     return out
+
+
+def column_box(path: Path, page: int, locators: list[str]) -> dict | None:
+    """Spaltenausschnitt in Anteilen 0 bis 1 der Seite fuer den ersten Beleg `/Blatt.Spalte`, dessen Blatt auf dieser
+    Seite liegt (SIN-1236). None ohne solchen Beleg, ohne Spaltenraster, bei gedrehter Seite (page_columns findet
+    dort keine Kopfzeile) und bei unlesbarer Datei: Dann bleibt der Beleg die ganze Seite."""
+    for locator in locators:
+        sheet, column, _page = parse_ref(locator)
+        if sheet is None:
+            continue
+        try:
+            if sheet_page(path, sheet).page != page:
+                continue
+            hit = next((c for c in page_columns(path, page) if c.n == column), None)
+        except (OSError, RuntimeError):  # fehlende Datei, pypdfium2.PdfiumError (RuntimeError)
+            return None
+        if hit:
+            return {"x0": hit.x0, "y0": hit.y0, "x1": hit.x1, "y1": hit.y1}
+    return None
+
+
+def add_column_boxes(session: Session, evidence: list[dict], checks: list[dict]) -> list[dict]:
+    """Haengt `box` an Seitenbelege, deren Datei die Antwort mit Spalte belegt; Dateiname wie im Zitat-Resolver
+    ohne Gross/Klein und ohne Endung verglichen."""
+    for item in evidence:
+        stem = Path(item["filename"]).stem.lower()
+        locators = [c["locator"] for c in checks if Path(c["file"].strip()).stem.lower() == stem]
+        document = session.get(Document, item["document_id"]) if locators else None
+        if document and (box := column_box(Path(document.storage_path), item["page"], locators)):
+            item["box"] = box
+    return evidence
 
 
 def _place(code: str) -> str:
@@ -309,7 +341,10 @@ def build_meta(
     return {
         "referenced_tags": tags,
         "citations": citations,
-        "evidence": [*hotspot_evidence(machine, tags, zones), *page_evidence(citations)],
+        "evidence": [
+            *hotspot_evidence(machine, tags, zones),
+            *add_column_boxes(session, page_evidence(citations), checks),
+        ],
         "citation_checks": checks,
         "citations_valid": valid,
         "part_kinds": part_kinds(tags, by_source),

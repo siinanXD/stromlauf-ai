@@ -43,8 +43,14 @@ Kurz: was schaltet was, welche Bedingungen muessen erfuellt sein, Sicherheitsfun
 """
 
 
-def render_page_png(path: Path, page: int, max_edge: int | None = None) -> bytes:
-    """Rendert eine PDF-Seite (1-basiert) als PNG mit begrenzter laengster Kante."""
+def render_page_png(
+    path: Path,
+    page: int,
+    max_edge: int | None = None,
+    box: tuple[float, float, float, float] | None = None,
+) -> bytes:
+    """Rendert eine PDF-Seite (1-basiert) als PNG mit begrenzter laengster Kante; box = Ausschnitt (x0, y0, x1, y1)
+    in Anteilen 0 bis 1 der Seite, Ursprung oben links."""
     max_edge = max_edge or get_settings().vision_max_edge
     with pdfium_lock:
         pdf = pdfium.PdfDocument(str(path))
@@ -57,6 +63,12 @@ def render_page_png(path: Path, page: int, max_edge: int | None = None) -> bytes
             image = pdf_page.render(scale=scale).to_pil().convert("RGB")
         finally:
             pdf.close()
+    if box:
+        x0, y0, x1, y1 = box
+        left, top = int(x0 * image.width), int(y0 * image.height)
+        # mindestens ein Pixel: ein leeres Bild laesst sich nicht als PNG speichern
+        right, bottom = max(round(x1 * image.width), left + 1), max(round(y1 * image.height), top + 1)
+        image = image.crop((left, top, right, bottom))
     buffer = io.BytesIO()
     image.save(buffer, format="PNG", optimize=True)
     return buffer.getvalue()
