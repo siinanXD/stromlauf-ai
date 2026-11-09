@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     # OpenAI-kompatiblen Endpunkt an (Ollama: http://localhost:11434/v1), der Schluessel darf dann fehlen.
     plan_reader_model: str = ""
     plan_reader_base_url: str = ""
+    # Modell-Rueckfall je Seite beim Upload (Issue #122): Seiten, deren Vertrauensmass unter der Schwelle liegt,
+    # liest ein Modell nach. Mass und Herleitung der Schwelle: app/ingestion/page_confidence.py (THRESHOLD).
+    page_reader_fallback: bool = True
+    page_reader_threshold: float = 0.8
     # Lokale Modelle ueber Ollamas OpenAI-Endpunkt: Modellname "ollama:qwen3.5:4b" (CHAT_MODEL, PLAN_READER_MODEL,
     # eval --model). Kein Schluessel, keine Kosten, Thinking aus, solange der Name keinen Aufwand nennt (@low).
     ollama_base_url: str = "http://localhost:11434/v1"
