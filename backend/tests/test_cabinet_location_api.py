@@ -108,6 +108,39 @@ def test_einbauort_anlegen_aendern_zuruecknehmen(client, machine):
     )
 
 
+def _upload(client, machine, **felder):
+    return client.post(
+        f"/api/machines/{machine}/cabinets",
+        files={"file": ("schrank.png", _png(), "image/png")},
+        data=felder,
+    )
+
+
+def test_einbauort_mit_120_zeichen_passt_in_die_spalte(client, machine):
+    antwort = _upload(client, machine, location_code="+" * 120)
+    assert antwort.status_code == 201
+    assert antwort.json()["location_code"] == "+" * 120
+
+
+def test_einbauort_mit_121_zeichen_422_ohne_datei_und_zeile(client, machine):
+    from app.config import get_settings
+
+    bilder = get_settings().data_dir / "images"
+    vorher = set(bilder.glob("*"))
+    antwort = _upload(client, machine, location_code="+" * 121)
+    assert antwort.status_code == 422
+    assert set(bilder.glob("*")) == vorher
+    schraenke = client.get(f"/api/machines/{machine}").json()["cabinets"]
+    assert [c["title"] for c in schraenke] == ["Altes Foto"]
+
+
+@pytest.mark.parametrize("felder", [{}, {"location_code": ""}])
+def test_einbauort_weggelassen_oder_leer_bleibt_null(client, machine, felder):
+    antwort = _upload(client, machine, **felder)
+    assert antwort.status_code == 201
+    assert antwort.json()["location_code"] is None
+
+
 def test_alte_fotos_ohne_einbauort_bleiben_gueltig(client, machine):
     schraenke = client.get(f"/api/machines/{machine}").json()["cabinets"]
     assert [(c["title"], c["location_code"]) for c in schraenke] == [("Altes Foto", None)]

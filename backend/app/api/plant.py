@@ -470,7 +470,7 @@ def upload_cabinet(
     machine_id: str,
     file: UploadFile = File(...),
     title: str = Form("Schaltschrank"),
-    location_code: str = Form(""),
+    location_code: str = Form("", max_length=120),
     session: Session = Depends(get_session),
 ):
     machine = _get(session, Machine, machine_id, "Maschine")
