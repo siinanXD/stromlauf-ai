@@ -300,7 +300,7 @@ def build_meta(
     machine = session.get(Machine, machine_id) if machine_id else None
     # Einbauorte nur rechnen, wenn ein Schrank einen hat: das Modell liest Stueckliste und Blatt-Map (SIN-1220)
     zones = (
-        {part["tag"]: zone["code"] for zone in machine_map_data(session, machine)["zones"] if zone["code"].startswith("+") for part in zone["parts"]}
+        {part["tag"]: zone["code"] for zone in machine_map_data(session, machine, keep_hidden=True)["zones"] if zone["code"].startswith("+") for part in zone["parts"]}
         if machine and any(c.location_code for c in machine.cabinets)
         else None
     )

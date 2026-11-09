@@ -139,8 +139,9 @@ def reset_part(machine_id: str, tag: str, session: Session = Depends(get_session
     return Response(status_code=204)
 
 
-def machine_map_data(session: Session, machine: Machine) -> dict:
-    """Modell einer Maschine; auch fuer den Ablauf (app/ablauf/lauf.py)."""
+def machine_map_data(session: Session, machine: Machine, *, keep_hidden: bool = False) -> dict:
+    """Modell einer Maschine; auch fuer den Ablauf (app/ablauf/lauf.py). keep_hidden: ausgeblendete Teile bleiben in
+    ihrer Zone, weil Ausblenden nur die Ansicht betrifft, nicht den Einbauort (Schrankbelege, SIN-1220)."""
     machine_id = machine.id
     if not machine.source_id:
         return {"machine_id": machine_id, **build_map([]).as_dict(), "source_id": None}
@@ -170,7 +171,7 @@ def machine_map_data(session: Session, machine: Machine) -> dict:
             )
         )
     corrections = {
-        row.tag: Correction(row.zone_code, row.label, row.hidden)
+        row.tag: Correction(row.zone_code, row.label, row.hidden and not keep_hidden)
         for row in session.scalars(select(MapOverride).where(MapOverride.machine_id == machine_id))
     }
     return {
