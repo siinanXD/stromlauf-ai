@@ -26,7 +26,7 @@ Figma: `wtxajO1YC5HvtQG7CI44BC`, Seite „Screens · Desktop“ (Vorlagen und Be
 | Weg | Prüft | Figma-Frame |
 | --- | --- | --- |
 | 1 `maschine-oeffnen` | Übersicht → FB-01, Kopf, Meldungsfeld, Bereich Aufbau | `Desktop · Störfall mit Detail` (Kopfzeile, Spalte Störfälle) |
-| 2 `stoerfall-melden` | Meldung → Block Fehlerliste mit E-F2 und Ursache „Motorschutz -F2 ausgelöst“ | `Desktop · Störfall mit Detail` (Block-Karte „Fehlerliste“) |
+| 2 `stoerfall-melden` | Meldung → Block Fehlerliste mit E-F2 und Ursache „Motorschutz -F2 ausgelöst“, Haftungszeile unter dem Eingabefeld (SIN-1218) | `Desktop · Störfall mit Detail` (Block-Karte „Fehlerliste“) |
 | 3 `quelle-der-antwort` | Fehlereintrag nennt „Stromlaufplan Blatt 3“; Bauteil -F2, Befundkarte `/3.2`, Planseite des Stromlaufplans öffnet | `Desktop · Störfall mit Detail` (Detail -F2: Befundkarte, Planseite-Karte) |
 | 4 `signalweg-oeffnen` | „Signalweg öffnen“ → Hauptweg -F2 bis -M1 über -X3:3, E0.2, FB 10 NW 1, A4.0, -X3:9, -K1, -X4:U | `Desktop · Signalweg Vollbild` |
 | 5 `signalweg-quelle` | Planseite-Karte „Seite 3“, „Groß öffnen“ zeigt `01_Stromlaufplan_FB-01.pdf`, Seite 3 | `Desktop · Signalweg Vollbild` (Auswahl, Planseite-Karte) |

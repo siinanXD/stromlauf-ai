@@ -367,6 +367,10 @@ export function ChatPanel({
             </button>
           )}
         </div>
+        {/* Haftungszeile (GitHub #53, SIN-1218): ein Hinweis ist kein Freigabeschein */}
+        <p className="mx-auto mt-2 max-w-3xl text-footnote text-muted-foreground" data-testid="haftungszeile">
+          Belegte Hinweise; Prüfung durch Elektrofachkraft nach den 5 Sicherheitsregeln
+        </p>
       </form>
     </div>
   );

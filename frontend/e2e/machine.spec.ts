@@ -129,6 +129,18 @@ test.describe("mit gespeichertem Störfall", () => {
     await expect(zones.locator('li[data-zone="+ST1"]')).toHaveAttribute("data-lit", "true");
   });
 
+  test("Haftungszeile unter dem Eingabefeld, auf der Maschinenseite und im werksweiten Chat (SIN-1218)", async ({ page }) => {
+    const zeile = "Belegte Hinweise; Prüfung durch Elektrofachkraft nach den 5 Sicherheitsregeln";
+    await page.goto(`/werk/maschine/${MACHINE_ID}?fall=conv-1`);
+    await expect(page.getByTestId("haftungszeile")).toHaveText(zeile);
+    await noHorizontalScroll(page);
+    const axe = await new AxeBuilder({ page }).include('[data-testid="haftungszeile"]').withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(axe.violations, JSON.stringify(axe.violations, null, 1)).toEqual([]);
+    await page.goto("/");
+    await expect(page.getByTestId("haftungszeile")).toHaveText(zeile);
+    await noHorizontalScroll(page);
+  });
+
   test("Alte Links: ?tab=… öffnet den Aufbau, ?tab=chat die Störfälle", async ({ page }) => {
     await page.goto(`/werk/maschine/${MACHINE_ID}?tab=schaltschrank`);
     // der Aufbau ist ein eigener Bundle-Teil; im Dev-Server wird er beim ersten Aufruf erst uebersetzt

@@ -76,6 +76,8 @@ test("2-stoerfall-melden: Meldung findet den Fehlereintrag E-F2 mit Ursache", as
   await expect(faults).toBeVisible();
   await expect(faults).toContainText("E-F2");
   await expect(faults).toContainText(/Motorschutz -F2 ausgel(ö|oe)st/);
+  // Haftungszeile unter dem Eingabefeld (SIN-1218)
+  await expect(page.getByTestId("haftungszeile")).toHaveText("Belegte Hinweise; Prüfung durch Elektrofachkraft nach den 5 Sicherheitsregeln");
 });
 
 test("3-quelle-der-antwort: Fehlereintrag nennt Fundstelle Stromlaufplan Blatt 3, die Planseite oeffnet", async ({ page }) => {
