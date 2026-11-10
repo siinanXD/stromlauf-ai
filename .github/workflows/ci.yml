@@ -246,6 +246,14 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
           npx playwright test e2e/demo.spec.ts --project=desktop-1440 --workers=1 --repeat-each=3
+      # Spuren der fehlgeschlagenen Fragen (trace: retain-on-failure): zeigt die Antwort und ihre Belege (SIN-1622).
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: demo-playwright-report
+          path: frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Screenshot der Maschinenseite
         if: ${{ env.HAS_KEY == 'true' }}
         env:
