@@ -17,10 +17,17 @@ describe("isNonPublicApiUrl", () => {
     "http://[fe80::1]",
     "http://[::ffff:10.0.0.1]",
     "http://169.254.169.254",
+    "http://sinanspc:8010",
+    "http://nas",
+    "http://localhost.:8010",
+    "http://rechner.local.",
+    "https://sinanspc.tail046f7f.ts.net.:8443",
+    "http://0.0.0.0:8010",
+    "http://[::]:8010",
     "kein url",
   ])("%s ist nicht oeffentlich", (url) => expect(isNonPublicApiUrl(url)).toBe(true));
 
-  it.each(["https://api.example.com", "https://stromlauf-api.fly.dev/", "http://172.32.0.1", "http://100.128.0.1", "http://8.8.8.8:8010", "http://[2a01:4f8::1]:8010"])(
+  it.each(["https://api.example.com", "https://api.example.com.", "https://stromlauf-api.fly.dev/", "http://172.32.0.1", "http://100.128.0.1", "http://8.8.8.8:8010", "http://[2a01:4f8::1]:8010"])(
     "%s ist oeffentlich",
     (url) => expect(isNonPublicApiUrl(url)).toBe(false),
   );
