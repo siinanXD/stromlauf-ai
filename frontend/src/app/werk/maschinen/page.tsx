@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { ChatNotice } from "@/components/chat/chatError";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { MACHINE_TYPE_LABELS, plant, type MachineListItem } from "@/lib/api";
 import { docsLabel, filterMachines, summarizeMachines } from "@/lib/machines";
@@ -44,7 +45,7 @@ export default function MachinesPage() {
             </span>
           )}
           <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
-            <OnboardingDialog onCreated={load} />
+            {!error && <OnboardingDialog onCreated={load} />}
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -54,9 +55,14 @@ export default function MachinesPage() {
             />
           </div>
         </div>
-        {error && <p className="border-b border-border px-4 py-1.5 text-xs text-danger">{error}</p>}
 
         <div className="min-h-0 flex-1 overflow-auto">
+          {error && (
+            <div className="space-y-1 p-6 text-sm" role="alert" data-testid="maschinen-fehler">
+              <h2 className="font-semibold text-danger">Die Maschinenübersicht ist nicht verfügbar.</h2>
+              <ChatNotice raw={error} />
+            </div>
+          )}
           {machines && machines.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground">
               Noch keine Maschinen. Lege eine Maschine aus ihrer Dokumentation an („Aus Dokumentation anlegen“) oder lade das

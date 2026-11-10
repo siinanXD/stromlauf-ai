@@ -2,10 +2,11 @@
  * Fehler einer Antwort fuer Menschen: ein Satz statt Server- oder Ausnahmetext (keine Umgebungsvariablen,
  * Dateien, Ports, Klassennamen). Der Rohtext steht nur zugeklappt unter "Details".
  */
-import type { Health } from "@/lib/api";
+import { NO_BACKEND, type Health } from "@/lib/api";
 
 const MISSING_KEY = /_API_KEY|api[ _-]?key|\.env\b|schl(ü|ue)ssel (fehlt|nicht)|kein(en)? schl(ü|ue)ssel|missingkeyerror/i;
 const BUDGET = /monatslimit|budget/i;
+const PREVIEW = new RegExp(NO_BACKEND, "i");
 const NETWORK = /failed to fetch|networkerror|load failed|network request failed|nicht erreichbar/i;
 const TIMEOUT = /zeitlimit|timeout|timed out|zu lange/i;
 
@@ -32,6 +33,8 @@ export function describeChatError(
       : answer
         ? "Der KI-Zugang ist nicht eingerichtet."
         : "Der KI-Zugang ist nicht eingerichtet. Hochladen und Verwalten funktionieren trotzdem.";
+  else if (PREVIEW.test(text))
+    message = "Diese öffentliche Vorschau hat noch keinen Server. Maschinen, Dokumente und Antworten gibt es erst, wenn die Demo gehostet ist.";
   else if (BUDGET.test(text)) message = "Das KI-Monatslimit ist erreicht. Neue Antworten gibt es ab dem nächsten Monat oder mit höherem Limit.";
   else if (NETWORK.test(text)) message = answer ? "Keine Verbindung zum Server. Die Antwort ist fehlgeschlagen." : "Keine Verbindung zum Server.";
   else if (TIMEOUT.test(text)) message = "Die Antwort hat zu lange gedauert und wurde abgebrochen.";

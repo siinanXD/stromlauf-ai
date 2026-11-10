@@ -30,6 +30,7 @@ Figma: `wtxajO1YC5HvtQG7CI44BC`, Seite „Screens · Desktop“ (Vorlagen und Be
 | 3 `quelle-der-antwort` | Fehlereintrag nennt „Stromlaufplan Blatt 3“; Bauteil -F2, Befundkarte `/3.2`, Planseite des Stromlaufplans öffnet | `Desktop · Störfall mit Detail` (Detail -F2: Befundkarte, Planseite-Karte) |
 | 4 `signalweg-oeffnen` | „Signalweg öffnen“ → Hauptweg -F2 bis -M1 über -X3:3, E0.2, FB 10 NW 1, A4.0, -X3:9, -K1, -X4:U | `Desktop · Signalweg Vollbild` |
 | 5 `signalweg-quelle` | Planseite-Karte „Seite 3“, „Groß öffnen“ zeigt `01_Stromlaufplan_FB-01.pdf`, Seite 3 | `Desktop · Signalweg Vollbild` (Auswahl, Planseite-Karte) |
+| 6 `vorschau-ohne-server` | Alle API-Anfragen scheitern: Erklärtext „Chatbot für die Instandhaltung“, Fehlerhinweis statt „Noch keine Maschine“, kein „Maschine hinzufügen“, Senden aus | `Desktop · Start` (Rail, Eingabe); kein Frame für den Fehlerzustand, Abweichung: Hinweis im Stil von `ChatNotice` |
 
 Screenshots des Laufs vom 2026-11-02 neben den Frames: `docs/assets/nutzerweg/` (`figma-*.png` = Vorlage, `1-…` bis `5-…` = Lauf).
 

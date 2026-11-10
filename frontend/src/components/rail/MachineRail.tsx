@@ -40,6 +40,7 @@ export function applyTheme(theme: "light" | "dark") {
 export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: AuthMe | null; onNavigate?: () => void }) {
   const pathname = usePathname();
   const [machines, setMachines] = useState<MachineListItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState("");
   const [budget, setBudget] = useState<WorkspaceBudget | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -48,8 +49,9 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
     let cancelled = false;
     plant
       .listMachines()
-      .then((list) => !cancelled && setMachines(list))
-      .catch(() => !cancelled && setMachines([]));
+      .then((list) => !cancelled && (setMachines(list), setFailed(false)))
+      // Ein Fehler ist kein Leerzustand: sonst steht "Noch keine Maschine" fuer ein Werk, das nur nicht antwortet
+      .catch(() => !cancelled && setFailed(true));
     costs
       .budget()
       .then((b) => !cancelled && setBudget(b))
@@ -134,7 +136,12 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
 
       <div className="mt-1 min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:thin]" data-testid="machine-rail">
         {full && <p className="px-2.5 pt-3 pb-1 text-footnote font-semibold uppercase">Maschinen</p>}
-        {machines === null && full && <p className="px-2.5 py-1 text-footnote">Lade …</p>}
+        {machines === null && !failed && full && <p className="px-2.5 py-1 text-footnote">Lade …</p>}
+        {failed && full && (
+          <p className="px-2.5 py-1 text-footnote text-danger" role="alert" data-testid="rail-error">
+            Maschinen nicht ladbar: kein Server erreichbar.
+          </p>
+        )}
         {machines && machines.length === 0 && full && <p className="px-2.5 py-1 text-footnote">Noch keine Maschine. Unten „Maschine hinzufügen“.</p>}
         <ul className={cn("space-y-0.5", !full && "mt-3.5 flex flex-col items-center gap-3.5 space-y-0")}>
           {shown.map((m) => {
@@ -182,15 +189,17 @@ export function MachineRail({ mode, me, onNavigate }: { mode: RailMode; me: Auth
             );
           })}
         </ul>
-        <Link
-          href="/werk/maschinen"
-          onClick={onNavigate}
-          className={cn("mt-1 flex min-h-11 items-center gap-2.5 rounded-md px-2.5 text-subhead text-primary hover:bg-muted", !full && "mx-auto mt-3.5 size-11 justify-center px-0")}
-          title="Maschine hinzufügen"
-        >
-          <Plus className="size-5 shrink-0" />
-          {full && <span>Maschine hinzufügen</span>}
-        </Link>
+        {!failed && (
+          <Link
+            href="/werk/maschinen"
+            onClick={onNavigate}
+            className={cn("mt-1 flex min-h-11 items-center gap-2.5 rounded-md px-2.5 text-subhead text-primary hover:bg-muted", !full && "mx-auto mt-3.5 size-11 justify-center px-0")}
+            title="Maschine hinzufügen"
+          >
+            <Plus className="size-5 shrink-0" />
+            {full && <span>Maschine hinzufügen</span>}
+          </Link>
+        )}
       </div>
 
       {full && (

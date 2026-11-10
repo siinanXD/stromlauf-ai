@@ -35,6 +35,13 @@ der Instandhaltung an der Maschine?
   aus dem Kennzeichen-Index. Einbauort aus der Stuecklistenzelle (`locations_in`: `+ST1`, Leitungen
   `+ST1 -> +AN1`), Klartext aus der Kopfzeile derselben Datei (`location_names`, von `api/facts.py`
   nachgeladen). Kein Modell, kein Raten: fehlt die Kopfzeile, steht nur das Ortskennzeichen da.
+- Korrekturen am Maschinenmodell (SIN-1216): Tabelle `map_overrides` (Maschine + Kennzeichen in `tags.normalize_tag`-Schreibweise,
+  `zone_code`, `label`, `hidden`; Alembic `0008`), `PATCH/DELETE /api/machines/{id}/map/parts/{tag}` in `api/machine_map.py`
+  (404 bei unbekanntem Teil und fremdem Workspace, im Demo-Modus gesperrt). `build_map(..., corrections=)` wendet sie nach dem
+  Aufbau an; sie haengen nicht am Index und ueberleben deshalb "Neu verarbeiten". Teile, die der Index nicht mehr kennt, bleiben wirkungslos.
+  Einbauort am Schaltschrank (SIN-1220): `CabinetImage.location_code` (+ST1, Alembic `0009`), Formularfeld beim Anlegen,
+  `PATCH /api/cabinets/{id}` (title, location_code; null nimmt zurueck). `answer_meta.hotspot_evidence` liefert `zone` je Foto
+  und laesst Schraenke mit anderem Einbauort als dem des Teils im Modell weg; Fotos ohne Code gelten fuer alle Teile.
 - Modell ohne Stuecklisten-Datei (Issue #39): `api/machine_map.py::split_rows` trennt Stuecklistenzeilen von
   Plan-Fundstellen, `ingestion/machine_map.py::build_map` nimmt Teile aus dem Kennzeichen-Index und bildet Zonen aus
   dem Blatt der ersten Fundstelle (`Blatt 4` + Titel), wenn kein Einbauort bekannt ist. Die Blattnummer liest
@@ -218,6 +225,10 @@ der Instandhaltung an der Maschine?
   Preise beider Provider in `app/pricing.py` (laengster Praefix gewinnt bei datierten IDs). Fehlt der
   Schluessel des Providers, wirft `llm.MissingKeyError` (ein `RuntimeError`); „Bauteile erkennen“ antwortet
   dann 400 mit dem Namen der Variable, andere Vision-Fehler bleiben 502.
+- Oeffentliche Vorschau (SIN-1522): Im Vercel-Build (`VERCEL` gesetzt) bleibt `NEXT_PUBLIC_API_URL` nur bei oeffentlicher Adresse
+  (`frontend/src/lib/apiUrl.ts`, `next.config.ts`); Tailnet-, Loopback- und private Adressen werden zu "" und stehen nie im Bundle.
+  Leere Adresse = kein Backend: `request()` wirft `NO_BACKEND` ohne Netzaufruf, Rail, Maschinenuebersicht und Startseite zeigen
+  einen Fehler statt Leerzustand und blenden Knoepfe aus, die scheitern muessten. Test `e2e/offline.spec.ts`, Weg 6 des Nutzerwegs.
 - Zugriff: Setting `API_KEY` (leer = offen). Middleware `app/auth.py` prueft `/api/*` ausser `/api/health`;
   Header `X-API-Key` oder `?api_key=` (Bild-URLs). Frontend `NEXT_PUBLIC_API_KEY`, Skripte/MCP `STROMLAUF_API_KEY`.
 - Demo-Modus (SIN-975): `DEMO_MODE=true` (`app/demo.py`, Middleware aeusserste Schicht in `main.py`): schreibende

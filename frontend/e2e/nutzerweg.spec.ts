@@ -121,3 +121,15 @@ test("5-signalweg-quelle: Planseite zum Signalweg oeffnet gross, Stromlaufplan B
   await expect(viewer).toBeVisible();
   await expect(viewer.getByRole("img", { name: "01_Stromlaufplan_FB-01.pdf, Seite 3" })).toBeVisible();
 });
+
+test("6-vorschau-ohne-server: ohne Backend steht ein Fehler, kein Leerzustand und kein Knopf, der scheitern muss", async ({ page }) => {
+  // Die oeffentliche Seite hat bis zum Hosting (SIN-1251) keinen Server: jede API-Anfrage scheitert
+  await page.route(/\/api\//, (route) => route.abort("failed"));
+  await page.goto("/");
+  await expect(page.getByTestId("produkt-erklaerung")).toContainText("Chatbot für die Instandhaltung");
+  await expect(page.getByTestId("chat-notice")).toBeVisible();
+  await expect(page.getByTestId("rail-error")).toBeVisible();
+  await expect(page.getByText("Noch keine Maschine")).toHaveCount(0);
+  await expect(page.getByTitle("Maschine hinzufügen")).toHaveCount(0);
+  await expect(page.getByLabel("Senden")).toBeDisabled();
+});

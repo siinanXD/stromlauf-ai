@@ -2,6 +2,8 @@ import { clearToken, getToken, redirectToLogin } from "./auth";
 
 // Schraegstriche am Ende entfernen: "https://host/" + "/api/..." gaebe sonst "//api/..." (404)
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010").replace(/\/+$/, "");
+/** Leere Adresse = Build ohne Backend (oeffentliche Vorschau, next.config.ts): kein Aufruf, sofort dieser Fehler. */
+export const NO_BACKEND = "Kein Backend konfiguriert";
 /** Gemeinsamer Schlüssel (Backend-Setting API_KEY). Leer = Backend läuft offen oder per Login (JWT). */
 export const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
@@ -319,6 +321,7 @@ export function errorDetail(body: unknown, response: Pick<Response, "status" | "
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (API_URL === "") throw new Error(NO_BACKEND);
   const response = await fetch(`${API_URL}${path}`, { ...init, headers: authHeaders(init?.headers) });
   if (response.status === 401 && !path.startsWith("/api/auth/")) {
     clearToken();
