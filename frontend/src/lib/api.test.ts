@@ -43,3 +43,20 @@ describe("request errors", () => {
     await expect(api.listSources()).rejects.toThrow("500 Internal Server Error");
   });
 });
+
+describe("Build ohne Backend (leere NEXT_PUBLIC_API_URL)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("fails at once with NO_BACKEND and never calls fetch", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "");
+    vi.resetModules();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { api: offlineApi, NO_BACKEND } = await import("./api");
+    await expect(offlineApi.health()).rejects.toThrow(NO_BACKEND);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
