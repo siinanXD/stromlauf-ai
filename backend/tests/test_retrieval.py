@@ -45,3 +45,81 @@ def test_vector_statement_without_filters_has_no_where():
     assert "WHERE" not in sql
     assert "<=>" in sql
     assert 5 in compiled.params.values()
+
+
+# --- Fusion waehlbar (SIN-1232): vector | fulltext | hybrid, ohne Datenbank ---
+
+
+class _Session:
+    """Liefert je Rangliste feste IDs; welche gefragt ist, zeigt der SQL-Operator."""
+
+    def scalars(self, statement):
+        return ["v1", "beide"] if "<=>" in str(_compile(statement)) else ["beide", "t1"]
+
+
+def _ids(**kwargs) -> list[str]:
+    from app.retrieval import hybrid_chunk_ids
+
+    return hybrid_chunk_ids(_Session(), "Motorschutz", [0.0] * 3, [], None, 8, **kwargs)
+
+
+def test_fusion_hybrid_ist_standard_und_verschmilzt_beide_ranglisten():
+    assert _ids() == _ids(fusion="hybrid") == ["beide", "v1", "t1"]
+
+
+def test_fusion_vector_nutzt_nur_den_vektorzweig():
+    assert _ids(fusion="vector") == ["v1", "beide"]
+
+
+def test_fusion_fulltext_nutzt_nur_den_volltextzweig():
+    assert _ids(fusion="fulltext") == ["beide", "t1"]
+
+
+def test_unbekannte_fusion_ist_ein_fehler():
+    import pytest
+
+    with pytest.raises(ValueError):
+        _ids(fusion="quatsch")
+
+
+def test_api_search_reicht_fusion_durch_und_lehnt_unbekannte_ab(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+
+    from app.api import search as api
+
+    seen = {}
+
+    def fake(query, config, k):
+        seen.update(config["configurable"])
+        return "Treffer", []
+
+    monkeypatch.setattr(api, "search_knowledge", type("Tool", (), {"func": staticmethod(fake)}))
+    api.search(q="Motorschutz")
+    assert seen["fusion"] == "hybrid"
+    api.search(q="Motorschutz", fusion="fulltext", source_id="s1")
+    assert seen == {"source_ids": ["s1"], "fusion": "fulltext"}
+    with pytest.raises(HTTPException) as error:
+        api.search(q="Motorschutz", fusion="quatsch")
+    assert error.value.status_code == 400
+
+
+def test_search_knowledge_liest_fusion_aus_der_konfiguration(monkeypatch):
+    from contextlib import contextmanager
+
+    from app.agent import tools
+
+    seen = []
+
+    @contextmanager
+    def no_session():
+        yield None
+
+    monkeypatch.setattr(tools.embeddings, "embed_query", lambda query: [0.0] * 3)
+    monkeypatch.setattr(tools, "session_scope", no_session)
+    monkeypatch.setattr(tools, "hybrid_chunk_ids", lambda *args, **kwargs: seen.append(kwargs) or [])
+    tools.search_knowledge.func(query="x", config={"configurable": {"source_ids": []}})
+    tools.search_knowledge.func(query="x", config={"configurable": {"source_ids": [], "fusion": "vector"}})
+    assert seen == [{"fusion": "hybrid"}, {"fusion": "vector"}]
+    # das Modell darf die Fusion nicht waehlen: kein Argument im Werkzeugschema
+    assert "fusion" not in tools.search_knowledge.args

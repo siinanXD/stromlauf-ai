@@ -110,7 +110,9 @@ def search_knowledge(
     vector = embeddings.embed_query(query)
     limit = max(1, min(k, 20))
     with session_scope() as session:
-        ids = hybrid_chunk_ids(session, query, vector, _source_ids(config), doc_types, limit)
+        # nur ueber die Konfiguration (GET /api/search?fusion=), nicht als Werkzeugargument: das Modell waehlt sie nicht
+        fusion = (config.get("configurable") or {}).get("fusion", "hybrid")
+        ids = hybrid_chunk_ids(session, query, vector, _source_ids(config), doc_types, limit, fusion=fusion)
         if not ids:
             return "Keine Treffer. Sind Dokumente hochgeladen und fertig verarbeitet?", []
         rows = session.execute(

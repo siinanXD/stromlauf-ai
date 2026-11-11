@@ -14,6 +14,8 @@ from app.models import Chunk, Document
 
 TEXT_SEARCH_CONFIG = "german"
 RRF_K = 60
+# Welche Ranglisten zaehlen: beide (Standard) oder nur eine, um ihren Beitrag zu messen (eval/run_retrieval.py --fusion)
+FUSIONS = ("hybrid", "vector", "fulltext")
 
 
 def rrf_merge(rankings: Sequence[Sequence[str]], k: int = RRF_K) -> list[str]:
@@ -67,10 +69,17 @@ def hybrid_chunk_ids(
     source_ids: Iterable[str],
     doc_types: Iterable[str] | None,
     limit: int,
+    fusion: str = "hybrid",
 ) -> list[str]:
-    """Die besten `limit` Chunk-IDs aus beiden Ranglisten (je 3*limit Kandidaten)."""
+    """Die besten `limit` Chunk-IDs aus beiden Ranglisten (je 3*limit Kandidaten); fusion "vector" oder "fulltext"
+    fragt nur die eine Rangliste."""
+    if fusion not in FUSIONS:
+        raise ValueError(f"fusion muss eins sein von {FUSIONS}")
     pool = limit * 3
     source_ids = list(source_ids)
-    by_vector = list(session.scalars(vector_statement(vector, source_ids, doc_types, pool)))
-    by_text = list(session.scalars(fulltext_statement(query, source_ids, doc_types, pool)))
-    return rrf_merge([by_vector, by_text])[:limit]
+    rankings = []
+    if fusion != "fulltext":
+        rankings.append(list(session.scalars(vector_statement(vector, source_ids, doc_types, pool))))
+    if fusion != "vector":
+        rankings.append(list(session.scalars(fulltext_statement(query, source_ids, doc_types, pool))))
+    return rrf_merge(rankings)[:limit]

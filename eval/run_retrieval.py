@@ -2,6 +2,7 @@
 
 Aufruf:  python eval/run_retrieval.py [--api http://localhost:8010] [--only ur01] [--min 0.9]
                                       [--baseline eval/results/referenz_retrieval_<datum>.json]
+                                      [--fusion vector|fulltext|hybrid]
 
 Jede Frage in eval/questions.jsonl mit "retrieval": {"mode", "query"} ruft den passenden Endpunkt auf:
 
@@ -11,6 +12,8 @@ Jede Frage in eval/questions.jsonl mit "retrieval": {"mode", "query"} ruft den p
 
 Die Antwort wird zu Text plus zitierten Dateinamen und mit denselben Regeln bewertet wie eine Agentenantwort
 (fakten, quellen, sauber). Bei signal gibt es keine Dateinamen; quellen gilt dort als erfuellt.
+Fuer semantic-Fragen mit expect_sources steht dazu Recall@10: Anteil der erwarteten Dateien unter den ersten 10
+Treffern (eigene Anfrage mit k=10; die Bewertung bleibt bei k=8). --fusion laesst die Suche nur eine Rangliste nutzen.
 Kein Modellaufruf, keine API-Kosten. Ergebnis: eval/results/retrieval_<zeitstempel>.json.
 """
 
@@ -31,6 +34,8 @@ except ImportError:  # pragma: no cover
 
 QUESTIONS = HERE / "questions.jsonl"
 RESULTS = HERE / "results"
+FUSIONS = ("hybrid", "vector", "fulltext")  # wie app/retrieval.py
+RECALL_K = 10
 
 def _auth_headers() -> dict[str, str]:
     """API_KEY des Backends aus STROMLAUF_API_KEY (leer = Backend offen)."""
@@ -59,11 +64,25 @@ def gate_failed(summary: dict, minimum: float) -> bool:
     return summary["fakten_mittel"] < minimum or summary["nicht_bewertet_fehler"] > 0
 
 
-def fetch(client: httpx.Client, question: dict, source_ids: dict[str, str]) -> object:
+def recall_at_k(expected: list[str], files: list[str]) -> float | None:
+    """Anteil der erwarteten Dateien unter den gelieferten; None, wenn die Frage keine erwartet."""
+    return len(set(expected) & set(files)) / len(set(expected)) if expected else None
+
+
+def recall_summary(rows: list[dict]) -> dict:
+    values = [r["recall_at_10"] for r in rows if r.get("recall_at_10") is not None]
+    mean = round(sum(values) / len(values), 3) if values else None
+    return {"recall_at_10": mean, "recall_at_10_fragen": len(values)}
+
+
+def fetch(
+    client: httpx.Client, question: dict, source_ids: dict[str, str], fusion: str = "hybrid", k: int = 8
+) -> object:
     mode, query = question["retrieval"]["mode"], question["retrieval"]["query"]
     source_id = source_ids.get(question.get("source") or "")
     if mode in {"tag", "semantic", "keyword"}:
-        response = client.get("/api/search", params={"q": query, "mode": mode, "source_id": source_id, "k": 8})
+        params = {"q": query, "mode": mode, "source_id": source_id, "k": k, "fusion": fusion}
+        response = client.get("/api/search", params=params)
     elif mode == "fact":
         response = client.get("/api/facts", params={"tag": query, "source_ids": [source_id]})
     elif mode == "signal":
@@ -81,6 +100,8 @@ def main() -> int:
     parser.add_argument("--min", type=float, default=0.0, help="Exit-Code 1, wenn fakten_mittel darunter liegt")
     parser.add_argument("--min-sources", type=float, default=0.0, help="Exit-Code 1, wenn quellen_ok darunter liegt")
     parser.add_argument("--baseline", type=Path, help="Frueheres Ergebnis zum Vergleich")
+    parser.add_argument("--fusion", choices=FUSIONS, default="hybrid",
+                        help="Ranglisten der Suche mode=semantic: beide (Standard) oder nur Vektor bzw. Volltext")
     args = parser.parse_args()
 
     questions = [q for q in evallib.load_questions(QUESTIONS, args.only) if q.get("retrieval")]
@@ -101,17 +122,22 @@ def main() -> int:
         rows = []
         for i, q in enumerate(questions, 1):
             mode = q["retrieval"]["mode"]
+            recall = None
             try:
-                text, files = evallib.flatten(mode, fetch(client, q, by_name))
+                text, files = evallib.flatten(mode, fetch(client, q, by_name, args.fusion))
+                if mode == "semantic" and q.get("expect_sources"):
+                    top = evallib.flatten(mode, fetch(client, q, by_name, args.fusion, RECALL_K))[1]
+                    recall = recall_at_k(q["expect_sources"], top)
             except Exception as exc:  # HTTP-Fehler, Netz
                 text, files = answer_for_error(exc), []
             cited = [{"filename": f} for f in files]
             result = evallib.score(q, text, cited, None, check_sources=mode not in evallib.NO_FILES)
             rows.append({"id": q["id"], "source": q.get("source"), "question": q["question"], "mode": mode,
-                         "answer": text, "sources": cited, "dauer_s": 0.0, "score": result})
+                         "answer": text, "sources": cited, "dauer_s": 0.0, "score": result,
+                         "recall_at_10": recall})
             evallib.print_row(i, len(questions), q, result)
 
-    summary = evallib.summarize(rows)
+    summary = {**evallib.summarize(rows), "fusion": args.fusion, **recall_summary(rows)}
     out = evallib.write_result(RESULTS, "retrieval_", summary, rows)
     evallib.print_summary(summary, args.baseline)
     print(f"\nErgebnis: {out}")

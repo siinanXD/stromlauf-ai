@@ -740,6 +740,34 @@ def test_retrieval_gate_fails_on_unscored_errors():
     assert not rr.gate_failed({"fakten_mittel": 0.0, "nicht_bewertet_fehler": 3}, 0.0)
 
 
+def test_retrieval_recall_at_k_zaehlt_erwartete_dateien_unter_den_treffern():
+    rr = _load("run_retrieval")
+    assert rr.recall_at_k(["a.md", "b.pdf"], ["a.md", "x.csv"]) == 0.5
+    assert rr.recall_at_k(["a.md"], ["a.md", "a.md"]) == 1.0
+    assert rr.recall_at_k(["a.md"], []) == 0.0
+    assert rr.recall_at_k([], ["a.md"]) is None
+    assert rr.recall_summary([{"recall_at_10": 1.0}, {"recall_at_10": 0.5}, {"recall_at_10": None}, {}]) == {
+        "recall_at_10": 0.75, "recall_at_10_fragen": 2,
+    }
+    assert rr.recall_summary([{}]) == {"recall_at_10": None, "recall_at_10_fragen": 0}
+
+
+def test_retrieval_fetch_sendet_fusion_und_laesst_k_des_bisherigen_laufs():
+    rr = _load("run_retrieval")
+    calls = []
+
+    class Client:
+        def get(self, url, params):
+            calls.append((url, params))
+            return type("R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"text": "", "refs": []}})()
+
+    q = {"source": "FB", "retrieval": {"mode": "semantic", "query": "Motor"}}
+    rr.fetch(Client(), q, {"FB": "s1"})
+    rr.fetch(Client(), q, {"FB": "s1"}, fusion="vector", k=10)
+    assert calls[0] == ("/api/search", {"q": "Motor", "mode": "semantic", "source_id": "s1", "k": 8, "fusion": "hybrid"})
+    assert calls[1][1]["fusion"] == "vector" and calls[1][1]["k"] == 10
+
+
 # --- Verbrauch und Kosten ------------------------------------------------------------------------
 
 
