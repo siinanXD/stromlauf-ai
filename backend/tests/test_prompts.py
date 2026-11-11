@@ -26,7 +26,7 @@ TRANSCRIBED = (
 
 
 def test_version_steigt_mit_dem_neuen_prompt():
-    assert PROMPT_VERSION == 5
+    assert PROMPT_VERSION == 6
 
 
 def test_prompt_schreibt_echte_umlaute():
@@ -74,3 +74,21 @@ def test_gelerntes_steht_als_kontext_nach_der_maschine():
     assert "- Der Antrieb ist -M1.\n- -F2 schützt -M1.\n</kontext>" in text
     leer = {"id": "m1", "name": "FB-01", "hall": "", "wissen": []}
     assert "<kontext>" not in system_prompt_for({"machine": leer})[len(SYSTEM_PROMPT) :]
+
+
+def test_belegregel_nennt_je_angabe_das_dokument():
+    """SIN-1622: Die Kurzantwort darf sich nicht auf einen Beleg aus dem Plan beschraenken, wenn die Angabe aus
+    Stueckliste, Klemmenplan, Symboltabelle oder AWL stammt."""
+    belege = SYSTEM_PROMPT.split("\nBelege\n", 1)[1].split("\nStil\n", 1)[0]
+    for dokument in (
+        "Stückliste",
+        "Klemmenplan",
+        "Symboltabelle",
+        "AWL-Netzwerk",
+        "Stromlaufplan",
+        "Handbuch",
+    ):
+        assert dokument in belege, dokument
+    assert "bekommt jede ihren Beleg" in belege
+    kurzantwort = SYSTEM_PROMPT.split("## Kurzantwort\n", 1)[1].split("## Prüfen", 1)[0]
+    assert "dem entscheidenden" not in kurzantwort and "siehe Belege" in kurzantwort

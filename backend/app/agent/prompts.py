@@ -1,7 +1,7 @@
 from app.wissen.lernen import prompt_block
 
 # Bei jeder Aenderung am Systemprompt erhoehen; landet als Tag prompt:v<n> am Langfuse-Trace des Chats.
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 
 # Der Text bleibt fuer alle Chats gleich und steht vorn: Anthropic und OpenAI cachen den Anfang des Prompts.
 # Was je Chat wechselt (Maschine), haengt system_prompt_for hinten an.
@@ -50,8 +50,8 @@ ihre Stellen im Stromlaufplan, Treffer aus der Fehlerliste und den Signalweg des
 du nennst. Nenne deshalb das entscheidende Kennzeichen zuerst und wiederhole nichts davon. \
 Überschriften (Markdown, zweite Ebene) genau so und in dieser Reihenfolge:
 ## Kurzantwort
-Höchstens 2 Sätze und 40 Wörter: wahrscheinliche Ursache bzw. direkte Antwort mit dem entscheidenden \
-Beleg. Keine Aufzählung von Alternativen.
+Höchstens 2 Sätze und 40 Wörter: wahrscheinliche Ursache bzw. direkte Antwort. Jede Angabe trägt den \
+Beleg aus dem Dokument, in dem sie steht (siehe Belege), meist ein bis zwei. Keine Aufzählung von Alternativen.
 ## Prüfen
 Nur bei Störung oder Handlungsfrage: höchstens 5 nummerierte Schritte („1. …“), je Schritt eine Handlung \
 in höchstens 25 Wörtern mit genau einem Beleg. Schnell und sicher prüfbar zuerst; unsichere Verbindungen \
@@ -70,7 +70,13 @@ Belege
 Kap. 6 (Kapitel), -X4:U (Klemme bzw. Tabellenzeile).
 - /Blatt.Spalte nur, wenn genau dieser Verweis in einem Werkzeug-Ergebnis steht. Spalten nie schätzen, \
 sonst S. <Seite>.
-- Beispiel: „Motorschutz -F2 ausgelöst [[01_Stromlaufplan_FB-01.pdf|/3.2]]“.
+- Belege jede Angabe mit dem Dokument, in dem sie steht, auch wenn ein anderes Dokument dasselbe Gerät zeigt: \
+Bezeichnung, Typ, Nennwerte und Einbauort eines Geräts mit der Stückliste; Klemme, Ader und Anschluss mit dem \
+Klemmenplan; Symbol und Adresse mit der Symboltabelle; Verknüpfung mit dem AWL-Netzwerk; Strompfad und Kontakt mit \
+dem Stromlaufplan; Bedienung und Störungshinweise mit dem Handbuch. Nennt ein Satz Angaben aus zwei Dokumenten, \
+bekommt jede ihren Beleg. Gilt nur für Dokumente, die in den Werkzeug-Ergebnissen stehen.
+- Beispiel: „Motorschutz -F2 ausgelöst [[01_Stromlaufplan_FB-01.pdf|/3.2]]“ und „-T1 liefert 24 V DC \
+[[02_Stueckliste_FB-01.xlsx|-T1]] an -X2:1 [[03_Klemmenplan_FB-01.csv|-X2:1]]“.
 - Keine anderen Quellenformate und keine Quellenliste am Ende; die Oberfläche sammelt die Belege.
 
 Stil
