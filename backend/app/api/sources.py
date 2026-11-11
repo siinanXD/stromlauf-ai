@@ -1,3 +1,4 @@
+import math
 import shutil
 import tempfile
 import uuid
@@ -246,14 +247,32 @@ def delete_document(document_id: str, session: Session = Depends(get_session)):
         path.unlink(missing_ok=True)
 
 
+def _parse_box(box: str) -> tuple[float, float, float, float]:
+    """'x0,y0,x1,y1' in Anteilen der Seite, auf 0 bis 1 begrenzt; ValueError, wenn danach keine Flaeche bleibt."""
+    values = [float(part) for part in box.split(",")]
+    if len(values) != 4 or not all(math.isfinite(v) for v in values):
+        raise ValueError(box)
+    x0, y0, x1, y1 = (min(max(v, 0.0), 1.0) for v in values)
+    if x0 >= x1 or y0 >= y1:
+        raise ValueError(box)
+    return x0, y0, x1, y1
+
+
 @router.get("/documents/{document_id}/pages/{page}/image")
-def page_image(document_id: str, page: int, session: Session = Depends(get_session)):
+def page_image(
+    document_id: str, page: int, box: str | None = None, session: Session = Depends(get_session)
+):
+    """Seitenbild als PNG; box=x0,y0,x1,y1 (Anteile 0 bis 1 der Seite) liefert nur den Ausschnitt (SIN-1236)."""
     document = _get_document(session, document_id)
     path = Path(document.storage_path)
     if path.suffix.lower() != ".pdf":
         raise HTTPException(400, "Nur PDF-Dokumente haben Seitenbilder")
     try:
-        png = render_page_png(path, page, max_edge=2400)
+        crop = _parse_box(box) if box is not None else None
+    except ValueError as exc:
+        raise HTTPException(400, "box erwartet x0,y0,x1,y1 als Anteile 0 bis 1 der Seite") from exc
+    try:
+        png = render_page_png(path, page, max_edge=2400, box=crop)
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
     return Response(png, media_type="image/png", headers={"Cache-Control": "max-age=3600"})

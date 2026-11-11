@@ -152,7 +152,10 @@ der Instandhaltung an der Maschine?
   `GET /api/machines/{id}/fault-hits` (Trefferlogik `app/werk/faults.py`, dieselbe wie `search_faults`; andere Maschinen als
   „Erfahrung“), Text, Bauteile, Signalweg, Im Plan, Im Schrank, Belege; Bloecke ohne Inhalt entfallen, Inhalte laden erst
   bei Sichtbarkeit. `meta.part_kinds`, `signal_start` und `plan_spots` kommen aus `api/answer_meta.py` (Spalte je
-  Kennzeichen `ingestion/tag_columns.py`); alte Antworten ohne diese Felder bekommen keine neuen Bloecke. Endnutzer sehen
+  Kennzeichen `ingestion/tag_columns.py`); alte Antworten ohne diese Felder bekommen keine neuen Bloecke.
+  Belege als Ausschnitt (SIN-1236): `GET /api/documents/{id}/pages/{n}/image?box=x0,y0,x1,y1` (Anteile 0 bis 1, ausserhalb
+  begrenzt, ungueltig 400); Seitenbelege in `meta.evidence` tragen `box` (`answer_meta.column_box`, Spalte aus
+  `pdf_layout.page_columns`), wenn die Antwort `/Blatt.Spalte` dieser Seite belegt, sonst gilt die ganze Seite. Endnutzer sehen
   Fehler als Satz (`chat/chatError.tsx`), den Rohtext nur unter „Details“. Unter 1280 px mit offenem Detail wird die Liste
   zur Leiste `IncidentRail`.
 - Planleser (Issue #106): `ingestion/plan_wires.py` liest Leiter aus der Vektorebene (pypdfium2-Rohschnittstelle samt
