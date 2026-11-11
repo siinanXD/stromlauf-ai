@@ -166,7 +166,7 @@ export function SignalViewBody({
   let body: ReactNode;
   if (load.status === "loading") {
     body = (
-      <div className={cn("space-y-2", !compact && "p-4")} aria-busy="true" aria-label="Signalweg wird geladen">
+      <div className={cn("space-y-2", !compact && "p-4")} role="status" aria-busy="true" aria-label="Signalweg wird geladen">
         {Array.from({ length: compact ? 3 : 5 }, (_, i) => (
           <div key={i} className="h-12 animate-pulse rounded-md bg-bg-fill" />
         ))}

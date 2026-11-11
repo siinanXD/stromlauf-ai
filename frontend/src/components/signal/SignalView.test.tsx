@@ -119,5 +119,7 @@ describe("SignalView: auto", () => {
   it("zeigt beim Laden Platzhalter in Blockform", () => {
     const html = render({ status: "loading" });
     expect(html).toContain('aria-busy="true"');
+    // aria-label ist an einem div ohne Rolle nicht erlaubt (axe aria-prohibited-attr, E2E-Lauf 42922497499 auf master)
+    expect(html).toMatch(/role="status"[^>]*aria-label="Signalweg wird geladen"/);
   });
 });
