@@ -66,6 +66,10 @@ der Instandhaltung an der Maschine?
   bekommen keine neue Regel je Beispieldokument mehr. Fremde Formate gehen ueber den Modell-Rueckfall je Seite beim Upload
   (Regeln zuerst, Modell nur fuer Seiten unter der Vertrauensschwelle, Ergebnis als JSON im `plan_cache`); eine neue Regel
   nur, wenn ein Kundenplan sie braucht und der Rueckfall dort versagt oder zu teuer ist.
+  Vertrauensmass je Seite (SIN-1226): `ingestion/page_confidence.py`, `confidence(PageReading)` von 0 bis 1 aus vier
+  gleich gewichteten Anteilen (Blattnummer gelesen, Kopfzeile erkannt, Kennzeichen je Wort, benannte Netzenden),
+  `read_pages(path)` misst sie mit den Regeln; Gewichte und `THRESHOLD` 0,8 stehen dort mit Begruendung. Einstellungen
+  `PAGE_READER_FALLBACK` (Standard an) und `PAGE_READER_THRESHOLD`; die Pipeline ruft das Mass noch nicht auf.
 - Signalweg, Onboarding und Steckbrief sind deterministisch (keine API-Kosten); Parser in
   `backend/app/ingestion/{signal_graph,onboarding,profile}.py`, Tests gegen `examples/foerderband/`.
   Steckbrief (`/quelle/[id]`, `GET /api/sources/{id}/profile`): Dokumenttypen, Abdeckungsmatrix, Luecken
